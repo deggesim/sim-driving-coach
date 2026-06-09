@@ -5,7 +5,7 @@
  */
 
 import { Suspense, use, useEffect, useState } from "react";
-import { Alert } from "react-bootstrap";
+import { Alert, Spinner } from "react-bootstrap";
 import RealtimeAnalysis from "./components/RealtimeAnalysis";
 import SessionHistory from "./components/SessionHistory";
 import SettingsPanel from "./components/SettingsPanel";
@@ -104,7 +104,13 @@ const App = () => {
       {/* Main content */}
       <div className="main-content">
         {tab === "current-session" && (
-          <Suspense fallback={<div className="flex-grow-1" />}>
+          <Suspense
+            fallback={
+              <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+                <Spinner animation="border" variant="secondary" />
+              </div>
+            }
+          >
             <RealtimeAnalysis onSessionClosed={() => setTab("session-list")} />
           </Suspense>
         )}
