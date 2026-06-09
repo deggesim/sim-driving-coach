@@ -547,6 +547,13 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
 
       // Emit pending lap once lastLaptimeMs changes from its crossing-frame value
       // (meaning ACE has written the authoritative time), or after timeout.
+      //
+      // ACE Evo often updates lastLaptimeMs (and resets currentLapTimeMs) BEFORE
+      // updating npos. In that case lastLaptimeMsBaseline already holds the correct
+      // lap time at crossing-detection time and never changes, so `updated` never
+      // fires. At timeout we use lastLaptimeMs directly (identical to baseline since
+      // it didn't change) instead of the prevCurrentLapTimeMs fallback, which would
+      // contain the already-reset new-lap timer (~35–50 ms).
       if (pendingLapComplete) {
         const updated =
           lastLaptimeMs > 0 &&
@@ -555,12 +562,22 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           ++pendingLapComplete.pollsWaited >= PENDING_LAP_TIMEOUT_POLLS;
 
         if (updated || timedOut) {
-          const lapTime = updated
-            ? lastLaptimeMs / 1000
-            : pendingLapComplete.fallbackTimeS;
+          // Prefer the authoritative SHM value (lastLaptimeMs) whenever it is
+          // non-zero. On the timeout path this equals lastLaptimeMsBaseline (ACE
+          // set it before npos). Fall back to prevCurrentLapTimeMs only if ACE
+          // has not written any lap time yet (first-ever lap, cold start).
+          const lapTime =
+            lastLaptimeMs > 0
+              ? lastLaptimeMs / 1000
+              : pendingLapComplete.fallbackTimeS;
+          const source = updated
+            ? "lastLaptimeMs-updated"
+            : lastLaptimeMs > 0
+              ? "lastLaptimeMs-baseline"
+              : "fallback";
           console.log(
             `[AceReader] lapComplete — lap=${pendingLapComplete.lapNumber} lapTime=${lapTime.toFixed(3)}s ` +
-              `source=${updated ? "lastLaptimeMs" : "fallback"} polls=${pendingLapComplete.pollsWaited} ` +
+              `source=${source} polls=${pendingLapComplete.pollsWaited} ` +
               `valid=${pendingLapComplete.valid} car="${pendingLapComplete.car}" ` +
               `track="${pendingLapComplete.track}" length=${pendingLapComplete.layoutLength}m ` +
               `frames=${pendingLapComplete.frames.length}`,
