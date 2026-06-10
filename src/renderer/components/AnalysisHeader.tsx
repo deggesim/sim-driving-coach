@@ -56,8 +56,8 @@ const AnalysisHeader = ({
     setLeaderboardMode(session.leaderboard_mode !== 0);
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setFixedSetup(session.fixed_setup !== 0);
-  // Solo al cambio di sessione, non ad ogni aggiornamento dell'oggetto
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Solo al cambio di sessione, non ad ogni aggiornamento dell'oggetto
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [session?.id]);
 
   const isR3E = session?.game === "r3e";
