@@ -230,7 +230,6 @@ body {
 .deb-content {
   font-size: 14px;
   line-height: 1.7;
-  max-width: 900px;
 }
 .deb-content h1,
 .deb-content h2,
@@ -262,6 +261,27 @@ body {
 }
 .deb-content strong {
   color: var(--text);
+}
+.deb-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.deb-content th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+}
+.deb-content td {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+}
+.deb-content tr:nth-child(even) td {
+  background: var(--bg3);
 }
 
 /* ── Session History ── */
@@ -794,6 +814,134 @@ body {
 }
 .recharts-legend-item-text {
   color: var(--text) !important;
+}
+
+/* ── Laps table UI ── */
+.laps-toggle-btn {
+  font-size: 12px;
+}
+.laps-table .col-icon {
+  width: 24px;
+}
+.laps-table .col-actions {
+  width: 32px;
+}
+.laps-row-clickable {
+  cursor: pointer;
+}
+.laps-row-expanded {
+  background: var(--bg3);
+}
+.laps-chevron {
+  transition: transform 0.25s ease;
+  font-size: 12px;
+}
+.laps-chevron.open {
+  transform: rotate(90deg);
+}
+.laps-cell-best {
+  color: #ffc107 !important;
+}
+.laps-cell-dim {
+  color: var(--text-dim) !important;
+}
+.laps-setup-badge {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  font-size: 12px;
+}
+.laps-pen-icon {
+  opacity: 0.4;
+}
+.laps-setup-edit-btn {
+  font-size: 12px;
+}
+.laps-td-actions {
+  padding: 2px 4px !important;
+}
+.laps-td-telemetry {
+  padding: 0 !important;
+  background: var(--bg2);
+}
+.laps-modal-title {
+  font-size: 16px;
+}
+.laps-page-count {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ── Telemetry Charts ── */
+.telemetry-status {
+  padding: 12px;
+  font-size: 14px;
+}
+.telemetry-container {
+  padding: 8px 4px 4px;
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+.telemetry-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.telemetry-chart-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  padding-left: 8px;
+}
+.telemetry-track-map {
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.telemetry-track-svg {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.telemetry-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.telemetry-tooltip {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+.telemetry-tooltip-dist {
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.telemetry-tooltip-zone {
+  color: #aaa;
+}
+
+/* ── Session Analyses section ── */
+.session-analyses-section {
+  min-height: 0;
 }
 
 /* ── Scrollbar styling ── */

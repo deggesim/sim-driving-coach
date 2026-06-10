@@ -136,7 +136,7 @@ const LapsTable = ({
         {laps.length > 0 && (
           <Button
             variant="secondary"
-            style={{ fontSize: 12 }}
+            className="laps-toggle-btn"
             onClick={toggleHideInvalid}
           >
             <FontAwesomeIcon
@@ -156,7 +156,7 @@ const LapsTable = ({
       >
         <thead>
           <tr>
-            <th style={{ width: 24 }}></th>
+            <th className="col-icon"></th>
             <th>#</th>
             <th>Tempo</th>
             <th>S1</th>
@@ -165,7 +165,7 @@ const LapsTable = ({
             <th>Valido</th>
             <th>Setup</th>
             <th>Data</th>
-            <th style={{ width: 32 }}></th>
+            <th className="col-actions"></th>
           </tr>
         </thead>
         <tbody>
@@ -180,43 +180,37 @@ const LapsTable = ({
             const expanded = expandedId === l.id;
             const clickable = !!l.valid;
             const isBest = l.id === bestLapId;
-            const rowColor = isBest
-              ? { color: "#ffc107" }
-              : { color: "var(--text-dim)" };
-            const tdColor = isBest ? { color: "#ffc107" } : undefined;
+            const iconCellClass = isBest ? "laps-cell-best" : "laps-cell-dim";
+            const dataCellClass = isBest ? "laps-cell-best" : "";
             return (
               <Fragment key={l.id}>
                 <tr
                   onClick={() => toggle(l.id, l.valid)}
-                  style={{
-                    cursor: clickable ? "pointer" : "default",
-                    background: expanded ? "var(--bg3)" : undefined,
-                  }}
+                  className={[
+                    clickable ? "laps-row-clickable" : "",
+                    expanded ? "laps-row-expanded" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   title={clickable ? "Mostra telemetria" : "Giro non valido"}
                 >
-                  <td style={rowColor}>
+                  <td className={iconCellClass}>
                     {clickable && (
                       <FontAwesomeIcon
                         icon={faChevronRight}
-                        style={{
-                          transition: "transform 0.25s ease",
-                          transform: expanded
-                            ? "rotate(90deg)"
-                            : "rotate(0deg)",
-                          fontSize: 12,
-                        }}
+                        className={`laps-chevron${expanded ? " open" : ""}`}
                       />
                     )}
                   </td>
-                  <td style={tdColor}>{l.lap_number}</td>
-                  <td style={tdColor}>{formatLapTime(l.lap_time)}</td>
-                  <td style={tdColor}>
+                  <td className={dataCellClass}>{l.lap_number}</td>
+                  <td className={dataCellClass}>{formatLapTime(l.lap_time)}</td>
+                  <td className={dataCellClass}>
                     {l.sector1 != null ? formatLapTime(l.sector1) : "--"}
                   </td>
-                  <td style={tdColor}>
+                  <td className={dataCellClass}>
                     {l.sector2 != null ? formatLapTime(l.sector2) : "--"}
                   </td>
-                  <td style={tdColor}>
+                  <td className={dataCellClass}>
                     {l.sector3 != null ? formatLapTime(l.sector3) : "--"}
                   </td>
                   <td>
@@ -234,16 +228,7 @@ const LapsTable = ({
                       <Badge
                         bg="info"
                         as="button"
-                        style={{
-                          maxWidth: 160,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          display: "inline-block",
-                          cursor: "pointer",
-                          border: "none",
-                          fontSize: 12,
-                        }}
+                        className="laps-setup-badge"
                         title="Cambia setup"
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
@@ -257,27 +242,23 @@ const LapsTable = ({
                       <Button
                         variant="link"
                         size="sm"
-                        className="text-muted p-0"
+                        className="text-muted p-0 laps-setup-edit-btn"
                         title="Assegna setup"
                         onClick={(e) => {
                           e.stopPropagation();
                           onPickSetup?.(l);
                         }}
-                        style={{ fontSize: 12 }}
                       >
-                        <FontAwesomeIcon
-                          icon={faPen}
-                          style={{ opacity: 0.4 }}
-                        />
+                        <FontAwesomeIcon icon={faPen} className="laps-pen-icon" />
                       </Button>
                     )}
                   </td>
-                  <td style={isBest ? { color: "#ffc107" } : undefined}>
+                  <td className={dataCellClass}>
                     {parseLocalDate(l.recorded_at).toLocaleString("it-IT")}
                   </td>
                   <td
                     onClick={(e) => e.stopPropagation()}
-                    style={{ padding: "2px 4px" }}
+                    className="laps-td-actions"
                   >
                     <Button
                       variant="link"
@@ -291,10 +272,7 @@ const LapsTable = ({
                   </td>
                 </tr>
                 <tr className="lap-telemetry-row">
-                  <td
-                    colSpan={10}
-                    style={{ padding: 0, background: "var(--bg2)" }}
-                  >
+                  <td colSpan={10} className="laps-td-telemetry">
                     <div
                       className={`lap-telemetry-wrapper${expanded ? " open" : ""}`}
                       aria-hidden={!expanded}
@@ -319,7 +297,7 @@ const LapsTable = ({
         className="delete-confirm-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title style={{ fontSize: 16 }}>
+          <Modal.Title className="laps-modal-title">
             Conferma eliminazione
           </Modal.Title>
         </Modal.Header>
@@ -349,10 +327,7 @@ const LapsTable = ({
       </Modal>
 
       <div className="sh-pagination d-flex align-items-center gap-2 px-0 py-1">
-        <span
-          className="sh-page-count text-secondary"
-          style={{ fontSize: 12, whiteSpace: "nowrap" }}
-        >
+        <span className="sh-page-count text-secondary laps-page-count">
           {visibleLaps.length === 0
             ? "0 giri"
             : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, visibleLaps.length)} di ${visibleLaps.length}`}

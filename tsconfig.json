@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "jsx": "react-jsx",
     "target": "ES2024",
     "strict": true,
     "esModuleInterop": true,

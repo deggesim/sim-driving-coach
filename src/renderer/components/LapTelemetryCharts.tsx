@@ -28,7 +28,6 @@ type ChartPoint = {
 
 const AXIS_COLOR = "#888";
 const GRID_COLOR = "#2e2e2e";
-const BG_TOOLTIP = "#1a1a1a";
 const TRACK_STROKE = "#666";
 const MARKER_FILL = "#f1c40f";
 const MAX_POINTS = 400;
@@ -55,18 +54,10 @@ const PedalsTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   const dist = label ?? 0;
   const zone = Math.floor(dist / ZONE_SIZE_M);
   return (
-    <div
-      style={{
-        background: BG_TOOLTIP,
-        border: `1px solid ${GRID_COLOR}`,
-        borderRadius: 4,
-        padding: "6px 10px",
-        fontSize: 12,
-        color: "#e8e8e8",
-      }}
-    >
-      <div style={{ color: "#888", marginBottom: 4 }}>
-        {formatDist(dist)} &nbsp;<span style={{ color: "#aaa" }}>zona {zone}</span>
+    <div className="telemetry-tooltip">
+      <div className="telemetry-tooltip-dist">
+        {formatDist(dist)} &nbsp;
+        <span className="telemetry-tooltip-zone">zona {zone}</span>
       </div>
       {payload.map((p) => (
         <div key={p.dataKey} style={{ color: p.color }}>
@@ -83,18 +74,10 @@ const SpeedTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   const dist = label ?? 0;
   const zone = Math.floor(dist / ZONE_SIZE_M);
   return (
-    <div
-      style={{
-        background: BG_TOOLTIP,
-        border: `1px solid ${GRID_COLOR}`,
-        borderRadius: 4,
-        padding: "6px 10px",
-        fontSize: 12,
-        color: "#e8e8e8",
-      }}
-    >
-      <div style={{ color: "#888", marginBottom: 4 }}>
-        {formatDist(dist)} &nbsp;<span style={{ color: "#aaa" }}>zona {zone}</span>
+    <div className="telemetry-tooltip">
+      <div className="telemetry-tooltip-dist">
+        {formatDist(dist)} &nbsp;
+        <span className="telemetry-tooltip-zone">zona {zone}</span>
       </div>
       <div style={{ color: p.color }}>
         {p.name}: {Math.round(p.value)} km/h
@@ -203,7 +186,7 @@ const TrackMapSvg = ({ geometry, marker, flipX = false }: TrackMapSvgProps) => {
   return (
     <svg
       viewBox={`${bounds.minX} ${bounds.minZ} ${width} ${height}`}
-      style={{ width: "100%", height: "100%", display: "block" }}
+      className="telemetry-svg"
       preserveAspectRatio="xMidYMid meet"
     >
       <g transform={flipX ? mirrorTransform : undefined}>
@@ -311,7 +294,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
 
   if (loading) {
     return (
-      <div className="text-muted" style={{ padding: 12, fontSize: 14 }}>
+      <div className="text-muted telemetry-status">
         Caricamento telemetria…
       </div>
     );
@@ -319,7 +302,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
 
   if (data.length === 0) {
     return (
-      <div className="text-muted" style={{ padding: 12, fontSize: 14 }}>
+      <div className="text-muted telemetry-status">
         Nessun dato di telemetria disponibile per questo giro.
       </div>
     );
@@ -341,31 +324,18 @@ const LapTelemetryCharts = ({ lap }: Props) => {
   const ZONE_REF_STEP = 10;
   const maxDist = data.length > 0 ? data[data.length - 1].dist : 0;
   const zoneRefLines: number[] = [];
-  for (let z = ZONE_REF_STEP; z * ZONE_SIZE_M <= maxDist + ZONE_SIZE_M; z += ZONE_REF_STEP) {
+  for (
+    let z = ZONE_REF_STEP;
+    z * ZONE_SIZE_M <= maxDist + ZONE_SIZE_M;
+    z += ZONE_REF_STEP
+  ) {
     zoneRefLines.push(z * ZONE_SIZE_M);
   }
 
   const charts = (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        flex: 1,
-        minWidth: 0,
-      }}
-    >
+    <div className="telemetry-charts">
       <div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#888",
-            marginBottom: 4,
-            paddingLeft: 8,
-          }}
-        >
-          Freno / Acceleratore (%)
-        </div>
+        <div className="telemetry-chart-label">Freno / Acceleratore (%)</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart
             data={data}
@@ -398,7 +368,12 @@ const LapTelemetryCharts = ({ lap }: Props) => {
                 x={d}
                 stroke="#3a3a3a"
                 strokeDasharray="2 4"
-                label={{ value: `Z${d / ZONE_SIZE_M}`, position: "top", fontSize: 9, fill: "#555" }}
+                label={{
+                  value: `Z${d / ZONE_SIZE_M}`,
+                  position: "top",
+                  fontSize: 9,
+                  fill: "#555",
+                }}
               />
             ))}
             <Line
@@ -424,16 +399,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
       </div>
 
       <div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#888",
-            marginBottom: 4,
-            paddingLeft: 8,
-          }}
-        >
-          Velocità (km/h)
-        </div>
+        <div className="telemetry-chart-label">Velocità (km/h)</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart
             data={data}
@@ -480,32 +446,11 @@ const LapTelemetryCharts = ({ lap }: Props) => {
   );
 
   return (
-    <div
-      style={{
-        padding: "8px 4px 4px",
-        display: "flex",
-        gap: 12,
-        alignItems: "stretch",
-      }}
-    >
+    <div className="telemetry-container">
       {trackMap && (
-        <div
-          style={{
-            width: 260,
-            minWidth: 260,
-            maxWidth: 260,
-            background: BG_TOOLTIP,
-            border: `1px solid ${GRID_COLOR}`,
-            borderRadius: 4,
-            padding: 8,
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
-            Tracciato
-          </div>
-          <div style={{ flex: 1, minHeight: 260 }}>
+        <div className="telemetry-track-map">
+          <div className="telemetry-chart-label">Tracciato</div>
+          <div className="telemetry-track-svg">
             <TrackMapSvg
               geometry={trackMap}
               marker={marker}
