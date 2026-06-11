@@ -1,4 +1,4 @@
-import { use, useMemo } from "react";
+import { useEffect } from "react";
 import { useSessionStore } from "../store/sessionStore";
 import SessionPanel from "./SessionPanel";
 
@@ -8,9 +8,11 @@ const RealtimeAnalysis = ({
   onSessionClosed?: () => void;
 }) => {
   const loadCurrent = useSessionStore((s) => s.loadCurrent);
-  // eslint-disable-next-line @eslint-react/exhaustive-deps
-  const loadPromise = useMemo(() => loadCurrent(), []);
-  use(loadPromise);
+
+  useEffect(() => {
+    void loadCurrent();
+  }, [loadCurrent]);
+
   return <SessionPanel mode="live" onSessionClosed={onSessionClosed} />;
 };
 

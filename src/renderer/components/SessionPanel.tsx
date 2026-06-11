@@ -22,8 +22,6 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
   const session = useSessionStore((s) => s.session);
   const analyses = useSessionStore((s) => s.analyses);
   const streaming = useSessionStore((s) => s.streaming);
-  const loadCurrent = useSessionStore((s) => s.loadCurrent);
-
   const { flash, setFlash, showFlash } = useFlash();
   const {
     showPicker,
@@ -84,8 +82,6 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       );
       return;
     }
-    await loadCurrent();
-    showFlash("success", "Sessione riaperta.");
     onReopened?.();
   };
 
