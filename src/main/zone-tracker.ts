@@ -1,5 +1,5 @@
 /**
- * ZoneTracker — Tracks the current 50m zone during a lap.
+ * ZoneTracker - Tracks the current 50m zone during a lap.
  *
  * Factory function. Used by RuleEngine.processFrame()
  * to feed AdaptiveBaseline.checkZoneRealtime().

@@ -30,9 +30,9 @@ const ANALYSIS_R3E: SessionAnalysisRow = {
 | Z-22 | 1.08 km | Ford Kurve | TRAIL_BRAKING | -0.05s |
 
 **Dettaglio:**
-- **Z-08 Einfahrt Mercedes** — freno 18m più tardi della baseline, velocità di apice 3 km/h inferiore (82 vs 85 km/h). Prova ad anticipare di 10m il punto di staccata.
-- **Z-15 Rettifilo est** — gas ritardato di 0.4s dopo l'apice. Il posteriore è stabile: accelera prima.
-- **Z-22 Ford Kurve** — trail braking eccessivo (freno fino a 22m dall'apice vs baseline 14m). Rischio sovrasterzo in uscita. Rilascia il freno 5m prima.
+- **Z-08 Einfahrt Mercedes** - freno 18m più tardi della baseline, velocità di apice 3 km/h inferiore (82 vs 85 km/h). Prova ad anticipare di 10m il punto di staccata.
+- **Z-15 Rettifilo est** - gas ritardato di 0.4s dopo l'apice. Il posteriore è stabile: accelera prima.
+- **Z-22 Ford Kurve** - trail braking eccessivo (freno fino a 22m dall'apice vs baseline 14m). Rischio sovrasterzo in uscita. Rilascia il freno 5m prima.
 
 ---
 
@@ -73,9 +73,9 @@ const ANALYSIS_ACE: SessionAnalysisRow = {
 | Z-27 | 1.33 km | Lesmo 2 | LATE_BRAKE | -0.07s |
 
 **Dettaglio:**
-- **Z-04 Prima variante** — sovrapposizione freno/gas di 0.3s in ingresso curva. Separa le fasi: frena, poi gas. Stai penalizzando l'assetto anteriore.
-- **Z-11 Seconda variante** — 0.7s di coasting tra freno e gas. La Porsche GT4 risponde bene al gas precoce su questo tipo di curva.
-- **Z-27 Lesmo 2** — staccata 12m più tardi della baseline. Velocità in uscita 5 km/h sotto. Il grip posteriore è disponibile: anticipa.
+- **Z-04 Prima variante** - sovrapposizione freno/gas di 0.3s in ingresso curva. Separa le fasi: frena, poi gas. Stai penalizzando l'assetto anteriore.
+- **Z-11 Seconda variante** - 0.7s di coasting tra freno e gas. La Porsche GT4 risponde bene al gas precoce su questo tipo di curva.
+- **Z-27 Lesmo 2** - staccata 12m più tardi della baseline. Velocità in uscita 5 km/h sotto. Il grip posteriore è disponibile: anticipa.
 
 ---
 

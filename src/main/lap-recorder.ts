@@ -1,5 +1,5 @@
 /**
- * LapRecorder — Attaches to R3EReader, aggregates frames into 50m zones.
+ * LapRecorder - Attaches to R3EReader, aggregates frames into 50m zones.
  *
  * Events:
  *   lapRecorded(lap: LapRecord, { calibrating: boolean })
@@ -39,7 +39,7 @@ export type LapRecorder = {
 
 // Detect auto-blip frames over the full sorted lap, so downshifts at zone
 // boundaries are not missed. Uses object identity so zone splitting can reuse.
-// 20 frames ≈ 320ms at 16ms poll — long enough to cover any single blip.
+// 20 frames ≈ 320ms at 16ms poll - long enough to cover any single blip.
 const BLIP_WINDOW = 20;
 const buildBlipSet = (frames: CompactFrame[]): Set<CompactFrame> => {
   const blipSet = new Set<CompactFrame>();
@@ -55,7 +55,10 @@ const buildBlipSet = (frames: CompactFrame[]): Set<CompactFrame> => {
   return blipSet;
 };
 
-const countTransitions = (frames: CompactFrame[], key: "tc" | "abs"): number => {
+const countTransitions = (
+  frames: CompactFrame[],
+  key: "tc" | "abs",
+): number => {
   let count = 0;
   for (let i = 1; i < frames.length; i++) {
     if (frames[i - 1][key] === 0 && frames[i][key] > 0) count++;
@@ -156,8 +159,12 @@ const aggregateZones = (
     // Brake temps: average per wheel over zone, filter out -1 (unavailable)
     const UNAVAIL = -1;
     const btAvg = (idx: number): number => {
-      const vals = zoneFrames.map((f) => f.bt[idx]).filter((v) => v !== UNAVAIL);
-      return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : UNAVAIL;
+      const vals = zoneFrames
+        .map((f) => f.bt[idx])
+        .filter((v) => v !== UNAVAIL);
+      return vals.length > 0
+        ? vals.reduce((a, b) => a + b, 0) / vals.length
+        : UNAVAIL;
     };
     const hasBt = zoneFrames.some((f) => f.bt[0] !== UNAVAIL);
     const avgBrakeTempC: [number, number, number, number] | undefined = hasBt

@@ -1,5 +1,5 @@
 /**
- * useIPC — subscribes to Electron IPC push channels and writes to ipcStore.
+ * useIPC - subscribes to Electron IPC push channels and writes to ipcStore.
  * Call once at the root; all components read state from useIPCStore directly.
  */
 
@@ -14,7 +14,9 @@ export const useIPC = (): void => {
     if (!window.electronAPI) return;
 
     const unsubFrame = window.electronAPI.onFrame((data) => setFrame(data));
-    const unsubLap = window.electronAPI.onLapComplete((data) => setLastLap(data));
+    const unsubLap = window.electronAPI.onLapComplete((data) =>
+      setLastLap(data),
+    );
     const unsubStatus = window.electronAPI.onStatus((data) => setStatus(data));
 
     return () => {
@@ -25,7 +27,7 @@ export const useIPC = (): void => {
   }, [setFrame, setLastLap, setStatus]);
 };
 
-/** Config helpers — thin IPC wrappers, stable references via useCallback. */
+/** Config helpers - thin IPC wrappers, stable references via useCallback. */
 export const useConfig = () => {
   const get = useCallback(async (key: string): Promise<string | null> => {
     if (!window.electronAPI) return null;

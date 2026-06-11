@@ -3,7 +3,7 @@
  * Source: SecondMonitor/Connectors/R3EConnector/R3E.cs (v3.x, Pack=1)
  * Shared memory name: $R3E
  *
- * All fields declared in struct order — offsets computed automatically.
+ * All fields declared in struct order - offsets computed automatically.
  * Nested C# structs are inlined field-by-field to preserve byte layout.
  */
 
@@ -378,7 +378,7 @@ const STRUCT_FIELDS: StructField[] = [
 
   // ── Driver Info ───────────────────────────────────────────────────────────
   { name: "NumCars", type: "int32" },
-  // DriverData[128] not mapped — would require per-entry offset arithmetic
+  // DriverData[128] not mapped - would require per-entry offset arithmetic
 ];
 
 // Auto-compute offsets

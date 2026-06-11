@@ -870,7 +870,7 @@ const SettingsPanel = () => {
       {frame && (
         <div className="settings-section">
           <Form.Label className="setting-section-label">
-            Debug — Ultimo frame
+            Debug - Ultimo frame
           </Form.Label>
           <pre className="debug-frame">
             {JSON.stringify(

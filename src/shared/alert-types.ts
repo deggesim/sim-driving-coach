@@ -1,18 +1,18 @@
-import type { AlertPriority, AlertType } from './types.js';
+import type { AlertPriority, AlertType } from "./types.js";
 
 /**
  * Alert type definitions with priority mapping and Italian message templates.
  */
 
 export const ALERT_PRIORITY: Record<AlertType, AlertPriority> = {
-  // P1 — Safety, immediate, interrupts all
+  // P1 - Safety, immediate, interrupts all
   BRAKE_TEMP_CRITICAL: 1,
 
-  // P2 — TC/ABS anomaly, immediate, queued
+  // P2 - TC/ABS anomaly, immediate, queued
   TC_ANOMALY: 2,
   ABS_ANOMALY: 2,
 
-  // P3 — Technique, post-corner, max 1/zone/lap
+  // P3 - Technique, post-corner, max 1/zone/lap
   LATE_BRAKE: 3,
   SLOW_THROTTLE: 3,
   TRAIL_BRAKING: 3,
@@ -24,8 +24,8 @@ export const ALERT_PRIORITY: Record<AlertType, AlertPriority> = {
 export const BRAKE_TEMP = {
   ideal: 550,
   tolerance: 137.5,
-  min: 412.5,  // 550 - 137.5
-  max: 687.5,  // 550 + 137.5
+  min: 412.5, // 550 - 137.5
+  max: 687.5, // 550 + 137.5
   unavailable: -1,
 } as const;
 
@@ -60,5 +60,5 @@ export const DEVIATION_THRESHOLDS = {
   overlapExtraFrames: 5,
 } as const;
 
-/** Qualification/Leaderboard fixed tire temp — do not flag */
+/** Qualification/Leaderboard fixed tire temp - do not flag */
 export const QUALI_TIRE_TEMP_FIXED = 85;

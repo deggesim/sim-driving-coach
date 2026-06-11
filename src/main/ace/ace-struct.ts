@@ -1,10 +1,10 @@
 /**
- * ACE Shared Memory — struct offsets and type definitions.
+ * ACE Shared Memory - struct offsets and type definitions.
  *
  * Three pages:
- *   Local\ACEVOPhysics   — raw physics telemetry, ~5 KB, every sim step
- *   Local\ACEVOGraphic   — HUD + session state,  ~18 KB, every rendered frame
- *   Local\ACEVOStatic    — static session metadata, ~1 KB, written once
+ *   Local\ACEVOPhysics   - raw physics telemetry, ~5 KB, every sim step
+ *   Local\ACEVOGraphic   - HUD + session state,  ~18 KB, every rendered frame
+ *   Local\ACEVOStatic    - static session metadata, ~1 KB, written once
  *
  * API revision: 2026-04-01
  * Source: https://docs.google.com/document/d/1WzqMLkW2o_C0LGcvdMRelAV31ZIifux0CSHD9k6ddz0/edit?tab=t.0
@@ -27,17 +27,17 @@
 // ── Shared memory names ─────────────────────────────────────────────────────
 
 // Names confirmed working (acevo_pmf_* variant used by ACE and community connectors).
-// Local\ACEVO* names always return handle=0 — removed.
+// Local\ACEVO* names always return handle=0 - removed.
 export const ACE_SHM_PHYSICS = "Local\\acevo_pmf_physics";
 export const ACE_SHM_GRAPHIC = "Local\\acevo_pmf_graphics";
 export const ACE_SHM_STATIC = "Local\\acevo_pmf_static";
 
-// Read buffer sizes — must not exceed the actual SHM region size created by the
+// Read buffer sizes - must not exceed the actual SHM region size created by the
 // game, otherwise koffi.decode will access violation. Values derived from the
 // documented field sequences above; do NOT add a "generous margin" here.
-export const ACE_PHYSICS_BUF = 800;  // documented total: 800 bytes
+export const ACE_PHYSICS_BUF = 800; // documented total: 800 bytes
 export const ACE_GRAPHIC_BUF = 4900; // documented total: 4900 bytes (car_ids[60][2] added 2026-04-01)
-export const ACE_STATIC_BUF = 256;   // documented total: 208 bytes, rounded up
+export const ACE_STATIC_BUF = 256; // documented total: 208 bytes, rounded up
 
 // ── ACEVO_STATUS enum ────────────────────────────────────────────────────────
 
@@ -148,25 +148,25 @@ export const PHY = {
   brake: 8,
   fuel: 12,
   gear: 16,
-  rpms: 20, // int32 — engine RPM
+  rpms: 20, // int32 - engine RPM
   steerAngle: 24,
   speedKmh: 28,
-  accG: 44, // float[3] — G-forces: [0]=lateral, [1]=vertical, [2]=longitudinal
-  wheelsPressure: 88, // float[4] FL,FR,RL,RR — tyre pressures (PSI)
-  wheelAngularSpeed: 104, // float[4] FL,FR,RL,RR — wheel angular speed (rad/s)
-  suspensionTravel: 184, // float[4] FL,FR,RL,RR — suspension travel (m)
-  rideHeight: 268, // float[2] front,rear — aero ride height (m)
-  airTemp: 288, // float — ambient air temperature (°C)
-  roadTemp: 292, // float — road surface temperature (°C)
-  clutch: 364, // float — clutch position 0-1
+  accG: 44, // float[3] - G-forces: [0]=lateral, [1]=vertical, [2]=longitudinal
+  wheelsPressure: 88, // float[4] FL,FR,RL,RR - tyre pressures (PSI)
+  wheelAngularSpeed: 104, // float[4] FL,FR,RL,RR - wheel angular speed (rad/s)
+  suspensionTravel: 184, // float[4] FL,FR,RL,RR - suspension travel (m)
+  rideHeight: 268, // float[2] front,rear - aero ride height (m)
+  airTemp: 288, // float - ambient air temperature (°C)
+  roadTemp: 292, // float - road surface temperature (°C)
+  clutch: 364, // float - clutch position 0-1
   brakeTemp: 348, // float[4] FL,FR,RL,RR
-  slipRatio: 640, // float[4] FL,FR,RL,RR — longitudinal tyre slip ratio
-  slipAngle: 656, // float[4] FL,FR,RL,RR — tyre slip angle (rad)
-  brakeTorque: 716, // float[4] FL,FR,RL,RR — brake torque (Nm)
-  tc: 204,         // float — TC intervention intensity (0.0 = no TC, >0 = TC active)
-  abs: 252,        // float — ABS intervention intensity (0.0 = no ABS, >0 = ABS active)
-  tcinAction: 672, // int32 — 1 when TC cutting power
-  absInAction: 676, // int32 — 1 when ABS modulating brakes
+  slipRatio: 640, // float[4] FL,FR,RL,RR - longitudinal tyre slip ratio
+  slipAngle: 656, // float[4] FL,FR,RL,RR - tyre slip angle (rad)
+  brakeTorque: 716, // float[4] FL,FR,RL,RR - brake torque (Nm)
+  tc: 204, // float - TC intervention intensity (0.0 = no TC, >0 = TC active)
+  abs: 252, // float - ABS intervention intensity (0.0 = no ABS, >0 = ABS active)
+  tcinAction: 672, // int32 - 1 when TC cutting power
+  absInAction: 676, // int32 - 1 when ABS modulating brakes
 } as const;
 
 // ── SPageFileGraphicEvo offsets (Pack=4) ─────────────────────────────────────
@@ -326,20 +326,20 @@ export const PHY = {
 
 export const GFX = {
   packetId: 0,
-  status: 4, // int32 — ACEVO_STATUS
-  tcActive: 45,   // bool (uint8) — TC intervening this frame
-  absActive: 46,  // bool (uint8) — ABS intervening this frame
-  tcPreset: 1872, // uint8 — TC level (byte 0 of SMEvoElectronics, car-dependent range)
-  absPreset: 1874, // uint8 — ABS level (byte 2 of SMEvoElectronics, car-dependent range)
+  status: 4, // int32 - ACEVO_STATUS
+  tcActive: 45, // bool (uint8) - TC intervening this frame
+  absActive: 46, // bool (uint8) - ABS intervening this frame
+  tcPreset: 1872, // uint8 - TC level (byte 0 of SMEvoElectronics, car-dependent range)
+  absPreset: 1874, // uint8 - ABS level (byte 2 of SMEvoElectronics, car-dependent range)
   currentLapTimeMs: 188, // int32
-  npos: 1244, // float — normalised lap position [0.0-1.0]
-  totalLapCount: 2384, // int32 — laps completed this session
-  lastLaptimeMs: 2396, // int32 — last completed lap [ms]
+  npos: 1244, // float - normalised lap position [0.0-1.0]
+  totalLapCount: 2384, // int32 - laps completed this session
+  lastLaptimeMs: 2396, // int32 - last completed lap [ms]
   carModel: 3086, // char[33]
   isInPitLane: 3120, // bool (uint8)
   isValidLap: 3121, // bool (uint8)
-  carCoordinates: 3124, // float[60][3] — player at index 0 in singleplayer
-  carIds: 3940,         // uint64[60][2] — UID↔index map for car_coordinates (added 2026-04-01, unused)
+  carCoordinates: 3124, // float[60][3] - player at index 0 in singleplayer
+  carIds: 3940, // uint64[60][2] - UID↔index map for car_coordinates (added 2026-04-01, unused)
 } as const;
 
 // ── SPageFileStaticEvo offsets (Pack=4) ──────────────────────────────────────

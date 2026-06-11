@@ -1,5 +1,5 @@
 /**
- * TrackMapBuilder — derives a 2D SVG path of the circuit outline from a lap's
+ * TrackMapBuilder - derives a 2D SVG path of the circuit outline from a lap's
  * telemetry frames (world-space X/Z), inspired by SecondMonitor's
  * TrackMapFromTelemetryFactory.
  *

@@ -1,5 +1,5 @@
 /**
- * useVoiceCoach — integrates gamepad trigger, MediaRecorder (audio capture),
+ * useVoiceCoach - integrates gamepad trigger, MediaRecorder (audio capture),
  * Azure STT via IPC, voice query IPC, and Azure/Web Speech TTS playback.
  *
  * Flow:
@@ -77,7 +77,7 @@ const playActivationSound = (): void => {
     // Close context shortly after playback ends
     setTimeout(() => ctx.close(), 400);
   } catch {
-    // Non-critical — ignore if AudioContext is unavailable
+    // Non-critical - ignore if AudioContext is unavailable
   }
 };
 
@@ -111,7 +111,7 @@ const playDeactivationSound = (): void => {
 
     setTimeout(() => ctx.close(), 400);
   } catch {
-    // Non-critical — ignore if AudioContext is unavailable
+    // Non-critical - ignore if AudioContext is unavailable
   }
 };
 
@@ -194,7 +194,9 @@ export const useVoiceCoach = ({
 }: UseVoiceCoachOptions): UseVoiceCoachResult => {
   const [state, setState] = useState<VoiceCoachState>("idle");
   const stateRef = useRef<VoiceCoachState>("idle");
-  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const [transcript, setTranscript] = useState("");
   const [answer, setAnswer] = useState("");
@@ -271,7 +273,7 @@ export const useVoiceCoach = ({
 
           if (blob.size === 0) {
             console.warn(
-              "[VoiceCoach] Empty recording — mic may be muted or silent",
+              "[VoiceCoach] Empty recording - mic may be muted or silent",
             );
             setState("idle");
             return;
@@ -292,7 +294,7 @@ export const useVoiceCoach = ({
                 setTranscript(text);
                 return window.electronAPI.voiceQuery(text);
               } else {
-                // Nothing recognised — go back to idle
+                // Nothing recognised - go back to idle
                 setState("idle");
               }
             })
@@ -387,14 +389,16 @@ export const useVoiceCoach = ({
     };
   }, [enabled, azureTtsEnabled, resetToIdle]);
 
-  // Global input trigger from main process — handles keyboard shortcut.
+  // Global input trigger from main process - handles keyboard shortcut.
   useEffect(() => {
     if (!enabled) return;
     const unsubInput = window.electronAPI.onInputTrigger(triggerListening);
-    return () => { unsubInput(); };
+    return () => {
+      unsubInput();
+    };
   }, [enabled, triggerListening]);
 
-  // Gamepad trigger — poll navigator.getGamepads() in the renderer.
+  // Gamepad trigger - poll navigator.getGamepads() in the renderer.
   // backgroundThrottling:false on the BrowserWindow keeps this running at
   // full rate even when the simulator is in the foreground.
   const prevGamepadRef = useRef<boolean>(false);

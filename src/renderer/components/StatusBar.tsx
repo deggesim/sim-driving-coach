@@ -1,5 +1,5 @@
 /**
- * StatusBar — Always-visible bottom bar.
+ * StatusBar - Always-visible bottom bar.
  * Shows: connection badge, car/track, calibration state, last alert (fade 5s).
  */
 
@@ -24,7 +24,7 @@ const StatusBar = ({ status }: StatusBarProps) => {
 
   return (
     <div className="status-bar">
-      {/* Connection — one badge per game */}
+      {/* Connection - one badge per game */}
       <div className="d-flex align-items-center gap-1">
         <Badge
           bg={status.r3eConnected ? "success" : "secondary"}

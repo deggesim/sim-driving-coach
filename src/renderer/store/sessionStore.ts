@@ -1,5 +1,5 @@
 /**
- * sessionStore — Zustand store for the active or selected session.
+ * sessionStore - Zustand store for the active or selected session.
  * Subscribes to session:* IPC push channels and exposes helpers.
  */
 
@@ -38,7 +38,11 @@ type State = {
   deleteAnalysis: (id: number) => Promise<void>;
   assignLapSetup: (lapId: number, setupId: number | null) => Promise<void>;
   deleteLap: (lapId: number) => Promise<void>;
-  _applyLapAdded: (payload: { sessionId: number; game: GameSource; lap: LapRow }) => void;
+  _applyLapAdded: (payload: {
+    sessionId: number;
+    game: GameSource;
+    lap: LapRow;
+  }) => void;
   _applySetupLoaded: (payload: {
     sessionId: number;
     game: GameSource;
@@ -69,7 +73,14 @@ export const useSessionStore = create<State>((set, get) => ({
 
   setDetail: (detail, mode) => {
     if (!detail) {
-      set({ session: null, laps: [], setups: [], analyses: [], mode, streaming: null });
+      set({
+        session: null,
+        laps: [],
+        setups: [],
+        analyses: [],
+        mode,
+        streaming: null,
+      });
       return;
     }
     set({
@@ -85,7 +96,8 @@ export const useSessionStore = create<State>((set, get) => ({
   loadCurrent: async () => {
     set({ loading: true, error: null });
     try {
-      const detail = (await window.electronAPI.sessionGetCurrent()) as SessionDetail | null;
+      const detail =
+        (await window.electronAPI.sessionGetCurrent()) as SessionDetail | null;
       get().setDetail(detail, "live");
     } catch (e) {
       set({ error: String(e) });
@@ -97,7 +109,10 @@ export const useSessionStore = create<State>((set, get) => ({
   loadById: async (id, game) => {
     set({ loading: true, error: null, mode: "historical" });
     try {
-      const detail = (await window.electronAPI.sessionGetDetail({ id, game })) as SessionDetail | null;
+      const detail = (await window.electronAPI.sessionGetDetail({
+        id,
+        game,
+      })) as SessionDetail | null;
       get().setDetail(detail, "historical");
     } catch (e) {
       set({ error: String(e) });
@@ -106,28 +121,40 @@ export const useSessionStore = create<State>((set, get) => ({
     }
   },
 
-  reset: () => set({
-    mode: "live",
-    session: null,
-    laps: [],
-    setups: [],
-    analyses: [],
-    streaming: null,
-    error: null,
-  }),
+  reset: () =>
+    set({
+      mode: "live",
+      session: null,
+      laps: [],
+      setups: [],
+      analyses: [],
+      streaming: null,
+      error: null,
+    }),
 
   deleteAnalysis: async (id) => {
     const s = get();
     if (!s.session) return;
-    await window.electronAPI.sessionDeleteAnalysis({ id, game: s.session.game });
+    await window.electronAPI.sessionDeleteAnalysis({
+      id,
+      game: s.session.game,
+    });
     set({ analyses: s.analyses.filter((a) => a.id !== id) });
   },
 
   assignLapSetup: async (lapId, setupId) => {
     const s = get();
     if (!s.session) return;
-    await window.electronAPI.lapAssignSetup({ lapId, setupId, game: s.session.game });
-    set({ laps: s.laps.map((l) => l.id === lapId ? { ...l, setup_id: setupId } : l) });
+    await window.electronAPI.lapAssignSetup({
+      lapId,
+      setupId,
+      game: s.session.game,
+    });
+    set({
+      laps: s.laps.map((l) =>
+        l.id === lapId ? { ...l, setup_id: setupId } : l,
+      ),
+    });
   },
 
   deleteLap: async (lapId) => {
@@ -155,7 +182,11 @@ export const useSessionStore = create<State>((set, get) => ({
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
     const current = s.streaming;
-    if (!current || current.sessionId !== sessionId || current.version !== version) {
+    if (
+      !current ||
+      current.sessionId !== sessionId ||
+      current.version !== version
+    ) {
       set({ streaming: { sessionId, version, text: token } });
     } else {
       set({ streaming: { ...current, text: current.text + token } });
@@ -193,7 +224,9 @@ export const useSessionStore = create<State>((set, get) => ({
     const s = get();
     if (!s.session || s.session.id !== id) return;
     set({
-      session: s.session ? { ...s.session, ended_at: new Date().toISOString() } : null,
+      session: s.session
+        ? { ...s.session, ended_at: new Date().toISOString() }
+        : null,
     });
   },
 }));
@@ -209,12 +242,16 @@ export const subscribeSessionIPC = (): void => {
   ipcSubscribed = true;
 
   const store = () => useSessionStore.getState();
-  window.electronAPI.onSessionStarted((d) => store()._applySessionStarted(d as SessionRow));
+  window.electronAPI.onSessionStarted((d) =>
+    store()._applySessionStarted(d as SessionRow),
+  );
   window.electronAPI.onSessionClosed((d) =>
     store()._applySessionClosed(d as { id: number; game: GameSource }),
   );
   window.electronAPI.onSessionLapAdded((d) =>
-    store()._applyLapAdded(d as { sessionId: number; game: GameSource; lap: LapRow }),
+    store()._applyLapAdded(
+      d as { sessionId: number; game: GameSource; lap: LapRow },
+    ),
   );
   window.electronAPI.onSessionSetupLoaded((d) =>
     store()._applySetupLoaded(
@@ -222,9 +259,13 @@ export const subscribeSessionIPC = (): void => {
     ),
   );
   window.electronAPI.onSessionAnalysisChunk((d) =>
-    store()._applyAnalysisChunk(d as { sessionId: number; version: number; token: string }),
+    store()._applyAnalysisChunk(
+      d as { sessionId: number; version: number; token: string },
+    ),
   );
   window.electronAPI.onSessionAnalysisDone((d) =>
-    store()._applyAnalysisDone(d as { sessionId: number; analysis: SessionAnalysisRow }),
+    store()._applyAnalysisDone(
+      d as { sessionId: number; analysis: SessionAnalysisRow },
+    ),
   );
 };

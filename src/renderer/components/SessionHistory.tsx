@@ -1,5 +1,5 @@
 /**
- * SessionHistory — Paginated list of past sessions (R3E + ACE).
+ * SessionHistory - Paginated list of past sessions (R3E + ACE).
  * Columns: Simulator / Car / Track / Date. 10 rows per page.
  * Filters: game / car / track. Sort: started_at asc|desc.
  * Row click → shows SessionDetail inline (back button returns to list).
@@ -23,7 +23,7 @@ import { useSettingsStore } from "../store/settingsStore";
 import SessionPanel from "./SessionPanel";
 
 const PAGE_SIZE = 10;
-const FETCH_SIZE = 500; // upper bound — load all, paginate/filter client-side
+const FETCH_SIZE = 500; // upper bound - load all, paginate/filter client-side
 
 const buildPageWindow = (current: number, total: number): (number | "…")[] => {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -42,7 +42,7 @@ const buildPageWindow = (current: number, total: number): (number | "…")[] => 
   if (current < total - 2) pages.push("…");
   addPage(total);
   return pages;
-}
+};
 
 const formatDate = (iso: string | null | undefined): string => {
   if (!iso) return "—";
@@ -346,7 +346,7 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
                         className="text-secondary ms-1"
                         style={{ fontSize: 12 }}
                       >
-                        — {s.layout_name}
+                        - {s.layout_name}
                       </span>
                     )}
                   </td>

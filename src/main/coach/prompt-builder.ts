@@ -42,15 +42,15 @@ Elenco dei problemi rilevati con dato numerico e marcatori @XXXm. Ordina per imp
 Azioni concrete che il pilota può applicare al prossimo giro, in ordine di priorità.
 
 [5] Sintesi e Prossimo Step
-Massimo 3 frasi, senza markdown (no asterischi, no grassetto). Questa sezione viene letta ad alta voce — menziona SOLO il problema più critico del giro con il dato numerico e l'unica azione correttiva prioritaria per il giro successivo. Non elencare tutto: concentrati su un punto solo.
+Massimo 3 frasi, senza markdown (no asterischi, no grassetto). Questa sezione viene letta ad alta voce - menziona SOLO il problema più critico del giro con il dato numerico e l'unica azione correttiva prioritaria per il giro successivo. Non elencare tutto: concentrati su un punto solo.
 
 Regole:
 - Usa il nome delle curve SOLO se esplicitamente fornito nei dati della sessione. NON inventare o dedurre nomi di curve da conoscenze esterne sul circuito. Se i dati riportano solo "@XXXm zona N", usa ESCLUSIVAMENTE quella notazione senza aggiungere nomi inventati
 - Ogni osservazione deve includere almeno un dato numerico
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C)
 - Pressioni gomme espresse in PSI per Assetto Corsa EVO, in kPa per R3E (converti 1 bar = 14.5038 PSI)
-- Se le temperature freni sono -1, non sono disponibili per questa auto — ignora
-- In R3E, in modalità Leaderboard, le temperature gomme sono fisse a 85°C — non diagnosticare come problema
+- Se le temperature freni sono -1, non sono disponibili per questa auto - ignora
+- In R3E, in modalità Leaderboard, le temperature gomme sono fisse a 85°C - non diagnosticare come problema
 - Unità di misura OBBLIGATORIE per il TTS: scrivi SEMPRE l'unità accanto al numero. Distanze: "XXXm" (mai solo "XXX"). Delta tempi: "X secondi" oppure "X s" (mai solo "X" o "~X"). Esempio corretto: "frenata ritardata di 24m", "puoi guadagnare ~0.2 secondi". Il TTS legge "m" come "metri" e "s" come "secondi".`;
 
 /**
@@ -192,7 +192,7 @@ export const buildPrompt = (
   } else if (deviations === null) {
     parts.push("## Nota");
     parts.push(
-      "Baseline non ancora calibrato — analisi standalone senza confronto con giri precedenti.",
+      "Baseline non ancora calibrato - analisi standalone senza confronto con giri precedenti.",
     );
     parts.push("");
   }
@@ -210,7 +210,7 @@ export const buildPrompt = (
   } else if (!setup) {
     parts.push("## Nota Setup");
     parts.push(
-      "Nessun setup auto disponibile — ometti la sezione [2] o proponi suggerimenti generici basati sulla telemetria.",
+      "Nessun setup auto disponibile - ometti la sezione [2] o proponi suggerimenti generici basati sulla telemetria.",
     );
     parts.push("");
   }
@@ -300,7 +300,7 @@ Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo
 
 ---
 
-## FORMATO OBBLIGATORIO — Template v3
+## FORMATO OBBLIGATORIO - Template v3
 
 ### [1] Analisi Telemetria
 
@@ -380,7 +380,7 @@ Usa label "Prioritaria" per modifiche setup che impattano >0.10s/giro, "Secondar
 
 Paragrafo unico, massimo 3 frasi, SENZA markdown (no asterischi, no grassetto, no bullet).
 Menziona: problema più critico con dato numerico specifico, setup o parametro da caricare, tempo target atteso nel giro di validazione.
-Questa sezione viene letta ad alta voce — NO elenchi, NO tabelle, NO intestazioni.
+Questa sezione viene letta ad alta voce - NO elenchi, NO tabelle, NO intestazioni.
 
 ---
 
@@ -421,10 +421,14 @@ const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
       ` | POST-DX ${avg(rr).toFixed(0)}°C (picco ${peak(rr).toFixed(0)}°C)`,
   ];
 
-  const allPeaks = [peak(fl), peak(fr), peak(rl), peak(rr)].filter((v) => v !== UNAVAIL);
+  const allPeaks = [peak(fl), peak(fr), peak(rl), peak(rr)].filter(
+    (v) => v !== UNAVAIL,
+  );
   const overheating = allPeaks.filter((t) => t > BRAKE_TEMP.max);
   if (overheating.length > 0) {
-    lines.push(`  ⚠ ${overheating.length} freni oltre soglia critica ${BRAKE_TEMP.max}°C`);
+    lines.push(
+      `  ⚠ ${overheating.length} freni oltre soglia critica ${BRAKE_TEMP.max}°C`,
+    );
   }
   return lines.join("\n");
 };
@@ -450,7 +454,8 @@ const summarizeLapZones = (
       const durMs = ((z.absActiveFrames ?? z.absActivations) * 16).toFixed(0);
       bits.push(`ABS:${z.absActivations}ev/${durMs}ms`);
     }
-    if (z.overlapFrames > 3) bits.push(`overlap:${(z.overlapFrames * 16).toFixed(0)}ms`);
+    if (z.overlapFrames > 3)
+      bits.push(`overlap:${(z.overlapFrames * 16).toFixed(0)}ms`);
     lines.push(`  - ${label} → ${bits.join(", ")}`);
   }
   return lines;
@@ -471,7 +476,16 @@ export type SessionPromptInput = {
 };
 
 export const buildSessionPrompt = (input: SessionPromptInput): string => {
-  const { session, laps, setups, priorAnalyses, cornerNames, alerts, leaderboardMode, fixedSetup } = input;
+  const {
+    session,
+    laps,
+    setups,
+    priorAnalyses,
+    cornerNames,
+    alerts,
+    leaderboardMode,
+    fixedSetup,
+  } = input;
   const parts: string[] = [];
 
   parts.push(`## Sessione`);
@@ -484,10 +498,14 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
 
   if (session.game === "r3e") {
     if (leaderboardMode) {
-      parts.push(`- **Modalità Leaderboard ATTIVA**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative — non diagnosticare questi valori come problemi.`);
+      parts.push(
+        `- **Modalità Leaderboard ATTIVA**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative - non diagnosticare questi valori come problemi.`,
+      );
     }
     if (fixedSetup) {
-      parts.push(`- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. Tutte le altre raccomandazioni di setup (sospensioni, aerodinamica, differenziale, ecc.) non sono applicabili — ometti o segnala esplicitamente questa limitazione nella sezione [3] e [4].`);
+      parts.push(
+        `- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. Tutte le altre raccomandazioni di setup (sospensioni, aerodinamica, differenziale, ecc.) non sono applicabili - ometti o segnala esplicitamente questa limitazione nella sezione [3] e [4].`,
+      );
     }
   }
   if (session.ended_at) parts.push(`- Fine: ${session.ended_at}`);
@@ -496,14 +514,18 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     parts.push(`- Miglior giro: ${formatLapTime(session.best_lap)}`);
   parts.push("");
 
-  // Explicit corner name whitelist — model must use ONLY these names
+  // Explicit corner name whitelist - model must use ONLY these names
   parts.push(`## Nomi Curve Autorizzati (FONTE ESCLUSIVA)`);
-  parts.push(`REGOLA ASSOLUTA: usa i nomi curva ESCLUSIVAMENTE da questo elenco. NON usare nomi dedotti da conoscenze esterne sul circuito. Se una curva non compare qui, usa SOLO la notazione "@XXXm".`);
+  parts.push(
+    `REGOLA ASSOLUTA: usa i nomi curva ESCLUSIVAMENTE da questo elenco. NON usare nomi dedotti da conoscenze esterne sul circuito. Se una curva non compare qui, usa SOLO la notazione "@XXXm".`,
+  );
   if (cornerNames.size > 0) {
     const sorted = [...cornerNames.entries()].sort(([a], [b]) => a - b);
     for (const [zone, name] of sorted) parts.push(`- Zona ${zone}: ${name}`);
   } else {
-    parts.push(`- Nessun nome curva disponibile per questo circuito — usa SOLO "@XXXm" per tutte le posizioni.`);
+    parts.push(
+      `- Nessun nome curva disponibile per questo circuito - usa SOLO "@XXXm" per tutte le posizioni.`,
+    );
   }
   parts.push("");
 
@@ -511,7 +533,7 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     setups.map((s) => [s.id, s.setup.name ?? s.setup.carFound]),
   );
 
-  // Laps missing any sector time cannot be valid — exclude them from analysis.
+  // Laps missing any sector time cannot be valid - exclude them from analysis.
   const analyzableLaps = laps.filter(
     (l) => l.sector1 != null && l.sector2 != null && l.sector3 != null,
   );
@@ -622,7 +644,7 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
   parts.push(
     `Produci l'analisi nel formato Template v3. Le sezioni [1], [3], [4] e [5] sono SEMPRE obbligatorie.\n` +
       `ATTENZIONE: non interrompere la generazione prima di aver completato [4] Raccomandazioni Modifiche e [5] Sintesi e Prossimo Step.\n` +
-      `Se i dati sono pochi, scrivi sezioni più concise — ma NON omettere [4] e [5] in nessun caso.\n` +
+      `Se i dati sono pochi, scrivi sezioni più concise - ma NON omettere [4] e [5] in nessun caso.\n` +
       `[5] deve essere un paragrafo singolo di massimo 3 frasi senza markdown.`,
   );
   return parts.join("\n");

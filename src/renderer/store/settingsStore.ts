@@ -1,5 +1,5 @@
 /**
- * settingsStore — Zustand store for user settings (loaded from SQLite via IPC).
+ * settingsStore - Zustand store for user settings (loaded from SQLite via IPC).
  * Centralises all settings state that was previously scattered across App.tsx useState calls.
  */
 
@@ -31,7 +31,7 @@ type SettingsStore = {
   // ACE
   aceSetupsPath: string;
 
-  // Loaded flag — true after initFromConfig resolves
+  // Loaded flag - true after initFromConfig resolves
   settingsLoaded: boolean;
 
   // Setters

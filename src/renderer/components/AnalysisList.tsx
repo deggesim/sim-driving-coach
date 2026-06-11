@@ -90,7 +90,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
   );
 
   // User-controlled open key (persisted across streaming transitions).
-  // Streaming key is NOT stored here — it's computed at render time (see effectiveActiveKey).
+  // Streaming key is NOT stored here - it's computed at render time (see effectiveActiveKey).
   const [userActiveKey, setUserActiveKey] = useState<string | null>(() => {
     if (startClosed || analyses.length === 0) return null;
     return `v${analyses[analyses.length - 1].version}`;
@@ -112,7 +112,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
 
     if (streamingVersion !== null || prev === null) return;
 
-    // Streaming just finished for version `prev` — open its completed accordion key.
+    // Streaming just finished for version `prev` - open its completed accordion key.
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setUserActiveKey(`v${prev}`);
   }, [streamingVersion]);

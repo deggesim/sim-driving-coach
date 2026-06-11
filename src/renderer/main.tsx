@@ -7,7 +7,7 @@ import "./styles/global.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     {/* Suspense boundary required for use(settingsLoaderPromise) in App.tsx.
-        The fallback is intentionally minimal — the app loads fast on Electron. */}
+        The fallback is intentionally minimal - the app loads fast on Electron. */}
     <Suspense fallback={<div className="app" />}>
       <App />
     </Suspense>

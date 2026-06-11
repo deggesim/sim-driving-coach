@@ -1,12 +1,12 @@
 /**
- * R3EReader — Opens R3E shared memory ($R3E) and polls at 16ms.
+ * R3EReader - Opens R3E shared memory ($R3E) and polls at 16ms.
  *
  * Events:
- *   connected()                 — R3E shared memory found
- *   disconnected()              — R3E shared memory lost
- *   frame(data: R3EFrame)       — Every 16ms poll
- *   lapComplete(lapData)        — Lap boundary detected
- *   sectorComplete(n, time)     — Sector boundary detected
+ *   connected()                 - R3E shared memory found
+ *   disconnected()              - R3E shared memory lost
+ *   frame(data: R3EFrame)       - Every 16ms poll
+ *   lapComplete(lapData)        - Lap boundary detected
+ *   sectorComplete(n, time)     - Sector boundary detected
  *
  * Auto-enters mock mode on non-Windows or when { mock: true }.
  */
@@ -118,13 +118,13 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     const carSpeed = readFloat(buf, "CarSpeed") * 3.6; // m/s → km/h
     const engineRpm = readFloat(buf, "EngineRps") * (60 / (2 * Math.PI)); // rad/s → RPM
 
-    // BrakeTemp: TireData<BrakeTempInformation> — current temp is first field of each entry
+    // BrakeTemp: TireData<BrakeTempInformation> - current temp is first field of each entry
     const brakeTempFL = readFloat(buf, "BrakeTemp_FL_Current");
     const brakeTempFR = readFloat(buf, "BrakeTemp_FR_Current");
     const brakeTempRL = readFloat(buf, "BrakeTemp_RL_Current");
     const brakeTempRR = readFloat(buf, "BrakeTemp_RR_Current");
 
-    // TireTemp: TireData<TireTempInformation> — center tread temp (Left=0, Center=1, Right=2)
+    // TireTemp: TireData<TireTempInformation> - center tread temp (Left=0, Center=1, Right=2)
     const tireTempFL = readFloat(buf, "TireTemp_FL_Center");
     const tireTempFR = readFloat(buf, "TireTemp_FR_Center");
     const tireTempRL = readFloat(buf, "TireTemp_RL_Center");
@@ -256,7 +256,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     }
     if (frame.completedLaps > lastCompletedLaps && lastCompletedLaps >= 0) {
       console.log(
-        `[R3EReader] lapComplete — lap=${frame.completedLaps} lapTime=${frame.lapTimePreviousSelf.toFixed(3)}s ` +
+        `[R3EReader] lapComplete - lap=${frame.completedLaps} lapTime=${frame.lapTimePreviousSelf.toFixed(3)}s ` +
           `valid=${frame.currentLapValid} car="${currentCar}" track="${currentTrack}" layout="${currentLayout}" ` +
           `layoutLength=${currentLayoutLength} frames=${lapFrames.length}`,
       );
@@ -337,13 +337,13 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       const versionMinor = readInt32(buf, "VersionMinor");
       if (firstPoll || versionMajor !== VERSION_MAJOR) {
         console.log(
-          `[R3EReader] poll — VersionMajor=${versionMajor} VersionMinor=${versionMinor} (expected major=${VERSION_MAJOR})`,
+          `[R3EReader] poll - VersionMajor=${versionMajor} VersionMinor=${versionMinor} (expected major=${VERSION_MAJOR})`,
         );
         firstPoll = false;
       }
       if (versionMajor !== VERSION_MAJOR) {
         console.warn(
-          `[R3EReader] version mismatch: got ${versionMajor}, expected ${VERSION_MAJOR} — disconnecting`,
+          `[R3EReader] version mismatch: got ${versionMajor}, expected ${VERSION_MAJOR} - disconnecting`,
         );
         cleanup();
         scheduleReconnect();

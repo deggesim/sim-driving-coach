@@ -1,12 +1,12 @@
 /**
- * settingsLoader — module-level Promise that loads all persisted config values
+ * settingsLoader - module-level Promise that loads all persisted config values
  * from SQLite via IPC and applies them to the settingsStore in a single batch.
  *
  * Created once at module-load time (before any component mounts). Because
  * window.electronAPI is injected synchronously by Electron's preload script,
  * it is guaranteed to be available here.
  *
- * The Promise is stable — the same object reference is used for the lifetime
+ * The Promise is stable - the same object reference is used for the lifetime
  * of the app, making it safe to pass to React 19's `use()` hook without
  * causing infinite re-suspension.
  */

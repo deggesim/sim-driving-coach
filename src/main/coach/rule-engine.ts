@@ -1,21 +1,26 @@
 /**
  * AlertDispatcher + RuleEngine
  *
- * AlertDispatcher: Emits every alert immediately (no spam filtering) — alerts
+ * AlertDispatcher: Emits every alert immediately (no spam filtering) - alerts
  * are consumed by the analysis pipeline and must not be dropped.
  * RuleEngine: Frame-level P1/P2, post-lap P3 from AdaptiveBaseline deviations.
  */
 
-import { EventEmitter } from 'events';
-import { BRAKE_TEMP } from '../../shared/alert-types.js';
-import type { Alert, AlertType, Deviation, GameFrame } from '../../shared/types.js';
-import type { AdaptiveBaseline } from './adaptive-baseline.js';
+import { EventEmitter } from "events";
+import { BRAKE_TEMP } from "../../shared/alert-types.js";
+import type {
+  Alert,
+  AlertType,
+  Deviation,
+  GameFrame,
+} from "../../shared/types.js";
+import type { AdaptiveBaseline } from "./adaptive-baseline.js";
 
 // --- AlertDispatcher ---
 
 export type AlertDispatcher = {
   dispatch: (alert: Alert) => void;
-  on: (event: 'alert', listener: (alert: Alert) => void) => void;
+  on: (event: "alert", listener: (alert: Alert) => void) => void;
 };
 
 export const createAlertDispatcher = (): AlertDispatcher => {
@@ -23,7 +28,7 @@ export const createAlertDispatcher = (): AlertDispatcher => {
 
   return {
     dispatch: (alert) => {
-      emitter.emit('alert', alert);
+      emitter.emit("alert", alert);
     },
 
     on: (event, listener) => emitter.on(event, listener),
@@ -44,12 +49,16 @@ export const createRuleEngine = (
   baseline: AdaptiveBaseline,
   getCornerName: GetCornerNameFn,
 ): RuleEngine => {
-  const checkBrakeTemp = (frame: GameFrame, zone: number, lap: number): void => {
+  const checkBrakeTemp = (
+    frame: GameFrame,
+    zone: number,
+    lap: number,
+  ): void => {
     const temps = [
-      { label: 'anteriore sinistro', value: frame.brakeTempFL },
-      { label: 'anteriore destro', value: frame.brakeTempFR },
-      { label: 'posteriore sinistro', value: frame.brakeTempRL },
-      { label: 'posteriore destro', value: frame.brakeTempRR },
+      { label: "anteriore sinistro", value: frame.brakeTempFL },
+      { label: "anteriore destro", value: frame.brakeTempFR },
+      { label: "posteriore sinistro", value: frame.brakeTempRL },
+      { label: "posteriore destro", value: frame.brakeTempRR },
     ];
 
     for (const t of temps) {
@@ -57,12 +66,12 @@ export const createRuleEngine = (
 
       if (t.value > BRAKE_TEMP.max) {
         dispatcher.dispatch({
-          type: 'BRAKE_TEMP_CRITICAL',
+          type: "BRAKE_TEMP_CRITICAL",
           priority: 1,
           zone,
           dist: frame.lapDistance,
           lap,
-          message: `Freno ${t.label} a ${Math.round(t.value)} gradi — zona critica`,
+          message: `Freno ${t.label} a ${Math.round(t.value)} gradi - zona critica`,
           immediate: true,
           data: { temp: t.value, wheel: t.label },
           timestamp: Date.now(),
@@ -71,7 +80,12 @@ export const createRuleEngine = (
     }
   };
 
-  const checkTcAbsAnomaly = (frame: GameFrame, zone: number, location: string, lap: number): void => {
+  const checkTcAbsAnomaly = (
+    frame: GameFrame,
+    zone: number,
+    location: string,
+    lap: number,
+  ): void => {
     const check = baseline.checkZoneRealtime({
       zone,
       tcActive: frame.tcActive > 0,
@@ -80,12 +94,12 @@ export const createRuleEngine = (
 
     if (check.tcAnomaly) {
       dispatcher.dispatch({
-        type: 'TC_ANOMALY',
+        type: "TC_ANOMALY",
         priority: 2,
         zone,
         dist: frame.lapDistance,
         lap,
-        message: `TC attivo a ${location} — zona insolita`,
+        message: `TC attivo a ${location} - zona insolita`,
         immediate: true,
         timestamp: Date.now(),
       });
@@ -93,12 +107,12 @@ export const createRuleEngine = (
 
     if (check.absAnomaly) {
       dispatcher.dispatch({
-        type: 'ABS_ANOMALY',
+        type: "ABS_ANOMALY",
         priority: 2,
         zone,
         dist: frame.lapDistance,
         lap,
-        message: `ABS attivo a ${location} — zona insolita`,
+        message: `ABS attivo a ${location} - zona insolita`,
         immediate: true,
         timestamp: Date.now(),
       });
@@ -114,7 +128,8 @@ export const createRuleEngine = (
         : `metro ${Math.round(frame.lapDistance)}`;
 
       checkBrakeTemp(frame, zone, currentLap);
-      if (baseline.isReady()) checkTcAbsAnomaly(frame, zone, location, currentLap);
+      if (baseline.isReady())
+        checkTcAbsAnomaly(frame, zone, location, currentLap);
     },
 
     processLapDeviations: (deviations, lap) => {
@@ -137,6 +152,5 @@ export const createRuleEngine = (
         });
       }
     },
-
   };
 };

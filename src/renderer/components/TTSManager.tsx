@@ -1,5 +1,5 @@
 /**
- * TTSManager — Headless component that manages TTS output.
+ * TTSManager - Headless component that manages TTS output.
  *
  * When azureEnabled: routes through Azure Cognitive Services TTS (MP3 via IPC).
  * When not: uses Web Speech API (SpeechSynthesisUtterance, it-IT).
@@ -46,35 +46,33 @@ const TTSManager = ({
 
   // ── Azure TTS path ──────────────────────────────────────────────────────────
 
-  const speakAzure = useCallback(
-    async (text: string, onDone: () => void) => {
-      try {
-        const raw = await window.electronAPI.ttsSynthesize(text);
-        const arrayBuffer = toArrayBuffer(raw);
-        const ctx = new AudioContext();
-        audioCtxRef.current = ctx;
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(ctx.destination);
-        source.start(0);
-        source.onended = () => {
-          ctx.close();
-          audioCtxRef.current = null;
-          onDone();
-        };
-      } catch (err) {
-        console.error("[TTSManager] Azure TTS error:", err);
+  const speakAzure = useCallback(async (text: string, onDone: () => void) => {
+    try {
+      const raw = await window.electronAPI.ttsSynthesize(text);
+      const arrayBuffer = toArrayBuffer(raw);
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      source.onended = () => {
+        ctx.close();
+        audioCtxRef.current = null;
         onDone();
-      }
-    },
-    [],
-  );
+      };
+    } catch (err) {
+      console.error("[TTSManager] Azure TTS error:", err);
+      onDone();
+    }
+  }, []);
 
   // ── Web Speech path ─────────────────────────────────────────────────────────
 
   const speakNext = useCallback(() => {
-    if (!enabled || speakingRef.current || queueRef.current.length === 0) return;
+    if (!enabled || speakingRef.current || queueRef.current.length === 0)
+      return;
 
     const item = queueRef.current.shift()!;
     speakingRef.current = true;
@@ -152,7 +150,7 @@ const TTSManager = ({
     enqueue(postLapText, 3);
   }, [postLapText, enqueue]);
 
-  // Welcome message — fires once when settings are loaded from config
+  // Welcome message - fires once when settings are loaded from config
   useEffect(() => {
     if (!settingsLoaded) return;
     if (welcomeSpokenRef.current) return;
@@ -205,7 +203,7 @@ const TTSManager = ({
 
   useEffect(() => {
     window.speechSynthesis.onvoiceschanged = () => {
-      /* voices now available — next speak call will pick them up */
+      /* voices now available - next speak call will pick them up */
     };
     return () => {
       window.speechSynthesis.onvoiceschanged = null;

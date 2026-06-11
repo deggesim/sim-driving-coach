@@ -1,5 +1,5 @@
 /**
- * SessionCoachEngine — on-demand session analysis.
+ * SessionCoachEngine - on-demand session analysis.
  *
  * Loads all laps, setups and prior analyses for a session from SQLite,
  * builds a session-level prompt, streams Claude response, persists a new
@@ -8,10 +8,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type Database from "better-sqlite3";
-import {
-  SESSION_SYSTEM_PROMPT,
-  buildSessionPrompt,
-} from "./prompt-builder.js";
+import { SESSION_SYSTEM_PROMPT, buildSessionPrompt } from "./prompt-builder.js";
 import { parseSetupRow, tableFor } from "../db/setup-row.js";
 import type {
   Alert,
@@ -40,7 +37,12 @@ export const isCreditOrQuotaError = (err: unknown): boolean => {
 
 export const buildAnthropicErrorMessage = (err: unknown): string => {
   const msg = err instanceof Error ? err.message.toLowerCase() : "";
-  if (msg.includes("401") || msg.includes("authentication") || msg.includes("invalid") || msg.includes("api key")) {
+  if (
+    msg.includes("401") ||
+    msg.includes("authentication") ||
+    msg.includes("invalid") ||
+    msg.includes("api key")
+  ) {
     return "API Anthropic: chiave non valida. Verifica nelle impostazioni.";
   }
   if (msg.includes("429") || msg.includes("rate") || msg.includes("too many")) {
@@ -58,10 +60,7 @@ type SessionCoachOptions = {
     version: number;
     token: string;
   }) => void;
-  onDone?: (data: {
-    sessionId: number;
-    analysis: SessionAnalysisRow;
-  }) => void;
+  onDone?: (data: { sessionId: number; analysis: SessionAnalysisRow }) => void;
   onError?: (message: string) => void;
 };
 
@@ -119,7 +118,9 @@ export const createSessionCoachEngine = (
 
       const sessionRow = db
         .prepare(`SELECT * FROM ${sessionsTable} WHERE id = ?`)
-        .get(sessionId) as (Omit<SessionRow, "game"> & Record<string, unknown>) | undefined;
+        .get(sessionId) as
+        | (Omit<SessionRow, "game"> & Record<string, unknown>)
+        | undefined;
       if (!sessionRow) return null;
 
       const session: SessionRow = {

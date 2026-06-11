@@ -294,9 +294,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
 
   if (loading) {
     return (
-      <div className="text-muted telemetry-status">
-        Caricamento telemetria…
-      </div>
+      <div className="text-muted telemetry-status">Caricamento telemetria…</div>
     );
   }
 
@@ -320,7 +318,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
   };
   const onChartLeave = () => setHoverDist(null);
 
-  // Zone reference lines every 10 zones (500m) — labelled "Z0", "Z10", etc.
+  // Zone reference lines every 10 zones (500m) - labelled "Z0", "Z10", etc.
   const ZONE_REF_STEP = 10;
   const maxDist = data.length > 0 ? data[data.length - 1].dist : 0;
   const zoneRefLines: number[] = [];

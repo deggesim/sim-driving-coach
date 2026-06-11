@@ -1,5 +1,5 @@
 /**
- * AceSetupPicker — modal to select a .carsetup file for ACE.
+ * AceSetupPicker - modal to select a .carsetup file for ACE.
  *
  * Step 1: choose car from D:\Salvataggi\ACE\Car Setups\ subdirs.
  * Step 2: choose track from {car}\ subdirs.
@@ -91,14 +91,22 @@ const AceSetupPicker = ({
         const pre = list.includes(expectedCar) ? expectedCar : (list[0] ?? "");
         setSelectedCar(pre);
       })
-      .catch(() => { if (!cancelled) setError("Impossibile leggere la cartella Car Setups."); })
-      .finally(() => { if (!cancelled) setLoadingCars(false); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled) setError("Impossibile leggere la cartella Car Setups.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCars(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [show, expectedCar]);
 
   // Load track list when selectedCar changes
   const selectedTrackRef = useRef(selectedTrack);
-  useEffect(() => { selectedTrackRef.current = selectedTrack; }, [selectedTrack]);
+  useEffect(() => {
+    selectedTrackRef.current = selectedTrack;
+  }, [selectedTrack]);
 
   useEffect(() => {
     if (!selectedCar) return;
@@ -121,9 +129,16 @@ const AceSetupPicker = ({
           : (list[0] ?? "");
         setSelectedTrack(pre);
       })
-      .catch(() => { if (!cancelled) setError("Impossibile leggere le tracce per questo veicolo."); })
-      .finally(() => { if (!cancelled) setLoadingTracks(false); });
-    return () => { cancelled = true; };
+      .catch(() => {
+        if (!cancelled)
+          setError("Impossibile leggere le tracce per questo veicolo.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTracks(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedCar]);
 
   // Load file list when selectedTrack changes
@@ -138,10 +153,18 @@ const AceSetupPicker = ({
     setLoadingFiles(true);
     window.electronAPI
       .aceListSetupFiles({ car: selectedCar, track: selectedTrack })
-      .then((list) => { if (!cancelled) setFiles(list); })
-      .catch(() => { if (!cancelled) setError("Impossibile leggere i file setup."); })
-      .finally(() => { if (!cancelled) setLoadingFiles(false); });
-    return () => { cancelled = true; };
+      .then((list) => {
+        if (!cancelled) setFiles(list);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Impossibile leggere i file setup.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingFiles(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [selectedCar, selectedTrack]);
 
   const handleClose = (): void => {
@@ -164,7 +187,9 @@ const AceSetupPicker = ({
       const setup = await window.electronAPI.aceReadSetup({
         filePath: selectedFile,
       });
-      const filename = files.find((f) => f.filePath === selectedFile)?.filename ?? selectedFile;
+      const filename =
+        files.find((f) => f.filePath === selectedFile)?.filename ??
+        selectedFile;
       const name = filename.replace(/\.carsetup$/i, "");
       onConfirm({ ...setup, name });
       handleClose();

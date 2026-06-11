@@ -1,5 +1,5 @@
 /**
- * R3EDataLoader — Loads r3e-data.json from the R3E game installation.
+ * R3EDataLoader - Loads r3e-data.json from the R3E game installation.
  *
  * Provides ID → name lookups for cars, tracks, and layouts.
  * Used to resolve numeric IDs (from shared memory) to human-readable names
@@ -56,9 +56,7 @@ export const loadR3EData = (): boolean => {
     data = JSON.parse(raw) as R3EDataFile;
     const carCount = Object.keys(data.cars ?? {}).length;
     const trackCount = Object.keys(data.tracks ?? {}).length;
-    console.log(
-      `[R3EData] Loaded: ${carCount} cars, ${trackCount} tracks`,
-    );
+    console.log(`[R3EData] Loaded: ${carCount} cars, ${trackCount} tracks`);
     return true;
   } catch (err) {
     console.warn(`[R3EData] Could not load r3e-data.json: ${String(err)}`);

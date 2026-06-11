@@ -1,13 +1,16 @@
 /**
- * AdaptiveBaseline — EMA (alpha=0.3) baseline per 50m zone.
+ * AdaptiveBaseline - EMA (alpha=0.3) baseline per 50m zone.
  *
  * Detects deviations: LATE_BRAKE, SLOW_THROTTLE, TRAIL_BRAKING, COASTING, BRAKE_THROTTLE_OVERLAP.
  * Persists to SQLite: baseline, baseline_tc_zones, baseline_abs_zones tables.
  */
 
-import type Database from 'better-sqlite3';
-import { BASELINE_EMA_ALPHA, DEVIATION_THRESHOLDS } from '../../shared/alert-types.js';
-import type { ZoneData, Deviation, DeviationType } from '../../shared/types.js';
+import type Database from "better-sqlite3";
+import {
+  BASELINE_EMA_ALPHA,
+  DEVIATION_THRESHOLDS,
+} from "../../shared/alert-types.js";
+import type { ZoneData, Deviation, DeviationType } from "../../shared/types.js";
 
 type BaselineZone = {
   avgSpeedKmh: number;
@@ -29,8 +32,16 @@ export type AdaptiveBaseline = {
   readonly track: string;
   readonly layout: string;
   isReady: () => boolean;
-  ingestLap: (zones: ZoneData[], lapNumber: number, isCalibrating: boolean) => Deviation[] | null;
-  checkZoneRealtime: (zoneData: { zone: number; tcActive: boolean; absActive: boolean }) => {
+  ingestLap: (
+    zones: ZoneData[],
+    lapNumber: number,
+    isCalibrating: boolean,
+  ) => Deviation[] | null;
+  checkZoneRealtime: (zoneData: {
+    zone: number;
+    tcActive: boolean;
+    absActive: boolean;
+  }) => {
     tcAnomaly: boolean;
     absAnomaly: boolean;
   };
@@ -39,11 +50,26 @@ export type AdaptiveBaseline = {
 const ema = (prev: number, current: number, alpha: number): number =>
   alpha * current + (1 - alpha) * prev;
 
-const makeDeviation = (type: DeviationType, zone: ZoneData, delta: number, message: string): Deviation => ({
-  type, zone: zone.zone, dist: zone.dist, delta, message,
+const makeDeviation = (
+  type: DeviationType,
+  zone: ZoneData,
+  delta: number,
+  message: string,
+): Deviation => ({
+  type,
+  zone: zone.zone,
+  dist: zone.dist,
+  delta,
+  message,
 });
 
-export const createAdaptiveBaseline = (car: string, track: string, layout: string, db?: Database.Database, game = 'r3e'): AdaptiveBaseline => {
+export const createAdaptiveBaseline = (
+  car: string,
+  track: string,
+  layout: string,
+  db?: Database.Database,
+  game = "r3e",
+): AdaptiveBaseline => {
   const zones = new Map<number, BaselineZone>();
   const tcZones = new Set<number>();
   const absZones = new Set<number>();
@@ -73,12 +99,28 @@ export const createAdaptiveBaseline = (car: string, track: string, layout: strin
       existing.avgSpeedKmh = ema(existing.avgSpeedKmh, zone.avgSpeedKmh, alpha);
       existing.minSpeedKmh = ema(existing.minSpeedKmh, zone.minSpeedKmh, alpha);
       existing.maxBrakePct = ema(existing.maxBrakePct, zone.maxBrakePct, alpha);
-      existing.avgThrottlePct = ema(existing.avgThrottlePct, zone.avgThrottlePct, alpha);
-      existing.steerDuringBrake = ema(existing.steerDuringBrake, zone.steerDuringBrake, alpha);
+      existing.avgThrottlePct = ema(
+        existing.avgThrottlePct,
+        zone.avgThrottlePct,
+        alpha,
+      );
+      existing.steerDuringBrake = ema(
+        existing.steerDuringBrake,
+        zone.steerDuringBrake,
+        alpha,
+      );
       existing.brakeFrames = ema(existing.brakeFrames, zone.brakeFrames, alpha);
-      existing.throttleFrames = ema(existing.throttleFrames, zone.throttleFrames, alpha);
+      existing.throttleFrames = ema(
+        existing.throttleFrames,
+        zone.throttleFrames,
+        alpha,
+      );
       existing.coastFrames = ema(existing.coastFrames, zone.coastFrames, alpha);
-      existing.overlapFrames = ema(existing.overlapFrames, zone.overlapFrames, alpha);
+      existing.overlapFrames = ema(
+        existing.overlapFrames,
+        zone.overlapFrames,
+        alpha,
+      );
       if (zone.brakeStartDist !== null) {
         existing.brakeStartDist =
           existing.brakeStartDist !== null
@@ -118,7 +160,14 @@ export const createAdaptiveBaseline = (car: string, track: string, layout: strin
         zone.brakeStartDist - base.brakeStartDist > t.lateBrakeMeters
       ) {
         const delta = zone.brakeStartDist - base.brakeStartDist;
-        deviations.push(makeDeviation('LATE_BRAKE', zone, delta, `frenato ${delta.toFixed(0)} metri dopo il riferimento`));
+        deviations.push(
+          makeDeviation(
+            "LATE_BRAKE",
+            zone,
+            delta,
+            `frenato ${delta.toFixed(0)} metri dopo il riferimento`,
+          ),
+        );
       }
 
       // SLOW_THROTTLE: throttle pickup 12m+ later than baseline
@@ -128,53 +177,93 @@ export const createAdaptiveBaseline = (car: string, track: string, layout: strin
         zone.throttlePickupDist - base.throttlePickupDist > t.slowThrottleMeters
       ) {
         const delta = zone.throttlePickupDist - base.throttlePickupDist;
-        deviations.push(makeDeviation('SLOW_THROTTLE', zone, delta, `gas ripreso ${delta.toFixed(0)} metri in ritardo`));
+        deviations.push(
+          makeDeviation(
+            "SLOW_THROTTLE",
+            zone,
+            delta,
+            `gas ripreso ${delta.toFixed(0)} metri in ritardo`,
+          ),
+        );
       }
 
       // TRAIL_BRAKING: steer during brake increased by 0.08+ vs baseline
-      if (zone.steerDuringBrake - base.steerDuringBrake > t.trailBrakingSteerDelta) {
+      if (
+        zone.steerDuringBrake - base.steerDuringBrake >
+        t.trailBrakingSteerDelta
+      ) {
         const delta = zone.steerDuringBrake - base.steerDuringBrake;
-        deviations.push(makeDeviation('TRAIL_BRAKING', zone, delta, `sterzata in frenata anomala, delta ${(delta * 100).toFixed(0)}%`));
+        deviations.push(
+          makeDeviation(
+            "TRAIL_BRAKING",
+            zone,
+            delta,
+            `sterzata in frenata anomala, delta ${(delta * 100).toFixed(0)}%`,
+          ),
+        );
       }
 
       // COASTING: 8+ extra coast frames vs baseline
       if (zone.coastFrames - base.coastFrames > t.coastingExtraFrames) {
         const delta = zone.coastFrames - base.coastFrames;
-        deviations.push(makeDeviation('COASTING', zone, delta, `${delta.toFixed(0)} frame di coasting in più del riferimento`));
+        deviations.push(
+          makeDeviation(
+            "COASTING",
+            zone,
+            delta,
+            `${delta.toFixed(0)} frame di coasting in più del riferimento`,
+          ),
+        );
       }
 
       // BRAKE_THROTTLE_OVERLAP: 5+ extra overlap frames vs baseline
       if (zone.overlapFrames - base.overlapFrames > t.overlapExtraFrames) {
         const delta = zone.overlapFrames - base.overlapFrames;
-        deviations.push(makeDeviation('BRAKE_THROTTLE_OVERLAP', zone, delta, `${delta.toFixed(0)} frame di overlap freno-gas in più`));
+        deviations.push(
+          makeDeviation(
+            "BRAKE_THROTTLE_OVERLAP",
+            zone,
+            delta,
+            `${delta.toFixed(0)} frame di overlap freno-gas in più`,
+          ),
+        );
       }
     }
 
     return deviations;
   };
 
-  const isR3E = game === 'r3e';
-  const carKey   = isR3E ? Number(car)    : car;
-  const trackKey = isR3E ? Number(track)  : track;
+  const isR3E = game === "r3e";
+  const carKey = isR3E ? Number(car) : car;
+  const trackKey = isR3E ? Number(track) : track;
   const layoutKey = isR3E ? Number(layout) : layout;
 
   const loadFromDb = (): void => {
     if (!dbRef) return;
 
-    const suffix = isR3E ? 'r3e' : 'ace';
-    const rows = dbRef.prepare(
-      `SELECT zone_id, data FROM baseline_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
-    ).all(carKey, trackKey, layoutKey) as Array<{ zone_id: number; data: string }>;
+    const suffix = isR3E ? "r3e" : "ace";
+    const rows = dbRef
+      .prepare(
+        `SELECT zone_id, data FROM baseline_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
+      )
+      .all(carKey, trackKey, layoutKey) as Array<{
+      zone_id: number;
+      data: string;
+    }>;
     for (const row of rows) zones.set(row.zone_id, JSON.parse(row.data));
 
-    const tcRows = dbRef.prepare(
-      `SELECT zone_id FROM baseline_tc_zones_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
-    ).all(carKey, trackKey, layoutKey) as Array<{ zone_id: number }>;
+    const tcRows = dbRef
+      .prepare(
+        `SELECT zone_id FROM baseline_tc_zones_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
+      )
+      .all(carKey, trackKey, layoutKey) as Array<{ zone_id: number }>;
     for (const row of tcRows) tcZones.add(row.zone_id);
 
-    const absRows = dbRef.prepare(
-      `SELECT zone_id FROM baseline_abs_zones_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
-    ).all(carKey, trackKey, layoutKey) as Array<{ zone_id: number }>;
+    const absRows = dbRef
+      .prepare(
+        `SELECT zone_id FROM baseline_abs_zones_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
+      )
+      .all(carKey, trackKey, layoutKey) as Array<{ zone_id: number }>;
     for (const row of absRows) absZones.add(row.zone_id);
 
     if (zones.size > 0) ready = true;
@@ -183,7 +272,7 @@ export const createAdaptiveBaseline = (car: string, track: string, layout: strin
   const persistToDb = (): void => {
     if (!dbRef) return;
 
-    const suffix = isR3E ? 'r3e' : 'ace';
+    const suffix = isR3E ? "r3e" : "ace";
     const upsert = dbRef.prepare(`
       INSERT OR REPLACE INTO baseline_${suffix} (car, track, layout, zone_id, data, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -200,7 +289,14 @@ export const createAdaptiveBaseline = (car: string, track: string, layout: strin
     const nowIso = new Date().toISOString();
     const tx = dbRef.transaction(() => {
       for (const [zoneId, data] of zones) {
-        upsert.run(carKey, trackKey, layoutKey, zoneId, JSON.stringify(data), nowIso);
+        upsert.run(
+          carKey,
+          trackKey,
+          layoutKey,
+          zoneId,
+          JSON.stringify(data),
+          nowIso,
+        );
       }
       for (const zoneId of tcZones) {
         upsertTc.run(carKey, trackKey, layoutKey, zoneId);

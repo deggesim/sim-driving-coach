@@ -1,13 +1,9 @@
 /**
- * ipcStore — Zustand store for Electron IPC push state.
+ * ipcStore - Zustand store for Electron IPC push state.
  */
 
 import { create } from "zustand";
-import type {
-  R3EFrame,
-  LapRecord,
-  GameStatus,
-} from "../../shared/types";
+import type { R3EFrame, LapRecord, GameStatus } from "../../shared/types";
 
 const DEFAULT_STATUS: GameStatus = {
   connected: false,

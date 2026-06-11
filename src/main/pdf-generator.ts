@@ -49,7 +49,7 @@ const fmtTime = (s: number | null): string => {
   return m > 0
     ? `${m}:${sec.toFixed(3).padStart(6, "0")}`
     : `${sec.toFixed(3)}s`;
-}
+};
 
 const escapeHtml = (str: string): string => {
   return str
@@ -57,7 +57,7 @@ const escapeHtml = (str: string): string => {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
+};
 
 /**
  * Post-processes rendered HTML to add inline styling for:
@@ -73,7 +73,7 @@ const postProcess = (html: string): string => {
   // ● bullet used for problem headers in some prompts
   html = html.replace(/●/g, "•");
   return html;
-}
+};
 
 /**
  * Parses templateV3 markdown into section blocks and returns their HTML.
@@ -95,7 +95,7 @@ const buildSectionsHtml = (templateV3: string): string => {
     </div>`;
     })
     .join("\n");
-}
+};
 
 /**
  * Builds the structured Setup table HTML (shown after analysis sections).
@@ -126,7 +126,7 @@ const buildSetupTableHtml = (
         </table>
       </div>
     </div>`;
-}
+};
 
 // ── HTML Builder ──────────────────────────────────────────────────────────────
 
@@ -343,7 +343,7 @@ ${setupHtml}
 
 </body>
 </html>`;
-}
+};
 
 // ── PDF Buffer Generator ──────────────────────────────────────────────────────
 
@@ -385,7 +385,7 @@ export const generatePdfBuffer = async (data: PdfData): Promise<Buffer> => {
       // Temp file cleanup is best-effort
     }
   }
-}
+};
 
 // ── Session PDF ───────────────────────────────────────────────────────────────
 
@@ -421,7 +421,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
         )
         .join("");
       return `
-        <h3>Setup #${i + 1} — ${escapeHtml(s.setup.carFound || "")} <span class="muted">(${s.loaded_at})</span></h3>
+        <h3>Setup #${i + 1} - ${escapeHtml(s.setup.carFound || "")} <span class="muted">(${s.loaded_at})</span></h3>
         <table class="params"><thead><tr><th>Categoria</th><th>Parametro</th><th>Valore</th></tr></thead><tbody>${paramsRows}</tbody></table>`;
     })
     .join("");
@@ -455,7 +455,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
   .params td:first-child, .params td:nth-child(2) { width: 25%; }
 </style></head><body>
 
-<h1>Sessione ${session.id} — ${escapeHtml(session.car_name ?? session.car)}</h1>
+<h1>Sessione ${session.id} - ${escapeHtml(session.car_name ?? session.car)}</h1>
 <div class="meta">
   <strong>Circuito:</strong> ${escapeHtml(session.track_name ?? session.track)} (${escapeHtml(session.layout_name ?? session.layout)}) &bull;
   <strong>Inizio:</strong> ${startedAt} &bull;
@@ -476,7 +476,7 @@ ${analyses.length > 0 ? analysesHtml : "<h2>Analisi</h2><p>Nessuna analisi gener
 
 <div class="footer">Sim Driving Coach &bull; Simulatore: ${gameLabel.full}</div>
 </body></html>`;
-}
+};
 
 export const generateSessionPdfBuffer = async (
   detail: SessionDetail,
@@ -514,4 +514,4 @@ export const generateSessionPdfBuffer = async (
       // best-effort
     }
   }
-}
+};

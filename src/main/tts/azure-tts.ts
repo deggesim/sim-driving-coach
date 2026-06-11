@@ -1,5 +1,5 @@
 /**
- * Azure Cognitive Services TTS — REST API wrapper.
+ * Azure Cognitive Services TTS - REST API wrapper.
  *
  * Uses axios for all HTTP calls (shared instance per request, base URL varies by region).
  * Endpoints:
@@ -75,8 +75,7 @@ const numberToItalian = (n: number): string => {
   const rest = n % 1000;
   const thousandsWord = th === 1 ? "mille" : numberToItalian(th) + "mila";
   return thousandsWord + (rest > 0 ? numberToItalian(rest) : "");
-}
-
+};
 
 /**
  * Parse a decimal string (e.g. "20", "34", "567") into its Italian unit info.
@@ -85,7 +84,12 @@ const numberToItalian = (n: number): string => {
  */
 const decPartInfo = (
   decStr: string | undefined,
-): { numStr: string; unit: string; unitPlural: string; digits: number } | null => {
+): {
+  numStr: string;
+  unit: string;
+  unitPlural: string;
+  digits: number;
+} | null => {
   if (!decStr) return null;
   const trimmed = decStr.replace(/0+$/, "");
   if (!trimmed) return null;
@@ -102,20 +106,29 @@ const decPartInfo = (
     unit = val === 1 ? "millesimo" : "millesimi";
     unitPlural = "millesimi";
   }
-  return { numStr: numberToItalian(val), unit, unitPlural, digits: trimmed.length };
-}
+  return {
+    numStr: numberToItalian(val),
+    unit,
+    unitPlural,
+    digits: trimmed.length,
+  };
+};
 
 /** Format a generic duration in seconds to Italian (no "al giro" suffix). */
-const singleSecondsPhrase = (secStr: string, decStr: string | undefined): string => {
+const singleSecondsPhrase = (
+  secStr: string,
+  decStr: string | undefined,
+): string => {
   const sec = parseInt(secStr, 10);
   const dec = decPartInfo(decStr);
   if (!dec) {
     return sec === 1 ? "un secondo" : `${numberToItalian(sec)} secondi`;
   }
   if (sec === 0) return `${dec.numStr} ${dec.unit}`;
-  const secPhrase = sec === 1 ? "un secondo" : `${numberToItalian(sec)} secondi`;
+  const secPhrase =
+    sec === 1 ? "un secondo" : `${numberToItalian(sec)} secondi`;
   return `${secPhrase} e ${dec.numStr} ${dec.unit}`;
-}
+};
 
 /** Format a range "X.Y–X.Z s" to Italian using "o" as conjunction. */
 const rangeSecondsPhrase = (
@@ -135,7 +148,7 @@ const rangeSecondsPhrase = (
   }
 
   return `${singleSecondsPhrase(sec1Str, dec1Str)} o ${singleSecondsPhrase(sec2Str, dec2Str)}`;
-}
+};
 
 /** Convert a single "Xs/giro" or "X.Ys/giro" to Italian with "al giro". */
 const singleLapDeltaPhrase = (
@@ -155,7 +168,7 @@ const singleLapDeltaPhrase = (
   const secPhrase =
     sec === 1 ? "un secondo" : `${numberToItalian(sec)} secondi`;
   return `${secPhrase} e ${dec.numStr} ${dec.unit} al giro`;
-}
+};
 
 /** Convert a range "X.Ys–X.Zs/giro" (en-dash or hyphen) to Italian. */
 const rangeLapDeltaPhrase = (
@@ -170,13 +183,7 @@ const rangeLapDeltaPhrase = (
   const dec2 = decPartInfo(dec2Str);
 
   // Both sub-second, same decimal precision → "tra N1 e N2 unit al giro"
-  if (
-    sec1 === 0 &&
-    sec2 === 0 &&
-    dec1 &&
-    dec2 &&
-    dec1.digits === dec2.digits
-  ) {
+  if (sec1 === 0 && sec2 === 0 && dec1 && dec2 && dec1.digits === dec2.digits) {
     return `tra ${dec1.numStr} e ${dec2.numStr} ${dec2.unitPlural} al giro`;
   }
 
@@ -190,7 +197,7 @@ const rangeLapDeltaPhrase = (
     "",
   );
   return `tra ${phrase1} e ${phrase2} al giro`;
-}
+};
 
 /** Convert a parsed lap time to spoken Italian. Minutes omitted when zero. */
 const lapTimeToItalian = (
@@ -217,7 +224,7 @@ const lapTimeToItalian = (
   if (parts.length === 1) return parts[0];
   if (parts.length === 2) return `${parts[0]} e ${parts[1]}`;
   return `${parts[0]}, ${parts[1]} e ${parts[2]}`;
-}
+};
 
 /**
  * Expand track-position markers and lap-time deltas into spoken Italian.
@@ -261,9 +268,8 @@ const preprocessTTSText = (text: string): string => {
   );
 
   // Lap delta single with /giro: ~?Xs/giro or ~?X.Ys/giro
-  text = text.replace(
-    /~?(\d+)(?:\.(\d+))?s\/giro/g,
-    (_m, s, d) => singleLapDeltaPhrase(s, d),
+  text = text.replace(/~?(\d+)(?:\.(\d+))?s\/giro/g, (_m, s, d) =>
+    singleLapDeltaPhrase(s, d),
   );
 
   // Generic range with s suffix: X.Y–X.Z s (e.g., "0.2-0.3 s" → "due o tre decimi")
@@ -273,13 +279,12 @@ const preprocessTTSText = (text: string): string => {
   );
 
   // Generic seconds: X.Y s or X.YYY s (1–3 decimal digits, optional space before s)
-  text = text.replace(
-    /\b(\d+)\.(\d{1,3})\s*s\b/g,
-    (_m, secStr, decStr) => singleSecondsPhrase(secStr, decStr),
+  text = text.replace(/\b(\d+)\.(\d{1,3})\s*s\b/g, (_m, secStr, decStr) =>
+    singleSecondsPhrase(secStr, decStr),
   );
 
   return text;
-}
+};
 
 /** Create a region-scoped axios instance for Azure Speech endpoints. */
 const createAzureClient = (region: string, key: string) =>

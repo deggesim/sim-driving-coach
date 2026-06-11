@@ -85,7 +85,7 @@ export type CompactFrame = {
   tp?: number[]; // tyre pressures PSI [FL, FR, RL, RR]
   sr?: number[]; // slip ratios [FL, FR, RL, RR]
   sus?: number[]; // suspension travel m [FL, FR, RL, RR]
-  // World-space position (metres) — used for track-map rendering
+  // World-space position (metres) - used for track-map rendering
   wx?: number;
   wy?: number;
   wz?: number;
@@ -130,10 +130,10 @@ export type ZoneData = {
   throttleFrames: number;
   coastFrames: number;
   overlapFrames: number;
-  tcActivations: number;   // number of TC engagement events (rising edges)
-  absActivations: number;  // number of ABS engagement events (rising edges)
+  tcActivations: number; // number of TC engagement events (rising edges)
+  absActivations: number; // number of ABS engagement events (rising edges)
   tcActiveFrames?: number; // total frames TC was cutting (duration = frames × 16ms)
-  absActiveFrames?: number;// total frames ABS was active (duration = frames × 16ms)
+  absActiveFrames?: number; // total frames ABS was active (duration = frames × 16ms)
   brakeStartDist: number | null;
   brakeEndDist: number | null;
   throttlePickupDist: number | null;
@@ -174,7 +174,7 @@ export type LapRecord = {
 // --- R3E Connection Status ---
 
 export type GameStatus = {
-  connected: boolean;       // true if at least one game is connected
+  connected: boolean; // true if at least one game is connected
   r3eConnected: boolean;
   aceConnected: boolean;
   calibrating: boolean;
@@ -182,7 +182,7 @@ export type GameStatus = {
   car: string | null;
   track: string | null;
   layout: string | null;
-  game: GameSource;         // currently active game
+  game: GameSource; // currently active game
 };
 
 // --- Session & Lap (from SQLite) ---
@@ -409,11 +409,36 @@ export type ElectronAPI = {
 
   // Session push channels
   onSessionStarted: (callback: (data: SessionRow) => void) => () => void;
-  onSessionClosed: (callback: (data: { id: number; game: GameSource }) => void) => () => void;
-  onSessionLapAdded: (callback: (data: { sessionId: number; game: GameSource; lap: LapRow }) => void) => () => void;
-  onSessionSetupLoaded: (callback: (data: { sessionId: number; game: GameSource; setup: SessionSetupRow }) => void) => () => void;
-  onSessionAnalysisChunk: (callback: (data: { sessionId: number; version: number; token: string }) => void) => () => void;
-  onSessionAnalysisDone: (callback: (data: { sessionId: number; analysis: SessionAnalysisRow }) => void) => () => void;
+  onSessionClosed: (
+    callback: (data: { id: number; game: GameSource }) => void,
+  ) => () => void;
+  onSessionLapAdded: (
+    callback: (data: {
+      sessionId: number;
+      game: GameSource;
+      lap: LapRow;
+    }) => void,
+  ) => () => void;
+  onSessionSetupLoaded: (
+    callback: (data: {
+      sessionId: number;
+      game: GameSource;
+      setup: SessionSetupRow;
+    }) => void,
+  ) => () => void;
+  onSessionAnalysisChunk: (
+    callback: (data: {
+      sessionId: number;
+      version: number;
+      token: string;
+    }) => void,
+  ) => () => void;
+  onSessionAnalysisDone: (
+    callback: (data: {
+      sessionId: number;
+      analysis: SessionAnalysisRow;
+    }) => void,
+  ) => () => void;
 
   // Config
   configGet: (key: string) => Promise<unknown>;
@@ -422,26 +447,64 @@ export type ElectronAPI = {
   // Session lifecycle
   sessionStart: () => Promise<SessionStartResult>;
   sessionEnd: () => Promise<void>;
-  sessionUpdateFlags: (params: { sessionId?: number; game?: GameSource; leaderboardMode: boolean; fixedSetup: boolean }) => Promise<void>;
-  sessionAnalyze: (params?: { sessionId?: number; game?: GameSource }) => Promise<{ ok: boolean; reason?: string }>;
-  sessionLoadSetup: (params: { setup: SetupData; sessionId?: number; game?: GameSource }) => Promise<{ setupId: number }>;
+  sessionUpdateFlags: (params: {
+    sessionId?: number;
+    game?: GameSource;
+    leaderboardMode: boolean;
+    fixedSetup: boolean;
+  }) => Promise<void>;
+  sessionAnalyze: (params?: {
+    sessionId?: number;
+    game?: GameSource;
+  }) => Promise<{ ok: boolean; reason?: string }>;
+  sessionLoadSetup: (params: {
+    setup: SetupData;
+    sessionId?: number;
+    game?: GameSource;
+  }) => Promise<{ setupId: number }>;
   sessionList: (params: SessionListParams) => Promise<SessionListResult>;
   sessionGetCurrent: () => Promise<SessionDetail | null>;
-  sessionGetDetail: (params: { id: number; game: GameSource }) => Promise<SessionDetail | null>;
-  sessionExportPdf: (params: { id: number; game: GameSource }) => Promise<string | null>;
+  sessionGetDetail: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<SessionDetail | null>;
+  sessionExportPdf: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<string | null>;
   sessionDelete: (params: { id: number; game: GameSource }) => Promise<void>;
-  sessionDeleteAll: (items: Array<{ id: number; game: GameSource }>) => Promise<void>;
-  sessionDeleteAnalysis: (params: { id: number; game: GameSource }) => Promise<void>;
-  sessionReopen: (params: { id: number; game: GameSource }) => Promise<SessionStartResult>;
-  sessionGetSetupHistory: (params: { car: string; track: string; layout: string; game: GameSource }) => Promise<SessionSetupRow[]>;
+  sessionDeleteAll: (
+    items: Array<{ id: number; game: GameSource }>,
+  ) => Promise<void>;
+  sessionDeleteAnalysis: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<void>;
+  sessionReopen: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<SessionStartResult>;
+  sessionGetSetupHistory: (params: {
+    car: string;
+    track: string;
+    layout: string;
+    game: GameSource;
+  }) => Promise<SessionSetupRow[]>;
   sessionReuseSetup: (params: { setupId: number }) => Promise<void>;
 
   // Lap telemetry frames (on demand)
-  lapGetFrames: (params: { id: number; game: GameSource }) => Promise<CompactFrame[]>;
-  lapAssignSetup: (params: { lapId: number; setupId: number | null; game: GameSource }) => Promise<void>;
+  lapGetFrames: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<CompactFrame[]>;
+  lapAssignSetup: (params: {
+    lapId: number;
+    setupId: number | null;
+    game: GameSource;
+  }) => Promise<void>;
   lapDelete: (params: { id: number; game: GameSource }) => Promise<void>;
 
-  // Track map geometry (cached per game/track/layout — global across cars)
+  // Track map geometry (cached per game/track/layout - global across cars)
   trackMapGet: (params: {
     game: GameSource;
     track: string;

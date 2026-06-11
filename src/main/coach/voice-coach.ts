@@ -1,5 +1,5 @@
 /**
- * VoiceCoach — handles free-form voice questions about the current driving session.
+ * VoiceCoach - handles free-form voice questions about the current driving session.
  *
  * Builds session context from SQLite (all laps, all setups, all prior analyses),
  * then streams Claude response in Italian.
@@ -20,7 +20,7 @@ import { formatLapTime } from "../../shared/format.js";
 
 const VOICE_SYSTEM_PROMPT = `Sei un coach di guida esperto che risponde a domande specifiche di un pilota durante una sessione di guida.
 Rispondi SEMPRE in italiano, in modo conciso e diretto. Massimo 3-4 frasi.
-Il pilota sta guidando in questo momento — sii pratico, usa dati numerici, cita le curve per nome quando disponibile.
+Il pilota sta guidando in questo momento - sii pratico, usa dati numerici, cita le curve per nome quando disponibile.
 Non ripetere la domanda. Non usare elenchi puntati. Rispondi come se stessi parlando al pilota in diretta radio.
 Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo di 1:16.322" oppure "il tempo di 58.322s"). Non usare mai l'articolo apostrofato davanti al numero (mai "l'1:16").
 Unità di misura OBBLIGATORIE per il TTS: scrivi SEMPRE l'unità accanto al numero. Distanze: "XXXm" (mai solo "XXX"). Delta tempi: "X secondi" oppure "X s" (mai solo "X" o "~X"). Esempio corretto: "frenata ritardata di 24m", "puoi guadagnare circa 0.2 secondi". Il TTS legge "m" come "metri" e "s" come "secondi".`;
@@ -117,7 +117,11 @@ const buildVoiceContext = (ctx: SessionContext): string => {
   }
 
   if (ctx.alerts.length > 0) {
-    const PRIORITY_LABEL: Record<number, string> = { 1: "P1", 2: "P2", 3: "P3" };
+    const PRIORITY_LABEL: Record<number, string> = {
+      1: "P1",
+      2: "P2",
+      3: "P3",
+    };
     parts.push(`\n## Alert generati in sessione (${ctx.alerts.length})`);
     for (const a of ctx.alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
@@ -129,7 +133,7 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     parts.push(`\n## Setup caricati in sessione (${ctx.setups.length})`);
     ctx.setups.forEach((s, idx) => {
       parts.push(
-        `### Setup #${idx + 1} (${s.loaded_at}) — ${s.setup.carFound}`,
+        `### Setup #${idx + 1} (${s.loaded_at}) - ${s.setup.carFound}`,
       );
       for (const p of s.setup.params.slice(0, 30)) {
         parts.push(`- ${p.category} / ${p.parameter}: ${p.value}`);

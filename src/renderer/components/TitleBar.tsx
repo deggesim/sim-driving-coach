@@ -1,5 +1,5 @@
 /**
- * TitleBar — Custom frameless window title bar with tabs and window controls.
+ * TitleBar - Custom frameless window title bar with tabs and window controls.
  * Used in Electron frameless mode for drag area and window management.
  */
 

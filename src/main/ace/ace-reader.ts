@@ -1,11 +1,11 @@
 /**
- * AceReader — Opens ACE shared memory (three pages) and polls at 16ms.
+ * AceReader - Opens ACE shared memory (three pages) and polls at 16ms.
  *
  * Events:
- *   connected()                          — ACE shared memory found
- *   disconnected()                       — ACE shared memory lost
- *   frame(data: GameFrame)               — Every 16ms poll (only when AC_LIVE)
- *   lapComplete(lapData)                 — Lap boundary detected
+ *   connected()                          - ACE shared memory found
+ *   disconnected()                       - ACE shared memory lost
+ *   frame(data: GameFrame)               - Every 16ms poll (only when AC_LIVE)
+ *   lapComplete(lapData)                 - Lap boundary detected
  *
  * Auto-enters mock mode on non-Windows or when { mock: true }.
  *
@@ -238,7 +238,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
     const smVer = readString(buf, STA.smVersion, 15);
     const aceVer = readString(buf, STA.acEvoVersion, 15);
     console.log(
-      `[AceReader] StaticEvo — smVersion="${smVer}" aceVersion="${aceVer}" ` +
+      `[AceReader] StaticEvo - smVersion="${smVer}" aceVersion="${aceVer}" ` +
         `track="${cachedTrack}" layout="${cachedLayout}" length=${cachedTrackLength}m`,
     );
   };
@@ -258,25 +258,55 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
     // succeeds. We must unmap every view to drop our last reference.
     if (++shmProbeCounter >= SHM_PROBE_INTERVAL) {
       shmProbeCounter = 0;
-      if (physView) { kernel32!.UnmapViewOfFile(physView); physView = null; }
-      if (physHandle) { kernel32!.CloseHandle(physHandle); physHandle = null; }
-      if (gfxView) { kernel32!.UnmapViewOfFile(gfxView); gfxView = null; }
-      if (gfxHandle) { kernel32!.CloseHandle(gfxHandle); gfxHandle = null; }
-      if (staView) { kernel32!.UnmapViewOfFile(staView); staView = null; }
-      if (staHandle) { kernel32!.CloseHandle(staHandle); staHandle = null; }
+      if (physView) {
+        kernel32!.UnmapViewOfFile(physView);
+        physView = null;
+      }
+      if (physHandle) {
+        kernel32!.CloseHandle(physHandle);
+        physHandle = null;
+      }
+      if (gfxView) {
+        kernel32!.UnmapViewOfFile(gfxView);
+        gfxView = null;
+      }
+      if (gfxHandle) {
+        kernel32!.CloseHandle(gfxHandle);
+        gfxHandle = null;
+      }
+      if (staView) {
+        kernel32!.UnmapViewOfFile(staView);
+        staView = null;
+      }
+      if (staHandle) {
+        kernel32!.CloseHandle(staHandle);
+        staHandle = null;
+      }
 
       const phyProbe = openSHM(ACE_SHM_PHYSICS);
-      if (!phyProbe) { cleanup(); scheduleReconnect(); return; }
+      if (!phyProbe) {
+        cleanup();
+        scheduleReconnect();
+        return;
+      }
       physHandle = phyProbe.handle;
       physView = phyProbe.view;
 
       const gfxProbe = openSHM(ACE_SHM_GRAPHIC);
-      if (!gfxProbe) { cleanup(); scheduleReconnect(); return; }
+      if (!gfxProbe) {
+        cleanup();
+        scheduleReconnect();
+        return;
+      }
       gfxHandle = gfxProbe.handle;
       gfxView = gfxProbe.view;
 
       const staProbe = openSHM(ACE_SHM_STATIC);
-      if (!staProbe) { cleanup(); scheduleReconnect(); return; }
+      if (!staProbe) {
+        cleanup();
+        scheduleReconnect();
+        return;
+      }
       staHandle = staProbe.handle;
       staView = staProbe.view;
     }
@@ -294,7 +324,9 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       if (status === AC_LIVE) {
         if (currentPacketId === lastSeenPacketId) {
           if (++stalePacketCount >= STALE_PACKET_LIMIT) {
-            console.log(`[AceReader] packetId frozen at ${currentPacketId} for ${stalePacketCount} polls — ACE not writing, disconnecting`);
+            console.log(
+              `[AceReader] packetId frozen at ${currentPacketId} for ${stalePacketCount} polls - ACE not writing, disconnecting`,
+            );
             cleanup();
             scheduleReconnect();
             return;
@@ -310,7 +342,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
         stalePacketCount = 0;
       }
 
-      // Car model is readable even when paused — update cache opportunistically.
+      // Car model is readable even when paused - update cache opportunistically.
       // Require length > 1 to reject single-char placeholders like "0" that ACE
       // may write before a car is fully loaded.
       const carModelEarly = readString(gfxBuf, GFX.carModel, 33);
@@ -321,7 +353,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
         const wy = readFloat(gfxBuf, GFX.carCoordinates + 1 * 4);
         const wz = readFloat(gfxBuf, GFX.carCoordinates + 2 * 4);
         console.log(
-          `[AceReader] first poll — status=${status} (AC_LIVE=${AC_LIVE}) ` +
+          `[AceReader] first poll - status=${status} (AC_LIVE=${AC_LIVE}) ` +
             `npos=${readFloat(gfxBuf, GFX.npos).toFixed(4)} car="${cachedCarModel}" ` +
             `worldPos=[${wx.toFixed(1)}, ${wy.toFixed(1)}, ${wz.toFixed(1)}]`,
         );
@@ -336,7 +368,12 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
 
       // Re-read static if track/layout/length not yet known (StaticEvo may not be
       // populated yet when ACE writes the SHM pages before the session fully loads).
-      if ((cachedTrackLength === 0 || cachedTrack === "" || cachedLayout === "") && staView) {
+      if (
+        (cachedTrackLength === 0 ||
+          cachedTrack === "" ||
+          cachedLayout === "") &&
+        staView
+      ) {
         const staBuf2 = decodeBuffer(staView, ACE_STATIC_BUF);
         readStatic(staBuf2);
       }
@@ -393,7 +430,10 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
         // residual non-zero decay after braking ends. Guard on brake > 0.05 to prevent false
         // positives in acceleration zones immediately following heavy braking.
         // gfx_absActive (GFX offset 46) and phy_absInAction (PHY offset 676) are always 0.
-        absActive: brake > 0.05 && (absIntensity > 0 || absActive > 0 || absInAction > 0) ? 1 : 0,
+        absActive:
+          brake > 0.05 && (absIntensity > 0 || absActive > 0 || absInAction > 0)
+            ? 1
+            : 0,
         brakeTempFL: brakeTempArr[0] ?? -1,
         brakeTempFR: brakeTempArr[1] ?? -1,
         brakeTempRL: brakeTempArr[2] ?? -1,
@@ -450,7 +490,11 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       // Telemetry logging: write every TELEMETRY_LOG_INTERVAL polls OR on TC/ABS state change
       const tcStateChanged = gameFrame.tcActive !== prevTcActive;
       const absStateChanged = gameFrame.absActive !== prevAbsActive;
-      if (++telemetryPollCounter >= TELEMETRY_LOG_INTERVAL || tcStateChanged || absStateChanged) {
+      if (
+        ++telemetryPollCounter >= TELEMETRY_LOG_INTERVAL ||
+        tcStateChanged ||
+        absStateChanged
+      ) {
         telemetryPollCounter = 0;
         writeTelemetryEntry({
           ts: Date.now(),
@@ -534,7 +578,8 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           layout: cachedLayout,
           layoutLength: cachedTrackLength,
           valid: effectiveValid,
-          fallbackTimeS: prevCurrentLapTimeMs > 0 ? prevCurrentLapTimeMs / 1000 : 0,
+          fallbackTimeS:
+            prevCurrentLapTimeMs > 0 ? prevCurrentLapTimeMs / 1000 : 0,
           lastLaptimeMsBaseline: lastLaptimeMs,
           pollsWaited: 0,
         };
@@ -576,7 +621,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
               ? "lastLaptimeMs-baseline"
               : "fallback";
           console.log(
-            `[AceReader] lapComplete — lap=${pendingLapComplete.lapNumber} lapTime=${lapTime.toFixed(3)}s ` +
+            `[AceReader] lapComplete - lap=${pendingLapComplete.lapNumber} lapTime=${lapTime.toFixed(3)}s ` +
               `source=${source} polls=${pendingLapComplete.pollsWaited} ` +
               `valid=${pendingLapComplete.valid} car="${pendingLapComplete.car}" ` +
               `track="${pendingLapComplete.track}" length=${pendingLapComplete.layoutLength}m ` +

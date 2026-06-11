@@ -1,5 +1,5 @@
 /**
- * VoiceCoachOverlay — fixed overlay showing voice interaction state.
+ * VoiceCoachOverlay - fixed overlay showing voice interaction state.
  *
  * States:
  *   idle      → hidden

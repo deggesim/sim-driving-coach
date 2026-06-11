@@ -1,7 +1,7 @@
 /**
- * App — Root component.
+ * App - Root component.
  * Layout: custom title bar (frameless Electron), main content area, bottom StatusBar.
- * TTSManager and VoiceCoachOverlay are headless/overlay — mounted globally.
+ * TTSManager and VoiceCoachOverlay are headless/overlay - mounted globally.
  */
 
 import { Suspense, use, useEffect, useState } from "react";
@@ -32,7 +32,7 @@ const App = () => {
   }, []);
 
   // Suspend until all settings are loaded from SQLite via IPC.
-  // settingsLoaderPromise is a stable module-level Promise — safe to pass to use().
+  // settingsLoaderPromise is a stable module-level Promise - safe to pass to use().
   // The parent <Suspense> boundary in main.tsx handles the loading state.
   use(settingsLoaderPromise);
 
@@ -88,7 +88,7 @@ const App = () => {
       {/* Title bar (frameless Electron drag area) */}
       <TitleBar tab={tab} onTabChange={setTab} />
 
-      {/* Global error alert — credit/quota errors from Azure TTS or Claude API */}
+      {/* Global error alert - credit/quota errors from Azure TTS or Claude API */}
       {appError && (
         <Alert
           variant="danger"

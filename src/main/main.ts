@@ -119,7 +119,7 @@ const createWindow = (): void => {
     },
   );
 
-  // Content Security Policy — blocks XSS from injected HTML (e.g. marked output)
+  // Content Security Policy - blocks XSS from injected HTML (e.g. marked output)
   const devUrl =
     process.env["ELECTRON_RENDERER_URL"] ?? "http://localhost:5173";
   const devOrigin = new URL(devUrl).origin;
@@ -294,7 +294,7 @@ const setupPipeline = (): void => {
         | undefined
     )?.value;
 
-  // Register config handlers immediately — renderer may call configGet before
+  // Register config handlers immediately - renderer may call configGet before
   // the rest of setupPipeline (readers, baseline, etc.) finishes initializing.
   ipcMain.handle("config:get", (_event, key: string) => {
     return db.prepare("SELECT value FROM app_config WHERE key = ?").get(key) as
@@ -495,7 +495,7 @@ const setupPipeline = (): void => {
   });
 
   // ──────────────────────────────────────────────
-  // Session DB helpers (inline closures — need db + game + push)
+  // Session DB helpers (inline closures - need db + game + push)
   // ──────────────────────────────────────────────
 
   const t = (base: string, game: GameSource = activeGame): string =>
@@ -594,7 +594,7 @@ const setupPipeline = (): void => {
          WHERE id = ?`,
       ).run(lap.valid ? 1 : 0, lap.lapTime, lap.lapTime, sessionId);
 
-      // Push lap added (exclude frames_blob — renderer fetches on demand)
+      // Push lap added (exclude frames_blob - renderer fetches on demand)
       const lapRow = db
         .prepare(
           `SELECT id, session_id, setup_id, lap_number, lap_time, sector1, sector2, sector3, valid, zones_json, recorded_at
@@ -614,7 +614,7 @@ const setupPipeline = (): void => {
   };
 
   // ──────────────────────────────────────────────
-  // Reader lifecycle — both readers run in parallel
+  // Reader lifecycle - both readers run in parallel
   // ──────────────────────────────────────────────
 
   const r3eReader = createR3EReader();
@@ -734,7 +734,7 @@ const setupPipeline = (): void => {
     if (activeGame !== game) return;
     if (currentSessionId !== null && currentSessionGame !== game) return;
     console.log(
-      `[Main] ${game}:lapComplete — lap=${lapData.lapNumber} time=${lapData.lapTime.toFixed(3)}s ` +
+      `[Main] ${game}:lapComplete - lap=${lapData.lapNumber} time=${lapData.lapTime.toFixed(3)}s ` +
         `valid=${lapData.valid} car="${lapData.car}" track="${lapData.track}" layout="${lapData.layout}"`,
     );
 
@@ -813,7 +813,7 @@ const setupPipeline = (): void => {
     "lapRecorded",
     async (lap: LapRecord, { calibrating }: { calibrating: boolean }) => {
       console.log(
-        `[Main] recorder:lapRecorded — lap=${lap.lapNumber} calibrating=${calibrating}`,
+        `[Main] recorder:lapRecorded - lap=${lap.lapNumber} calibrating=${calibrating}`,
       );
 
       const names = resolveNames(activeGame, lap.car, lap.track, lap.layout);
@@ -845,7 +845,7 @@ const setupPipeline = (): void => {
             activeGame === "r3e" ? Number(lap.layout) : lap.layout;
           saveTrackMap(db, activeGame, tmTrack, tmLayout, geometry);
           console.log(
-            `[Main] trackMap saved — game=${activeGame} ` +
+            `[Main] trackMap saved - game=${activeGame} ` +
               `track=${lap.track} layout=${lap.layout} samples=${geometry.sampleCount}`,
           );
         }
@@ -1336,7 +1336,7 @@ const setupPipeline = (): void => {
         );
         return {
           ok: false,
-          reason: `Auto o circuito non corrispondono alla sessione. La sessione richiede ${names.carName} a ${names.trackName}${names.layoutName && names.layoutName !== names.trackName ? ` — ${names.layoutName}` : ""}, ma il simulatore ha rilevato ${resolveNames(game, currentCar, currentTrack, currentLayout).carName}.`,
+          reason: `Auto o circuito non corrispondono alla sessione. La sessione richiede ${names.carName} a ${names.trackName}${names.layoutName && names.layoutName !== names.trackName ? ` - ${names.layoutName}` : ""}, ma il simulatore ha rilevato ${resolveNames(game, currentCar, currentTrack, currentLayout).carName}.`,
         };
       }
 
@@ -1475,7 +1475,7 @@ const setupPipeline = (): void => {
   );
 
   // ──────────────────────────────────────────────
-  // Voice query IPC — classifies intent, routes to session commands or freeform
+  // Voice query IPC - classifies intent, routes to session commands or freeform
   // ──────────────────────────────────────────────
 
   const classifyVoiceIntent = (
@@ -1542,7 +1542,7 @@ const setupPipeline = (): void => {
           names.layoutName && names.layoutName !== track
             ? `, ${names.layoutName}`
             : "";
-        await speakText(`Sessione aperta. ${car} — ${track}${layout}.`);
+        await speakText(`Sessione aperta. ${car} - ${track}${layout}.`);
       } else {
         await speakText(`Impossibile aprire la sessione. ${res.reason}`);
       }
@@ -1711,7 +1711,7 @@ const setupPipeline = (): void => {
     crashCloseTs,
   );
 
-  // Global input listener — works even when the app window is not focused.
+  // Global input listener - works even when the app window is not focused.
   inputManager = createInputManager(() => {
     pushToRenderer("input:trigger", {});
   });

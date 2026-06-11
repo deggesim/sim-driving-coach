@@ -231,7 +231,7 @@ const migrateSchema = (db: Database.Database): void => {
     try {
       db.prepare(sql).run();
     } catch {
-      // Colonna già esistente — ignorato
+      // Colonna già esistente - ignorato
     }
   }
 };
@@ -344,7 +344,7 @@ export const seedCornersFromLap = (
 };
 
 /**
- * Track map persistence (one geometry per game/track/layout — global across cars).
+ * Track map persistence (one geometry per game/track/layout - global across cars).
  */
 export const getTrackMap = (
   db: Database.Database,
