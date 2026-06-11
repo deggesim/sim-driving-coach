@@ -180,13 +180,13 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         />
       )}
 
-      {session?.game === "r3e" && (
+      {session && (
         <SetupSelectionModal
           show={showSetupSelection}
           car={session.car}
           track={session.track}
           layout={session.layout}
-          game="r3e"
+          game={session.game}
           onClose={() => setShowSetupSelection(false)}
           onReuseSetup={handleReuseSetup}
           onJsonPicker={() => {

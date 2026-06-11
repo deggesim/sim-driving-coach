@@ -1276,6 +1276,24 @@ const setupPipeline = (): void => {
   );
 
   ipcMain.handle(
+    "session:deleteSetup",
+    (_event, { id, game }: { id: number; game: GameSource }) => {
+      const lapCountRow = db
+        .prepare(
+          `SELECT COUNT(*) AS cnt FROM ${t("laps", game)} WHERE setup_id = ?`,
+        )
+        .get(id) as { cnt: number };
+      if (lapCountRow.cnt > 0) {
+        return { ok: false, lapCount: lapCountRow.cnt };
+      }
+      db.prepare(
+        `DELETE FROM ${t("session_setups", game)} WHERE id = ?`,
+      ).run(id);
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
     "session:exportPdf",
     async (_event, { id, game }: { id: number; game: GameSource }) => {
       const { dialog } = await import("electron");

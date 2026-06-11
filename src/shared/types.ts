@@ -480,6 +480,10 @@ export type ElectronAPI = {
     id: number;
     game: GameSource;
   }) => Promise<void>;
+  sessionDeleteSetup: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
   sessionReopen: (params: {
     id: number;
     game: GameSource;

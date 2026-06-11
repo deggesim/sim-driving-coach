@@ -148,7 +148,7 @@ const AnalysisHeader = ({
           )}
           {session && (isLive ? sessionActive : true) && (
             <Button size="sm" variant="primary" onClick={onOpenPicker}>
-              <FontAwesomeIcon icon={faGear} className="me-1" /> Carica setup
+              <FontAwesomeIcon icon={faGear} className="me-1" /> Gestione setup
               {setups.length > 0 && ` (${setups.length})`}
             </Button>
           )}
