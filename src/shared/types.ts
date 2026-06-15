@@ -548,6 +548,9 @@ export type ElectronAPI = {
     Array<{ filename: string; filePath: string; modifiedAt: string }>
   >;
   aceReadSetup: (params: { filePath: string }) => Promise<SetupData>;
+
+  // Reader control
+  readerReset: (game: GameSource) => Promise<void>;
 };
 
 declare global {
