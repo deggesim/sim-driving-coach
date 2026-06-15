@@ -897,6 +897,19 @@ const setupPipeline = (): void => {
 
   ipcMain.handle("telemetry:getLogDir", () => telemetryLogDir);
 
+  ipcMain.handle(
+    "reader:reset",
+    (_event, { game }: { game: GameSource }) => {
+      if (game === "r3e") {
+        r3eReader.stop();
+        setTimeout(() => r3eReader.start(), 150);
+      } else {
+        aceReader.stop();
+        setTimeout(() => aceReader.start(), 150);
+      }
+    },
+  );
+
   // ──────────────────────────────────────────────
   // Session lifecycle IPC
   // ──────────────────────────────────────────────
