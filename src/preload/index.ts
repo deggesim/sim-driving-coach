@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { GameSource } from "../shared/types";
 // Output forced to CJS by electron.vite.config.ts (preload requires CJS with sandbox:true)
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -148,4 +149,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("ace:listSetupFiles", params),
   aceReadSetup: (params: { filePath: string }) =>
     ipcRenderer.invoke("ace:readSetup", params),
+
+  readerReset: (game: GameSource) =>
+    ipcRenderer.invoke("reader:reset", { game }),
 });
