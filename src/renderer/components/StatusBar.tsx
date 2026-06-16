@@ -6,14 +6,15 @@
 import { faMicrophone } from "@fortawesome/free-solid-svg-icons/faMicrophone";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ReactNode } from "react";
-import { Badge } from "react-bootstrap";
-import type { GameStatus } from "../../shared/types";
+import { Badge, Button } from "react-bootstrap";
+import type { GameSource, GameStatus } from "../../shared/types";
 
 type StatusBarProps = {
   status: GameStatus;
+  onResetReader?: (game: GameSource) => void;
 };
 
-const StatusBar = ({ status }: StatusBarProps) => {
+const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
   const calibrationText: ReactNode = status.calibrating ? (
     `Calibrazione: ${status.lapsToCalibration} ${status.lapsToCalibration === 1 ? "giro rimanente" : "giri rimanenti"}`
   ) : (
@@ -26,18 +27,36 @@ const StatusBar = ({ status }: StatusBarProps) => {
     <div className="status-bar">
       {/* Connection - one badge per game */}
       <div className="d-flex align-items-center gap-1">
-        <Badge
-          bg={status.r3eConnected ? "success" : "secondary"}
-          className="status-badge"
-        >
-          R3E {status.r3eConnected ? "connesso" : "disconnesso"}
-        </Badge>
-        <Badge
-          bg={status.aceConnected ? "success" : "secondary"}
-          className="status-badge ms-1"
-        >
-          ACE {status.aceConnected ? "connesso" : "disconnesso"}
-        </Badge>
+        {status.r3eConnected ? (
+          <Button
+            variant="success"
+            size="sm"
+            className="status-badge"
+            title="Forza riconnessione R3E"
+            onClick={() => onResetReader?.("r3e")}
+          >
+            R3E connesso
+          </Button>
+        ) : (
+          <Badge bg="secondary" className="status-badge">
+            R3E disconnesso
+          </Badge>
+        )}
+        {status.aceConnected ? (
+          <Button
+            variant="success"
+            size="sm"
+            className="status-badge ms-1"
+            title="Forza riconnessione ACE"
+            onClick={() => onResetReader?.("ace")}
+          >
+            ACE connesso
+          </Button>
+        ) : (
+          <Badge bg="secondary" className="status-badge ms-1">
+            ACE disconnesso
+          </Badge>
+        )}
       </div>
 
       {/* Car / Track */}

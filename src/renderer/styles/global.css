@@ -725,6 +725,12 @@ body {
   font-weight: 500;
   vertical-align: middle;
 }
+.status-bar .btn.status-badge {
+  padding: 0.35em 0.65em;
+  line-height: 1;
+  border: none;
+  border-radius: 0.375rem;
+}
 .status-dot {
   width: 7px;
   height: 7px;
