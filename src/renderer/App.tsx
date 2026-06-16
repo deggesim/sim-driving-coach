@@ -121,7 +121,10 @@ const App = () => {
       </div>
 
       {/* Status bar */}
-      <StatusBar status={status} />
+      <StatusBar
+        status={status}
+        onResetReader={(game) => window.electronAPI.readerReset(game)}
+      />
     </div>
   );
 };
