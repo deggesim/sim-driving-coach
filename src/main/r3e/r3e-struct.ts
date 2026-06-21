@@ -414,7 +414,6 @@ const readString = (buf: Buffer, name: string, byteLen: number): string => {
 
 export const SHM_NAME = "$R3E";
 export const VERSION_MAJOR = 3;
-export const VERSION_MINOR_MIN = 0;
 
 export {
   OFFSETS,

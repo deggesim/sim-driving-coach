@@ -41,16 +41,8 @@ export const ACE_STATIC_BUF = 256; // documented total: 208 bytes, rounded up
 
 // ── ACEVO_STATUS enum ────────────────────────────────────────────────────────
 
-export const AC_OFF = 0;
-export const AC_REPLAY = 1;
 export const AC_LIVE = 2;
 export const AC_PAUSE = 3;
-
-// ── ACEVO_CAR_LOCATION enum ──────────────────────────────────────────────────
-
-export const ACEVO_PITLANE = 1;
-export const ACEVO_PITENTRY = 2;
-export const ACEVO_PITEXIT = 3;
 
 // ── SPageFilePhysics offsets (Pack=4, same prefix as AC/ACC) ─────────────────
 //
@@ -381,9 +373,6 @@ export const STA = {
 
 export const readInt32 = (buf: Buffer, offset: number): number =>
   buf.readInt32LE(offset);
-
-export const readUint32 = (buf: Buffer, offset: number): number =>
-  buf.readUInt32LE(offset);
 
 export const readFloat = (buf: Buffer, offset: number): number =>
   buf.readFloatLE(offset);

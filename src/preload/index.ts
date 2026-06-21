@@ -136,10 +136,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowMinimize: () => ipcRenderer.send("window:minimize"),
   windowMaximize: () => ipcRenderer.send("window:maximize"),
 
-  removeAllListeners: (channel: string) => {
-    ipcRenderer.removeAllListeners(channel);
-  },
-
   telemetryLogGetDir: () => ipcRenderer.invoke("telemetry:getLogDir"),
 
   aceListSetupCars: () => ipcRenderer.invoke("ace:listSetupCars"),

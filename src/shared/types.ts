@@ -533,7 +533,6 @@ export type ElectronAPI = {
   windowClose: () => void;
   windowMinimize: () => void;
   windowMaximize: () => void;
-  removeAllListeners: (channel: string) => void;
 
   // Telemetry log
   telemetryLogGetDir: () => Promise<string>;

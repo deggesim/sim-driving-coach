@@ -64,8 +64,6 @@ export const loadR3EData = (): boolean => {
   }
 };
 
-export const isR3EDataLoaded = (): boolean => data !== null;
-
 /**
  * Resolve a car model ID to its display name.
  * Falls back to the raw ID string if data not loaded or ID not found.
