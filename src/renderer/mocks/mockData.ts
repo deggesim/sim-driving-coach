@@ -46,6 +46,7 @@ Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford K
   section5_summary:
     "Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford Kurve. Anticipa la staccata di dieci metri e apri il gas prima in uscita.",
   created_at: "2026-04-17T08:25:00.000Z",
+  comments: [],
 };
 
 const ANALYSIS_ACE: SessionAnalysisRow = {
@@ -89,6 +90,7 @@ Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovra
   section5_summary:
     "Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovrapponendo freno e gas: separa le fasi. Alla seconda, entra con più fiducia e apri il gas 0.5 secondi prima.",
   created_at: "2026-04-17T14:38:00.000Z",
+  comments: [],
 };
 
 export const MOCK_SESSIONS: SessionRow[] = [

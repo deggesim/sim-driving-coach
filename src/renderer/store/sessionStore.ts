@@ -36,6 +36,7 @@ type State = {
   reset: () => void;
   setDetail: (detail: SessionDetail | null, mode: ViewMode) => void;
   deleteAnalysis: (id: number) => Promise<void>;
+  commentAnalysis: (id: number, comment: string) => Promise<void>;
   deleteSetup: (
     id: number,
     game: GameSource,
@@ -144,6 +145,28 @@ export const useSessionStore = create<State>((set, get) => ({
       game: s.session.game,
     });
     set({ analyses: s.analyses.filter((a) => a.id !== id) });
+  },
+
+  commentAnalysis: async (id, comment) => {
+    const s = get();
+    if (!s.session) return;
+    const res = await window.electronAPI.sessionCommentAnalysis({
+      id,
+      game: s.session.game,
+      comment,
+    });
+    if (res.ok && res.analysis) {
+      const updated = res.analysis;
+      set({
+        analyses: get().analyses.map((a) =>
+          a.id === updated.id ? updated : a,
+        ),
+      });
+    } else {
+      set({
+        error: res.reason ?? "Errore durante l'integrazione del commento.",
+      });
+    }
   },
 
   deleteSetup: async (id, game) => {

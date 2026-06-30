@@ -8,7 +8,11 @@ import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
 import { marked } from "marked";
-import type { GameSource, SessionDetail } from "../shared/types.js";
+import type {
+  GameSource,
+  SessionAnalysisRow,
+  SessionDetail,
+} from "../shared/types.js";
 
 const GAME_LABELS: Record<GameSource, { short: string; full: string }> = {
   r3e: { short: "R3E", full: "RaceRoom Racing Experience" },
@@ -89,11 +93,26 @@ const buildSessionHtml = (detail: SessionDetail): string => {
     })
     .join("");
 
+  const commentsHtml = (a: SessionAnalysisRow): string =>
+    a.comments.length === 0
+      ? ""
+      : a.comments
+          .map(
+            (c) => `
+        <div class="comment-box">
+          <div class="comment-label">Commento pilota</div>
+          <div class="comment-text">${escapeHtml(c.comment)}</div>
+          <div class="comment-response">${postProcess(marked.parse(c.response, { async: false }) as string)}</div>
+        </div>`,
+          )
+          .join("");
+
   const analysesHtml = analyses
     .map(
       (a) => `
         <h2>Analisi #${a.version} <span class="muted">(${new Date(a.created_at).toLocaleString("it-IT")})</span></h2>
-        <div class="analysis-body">${postProcess(marked.parse(a.template_v3, { async: false }) as string)}</div>`,
+        <div class="analysis-body">${postProcess(marked.parse(a.template_v3, { async: false }) as string)}</div>
+        ${commentsHtml(a)}`,
     )
     .join("");
 
@@ -114,6 +133,10 @@ const buildSessionHtml = (detail: SessionDetail): string => {
   .avail-no { color: #c0392b; font-weight: bold; }
   .analysis-body { font-size: 11px; line-height: 1.5; }
   .analysis-body p { margin: 6px 0; }
+  .comment-box { background: #f4f7fb; border: 1px solid #d0d9e6; border-left: 3px solid #0a3d62; border-radius: 4px; padding: 8px 10px; margin: 8px 0; }
+  .comment-label { font-size: 9px; text-transform: uppercase; color: #5a6b80; margin-bottom: 3px; }
+  .comment-text { font-style: italic; color: #333; margin-bottom: 6px; white-space: pre-wrap; }
+  .comment-response { font-size: 11px; line-height: 1.5; }
   .footer { margin-top: 32px; font-size: 9px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
   .params td:first-child, .params td:nth-child(2) { width: 25%; }
 </style></head><body>

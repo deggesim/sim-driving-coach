@@ -227,6 +227,32 @@ body {
   height: 100%;
 }
 
+/* Analysis integration comments (user input + AI response) */
+.analysis-comment {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+.analysis-comment-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.analysis-comment-text {
+  white-space: pre-wrap;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.analysis-comment-response {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
 .deb-content {
   font-size: 14px;
   line-height: 1.7;

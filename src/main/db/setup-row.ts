@@ -3,7 +3,12 @@
  * Used by main.ts, session-coach.ts and voice-coach.ts to avoid duplication.
  */
 
-import type { GameSource, SessionSetupRow, SetupData } from "../../shared/types.js";
+import type {
+  AnalysisComment,
+  GameSource,
+  SessionSetupRow,
+  SetupData,
+} from "../../shared/types.js";
 
 type RawSetupRow = {
   id: number;
@@ -38,4 +43,16 @@ export const parseSetupRow = (r: RawSetupRow): SessionSetupRow => {
     setup,
     setup_screenshots: r.setup_screenshots,
   };
+};
+
+export const parseAnalysisComments = (
+  json: string | null | undefined,
+): AnalysisComment[] => {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? (parsed as AnalysisComment[]) : [];
+  } catch {
+    return [];
+  }
 };

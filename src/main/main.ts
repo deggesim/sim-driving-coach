@@ -63,7 +63,7 @@ import {
 import { toGameFrame } from "./game-adapter.js";
 import { createLapRecorder } from "./lap-recorder.js";
 import { generateSessionPdfBuffer } from "./pdf-generator.js";
-import { parseSetupRow } from "./db/setup-row.js";
+import { parseAnalysisComments, parseSetupRow } from "./db/setup-row.js";
 import {
   getCarClassName,
   getCarName,
@@ -533,11 +533,28 @@ const setupPipeline = (): void => {
 
     const setups: SessionSetupRow[] = setupsRaw.map(parseSetupRow);
 
-    const analyses = db
+    const analysesRaw = db
       .prepare(
         `SELECT * FROM ${t("session_analyses", game)} WHERE session_id = ? ORDER BY version ASC`,
       )
-      .all(sessionId) as SessionAnalysisRow[];
+      .all(sessionId) as Array<{
+      id: number;
+      session_id: number;
+      version: number;
+      template_v3: string;
+      section5_summary: string | null;
+      created_at: string;
+      comments_json: string | null;
+    }>;
+    const analyses: SessionAnalysisRow[] = analysesRaw.map((r) => ({
+      id: r.id,
+      session_id: r.session_id,
+      version: r.version,
+      template_v3: r.template_v3,
+      section5_summary: r.section5_summary,
+      created_at: r.created_at,
+      comments: parseAnalysisComments(r.comments_json),
+    }));
 
     return { session, laps, setups, analyses };
   };
@@ -1285,6 +1302,47 @@ const setupPipeline = (): void => {
       db.prepare(`DELETE FROM ${t("session_analyses", game)} WHERE id = ?`).run(
         id,
       );
+    },
+  );
+
+  ipcMain.handle(
+    "session:commentAnalysis",
+    async (
+      _event,
+      { id, game, comment }: { id: number; game: GameSource; comment: string },
+    ) => {
+      const text = (comment ?? "").trim();
+      if (!text) return { ok: false, reason: "Commento vuoto." };
+
+      const apiKey = getAnthropicApiKey();
+      if (!apiKey) {
+        return { ok: false, reason: "API Key Anthropic non configurata." };
+      }
+      sessionCoach.updateApiKey(apiKey);
+      sessionCoach.updateCornerNames(buildCornerMap());
+
+      const sRow = db
+        .prepare(
+          `SELECT s.car AS car, s.track AS track, s.layout AS layout
+             FROM ${t("session_analyses", game)} a
+             JOIN ${t("sessions", game)} s ON s.id = a.session_id
+            WHERE a.id = ?`,
+        )
+        .get(id) as { car: string; track: string; layout: string } | undefined;
+      const resolved = sRow
+        ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
+        : undefined;
+
+      const analysis = await sessionCoach.commentAnalysis(
+        id,
+        game,
+        text,
+        resolved,
+      );
+      if (!analysis) {
+        return { ok: false, reason: "Impossibile generare l'integrazione." };
+      }
+      return { ok: true, analysis };
     },
   );
 

@@ -19,17 +19,20 @@ import {
   useAccordionButton,
 } from "react-bootstrap";
 import { useSessionStore } from "../store/sessionStore";
+import AnalysisCommentControls from "./AnalysisCommentControls";
 
 type StreamingVersion = { sessionId: number; version: number; text: string };
 type PendingDelete = { id: number; version: number } | null;
 
 const AnalysisAccordionHeader = ({
   eventKey,
+  analysisId,
   version,
   createdAt,
   onDelete,
 }: {
   eventKey: string;
+  analysisId: number;
   version: number;
   createdAt: string;
   onDelete: (e: React.MouseEvent) => void;
@@ -42,6 +45,7 @@ const AnalysisAccordionHeader = ({
 
   return (
     <h2 className="accordion-header dark-header d-flex align-items-stretch">
+      <AnalysisCommentControls analysisId={analysisId} />
       <Button
         type="button"
         variant="danger"
@@ -169,6 +173,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
           <Accordion.Item key={a.id} eventKey={`v${a.version}`}>
             <AnalysisAccordionHeader
               eventKey={`v${a.version}`}
+              analysisId={a.id}
               version={a.version}
               createdAt={a.created_at}
               onDelete={(e) => handleDeleteClick(e, a.id, a.version)}
@@ -181,6 +186,21 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                   __html: renderedById.get(a.id) ?? "",
                 }}
               />
+              {a.comments.length > 0 && (
+                <div className="analysis-comments">
+                  {a.comments.map((c) => (
+                    <div key={c.created_at} className="analysis-comment">
+                      <div className="analysis-comment-label">Commento</div>
+                      <div className="analysis-comment-text">{c.comment}</div>
+                      <div
+                        className="analysis-comment-response deb-content"
+                        // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                        dangerouslySetInnerHTML={{ __html: renderMd(c.response) }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </Accordion.Body>
           </Accordion.Item>
         ))}

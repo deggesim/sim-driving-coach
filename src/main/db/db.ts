@@ -226,6 +226,8 @@ const migrateSchema = (db: Database.Database): void => {
     `ALTER TABLE sessions_r3e ADD COLUMN fixed_setup      INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sessions_ace ADD COLUMN leaderboard_mode INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sessions_ace ADD COLUMN fixed_setup      INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE session_analyses_r3e ADD COLUMN comments_json TEXT`,
+    `ALTER TABLE session_analyses_ace ADD COLUMN comments_json TEXT`,
   ];
   for (const sql of migrations) {
     try {

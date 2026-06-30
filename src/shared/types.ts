@@ -230,6 +230,12 @@ export type SessionSetupRow = {
   setup_screenshots: string | null;
 };
 
+export type AnalysisComment = {
+  comment: string;
+  response: string;
+  created_at: string;
+};
+
 export type SessionAnalysisRow = {
   id: number;
   session_id: number;
@@ -237,6 +243,7 @@ export type SessionAnalysisRow = {
   template_v3: string;
   section5_summary: string | null;
   created_at: string;
+  comments: AnalysisComment[];
 };
 
 export type SessionDetail = {
@@ -480,6 +487,11 @@ export type ElectronAPI = {
     id: number;
     game: GameSource;
   }) => Promise<void>;
+  sessionCommentAnalysis: (params: {
+    id: number;
+    game: GameSource;
+    comment: string;
+  }) => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
   sessionDeleteSetup: (params: {
     id: number;
     game: GameSource;

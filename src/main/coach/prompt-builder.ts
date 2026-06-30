@@ -9,6 +9,7 @@
 import { BRAKE_TEMP } from "../../shared/alert-types.js";
 import type {
   Alert,
+  AnalysisComment,
   Deviation,
   ZoneData,
   LapRow,
@@ -372,6 +373,13 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
         // Fallback: first ~500 chars of templateV3
         parts.push(a.template_v3.slice(0, 500));
       }
+      if (a.comments && a.comments.length > 0) {
+        parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
+        for (const c of a.comments) {
+          parts.push(`- Pilota: ${c.comment}`);
+          parts.push(`  Integrazione: ${c.response}`);
+        }
+      }
       parts.push("");
     }
     parts.push(
@@ -399,6 +407,48 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
       `ATTENZIONE: non interrompere la generazione prima di aver completato [4] Raccomandazioni Modifiche e [5] Sintesi e Prossimo Step.\n` +
       `Se i dati sono pochi, scrivi sezioni più concise - ma NON omettere [4] e [5] in nessun caso.\n` +
       `[5] deve essere un paragrafo singolo di massimo 3 frasi senza markdown.`,
+  );
+  return parts.join("\n");
+};
+
+export const COMMENT_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Il pilota ha appena letto una tua analisi di sessione e ti lascia un commento per correggerla o chiederti un'integrazione (es. un parametro di setup non modificabile, una valutazione che ritiene errata, una richiesta di approfondimento mirato).
+
+Rispondi SOLO al commento, in italiano, con tono tecnico da ingegnere. Includi dati numerici quando rilevanti.
+La risposta deve essere BREVE e FOCALIZZATA (massimo 4-6 frasi): conferma o correggi la valutazione e, se serve, proponi un'alternativa concreta.
+NON riscrivere l'intera analisi. NON usare le intestazioni del Template v3 ([1], [2], [3], [4], [5]). NON produrre tabelle lunghe: al massimo poche righe markdown se indispensabili.
+Se il pilota segnala che un parametro non è modificabile, accetta la correzione e proponi una leva alternativa effettivamente disponibile.`;
+
+export type CommentPromptInput = {
+  analysisText: string;
+  priorComments: AnalysisComment[];
+  comment: string;
+  carName?: string;
+  trackName?: string;
+};
+
+export const buildCommentPrompt = (input: CommentPromptInput): string => {
+  const parts: string[] = [];
+  parts.push(`## Contesto`);
+  if (input.carName) parts.push(`- Auto: ${input.carName}`);
+  if (input.trackName) parts.push(`- Circuito: ${input.trackName}`);
+  parts.push("");
+  parts.push(`## Analisi a cui si riferisce il commento`);
+  parts.push(input.analysisText);
+  parts.push("");
+  if (input.priorComments.length > 0) {
+    parts.push(`## Commenti e integrazioni precedenti su questa analisi`);
+    input.priorComments.forEach((c, i) => {
+      parts.push(`### Commento ${i + 1}`);
+      parts.push(`Pilota: ${c.comment}`);
+      parts.push(`Integrazione: ${c.response}`);
+      parts.push("");
+    });
+  }
+  parts.push(`## Nuovo commento del pilota`);
+  parts.push(input.comment);
+  parts.push("");
+  parts.push(
+    `Rispondi in modo breve e mirato a questo commento, seguendo le regole del system prompt.`,
   );
   return parts.join("\n");
 };
