@@ -109,6 +109,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
         disabled={busy}
         onClick={(e) => {
           e.stopPropagation();
+          setText("");
           setShowModal(true);
         }}
       >
