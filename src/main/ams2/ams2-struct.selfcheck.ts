@@ -1,6 +1,21 @@
 /**
  * Runnable self-check for the pCARS2 struct offset math.
- * Run: npx ts-node --esm --project tsconfig.node.json src/main/ams2/ams2-struct.selfcheck.ts
+ *
+ * `npx ts-node --esm --project tsconfig.node.json src/main/ams2/ams2-struct.selfcheck.ts`
+ * is BROKEN in this environment (Node 24 + ts-node 10.9.2 ESM-loader bug).
+ *
+ * WORKING approach: compile this file + ams2-struct.ts directly with tsc to a scratch
+ * outDir (NodeNext module/moduleResolution, strict, esModuleInterop, node types), then
+ * run the emitted .js with plain node:
+ *
+ *   npx tsc --ignoreConfig --module NodeNext --moduleResolution NodeNext --target ES2022 \
+ *     --strict --esModuleInterop --types node --outDir <scratch-dir> \
+ *     src/main/ams2/ams2-struct.ts src/main/ams2/ams2-struct.selfcheck.ts
+ *   node <scratch-dir>/ams2-struct.selfcheck.js
+ *
+ * (`--ignoreConfig` is required on TypeScript 6.x when passing files on the command line
+ * while a tsconfig.json is present in the project root.)
+ *
  * No test framework (assert only) — fails loudly if the offset arithmetic breaks.
  */
 import assert from "node:assert/strict";
