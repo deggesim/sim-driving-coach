@@ -1866,6 +1866,184 @@ const setupPipeline = (): void => {
     }
   });
 
+  // ──────────────────────────────────────────────
+  // AMS2 setup decoding IPC (screenshot → Claude Vision → SetupData)
+  // ──────────────────────────────────────────────
+
+  const AMS2_STEAM_APPID = "1066890";
+  const SETUP_VISION_MODEL = "claude-sonnet-5";
+
+  /** Auto-detect the single Steam userdata account and return the AMS2 screenshots dir. */
+  const getAms2ScreenshotsDir = async (): Promise<string | null> => {
+    const fs = await import("fs");
+    const pathMod = await import("path");
+    const steamBase = "C:\\Program Files (x86)\\Steam\\userdata";
+    try {
+      const accounts = fs
+        .readdirSync(steamBase)
+        .filter((d) => /^\d+$/.test(d));
+      if (accounts.length === 0) return null;
+      return pathMod.join(
+        steamBase,
+        accounts[0],
+        "760",
+        "remote",
+        AMS2_STEAM_APPID,
+        "screenshots",
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  ipcMain.handle("setup:listScreenshots", async () => {
+    const fs = await import("fs");
+    const pathMod = await import("path");
+    const screenshotsDir = await getAms2ScreenshotsDir();
+    if (!screenshotsDir) return [];
+    const thumbnailsDir = pathMod.join(screenshotsDir, "thumbnails");
+
+    // Annotate screenshots already used by a prior AMS2 setup.
+    const usedMap = new Map<
+      string,
+      { setupName: string; loadedAt: string; sessionId: number }
+    >();
+    try {
+      const rows = db
+        .prepare(
+          "SELECT id, session_id, loaded_at, setup_json, setup_screenshots FROM session_setups_ams2 WHERE setup_screenshots IS NOT NULL",
+        )
+        .all() as Array<{
+        id: number;
+        session_id: number;
+        loaded_at: string;
+        setup_json: string;
+        setup_screenshots: string;
+      }>;
+      for (const row of rows) {
+        let filenames: string[] = [];
+        try {
+          filenames = JSON.parse(row.setup_screenshots);
+        } catch {
+          continue;
+        }
+        let setupName = "";
+        try {
+          setupName = (JSON.parse(row.setup_json) as { name?: string }).name ?? "";
+        } catch {
+          /* ignore */
+        }
+        for (const fname of filenames) {
+          if (!usedMap.has(fname)) {
+            usedMap.set(fname, {
+              setupName,
+              loadedAt: row.loaded_at,
+              sessionId: row.session_id,
+            });
+          }
+        }
+      }
+    } catch {
+      /* table missing / not ready — no annotations */
+    }
+
+    try {
+      const files = fs
+        .readdirSync(screenshotsDir)
+        .filter((f: string) => /\.(jpg|jpeg|png)$/i.test(f))
+        .sort()
+        .reverse();
+      return files.map((name: string) => {
+        const thumbPath = pathMod.join(thumbnailsDir, name);
+        const fullPath = pathMod.join(screenshotsDir, name);
+        const src = fs.existsSync(thumbPath) ? thumbPath : fullPath;
+        const thumbnailB64 = fs.readFileSync(src).toString("base64");
+        const alreadyUsed = usedMap.get(name);
+        return { name, thumbnailB64, ...(alreadyUsed ? { alreadyUsed } : {}) };
+      });
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle(
+    "setup:decodeSetup",
+    async (
+      _event,
+      { filenames, expectedCar }: { filenames: string[]; expectedCar: string },
+    ) => {
+      const fs = await import("fs");
+      const pathMod = await import("path");
+      const screenshotsDir = await getAms2ScreenshotsDir();
+      if (!screenshotsDir) throw new Error("Cartella screenshot AMS2 non trovata");
+
+      const apiKey = getAnthropicApiKey();
+      if (!apiKey) throw new Error("Anthropic API Key non configurata");
+
+      const Anthropic = (await import("@anthropic-ai/sdk")).default;
+      const client = new Anthropic({ apiKey });
+
+      const imageContents = filenames.map((name) => {
+        const fullPath = pathMod.join(screenshotsDir, name);
+        const data = fs.readFileSync(fullPath).toString("base64");
+        return {
+          type: "image" as const,
+          source: {
+            type: "base64" as const,
+            media_type: "image/jpeg" as const,
+            data,
+          },
+        };
+      });
+
+      const systemPrompt = `Sei un esperto di setup per il simulatore di guida Automobilista 2 (AMS2).
+Analizza le schermate del setup dell'auto e restituisci un JSON con questa struttura esatta:
+{
+  "carVerified": boolean,
+  "carFound": "nome auto trovato nelle schermate",
+  "setupText": "riepilogo markdown del setup",
+  "params": [
+    { "category": "categoria", "parameter": "nome parametro", "value": "valore" }
+  ]
+}
+Devi verificare se l'auto nelle schermate corrisponde a: "${expectedCar}".
+Estrai TUTTI i parametri di setup visibili: sospensioni, freni, aerodinamica, trasmissione, gomme, differenziale, elettronica, ecc.
+IMPORTANTE — precisione numerica: leggi ogni cifra di ogni valore con la massima attenzione. Gli slider e altri elementi grafici dell'UI possono apparire adiacenti ai numeri: ignorali e trascrivi solo le cifre del testo numerico visualizzato sullo schermo.
+Restituisci solo il JSON, senza testo aggiuntivo.`;
+
+      const response = await client.messages.create({
+        model: SETUP_VISION_MODEL,
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [
+              ...imageContents,
+              {
+                type: "text" as const,
+                text: `Analizza queste ${filenames.length} schermate del setup e restituisci il JSON.`,
+              },
+            ],
+          },
+        ],
+      });
+
+      const raw =
+        response.content[0].type === "text" ? response.content[0].text : "{}";
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+      return {
+        carVerified: parsed.carVerified ?? false,
+        carFound: parsed.carFound ?? "",
+        setupText: parsed.setupText ?? "",
+        params: parsed.params ?? [],
+        screenshots: filenames,
+      } as SetupData;
+    },
+  );
+
   // Close any sessions left open by a previous crash or forced quit
   const crashCloseTs = new Date().toISOString();
   db.prepare("UPDATE sessions_r3e SET ended_at = ? WHERE ended_at IS NULL").run(

@@ -561,6 +561,19 @@ export type ElectronAPI = {
   >;
   aceReadSetup: (params: { filePath: string }) => Promise<SetupData>;
 
+  // AMS2 Setup analysis (screenshot → Claude Vision)
+  listScreenshots: () => Promise<
+    Array<{
+      name: string;
+      thumbnailB64: string;
+      alreadyUsed?: { setupName: string; loadedAt: string; sessionId: number };
+    }>
+  >;
+  decodeSetup: (params: {
+    filenames: string[];
+    expectedCar: string;
+  }) => Promise<SetupData>;
+
   // Reader control
   readerReset: (game: GameSource) => Promise<void>;
 };

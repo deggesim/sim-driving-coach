@@ -151,6 +151,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   aceReadSetup: (params: { filePath: string }) =>
     ipcRenderer.invoke("ace:readSetup", params),
 
+  // AMS2 setup analysis (screenshot → Claude Vision → SetupData)
+  listScreenshots: () => ipcRenderer.invoke("setup:listScreenshots"),
+  decodeSetup: (params: { filenames: string[]; expectedCar: string }) =>
+    ipcRenderer.invoke("setup:decodeSetup", params),
+
   readerReset: (game: GameSource) =>
     ipcRenderer.invoke("reader:reset", { game }),
 });
