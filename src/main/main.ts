@@ -1984,13 +1984,21 @@ const setupPipeline = (): void => {
       const client = new Anthropic({ apiKey });
 
       const imageContents = filenames.map((name) => {
+        // Renderer-supplied names must be bare filenames; a path component
+        // ("..", "/" or "\\") would escape the screenshots directory.
+        if (pathMod.basename(name) !== name) {
+          throw new Error(`Nome file screenshot non valido: ${name}`);
+        }
         const fullPath = pathMod.join(screenshotsDir, name);
         const data = fs.readFileSync(fullPath).toString("base64");
+        const mediaType: "image/png" | "image/jpeg" = /\.png$/i.test(name)
+          ? "image/png"
+          : "image/jpeg";
         return {
           type: "image" as const,
           source: {
             type: "base64" as const,
-            media_type: "image/jpeg" as const,
+            media_type: mediaType,
             data,
           },
         };
