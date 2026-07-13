@@ -2014,6 +2014,7 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
       const response = await client.messages.create({
         model: SETUP_VISION_MODEL,
         max_tokens: 4000,
+        thinking: { type: "disabled" },
         system: systemPrompt,
         messages: [
           {
@@ -2029,10 +2030,24 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
         ],
       });
 
-      const raw =
-        response.content[0].type === "text" ? response.content[0].text : "{}";
+      // sonnet-5 may emit a leading thinking block; find the text block explicitly
+      // rather than assuming content[0], then guard the parse.
+      const textBlock = response.content.find((b) => b.type === "text");
+      const raw = textBlock?.type === "text" ? textBlock.text : "";
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      if (!jsonMatch) {
+        throw new Error(
+          "Claude Vision non ha restituito un JSON di setup valido. Riprova o seleziona schermate più leggibili.",
+        );
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch {
+        throw new Error(
+          "Risposta di Claude Vision non interpretabile (JSON malformato). Riprova.",
+        );
+      }
 
       return {
         carVerified: parsed.carVerified ?? false,
