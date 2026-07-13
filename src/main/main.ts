@@ -379,6 +379,8 @@ const setupPipeline = (): void => {
   let currentLayoutLength = 6000;
   let r3eConnected = false;
   let aceConnected = false;
+  // eslint-disable-next-line prefer-const -- reassigned once the AMS2 reader is wired in a later task
+  let ams2Connected = false;
   let activeGame: GameSource = "r3e";
 
   // Session lifecycle state
@@ -432,7 +434,7 @@ const setupPipeline = (): void => {
 
   const pushStatus = (): void => {
     const names =
-      activeGame === "ace"
+      activeGame !== "r3e"
         ? {
             carName: currentCar,
             trackName: currentTrack,
@@ -446,9 +448,10 @@ const setupPipeline = (): void => {
               : "",
           };
     const status: GameStatus = {
-      connected: r3eConnected || aceConnected,
+      connected: r3eConnected || aceConnected || ams2Connected,
       r3eConnected,
       aceConnected,
+      ams2Connected,
       calibrating: recorder.isCalibrating(),
       lapsToCalibration: recorder.lapsToCalibration(),
       car: names.carName || null,
@@ -499,7 +502,7 @@ const setupPipeline = (): void => {
   // ──────────────────────────────────────────────
 
   const t = (base: string, game: GameSource = activeGame): string =>
-    `${base}_${game === "ace" ? "ace" : "r3e"}`;
+    `${base}_${game}`;
 
   const loadSessionDetail = (
     sessionId: number,

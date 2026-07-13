@@ -9,6 +9,7 @@ const DEFAULT_STATUS: GameStatus = {
   connected: false,
   r3eConnected: false,
   aceConnected: false,
+  ams2Connected: false,
   calibrating: false,
   lapsToCalibration: 2,
   car: null,

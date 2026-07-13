@@ -17,6 +17,7 @@ import type {
 const GAME_LABELS: Record<GameSource, { short: string; full: string }> = {
   r3e: { short: "R3E", full: "RaceRoom Racing Experience" },
   ace: { short: "ACE", full: "Assetto Corsa EVO" },
+  ams2: { short: "AMS2", full: "Automobilista 2" },
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

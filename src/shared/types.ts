@@ -48,7 +48,7 @@ export type Deviation = {
 
 // --- Active game source ---
 
-export type GameSource = "r3e" | "ace";
+export type GameSource = "r3e" | "ace" | "ams2";
 
 // --- Minimal frame interface used by RuleEngine and ZoneTracker ---
 
@@ -177,6 +177,7 @@ export type GameStatus = {
   connected: boolean; // true if at least one game is connected
   r3eConnected: boolean;
   aceConnected: boolean;
+  ams2Connected: boolean;
   calibrating: boolean;
   lapsToCalibration: number;
   car: string | null;
