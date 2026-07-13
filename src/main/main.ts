@@ -372,7 +372,7 @@ const setupPipeline = (): void => {
   };
   // ─────────────────────────────────────────────────────────────────────────────
 
-  console.log(`[Main] setupPipeline - dual-reader mode`);
+  console.log(`[Main] setupPipeline - triple-reader mode (R3E/ACE/AMS2)`);
 
   // Live reader state
   let currentCar = "";
@@ -855,8 +855,8 @@ const setupPipeline = (): void => {
         | { car: string; track: string; layout: string }
         | undefined;
       if (sessionRow) {
-        // For ACE sessions started before StaticEvo populated layout, the stored
-        // layout may be "". Treat it as a pending fill-in rather than a mismatch.
+        // For ACE/AMS2 sessions started before the track layout was populated,
+        // the stored layout may be "". Treat it as a pending fill-in rather than a mismatch.
         const aceLayoutPending =
           game !== "r3e" && sessionRow.layout === "" && lapData.layout !== "";
         if (
@@ -993,11 +993,11 @@ const setupPipeline = (): void => {
   // ──────────────────────────────────────────────
 
   const startSession = (): SessionStartResult => {
-    if (!r3eConnected && !aceConnected) {
+    if (!r3eConnected && !aceConnected && !ams2Connected) {
       return {
         ok: false,
         reason:
-          "Nessun simulatore connesso. Avvia RaceRoom o Assetto Corsa EVO prima di aprire una sessione.",
+          "Nessun simulatore connesso. Avvia RaceRoom, Assetto Corsa EVO o Automobilista 2 prima di aprire una sessione.",
       };
     }
     console.log(
