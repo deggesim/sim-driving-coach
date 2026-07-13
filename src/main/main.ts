@@ -37,6 +37,7 @@ import {
   decodeCarSetup,
   type AceSetupFileInfo,
 } from "./ace/ace-setup-reader.js";
+import { createAms2Reader, type Ams2Reader } from "./ams2/ams2-reader.js";
 import {
   createAdaptiveBaseline,
   type AdaptiveBaseline,
@@ -86,6 +87,7 @@ import { createZoneTracker } from "./zone-tracker.js";
 let mainWindow: BrowserWindow | null = null;
 let r3eReaderInst: R3EReader | null = null;
 let aceReaderInst: AceReader | null = null;
+let ams2ReaderInst: Ams2Reader | null = null;
 
 // ──────────────────────────────────────────────
 // Window creation
@@ -227,7 +229,7 @@ const resolveNames = (
   layoutName: string;
   carClassName: string;
 } => {
-  if (game === "ace") {
+  if (game !== "r3e") {
     return {
       carName: car,
       trackName: track,
@@ -379,7 +381,6 @@ const setupPipeline = (): void => {
   let currentLayoutLength = 6000;
   let r3eConnected = false;
   let aceConnected = false;
-  // eslint-disable-next-line prefer-const -- reassigned once the AMS2 reader is wired in a later task
   let ams2Connected = false;
   let activeGame: GameSource = "r3e";
 
@@ -395,8 +396,8 @@ const setupPipeline = (): void => {
   let lastDeviations: Deviation[] | null = null;
 
   const lookupCorner = (dist: number): string | null => {
-    if (activeGame === "ace") {
-      return getCornerName(db, "ace", currentTrack, currentLayout, dist);
+    if (activeGame !== "r3e") {
+      return getCornerName(db, activeGame, currentTrack, currentLayout, dist);
     }
     return getCornerName(
       db,
@@ -639,8 +640,10 @@ const setupPipeline = (): void => {
 
   const r3eReader = createR3EReader();
   const aceReader = createAceReader();
+  const ams2Reader = createAms2Reader();
   r3eReaderInst = r3eReader;
   aceReaderInst = aceReader;
+  ams2ReaderInst = ams2Reader;
 
   r3eReader.on("connected", () => {
     r3eConnected = true;
@@ -651,6 +654,7 @@ const setupPipeline = (): void => {
   r3eReader.on("disconnected", () => {
     r3eConnected = false;
     if (aceConnected) activeGame = "ace";
+    else if (ams2Connected) activeGame = "ams2";
     closeTelemetryFile();
     pushStatus();
   });
@@ -669,6 +673,25 @@ const setupPipeline = (): void => {
   aceReader.on("disconnected", () => {
     aceConnected = false;
     if (r3eConnected) activeGame = "r3e";
+    else if (ams2Connected) activeGame = "ams2";
+    closeTelemetryFile();
+    pushStatus();
+  });
+
+  ams2Reader.on("connected", () => {
+    ams2Connected = true;
+    if (!r3eConnected && !aceConnected) activeGame = "ams2";
+    const info = ams2Reader.getSessionInfo();
+    if (info.track) currentTrack = info.track;
+    if (info.layout) currentLayout = info.layout;
+    if (info.car) currentCar = info.car;
+    pushStatus();
+  });
+
+  ams2Reader.on("disconnected", () => {
+    ams2Connected = false;
+    if (r3eConnected) activeGame = "r3e";
+    else if (aceConnected) activeGame = "ace";
     closeTelemetryFile();
     pushStatus();
   });
@@ -750,6 +773,43 @@ const setupPipeline = (): void => {
     }
   });
 
+  ams2Reader.on("ams2:frame", (frame: GameFrame) => {
+    const info = ams2Reader.getSessionInfo();
+    let statusDirty = false;
+    if (info.car && info.car !== currentCar) {
+      currentCar = info.car;
+      statusDirty = true;
+    }
+    if (info.track && info.track !== currentTrack) {
+      currentTrack = info.track;
+      statusDirty = true;
+    }
+    if (info.layout && info.layout !== currentLayout) {
+      currentLayout = info.layout;
+      statusDirty = true;
+    }
+    if (statusDirty) pushStatus();
+    if (currentSessionId) {
+      zoneTracker.update(frame);
+      ruleEngine.processFrame(frame, currentLapNumber);
+    }
+    pushToRenderer("session:frame", frame);
+  });
+
+  ams2Reader.on("ams2:fullFrame", (frame: Record<string, unknown>) => {
+    if (telemetryEnabled && activeGame === "ams2") {
+      if (!telemetryStream && frame.car) {
+        openTelemetryFile(
+          "ams2",
+          frame.car as string,
+          frame.track as string,
+          frame.layout as string,
+        );
+      }
+      writeFrame(frame);
+    }
+  });
+
   const handleLapComplete = (lapData: LapRecord, game: GameSource): void => {
     if (activeGame !== game) return;
     if (currentSessionId !== null && currentSessionGame !== game) return;
@@ -758,7 +818,7 @@ const setupPipeline = (): void => {
         `valid=${lapData.valid} car="${lapData.car}" track="${lapData.track}" layout="${lapData.layout}"`,
     );
 
-    if (game === "ace") {
+    if (game !== "r3e") {
       if (lapData.car) currentCar = lapData.car;
       if (lapData.track) currentTrack = lapData.track;
       if (lapData.layout) currentLayout = lapData.layout;
@@ -798,7 +858,7 @@ const setupPipeline = (): void => {
         // For ACE sessions started before StaticEvo populated layout, the stored
         // layout may be "". Treat it as a pending fill-in rather than a mismatch.
         const aceLayoutPending =
-          game === "ace" && sessionRow.layout === "" && lapData.layout !== "";
+          game !== "r3e" && sessionRow.layout === "" && lapData.layout !== "";
         if (
           sessionRow.car !== lapData.car ||
           sessionRow.track !== lapData.track ||
@@ -825,9 +885,13 @@ const setupPipeline = (): void => {
   aceReader.on("lapComplete", (lapData) =>
     handleLapComplete(lapData as LapRecord, "ace"),
   );
+  ams2Reader.on("lapComplete", (lapData) =>
+    handleLapComplete(lapData as LapRecord, "ams2"),
+  );
 
   recorder.attach(r3eReader);
   recorder.attach(aceReader);
+  recorder.attach(ams2Reader);
 
   recorder.on(
     "lapRecorded",
@@ -917,18 +981,12 @@ const setupPipeline = (): void => {
 
   ipcMain.handle("telemetry:getLogDir", () => telemetryLogDir);
 
-  ipcMain.handle(
-    "reader:reset",
-    (_event, { game }: { game: GameSource }) => {
-      if (game === "r3e") {
-        r3eReader.stop();
-        setTimeout(() => r3eReader.start(), 150);
-      } else {
-        aceReader.stop();
-        setTimeout(() => aceReader.start(), 150);
-      }
-    },
-  );
+  ipcMain.handle("reader:reset", (_event, { game }: { game: GameSource }) => {
+    const reader =
+      game === "r3e" ? r3eReader : game === "ace" ? aceReader : ams2Reader;
+    reader.stop();
+    setTimeout(() => reader.start(), 150);
+  });
 
   // ──────────────────────────────────────────────
   // Session lifecycle IPC
@@ -1164,7 +1222,7 @@ const setupPipeline = (): void => {
         game,
       }: { lapId: number; setupId: number | null; game: GameSource },
     ) => {
-      const lapsTable = `laps_${game === "ace" ? "ace" : "r3e"}`;
+      const lapsTable = t("laps", game);
       db.prepare(`UPDATE ${lapsTable} SET setup_id = ? WHERE id = ?`).run(
         setupId ?? null,
         lapId,
@@ -1196,7 +1254,7 @@ const setupPipeline = (): void => {
   ipcMain.handle(
     "lap:getFrames",
     (_event, { id, game }: { id: number; game: GameSource }) => {
-      const lapsTable = `laps_${game === "ace" ? "ace" : "r3e"}`;
+      const lapsTable = t("laps", game);
       const row = db
         .prepare(`SELECT frames_blob FROM ${lapsTable} WHERE id = ?`)
         .get(id) as { frames_blob: Buffer | null } | undefined;
@@ -1219,7 +1277,9 @@ const setupPipeline = (): void => {
       const sort = params.sort === "asc" ? "ASC" : "DESC";
       const rawGame = params.game ?? null;
       const game: GameSource | null =
-        rawGame === "r3e" || rawGame === "ace" ? rawGame : null;
+        rawGame === "r3e" || rawGame === "ace" || rawGame === "ams2"
+          ? rawGame
+          : null;
       const carFilter = params.car ?? null;
       const trackFilter = params.track ?? null;
 
@@ -1246,10 +1306,12 @@ const setupPipeline = (): void => {
         ? `SELECT s.*, '${game}' AS _game, (SELECT COUNT(*) FROM session_analyses_${game} WHERE session_id = s.id) AS analysis_count FROM ${t("sessions", game)} s ${w.sql}`
         : `SELECT s.*, 'r3e' AS _game, (SELECT COUNT(*) FROM session_analyses_r3e WHERE session_id = s.id) AS analysis_count FROM sessions_r3e s ${w.sql}
            UNION ALL
-           SELECT s.*, 'ace' AS _game, (SELECT COUNT(*) FROM session_analyses_ace WHERE session_id = s.id) AS analysis_count FROM sessions_ace s ${w.sql}`;
+           SELECT s.*, 'ace' AS _game, (SELECT COUNT(*) FROM session_analyses_ace WHERE session_id = s.id) AS analysis_count FROM sessions_ace s ${w.sql}
+           UNION ALL
+           SELECT s.*, 'ams2' AS _game, (SELECT COUNT(*) FROM session_analyses_ams2 WHERE session_id = s.id) AS analysis_count FROM sessions_ams2 s ${w.sql}`;
 
       const countSql = `SELECT COUNT(*) AS c FROM (${unionSql})`;
-      const countArgs = game ? w.args : [...w.args, ...w.args];
+      const countArgs = game ? w.args : [...w.args, ...w.args, ...w.args];
       const countRow = db.prepare(countSql).get(...countArgs) as { c: number };
 
       const pageSql = `
@@ -1262,9 +1324,7 @@ const setupPipeline = (): void => {
         Record<string, unknown> & { _game: string }
       >;
 
-      const items = rows.map((r) =>
-        enrichSession(r, r._game === "ace" ? "ace" : "r3e"),
-      );
+      const items = rows.map((r) => enrichSession(r, r._game as GameSource));
 
       return { items, total: countRow.c, page, pageSize };
     },
@@ -1286,9 +1346,11 @@ const setupPipeline = (): void => {
     (_event, items: Array<{ id: number; game: GameSource }>) => {
       const delR3e = db.prepare("DELETE FROM sessions_r3e WHERE id = ?");
       const delAce = db.prepare("DELETE FROM sessions_ace WHERE id = ?");
+      const delAms2 = db.prepare("DELETE FROM sessions_ams2 WHERE id = ?");
       db.transaction(() => {
         for (const { id, game } of items) {
           if (game === "ace") delAce.run(id);
+          else if (game === "ams2") delAms2.run(id);
           else delR3e.run(id);
           if (currentSessionId === id) {
             currentSessionId = null;
@@ -1396,9 +1458,19 @@ const setupPipeline = (): void => {
     "session:reopen",
     (_event, { id, game }: { id: number; game: GameSource }) => {
       // Validation 1: the session's game must be connected
-      const gameConnected = game === "ace" ? aceConnected : r3eConnected;
+      const gameConnected =
+        game === "ace"
+          ? aceConnected
+          : game === "ams2"
+            ? ams2Connected
+            : r3eConnected;
       if (!gameConnected) {
-        const label = game === "ace" ? "Assetto Corsa EVO" : "RaceRoom";
+        const label =
+          game === "ace"
+            ? "Assetto Corsa EVO"
+            : game === "ams2"
+              ? "Automobilista 2"
+              : "RaceRoom";
         return {
           ok: false,
           reason: `${label} non è connesso. Avvia il simulatore prima di riaprire la sessione.`,
@@ -1802,6 +1874,9 @@ const setupPipeline = (): void => {
   db.prepare("UPDATE sessions_ace SET ended_at = ? WHERE ended_at IS NULL").run(
     crashCloseTs,
   );
+  db.prepare(
+    "UPDATE sessions_ams2 SET ended_at = ? WHERE ended_at IS NULL",
+  ).run(crashCloseTs);
 
   // Global input listener - works even when the app window is not focused.
   inputManager = createInputManager(() => {
@@ -1819,12 +1894,14 @@ const setupPipeline = (): void => {
     inputManager?.destroy();
     r3eReader.stop();
     aceReader.stop();
+    ams2Reader.stop();
     closeDb();
   });
 
-  // Start both readers
+  // Start all readers
   r3eReader.start();
   aceReader.start();
+  ams2Reader.start();
   pushStatus();
 
   mainWindow?.webContents.once("did-finish-load", () => {
@@ -1850,6 +1927,7 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   r3eReaderInst?.stop();
   aceReaderInst?.stop();
+  ams2ReaderInst?.stop();
   if (process.platform !== "darwin") app.quit();
 });
 
