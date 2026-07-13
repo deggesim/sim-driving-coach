@@ -57,6 +57,21 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
             ACE disconnesso
           </Badge>
         )}
+        {status.ams2Connected ? (
+          <Button
+            variant="success"
+            size="sm"
+            className="status-badge ms-1"
+            title="Forza riconnessione AMS2"
+            onClick={() => onResetReader?.("ams2")}
+          >
+            AMS2 connesso
+          </Button>
+        ) : (
+          <Badge bg="secondary" className="status-badge ms-1">
+            AMS2 disconnesso
+          </Badge>
+        )}
       </div>
 
       {/* Car / Track */}
