@@ -43,7 +43,7 @@ export const Ams2SetupPicker = ({
 }: Props) => {
   const [screenshots, setScreenshots] = useState<ScreenshotEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [phase, setPhase] = useState<Phase>("pick");
   const [decodedSetup, setDecodedSetup] = useState<SetupData | null>(null);
   const [setupName, setSetupName] = useState("");
@@ -53,6 +53,7 @@ export const Ams2SetupPicker = ({
   useEffect(() => {
     if (!show || loadedRef.current) return;
     loadedRef.current = true;
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-time load when the picker opens
     setLoading(true);
     window.electronAPI
       .listScreenshots()
@@ -102,10 +103,12 @@ export const Ams2SetupPicker = ({
   const handleConfirm = (): void => {
     if (decodedSetup && setupName.trim()) {
       onConfirm({ ...decodedSetup, name: setupName.trim() });
+      handleClose();
     }
   };
 
   const handleClose = (): void => {
+    loadedRef.current = false;
     setPhase("pick");
     setSelected(new Set());
     setDecodedSetup(null);
@@ -280,8 +283,8 @@ export const Ams2SetupPicker = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {decodedSetup.params.map((p, i) => (
-                      <tr key={i}>
+                    {decodedSetup.params.map((p) => (
+                      <tr key={`${p.category}-${p.parameter}`}>
                         <td className="text-dim">{p.category}</td>
                         <td>{p.parameter}</td>
                         <td className="setup-value">{p.value}</td>
