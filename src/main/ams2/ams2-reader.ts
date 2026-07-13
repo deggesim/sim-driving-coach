@@ -122,6 +122,12 @@ export const createAms2Reader = (
     }
     view = null;
     handle = null;
+    lapFrames = [];
+    prevLapsCompleted = -1;
+    lapInvalidatedAccum = false;
+    lastSectors = [-1, -1, -1];
+    lastSeq = -1;
+    staleCount = 0;
     if (connected) {
       connected = false;
       emitter.emit("disconnected");
@@ -213,12 +219,12 @@ export const createAms2Reader = (
     if (stopped) return;
     try {
       const buf = readStable();
+      if (staleCount > STALE_LIMIT) {
+        cleanup();
+        scheduleReconnect();
+        return;
+      }
       if (!buf) {
-        if (staleCount > STALE_LIMIT) {
-          cleanup();
-          scheduleReconnect();
-          return;
-        }
         pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
         return;
       }
