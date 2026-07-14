@@ -225,6 +225,7 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
           <option value="">Tutti i giochi</option>
           <option value="r3e">RaceRoom</option>
           <option value="ace">AC Evo</option>
+          <option value="ams2">Automobilista 2</option>
         </Form.Select>
 
         <Form.Select
@@ -311,10 +312,20 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
                 >
                   <td>
                     <Badge
-                      bg={s.game === "ace" ? "info" : "secondary"}
+                      bg={
+                        s.game === "ace"
+                          ? "info"
+                          : s.game === "ams2"
+                            ? "primary"
+                            : "secondary"
+                      }
                       style={{ fontSize: 12 }}
                     >
-                      {s.game === "ace" ? "ACE" : "R3E"}
+                      {s.game === "ace"
+                        ? "ACE"
+                        : s.game === "ams2"
+                          ? "AMS2"
+                          : "R3E"}
                     </Badge>
                     {s.id < 0 && (
                       <Badge

@@ -4,6 +4,7 @@ import { useSetupPicker } from "../hooks/useSetupPicker";
 import { useIPCStore } from "../store/ipcStore";
 import { useSessionStore } from "../store/sessionStore";
 import AceSetupPicker from "./AceSetupPicker";
+import { Ams2SetupPicker } from "./Ams2SetupPicker";
 import AnalysisHeader from "./AnalysisHeader";
 import AnalysisList from "./AnalysisList";
 import LapsTable from "./LapsTable";
@@ -168,6 +169,13 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           show={showPicker}
           expectedCar={currentCar}
           expectedTrack={currentTrack}
+          onClose={() => setShowPicker(false)}
+          onConfirm={handleSetupConfirm}
+        />
+      ) : game === "ams2" ? (
+        <Ams2SetupPicker
+          show={showPicker}
+          expectedCar={currentCar}
           onClose={() => setShowPicker(false)}
           onConfirm={handleSetupConfirm}
         />

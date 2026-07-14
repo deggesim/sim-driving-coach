@@ -2,7 +2,8 @@
  * AdaptiveBaseline - EMA (alpha=0.3) baseline per 50m zone.
  *
  * Detects deviations: LATE_BRAKE, SLOW_THROTTLE, TRAIL_BRAKING, COASTING, BRAKE_THROTTLE_OVERLAP.
- * Persists to SQLite: baseline, baseline_tc_zones, baseline_abs_zones tables.
+ * Persists to SQLite: baseline, baseline_tc_zones, baseline_abs_zones tables,
+ * each resolved per-game via a `_${game}` suffix (r3e/ace/ams2).
  */
 
 import type Database from "better-sqlite3";
@@ -241,7 +242,7 @@ export const createAdaptiveBaseline = (
   const loadFromDb = (): void => {
     if (!dbRef) return;
 
-    const suffix = isR3E ? "r3e" : "ace";
+    const suffix = game;
     const rows = dbRef
       .prepare(
         `SELECT zone_id, data FROM baseline_${suffix} WHERE car = ? AND track = ? AND layout = ?`,
@@ -272,7 +273,7 @@ export const createAdaptiveBaseline = (
   const persistToDb = (): void => {
     if (!dbRef) return;
 
-    const suffix = isR3E ? "r3e" : "ace";
+    const suffix = game;
     const upsert = dbRef.prepare(`
       INSERT OR REPLACE INTO baseline_${suffix} (car, track, layout, zone_id, data, updated_at)
       VALUES (?, ?, ?, ?, ?, ?)

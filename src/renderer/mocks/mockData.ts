@@ -46,6 +46,7 @@ Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford K
   section5_summary:
     "Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford Kurve. Anticipa la staccata di dieci metri e apri il gas prima in uscita.",
   created_at: "2026-04-17T08:25:00.000Z",
+  comments: [],
 };
 
 const ANALYSIS_ACE: SessionAnalysisRow = {
@@ -89,6 +90,51 @@ Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovra
   section5_summary:
     "Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovrapponendo freno e gas: separa le fasi. Alla seconda, entra con più fiducia e apri il gas 0.5 secondi prima.",
   created_at: "2026-04-17T14:38:00.000Z",
+  comments: [],
+};
+
+const ANALYSIS_AMS2: SessionAnalysisRow = {
+  id: -3,
+  session_id: -3,
+  version: 1,
+  template_v3: `## [1] Dati sessione
+**Simulatore:** Automobilista 2 · **Auto:** Formula Ultimate Gen2 (Formula)
+**Circuito:** Interlagos - Grand Prix · **Giri analizzati:** 2 (giro 2-3)
+**Miglior giro:** 1:11.234 (giro 2) · **Δ giri:** +0.444s
+
+---
+
+## [2] Setup
+*Nessun setup caricato.*
+
+---
+
+## [3] Analisi tecnica per zona
+
+| Zona | Km | Curva | Problema | Δ |
+|---|---|---|---|---|
+| Z-03 | 0.13 km | Curva 1 (Senna S) | LATE_BRAKE | -0.10s |
+| Z-14 | 0.68 km | Reta Oposta | SLOW_THROTTLE | -0.09s |
+| Z-19 | 0.93 km | Junção | BRAKE_THROTTLE_OVERLAP | -0.06s |
+
+**Dettaglio:**
+- **Z-03 Curva 1 (Senna S)** - freno 9m più tardi della baseline, velocità di apice 4 km/h inferiore. La monoposto ha ancora carico disponibile: anticipa la staccata.
+- **Z-14 Reta Oposta** - gas ritardato di 0.3s dopo l'apice in uscita. Il posteriore regge: apri prima.
+- **Z-19 Junção** - sovrapposizione freno/gas di 0.2s in ingresso. Separa le fasi per non destabilizzare l'anteriore.
+
+---
+
+## [4] Progressione rispetto alla baseline
+Giro 2 (1:11.234): **-2.326s** rispetto al giro di calibrazione. Settore 1 già in linea con la baseline. Settori 2 e 3 ancora migliorabili di circa 0.2s ciascuno.
+
+---
+
+## [5] Sintesi radio
+Formula, buon passo generale. Stai perdendo tempo alla Senna S e alla Junção: anticipa la staccata e separa freno e gas. Sulla retta opposta apri il gas un decimo prima in uscita.`,
+  section5_summary:
+    "Formula, buon passo generale. Stai perdendo tempo alla Senna S e alla Junção: anticipa la staccata e separa freno e gas. Sulla retta opposta apri il gas un decimo prima in uscita.",
+  created_at: "2026-04-17T18:32:00.000Z",
+  comments: [],
 };
 
 export const MOCK_SESSIONS: SessionRow[] = [
@@ -123,6 +169,22 @@ export const MOCK_SESSIONS: SessionRow[] = [
     car_class_name: "GT4",
     track_name: "Monza",
     layout_name: "Circuit",
+  },
+  {
+    id: -3,
+    game: "ams2",
+    car: "formula_ultimate_gen2",
+    track: "Interlagos",
+    layout: "Grand Prix",
+    session_type: "Practice",
+    started_at: "2026-04-17 18:00:00",
+    ended_at: "2026-04-17 18:40:00",
+    best_lap: 71.234,
+    lap_count: 3,
+    car_name: "Formula Ultimate Gen2",
+    car_class_name: "Formula",
+    track_name: "Interlagos",
+    layout_name: "Grand Prix",
   },
 ];
 
@@ -210,6 +272,48 @@ const MOCK_LAPS_ACE: LapRow[] = [
   },
 ];
 
+const MOCK_LAPS_AMS2: LapRow[] = [
+  {
+    id: -301,
+    session_id: -3,
+    setup_id: null,
+    lap_number: 1,
+    lap_time: 73.56,
+    sector1: 23.8,
+    sector2: 26.1,
+    sector3: 23.66,
+    valid: false,
+    zones_json: null,
+    recorded_at: "2026-04-17T18:09:00.000Z",
+  },
+  {
+    id: -302,
+    session_id: -3,
+    setup_id: null,
+    lap_number: 2,
+    lap_time: 71.234,
+    sector1: 23.1,
+    sector2: 25.3,
+    sector3: 22.834,
+    valid: true,
+    zones_json: null,
+    recorded_at: "2026-04-17T18:18:00.000Z",
+  },
+  {
+    id: -303,
+    session_id: -3,
+    setup_id: null,
+    lap_number: 3,
+    lap_time: 71.678,
+    sector1: 23.2,
+    sector2: 25.4,
+    sector3: 23.078,
+    valid: true,
+    zones_json: null,
+    recorded_at: "2026-04-17T18:27:00.000Z",
+  },
+];
+
 export const MOCK_DETAILS: Record<number, SessionDetail> = {
   [-1]: {
     session: MOCK_SESSIONS[0],
@@ -222,5 +326,11 @@ export const MOCK_DETAILS: Record<number, SessionDetail> = {
     laps: MOCK_LAPS_ACE,
     setups: [],
     analyses: [ANALYSIS_ACE],
+  },
+  [-3]: {
+    session: MOCK_SESSIONS[2],
+    laps: MOCK_LAPS_AMS2,
+    setups: [],
+    analyses: [ANALYSIS_AMS2],
   },
 };

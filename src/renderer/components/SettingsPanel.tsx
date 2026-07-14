@@ -813,7 +813,7 @@ const SettingsPanel = () => {
                 </Button>
                 <span className="text-secondary" style={{ fontSize: 12 }}>
                   {mockHistoryMode
-                    ? "2 sessioni mock visibili nello storico (R3E + ACE, 3 giri ciascuna)"
+                    ? "3 sessioni mock visibili nello storico (R3E + ACE + AMS2, 3 giri ciascuna)"
                     : "Inserisce sessioni fittizie nello storico per test UI"}
                 </span>
               </Col>
@@ -822,9 +822,10 @@ const SettingsPanel = () => {
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
                   Quando attivo, aggiunge nello storico una sessione R3E (BMW M4
-                  GT3 - Nürburgring) e una ACE (Porsche 718 GT4 - Monza), ognuna
-                  con 3 giri e un&apos;analisi Template v3 precompilata. Utile
-                  per testare la UI senza una sessione reale in corso.
+                  GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una
+                  AMS2 (Formula Ultimate - Interlagos), ognuna con 3 giri e
+                  un&apos;analisi Template v3 precompilata. Utile per testare
+                  la UI senza una sessione reale in corso.
                 </Form.Text>
               </Col>
             </Row>

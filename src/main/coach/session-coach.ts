@@ -8,10 +8,20 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import type Database from "better-sqlite3";
-import { SESSION_SYSTEM_PROMPT, buildSessionPrompt } from "./prompt-builder.js";
-import { parseSetupRow, tableFor } from "../db/setup-row.js";
+import {
+  COMMENT_SYSTEM_PROMPT,
+  SESSION_SYSTEM_PROMPT,
+  buildCommentPrompt,
+  buildSessionPrompt,
+} from "./prompt-builder.js";
+import {
+  parseAnalysisComments,
+  parseSetupRow,
+  tableFor,
+} from "../db/setup-row.js";
 import type {
   Alert,
+  AnalysisComment,
   GameSource,
   LapRow,
   SessionAnalysisRow,
@@ -73,6 +83,12 @@ export type SessionCoachEngine = {
     resolved?: { carName?: string; trackName?: string; layoutName?: string },
     alerts?: Alert[],
     flags?: { leaderboardMode?: boolean; fixedSetup?: boolean },
+  ) => Promise<SessionAnalysisRow | null>;
+  commentAnalysis: (
+    analysisId: number,
+    game: GameSource,
+    comment: string,
+    resolved?: { carName?: string; trackName?: string },
   ) => Promise<SessionAnalysisRow | null>;
 };
 
@@ -156,11 +172,28 @@ export const createSessionCoachEngine = (
 
       const setups: SessionSetupRow[] = setupRowsRaw.map(parseSetupRow);
 
-      const priorAnalyses = db
+      const priorAnalysesRaw = db
         .prepare(
           `SELECT * FROM ${analysesTable} WHERE session_id = ? ORDER BY version ASC`,
         )
-        .all(sessionId) as SessionAnalysisRow[];
+        .all(sessionId) as Array<{
+        id: number;
+        session_id: number;
+        version: number;
+        template_v3: string;
+        section5_summary: string | null;
+        created_at: string;
+        comments_json: string | null;
+      }>;
+      const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
+        id: r.id,
+        session_id: r.session_id,
+        version: r.version,
+        template_v3: r.template_v3,
+        section5_summary: r.section5_summary,
+        created_at: r.created_at,
+        comments: parseAnalysisComments(r.comments_json),
+      }));
 
       const prompt = buildSessionPrompt({
         session,
@@ -227,10 +260,78 @@ export const createSessionCoachEngine = (
         template_v3: fullText,
         section5_summary: section5,
         created_at: createdAt,
+        comments: [],
       };
 
       options.onDone?.({ sessionId, analysis });
       return analysis;
+    },
+
+    commentAnalysis: async (analysisId, game, comment, resolved) => {
+      const analysesTable = tableFor(game, "session_analyses");
+      const row = db
+        .prepare(`SELECT * FROM ${analysesTable} WHERE id = ?`)
+        .get(analysisId) as
+        | {
+            id: number;
+            session_id: number;
+            version: number;
+            template_v3: string;
+            section5_summary: string | null;
+            created_at: string;
+            comments_json: string | null;
+          }
+        | undefined;
+      if (!row) return null;
+
+      const priorComments = parseAnalysisComments(row.comments_json);
+      const prompt = buildCommentPrompt({
+        analysisText: row.template_v3,
+        priorComments,
+        comment,
+        carName: resolved?.carName,
+        trackName: resolved?.trackName,
+      });
+
+      let responseText: string;
+      try {
+        const msg = await client.messages.create({
+          model,
+          max_tokens: 2000,
+          system: COMMENT_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: prompt }],
+        });
+        responseText = msg.content
+          .map((b) => (b.type === "text" ? b.text : ""))
+          .join("");
+      } catch (err) {
+        console.error("[SessionCoach] comment API error:", err);
+        if (isCreditOrQuotaError(err)) {
+          options.onError?.(buildAnthropicErrorMessage(err));
+        }
+        return null;
+      }
+
+      const newComment: AnalysisComment = {
+        comment,
+        response: responseText,
+        created_at: new Date().toISOString(),
+      };
+      const comments = [...priorComments, newComment];
+
+      db.prepare(
+        `UPDATE ${analysesTable} SET comments_json = ? WHERE id = ?`,
+      ).run(JSON.stringify(comments), analysisId);
+
+      return {
+        id: row.id,
+        session_id: row.session_id,
+        version: row.version,
+        template_v3: row.template_v3,
+        section5_summary: row.section5_summary,
+        created_at: row.created_at,
+        comments,
+      };
     },
   };
 };

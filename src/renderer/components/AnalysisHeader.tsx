@@ -73,10 +73,20 @@ const AnalysisHeader = ({
           </span>
           <span className="text-muted">·</span>
           <Badge
-            bg={session.game === "ace" ? "info" : "secondary"}
+            bg={
+              session.game === "ace"
+                ? "info"
+                : session.game === "ams2"
+                  ? "primary"
+                  : "secondary"
+            }
             className="ms-1"
           >
-            {session.game === "ace" ? "ACE" : "R3E"}
+            {session.game === "ace"
+              ? "ACE"
+              : session.game === "ams2"
+                ? "AMS2"
+                : "R3E"}
           </Badge>
           <Badge bg={sessionActive ? "success" : "secondary"}>
             {sessionActive ? "Attiva" : "Chiusa"}

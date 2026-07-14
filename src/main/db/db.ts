@@ -215,6 +215,56 @@ const initSchema = (db: Database.Database): void => {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (track, layout)
     );
+
+    -- ── AMS2 tables (mirror ACE: string identifiers) ──
+    CREATE TABLE IF NOT EXISTS baseline_ams2 (
+      car TEXT NOT NULL, track TEXT NOT NULL, layout TEXT NOT NULL, zone_id INTEGER NOT NULL,
+      data TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (car, track, layout, zone_id)
+    );
+    CREATE TABLE IF NOT EXISTS baseline_tc_zones_ams2 (
+      car TEXT NOT NULL, track TEXT NOT NULL, layout TEXT NOT NULL, zone_id INTEGER NOT NULL,
+      PRIMARY KEY (car, track, layout, zone_id)
+    );
+    CREATE TABLE IF NOT EXISTS baseline_abs_zones_ams2 (
+      car TEXT NOT NULL, track TEXT NOT NULL, layout TEXT NOT NULL, zone_id INTEGER NOT NULL,
+      PRIMARY KEY (car, track, layout, zone_id)
+    );
+    CREATE TABLE IF NOT EXISTS corner_names_ams2 (
+      track TEXT NOT NULL, layout TEXT NOT NULL, dist_min REAL NOT NULL, dist_max REAL NOT NULL,
+      name TEXT NOT NULL, PRIMARY KEY (track, layout, dist_min)
+    );
+    CREATE TABLE IF NOT EXISTS sessions_ams2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, car TEXT NOT NULL, track TEXT NOT NULL, layout TEXT NOT NULL,
+      session_type TEXT NOT NULL DEFAULT 'practice', started_at TEXT NOT NULL DEFAULT (datetime('now')),
+      ended_at TEXT, best_lap REAL, lap_count INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS session_setups_ams2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id INTEGER NOT NULL REFERENCES sessions_ams2(id) ON DELETE CASCADE,
+      loaded_at TEXT NOT NULL DEFAULT (datetime('now')), setup_json TEXT NOT NULL, setup_screenshots TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_setups_ams2_session ON session_setups_ams2(session_id);
+    CREATE TABLE IF NOT EXISTS laps_ams2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id INTEGER NOT NULL REFERENCES sessions_ams2(id) ON DELETE CASCADE,
+      setup_id INTEGER REFERENCES session_setups_ams2(id) ON DELETE SET NULL,
+      lap_number INTEGER NOT NULL, lap_time REAL NOT NULL, sector1 REAL, sector2 REAL, sector3 REAL,
+      valid INTEGER NOT NULL DEFAULT 1, zones_json TEXT, frames_blob BLOB,
+      recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_laps_ams2_session ON laps_ams2(session_id);
+    CREATE TABLE IF NOT EXISTS session_analyses_ams2 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id INTEGER NOT NULL REFERENCES sessions_ams2(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL, template_v3 TEXT NOT NULL, section5_summary TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(session_id, version)
+    );
+    CREATE INDEX IF NOT EXISTS idx_analyses_ams2_session ON session_analyses_ams2(session_id);
+    CREATE TABLE IF NOT EXISTS track_maps_ams2 (
+      track TEXT NOT NULL, layout TEXT NOT NULL, geometry TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (track, layout)
+    );
   `);
 
   seedR3ECorners(db);
@@ -226,6 +276,11 @@ const migrateSchema = (db: Database.Database): void => {
     `ALTER TABLE sessions_r3e ADD COLUMN fixed_setup      INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sessions_ace ADD COLUMN leaderboard_mode INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sessions_ace ADD COLUMN fixed_setup      INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE session_analyses_r3e ADD COLUMN comments_json TEXT`,
+    `ALTER TABLE session_analyses_ace ADD COLUMN comments_json TEXT`,
+    `ALTER TABLE sessions_ams2 ADD COLUMN leaderboard_mode INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE sessions_ams2 ADD COLUMN fixed_setup      INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE session_analyses_ams2 ADD COLUMN comments_json TEXT`,
   ];
   for (const sql of migrations) {
     try {
@@ -260,7 +315,7 @@ export const getCornerName = (
   layout: number | string,
   dist: number,
 ): string | null => {
-  const table = game === "r3e" ? "corner_names_r3e" : "corner_names_ace";
+  const table = `corner_names_${game}`;
   const row = db
     .prepare(
       `SELECT name FROM ${table}
@@ -278,7 +333,7 @@ export const hasCornerNames = (
   track: number | string,
   layout: number | string,
 ): boolean => {
-  const table = game === "r3e" ? "corner_names_r3e" : "corner_names_ace";
+  const table = `corner_names_${game}`;
   const row = db
     .prepare(`SELECT 1 FROM ${table} WHERE track = ? AND layout = ? LIMIT 1`)
     .get(track, layout);
@@ -322,7 +377,7 @@ export const seedCornersFromLap = (
   }
   if (current) groups.push(current);
 
-  const table = game === "r3e" ? "corner_names_r3e" : "corner_names_ace";
+  const table = `corner_names_${game}`;
   const insert = db.prepare(`
     INSERT OR IGNORE INTO ${table} (track, layout, dist_min, dist_max, name)
     VALUES (?, ?, ?, ?, ?)
@@ -352,7 +407,7 @@ export const getTrackMap = (
   track: number | string,
   layout: number | string,
 ): TrackMapGeometry | null => {
-  const table = game === "r3e" ? "track_maps_r3e" : "track_maps_ace";
+  const table = `track_maps_${game}`;
   const row = db
     .prepare(`SELECT geometry FROM ${table} WHERE track = ? AND layout = ?`)
     .get(track, layout) as { geometry: string } | undefined;
@@ -371,7 +426,7 @@ export const saveTrackMap = (
   layout: number | string,
   geometry: TrackMapGeometry,
 ): void => {
-  const table = game === "r3e" ? "track_maps_r3e" : "track_maps_ace";
+  const table = `track_maps_${game}`;
   db.prepare(
     `INSERT OR REPLACE INTO ${table} (track, layout, geometry, created_at)
      VALUES (?, ?, ?, ?)`,

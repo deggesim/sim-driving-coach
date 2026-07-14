@@ -109,6 +109,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("session:reuseSetup", params),
   sessionDeleteAnalysis: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("session:deleteAnalysis", params),
+  sessionCommentAnalysis: (params: {
+    id: number;
+    game: string;
+    comment: string;
+  }) => ipcRenderer.invoke("session:commentAnalysis", params),
   sessionDeleteSetup: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("session:deleteSetup", params),
 
@@ -145,6 +150,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("ace:listSetupFiles", params),
   aceReadSetup: (params: { filePath: string }) =>
     ipcRenderer.invoke("ace:readSetup", params),
+
+  // AMS2 setup analysis (screenshot → Claude Vision → SetupData)
+  listScreenshots: () => ipcRenderer.invoke("setup:listScreenshots"),
+  decodeSetup: (params: { filenames: string[]; expectedCar: string }) =>
+    ipcRenderer.invoke("setup:decodeSetup", params),
 
   readerReset: (game: GameSource) =>
     ipcRenderer.invoke("reader:reset", { game }),

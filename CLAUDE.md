@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Electron + React app serving as a **real-time voice coach** for sim racing. Supports two simulators: **RaceRoom Racing Experience (R3E)** and **Assetto Corsa EVO (ACE)**. Reads shared memory on Windows, analyzes driving technique, and produces Italian voice alerts during laps. On demand (per session), calls Claude API for a full debriefing in Template v3 format.
+Electron + React app serving as a **real-time voice coach** for sim racing. Supports three simulators: **RaceRoom Racing Experience (R3E)**, **Assetto Corsa EVO (ACE)**, and **Automobilista 2 (AMS2, pCARS2 engine)**. Reads shared memory on Windows, analyzes driving technique, and produces Italian voice alerts during laps. On demand (per session), calls Claude API for a full debriefing in Template v3 format.
 
 **Language**: All voice output and UI text in Italian. Engineer tone, always include numeric data.
 **Code language**: TypeScript strict mode for all source code. Use `.ts` for main/shared modules and `.tsx` for React components.
@@ -42,10 +42,12 @@ Post-install native rebuild is required because `better-sqlite3` needs compilati
 ## Architecture
 
 ```
-Active game selected via Settings (R3E | ACE)
+Active game is connection-driven (main process): whichever reader is connected
+(priority R3E > ACE > AMS2 if more than one connects at once). No user-facing
+selector — all three readers run in parallel and poll continuously.
               |
               v
-   R3EReader or AceReader (EventEmitter)
+   R3EReader, AceReader, or Ams2Reader (EventEmitter, all running in parallel)
      — poll 16ms, emit: connected/disconnected/frame/lapComplete
           |          |
           |          +-- onFrame → ZoneTracker → RuleEngine (P1/P2 immediate)
@@ -77,9 +79,9 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 ### Main process (`src/main/`)
 
-- **main.ts** — Electron entry point; wires IPC handlers, selects R3E/ACE reader based on `activeGame` config, manages session/lap lifecycle in SQLite
+- **main.ts** — Electron entry point; wires IPC handlers, runs `R3EReader`/`AceReader`/`Ams2Reader` in parallel, manages session/lap lifecycle in SQLite. `activeGame` is a connection-driven local variable (priority r3e > ace > ams2 on simultaneous connect/disconnect) — not a user setting
 - **preload** (`src/preload/index.ts`) — Context bridge exposing `window.electronAPI` to renderer. Compiled as CJS by electron-vite (required by `sandbox: true`)
-- **game-adapter.ts** — Projects R3EFrame → GameFrame (unified 7-field struct: lapDistance, tcActive, absActive, brakeTemps FL/FR/RL/RR). ACE reader emits GameFrame natively
+- **game-adapter.ts** — Projects R3EFrame → GameFrame (unified 7-field struct: lapDistance, tcActive, absActive, brakeTemps FL/FR/RL/RR). ACE and AMS2 readers emit GameFrame natively
 - **input-manager.ts** — Registers global keyboard shortcuts via Electron `globalShortcut`. Fires `onInputTrigger` push event to renderer when the configured key is pressed. Non-Windows stub returns no-ops
 - **lap-recorder.ts** — Attaches to reader, aggregates frames into 50m zones with driving metrics, handles 2-lap calibration phase
 - **zone-tracker.ts** — Stateful tracker for current 50m zone during a lap (feeds RuleEngine real-time checks)
@@ -96,9 +98,14 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **ace-struct.ts** — Struct definitions for all three ACE SHM pages with read helpers
 - **ace-setup-reader.ts** — Decodes binary protobuf `.carsetup` files from `D:\Salvataggi\ACE\Car Setups\{car}\{track}\`. Extracts setup params (steering ratio, brake bias, ARBs, dampers, geometry, electronics, aero, fuel, compound). Returns `SetupData` with Italian-labelled params. **Spec:** `ace_carsetup_spec.md` (local, reverse-engineered)
 
+#### `ams2/`
+
+- **ams2-reader.ts** — Opens the single SHM page `$pcars2$` via `koffi`, polls at 16ms. Reads `mSequenceNumber` before and after copying the buffer to detect torn reads (atomic snapshot); frozen sequence number for ~2s while playing → disconnect. Emits GameFrame natively + `lapComplete` (via `mLapsCompleted` increment). Car/track/layout are readable strings from SHM. Mock fallback on non-Windows
+- **ams2-struct.ts** — pCARS2 `SharedMemory` struct layout (`SHARED_MEMORY_VERSION = 14`), Pack=4 alignment, offsets derived from `SharedMemory.h`. Validated by the runnable `ams2-struct.selfcheck.ts` (see Struct Offset Debugging below for the working run command)
+
 #### `coach/`
 
-- **adaptive-baseline.ts** — EMA (alpha=0.3) baseline per zone, detects deviations (LATE_BRAKE, SLOW_THROTTLE, TRAIL_BRAKING, COASTING, BRAKE_THROTTLE_OVERLAP), persists to SQLite. Game-aware (R3E/ACE) — queries correct table via `game` column in `baseline`
+- **adaptive-baseline.ts** — EMA (alpha=0.3) baseline per zone, detects deviations (LATE_BRAKE, SLOW_THROTTLE, TRAIL_BRAKING, COASTING, BRAKE_THROTTLE_OVERLAP), persists to SQLite. Game-aware (R3E/ACE/AMS2) — queries the per-game table (`baseline_r3e`/`baseline_ace`/`baseline_ams2`, resolved via a `_${game}` suffix, not a `game` column)
 - **rule-engine.ts** — AlertDispatcher (priority queue, P1>P2>P3, dedup per zone/type/lap, 4s silence window) + RuleEngine (frame-level P1/P2, post-lap P3)
 - **session-coach.ts** — On-demand session analysis engine (`createSessionCoachEngine`). Loads all laps + setups + prior analyses for a session, builds session-level prompt, streams Claude response, persists versioned `SessionAnalysisRow` to `session_analyses_*`. Multiple analyses per session supported (incremental version counter). Extracts section [5] (max 3 sentences) for TTS.
 - **prompt-builder.ts** — Builds Claude prompt from session data + laps + setups + deviations + corner names for Template v3 output. Exports `buildSessionPrompt` and `SESSION_SYSTEM_PROMPT`
@@ -130,10 +137,10 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **AnalysisList.tsx** — Accordion of all `SessionAnalysisRow` versions for the current session. Shows a streaming placeholder (with Spinner) while an analysis is in progress. Renders Template v3 markdown via `marked`
 - **LapsTable.tsx** — Bootstrap dark Table listing laps for the current session (lap#, time, sectors, valid flag, setup badge, timestamp). Reads from `sessionStore`. Setup badge shows "#N" index linked to session setups. Row click opens `LapTelemetryCharts`
 - **LapTelemetryCharts.tsx** — Modal/panel with Recharts line charts (brake, throttle, speed vs. lap distance) and a SVG track-map overlay for a selected lap. Fetches frame data via `lapGetFrames` IPC and track geometry via `trackMapGet` IPC
-- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track. Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionDetail` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
+- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionDetail` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
 - **TTSManager.tsx** — Headless component, Web Speech API (it-IT), priority queue, P1 interrupts. Used for real-time lap alerts when Azure TTS is not enabled
 - **StatusBar.tsx** — Connection status, car/track/layout (resolved names), calibration state, last alert
-- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector, assistant name, active game selector (R3E/ACE toggle), Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle
+- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector, assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle. No active-game selector — the active game is connection-driven in the main process
 - **VoiceCoachOverlay.tsx** — Fixed overlay showing voice interaction state: idle (hidden), listening (pulsing mic), processing (spinner + transcript), speaking (streaming answer)
 - **R3eSetupPicker.tsx** — R3E only. Modal to paste the JSON exported by RaceRoom (CTRL+C in the setup screen). Parses JSON into categorised `SetupParam[]` (Italian labels), previews via `R3eSetupTabs`, then saves as `SetupData`
 - **R3eSetupTabs.tsx** — Tabbed display of R3E `SetupParam[]` grouped by category (Freni, Gomme, Sospensioni, etc.). Used inside `R3eSetupPicker` and `SetupDetailModal`
@@ -141,6 +148,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **SetupSelectionModal.tsx** — Modal for loading a setup. Offers two tabs: (1) browse setup history for the current car/track (`sessionGetSetupHistory` IPC → reuse via `sessionReuseSetup`); (2) open the game-specific picker (`R3eSetupPicker` or `AceSetupPicker`). Shows `SetupDetailModal` for preview
 - **SetupDetailModal.tsx** — Read-only modal showing all parameters of a `SessionSetupRow` via `R3eSetupTabs`. Optionally shows a "Usa" button to reuse the setup
 - **AceSetupPicker.tsx** — ACE only. Modal to browse `D:\Salvataggi\ACE\Car Setups\` via 3-step flow: car dropdown → track dropdown → .carsetup file list. IPC calls: `aceListSetupCars`, `aceListSetupTracks`, `aceListSetupFiles`, `aceReadSetup`. Shows a validation badge when the selected car/track doesn't match `expectedCar`/`expectedTrack`
+- **Ams2SetupPicker.tsx** — AMS2 only. Modal to browse Steam screenshots for the AMS2 setup screen (IPC `setup:listScreenshots`), select one or more, then decode via Claude Vision (IPC `setup:decodeSetup`). Flags screenshots already used by a prior setup; shows a validation badge when the detected car doesn't match `expectedCar`
 
 #### `hooks/`
 
@@ -157,11 +165,11 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 - **ipcStore.ts** — Zustand store for real-time IPC push state (frame, lastAlert, lastLap, status)
 - **sessionStore.ts** — Zustand store for the active or selected session. Subscribes to `session:*` push channels via `subscribeSessionIPC()` (called once from `App.tsx`). State: `{ mode, session, laps, setups, analyses, streaming, loading, error }`. Methods: `loadCurrent()`, `loadById(id, game)`, `setDetail()`, `reset()`. Internal `_apply*` handlers for each push event
-- **settingsStore.ts** — Zustand store for all user settings: `apiKey`, `anthropicModel`, `assistantName`, `gamepadButton` (config key: `gamepadTriggerButton`), `activeGame` ("r3e" | "ace"), `ttsEnabled`, `azureTtsEnabled`, `azureSpeechKey`, `azureRegion`, `azureVoiceName`, `mockHistoryMode`, `telemetryLogEnabled`, `keyboardVoiceKey`, `aceSetupsPath`
+- **settingsStore.ts** — Zustand store for all user settings: `apiKey`, `anthropicModel`, `assistantName`, `gamepadButton` (config key: `gamepadTriggerButton`), `ttsEnabled`, `azureTtsEnabled`, `azureSpeechKey`, `azureRegion`, `azureVoiceName`, `mockHistoryMode`, `telemetryLogEnabled`, `keyboardVoiceKey`, `aceSetupsPath`. No `activeGame` field — the active game is not a user setting, it's connection-driven in the main process
 
 #### `mocks/`
 
-- **mockData.ts** — Static mock data for `mockHistoryMode`. Exports `MOCK_SESSIONS` (two `SessionRow` entries: R3E BMW M4 GT3 at Nürburgring, ACE Porsche 718 GT4 at Monza) and `MOCK_DETAILS` (keyed by negative session id, each with laps + analyses)
+- **mockData.ts** — Static mock data for `mockHistoryMode`. Exports `MOCK_SESSIONS` (three `SessionRow` entries: R3E BMW M4 GT3 at Nürburgring, ACE Porsche 718 GT4 at Monza, AMS2 Formula Ultimate Gen2 at Interlagos — 3 laps each) and `MOCK_DETAILS` (keyed by negative session id, each with laps + analyses)
 
 ### Shared (`src/shared/`)
 
@@ -172,7 +180,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 ## Database Schema
 
 ```sql
--- R3E tables
+-- R3E tables (numeric ids)
 sessions_r3e         (id PK, car, track, layout, session_type, started_at, ended_at, best_lap, lap_count)
 session_setups_r3e   (id PK, session_id FK→sessions_r3e, loaded_at, setup_json, setup_screenshots)
 laps_r3e             (id PK, session_id FK→sessions_r3e, setup_id FK→session_setups_r3e,
@@ -180,25 +188,26 @@ laps_r3e             (id PK, session_id FK→sessions_r3e, setup_id FK→session
 session_analyses_r3e (id PK, session_id FK→sessions_r3e, version, template_v3, section5_summary,
                       created_at) -- UNIQUE(session_id, version)
 
--- ACE tables (same structure)
-sessions_ace         (id PK, car, track, layout, session_type, started_at, ended_at, best_lap, lap_count)
-session_setups_ace   (id PK, session_id FK→sessions_ace, loaded_at, setup_json, setup_screenshots)
-laps_ace             (id PK, session_id FK→sessions_ace, setup_id FK→session_setups_ace,
-                      lap_number, lap_time, sector1/2/3, valid, zones_json, frames_blob, recorded_at)
-session_analyses_ace (id PK, session_id FK→sessions_ace, version, template_v3, section5_summary,
-                      created_at) -- UNIQUE(session_id, version)
+-- ACE tables (same structure, string ids)
+sessions_ace / session_setups_ace / laps_ace / session_analyses_ace
 
--- Shared tables
-baseline             (game, car, track, zone_id, data JSON, updated_at)  -- PK: game+car+track+zone_id
-baseline_tc_zones    (game, car, track, zone_id)
-baseline_abs_zones   (game, car, track, zone_id)
-corner_names         (track, layout, dist_min PK, dist_max, name)
-track_maps_r3e       (track, layout PK, geometry JSON, created_at)
-track_maps_ace       (track, layout PK, geometry JSON, created_at)
+-- AMS2 tables (same structure, string ids — mirrors ACE)
+sessions_ams2 / session_setups_ams2 / laps_ams2 / session_analyses_ams2
+
+-- Per-game baseline / corner-name / track-map tables: one table set per game
+-- (suffix _r3e / _ace / _ams2, NOT a shared table with a `game` column).
+-- R3E uses INTEGER car/track/layout; ACE and AMS2 use TEXT.
+baseline_<game>           (car, track, layout, zone_id, data JSON, updated_at) -- PK: car+track+layout+zone_id
+baseline_tc_zones_<game>  (car, track, layout, zone_id)
+baseline_abs_zones_<game> (car, track, layout, zone_id)
+corner_names_<game>       (track, layout, dist_min PK, dist_max, name)
+track_maps_<game>         (track, layout PK, geometry JSON, created_at)
+
+-- Shared table
 app_config           (key PK, value)
 ```
 
-R3E stores numeric IDs; ACE stores string identifiers (e.g. `"monza"`, `"ks_porsche_718_gt4"`).
+R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `"ks_porsche_718_gt4"` for ACE; `"Interlagos"`, `"Formula Ultimate Gen2"` for AMS2).
 
 `zones_json` on laps stores the serialized `ZoneData[]` for each completed lap (used for baseline and prompt building).
 
@@ -250,11 +259,13 @@ R3E stores numeric IDs; ACE stores string identifiers (e.g. `"monza"`, `"ks_pors
 
 ## Key Design Decisions (Do Not Change)
 
-- **Multi-game**: Active game selected at startup via `activeGame` config. R3E and ACE share the same coach/analysis pipeline via `GameFrame` abstraction
+- **Multi-game**: No `activeGame` config or user-facing selector. All three readers (R3E/ACE/AMS2) run in parallel in the main process; `activeGame` is a connection-driven local variable (priority r3e > ace > ams2 when more than one is connected). R3E, ACE, and AMS2 share the same coach/analysis pipeline via the `GameFrame` abstraction
 - **Data source R3E**: Shared Memory (`$R3E`) via `koffi` — not telemetry files. Numeric car/track/layout IDs resolved via R3EDataLoader
 - **Data source ACE**: Three SHM pages (PhysicsEvo, GraphicsEvo, StaticEvo) via `koffi`. Car/track/layout are readable strings from SHM
+- **Data source AMS2**: A single SHM page (`$pcars2$`, the pCARS2-engine `SharedMemory` struct) via `koffi` — not three pages like ACE. Reads are made atomic by checking `mSequenceNumber` before and after the copy (torn-read detection), not by a locking API. Car/track/layout are readable strings from SHM
 - **Setup loading R3E**: User pastes the JSON exported by RaceRoom (CTRL+C in setup screen) into `R3eSetupPicker`. Parsed client-side into `SetupParam[]` with Italian labels — no Claude Vision, no IPC round-trip
 - **Setup loading ACE**: `.carsetup` binary files browsed via car→track→file dropdown flow in `AceSetupPicker` → protobuf decode (no Claude Vision). Validation badge warns when selected car/track doesn't match the reference
+- **Setup loading AMS2**: User selects one or more setup-screen screenshots (Steam screenshot folder, auto-detected steamid, appid `1066890`) via `Ams2SetupPicker` → sent to Claude Vision (`claude-sonnet-5`) for OCR/decode into `SetupData`. Distinct from both R3E (JSON paste) and ACE (binary file decode) — this is the only game whose setup import uses Claude Vision
 - **Session lifecycle**: Explicit start/end managed by the user. Laps accumulate in the active session. Setup loads are stored as `session_setups_*` rows and linked to subsequent laps via `setup_id`. Analysis is triggered on demand ("Esegui analisi"), not automatically per-lap
 - **Analysis model**: Session-level, on-demand, versioned. `SessionCoachEngine` reads all laps + setups + prior analyses for the session and produces a new `SessionAnalysisRow`. Multiple analyses per session supported. Section [5] (max 3 sentences) is extracted for TTS playback
 - **Corner names**: Seeded from `corner-names.json` for known tracks. For unknown tracks, `seedCornersFromLap()` auto-generates "Curva N" names from braking zones on the first lap. Corner names are used in prompts and alerts
@@ -269,7 +280,7 @@ R3E stores numeric IDs; ACE stores string identifiers (e.g. `"monza"`, `"ks_pors
 - **Qualification/Leaderboard**: Tire temps fixed at 85°C — do not flag as issue
 - **Delete**: Single (`sessionDelete`) and bulk (`sessionDeleteAll`) session deletion. Cascade deletes laps, setups, and analyses. Individual analyses can also be deleted via `sessionDeleteAnalysis`
 - **Window**: 1200×800, no frame, contextIsolation: true, nodeIntegration: false
-- **Platform**: Windows only (both R3E and ACE are Windows-only)
+- **Platform**: Windows only (R3E, ACE, and AMS2 are all Windows-only)
 - **TTS**: Azure Cognitive Services is the primary TTS/STT provider. Web Speech API is the fallback for real-time lap alerts only
 - **State management**: Three Zustand stores — `ipcStore` (real-time frames/alerts), `sessionStore` (active/selected session), `settingsStore` (user settings). Do not scatter state back into `App.tsx`
 - **PDF**: `printToPDF` + HTML/CSS template (Electron main process). Do not reintroduce jsPDF
@@ -291,7 +302,8 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 
 | Task                                    | Skill (nell'ordine)                                                                                 | Agente (uno, in base al bisogno)                                                                                                          |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Nuova feature                           | 1. `superpowers:brainstorming` (concordare design) → 2. `feature-dev:feature-dev` (implementazione) | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
+| Nuova feature **semplice**              | `feature-dev:feature-dev` (implementazione guidata)                                                 | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
+| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` (o `executing-plans`) → `superpowers:verification-before-completion` | agenti di superpowers (es. `Explore` in parallelo via `superpowers:dispatching-parallel-agents`) |
 | Bug fix                                 | `superpowers:systematic-debugging`                                                                  | `voltagent-qa-sec:debugger` (crash/eccezioni) \| `voltagent-qa-sec:error-detective` (correlazione errori tra moduli)                      |
 | Code review                             | `superpowers:requesting-code-review`                                                                | `feature-dev:code-reviewer`                                                                                                               |
 | Refactoring TypeScript / tipi avanzati  | `typescript-advanced-types`                                                                         | `voltagent-lang:typescript-pro`                                                                                                           |
@@ -302,6 +314,8 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 | Fine branch / PR / commit               | `superpowers:finishing-a-development-branch`                                                        | —                                                                                                                                         |
 | Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                           | due o più agenti `Explore` simultanei (es. analisi R3E e ACE in parallelo)                                                                |
 | Verifica prima di completare            | `superpowers:verification-before-completion`                                                        | —                                                                                                                                         |
+
+**Soglia semplice vs complessa**: una feature è **semplice** se soddisfa _tutte_ queste condizioni — tocca un solo dominio (solo React, o solo IPC, o solo SQLite…), non introduce nuovi layer/file architetturali (solo modifiche a file esistenti o un singolo file nuovo), il design è già chiaro senza brainstorming, e l'implementazione è stimabile in ≤ ~3 step. Se anche solo una condizione non regge (multi-dominio, nuovi layer/astrazioni, design da concordare, o > ~3 step) è **complessa** → percorso `superpowers` completo.
 
 **Regola multi-dominio**: se il task copre più aree (es. nuova feature React + IPC Electron), invocare prima `superpowers:brainstorming`, poi usare le skill di dominio durante l'implementazione (`react-vite-best-practices`, `electron-best-practices`).
 
@@ -314,3 +328,4 @@ If `npm run test:reader` shows all zeros or -1: struct offset mismatch. Check:
 1. `VersionMajor` at offset 0 must be `3` (updated to v3.x for R3E)
 2. If version OK but other fields wrong: `PlayerData` inline size differs from installed R3E version. Compare with `R3E.cs` from SecondMonitor connectors
 3. For ACE: verify `AC_LIVE = 2` in PhysicsEvo status field; if 0, ACE is not running
+4. For AMS2: the `[AMS2] connected: ...` log line must show `mVersion=14`. If `mVersion` is wrong or speed/lapDistance/car/track are zero or garbage, the offsets in `ams2-struct.ts` (`OFF`/`PART`) don't match the installed AMS2 version — compare against `SharedMemory.h` (likely a `PARTICIPANT_SIZE` or struct-padding change), update the offsets, then re-run `ams2-struct.selfcheck.ts` (see its header comment for the working compile-and-run command; `npx ts-node --esm` is broken in this environment)

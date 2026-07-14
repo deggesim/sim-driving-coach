@@ -48,7 +48,7 @@ export type Deviation = {
 
 // --- Active game source ---
 
-export type GameSource = "r3e" | "ace";
+export type GameSource = "r3e" | "ace" | "ams2";
 
 // --- Minimal frame interface used by RuleEngine and ZoneTracker ---
 
@@ -177,6 +177,7 @@ export type GameStatus = {
   connected: boolean; // true if at least one game is connected
   r3eConnected: boolean;
   aceConnected: boolean;
+  ams2Connected: boolean;
   calibrating: boolean;
   lapsToCalibration: number;
   car: string | null;
@@ -230,6 +231,12 @@ export type SessionSetupRow = {
   setup_screenshots: string | null;
 };
 
+export type AnalysisComment = {
+  comment: string;
+  response: string;
+  created_at: string;
+};
+
 export type SessionAnalysisRow = {
   id: number;
   session_id: number;
@@ -237,6 +244,7 @@ export type SessionAnalysisRow = {
   template_v3: string;
   section5_summary: string | null;
   created_at: string;
+  comments: AnalysisComment[];
 };
 
 export type SessionDetail = {
@@ -480,6 +488,11 @@ export type ElectronAPI = {
     id: number;
     game: GameSource;
   }) => Promise<void>;
+  sessionCommentAnalysis: (params: {
+    id: number;
+    game: GameSource;
+    comment: string;
+  }) => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
   sessionDeleteSetup: (params: {
     id: number;
     game: GameSource;
@@ -547,6 +560,19 @@ export type ElectronAPI = {
     Array<{ filename: string; filePath: string; modifiedAt: string }>
   >;
   aceReadSetup: (params: { filePath: string }) => Promise<SetupData>;
+
+  // AMS2 Setup analysis (screenshot → Claude Vision)
+  listScreenshots: () => Promise<
+    Array<{
+      name: string;
+      thumbnailB64: string;
+      alreadyUsed?: { setupName: string; loadedAt: string; sessionId: number };
+    }>
+  >;
+  decodeSetup: (params: {
+    filenames: string[];
+    expectedCar: string;
+  }) => Promise<SetupData>;
 
   // Reader control
   readerReset: (game: GameSource) => Promise<void>;
