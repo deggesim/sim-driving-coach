@@ -453,7 +453,7 @@ export type ElectronAPI = {
   configSet: (key: string, value: unknown) => Promise<void>;
 
   // Session lifecycle
-  sessionStart: () => Promise<SessionStartResult>;
+  sessionStart: (game: GameSource) => Promise<SessionStartResult>;
   sessionEnd: () => Promise<void>;
   sessionUpdateFlags: (params: {
     sessionId?: number;

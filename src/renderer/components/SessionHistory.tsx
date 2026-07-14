@@ -20,6 +20,7 @@ import type { GameSource, SessionRow } from "../../shared/types";
 import { MOCK_DETAILS, MOCK_SESSIONS } from "../mocks/mockData";
 import { useSessionStore } from "../store/sessionStore";
 import { useSettingsStore } from "../store/settingsStore";
+import { GameBadge } from "./GameBadge";
 import SessionPanel from "./SessionPanel";
 
 const PAGE_SIZE = 10;
@@ -311,22 +312,7 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
                   onClick={() => handleRowClick(s)}
                 >
                   <td>
-                    <Badge
-                      bg={
-                        s.game === "ace"
-                          ? "info"
-                          : s.game === "ams2"
-                            ? "primary"
-                            : "secondary"
-                      }
-                      style={{ fontSize: 12 }}
-                    >
-                      {s.game === "ace"
-                        ? "ACE"
-                        : s.game === "ams2"
-                          ? "AMS2"
-                          : "R3E"}
-                    </Badge>
+                    <GameBadge game={s.game} style={{ fontSize: 12 }} />
                     {s.id < 0 && (
                       <Badge
                         bg="warning"

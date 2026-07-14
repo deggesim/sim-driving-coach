@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Alert } from "react-bootstrap";
+import type { GameSource } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
 import { useIPCStore } from "../store/ipcStore";
@@ -7,6 +9,7 @@ import AceSetupPicker from "./AceSetupPicker";
 import { Ams2SetupPicker } from "./Ams2SetupPicker";
 import AnalysisHeader from "./AnalysisHeader";
 import AnalysisList from "./AnalysisList";
+import { GamePickerModal } from "./GamePickerModal";
 import LapsTable from "./LapsTable";
 import R3eSetupPicker from "./R3eSetupPicker";
 import SetupSelectionModal from "./SetupSelectionModal";
@@ -54,13 +57,18 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
   const sessionActive = !!session && !session.ended_at;
   const isLive = mode === "live";
 
-  const handleStart = async (): Promise<void> => {
-    const res = await window.electronAPI.sessionStart();
+  const [showGamePicker, setShowGamePicker] = useState(false);
+
+  const handleStart = (): void => setShowGamePicker(true);
+
+  const handleGamePicked = async (game: GameSource): Promise<void> => {
+    setShowGamePicker(false);
+    const res = await window.electronAPI.sessionStart(game);
     if (!res.ok) {
       showFlash("danger", res.reason);
     } else {
       showFlash("success", "Sessione aperta.");
-      if (status.game === "r3e") setShowSetupSelection(true);
+      if (game === "r3e") setShowSetupSelection(true);
     }
   };
 
@@ -218,6 +226,14 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
             setPickerLap(null);
             setShowPicker(true);
           }}
+        />
+      )}
+
+      {isLive && (
+        <GamePickerModal
+          show={showGamePicker}
+          onCancel={() => setShowGamePicker(false)}
+          onConfirm={handleGamePicked}
         />
       )}
     </div>

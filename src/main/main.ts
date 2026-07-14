@@ -379,9 +379,17 @@ const setupPipeline = (): void => {
   let currentTrack = "";
   let currentLayout = "";
   let currentLayoutLength = 6000;
-  let r3eConnected = false;
-  let aceConnected = false;
-  let ams2Connected = false;
+  // Connection state is frame-recency based: a game counts as "live" only if it
+  // emitted a frame within LIVE_STALE_MS. A closed sim whose SHM survives (e.g.
+  // ACE held open by Steam) stops emitting frames, so it drops off the badges
+  // instead of showing as connected forever (the old raw-flag bug).
+  const lastFrameAt: Record<GameSource, number> = { r3e: 0, ace: 0, ams2: 0 };
+  const LIVE_STALE_MS = 2500;
+  const isLive = (g: GameSource): boolean =>
+    Date.now() - lastFrameAt[g] < LIVE_STALE_MS;
+  // activeGame is picked by the user at session start (no auto-detection). While
+  // idle it mirrors whichever sim is currently emitting frames, for correct
+  // status/lap processing; during a session it stays locked to the session game.
   let activeGame: GameSource = "r3e";
 
   // Session lifecycle state
@@ -434,25 +442,38 @@ const setupPipeline = (): void => {
   const recorder = createLapRecorder(baseline.isReady());
 
   const pushStatus = (): void => {
+    // Resolve R3E numeric ids to names, but only when the value is actually
+    // numeric: while idle another sim's string ids may sit in the globals.
+    const numeric = (v: string): boolean => /^\d+$/.test(v);
     const names =
-      activeGame !== "r3e"
+      activeGame === "r3e"
         ? {
+            carName:
+              currentCar && numeric(currentCar)
+                ? getCarName(Number(currentCar))
+                : currentCar,
+            trackName:
+              currentTrack && numeric(currentTrack)
+                ? getTrackName(Number(currentTrack))
+                : currentTrack,
+            layoutName:
+              currentLayout && numeric(currentLayout)
+                ? getLayoutName(Number(currentLayout))
+                : currentLayout,
+          }
+        : {
             carName: currentCar,
             trackName: currentTrack,
             layoutName: currentLayout,
-          }
-        : {
-            carName: currentCar ? getCarName(Number(currentCar)) : "",
-            trackName: currentTrack ? getTrackName(Number(currentTrack)) : "",
-            layoutName: currentLayout
-              ? getLayoutName(Number(currentLayout))
-              : "",
           };
+    const r3eLive = isLive("r3e");
+    const aceLive = isLive("ace");
+    const ams2Live = isLive("ams2");
     const status: GameStatus = {
-      connected: r3eConnected || aceConnected || ams2Connected,
-      r3eConnected,
-      aceConnected,
-      ams2Connected,
+      connected: r3eLive || aceLive || ams2Live,
+      r3eConnected: r3eLive,
+      aceConnected: aceLive,
+      ams2Connected: ams2Live,
       calibrating: recorder.isCalibrating(),
       lapsToCalibration: recorder.lapsToCalibration(),
       car: names.carName || null,
@@ -645,23 +666,18 @@ const setupPipeline = (): void => {
   aceReaderInst = aceReader;
   ams2ReaderInst = ams2Reader;
 
+  // Connection events only trigger a status push / telemetry cleanup now.
+  // The active game is no longer derived from them (see startSession).
   r3eReader.on("connected", () => {
-    r3eConnected = true;
-    if (!aceConnected) activeGame = "r3e";
     pushStatus();
   });
 
   r3eReader.on("disconnected", () => {
-    r3eConnected = false;
-    if (aceConnected) activeGame = "ace";
-    else if (ams2Connected) activeGame = "ams2";
     closeTelemetryFile();
     pushStatus();
   });
 
   aceReader.on("connected", () => {
-    aceConnected = true;
-    if (!r3eConnected) activeGame = "ace";
     // Track/layout come from StaticEvo and are available immediately on connect
     const info = aceReader.getSessionInfo();
     if (info.track) currentTrack = info.track;
@@ -671,16 +687,11 @@ const setupPipeline = (): void => {
   });
 
   aceReader.on("disconnected", () => {
-    aceConnected = false;
-    if (r3eConnected) activeGame = "r3e";
-    else if (ams2Connected) activeGame = "ams2";
     closeTelemetryFile();
     pushStatus();
   });
 
   ams2Reader.on("connected", () => {
-    ams2Connected = true;
-    if (!r3eConnected && !aceConnected) activeGame = "ams2";
     const info = ams2Reader.getSessionInfo();
     if (info.track) currentTrack = info.track;
     if (info.layout) currentLayout = info.layout;
@@ -689,14 +700,26 @@ const setupPipeline = (): void => {
   });
 
   ams2Reader.on("disconnected", () => {
-    ams2Connected = false;
-    if (r3eConnected) activeGame = "r3e";
-    else if (aceConnected) activeGame = "ace";
     closeTelemetryFile();
     pushStatus();
   });
 
+  // Re-push status on a timer so a sim that stopped emitting frames (closed, or
+  // SHM gone stale) drops off the badges within LIVE_STALE_MS even when no other
+  // status-changing event fires.
+  let lastLiveSnapshot = "";
+  const liveTicker = setInterval(() => {
+    const snap = `${isLive("r3e")}|${isLive("ace")}|${isLive("ams2")}`;
+    if (snap !== lastLiveSnapshot) {
+      lastLiveSnapshot = snap;
+      pushStatus();
+    }
+  }, 1000);
+
   r3eReader.on("r3e:frame", (frame: R3EFrame) => {
+    lastFrameAt.r3e = Date.now();
+    if (currentSessionId !== null && currentSessionGame !== "r3e") return;
+    if (currentSessionId === null) activeGame = "r3e";
     let statusDirty = false;
     if (frame.carModelId > 0 && String(frame.carModelId) !== currentCar) {
       currentCar = String(frame.carModelId);
@@ -733,6 +756,9 @@ const setupPipeline = (): void => {
   });
 
   aceReader.on("ace:frame", (frame: GameFrame) => {
+    lastFrameAt.ace = Date.now();
+    if (currentSessionId !== null && currentSessionGame !== "ace") return;
+    if (currentSessionId === null) activeGame = "ace";
     // Update car/track/layout from every AC_LIVE frame, re-syncing when StaticEvo
     // was not yet populated at connect time (app launched before ACE session loads).
     const info = aceReader.getSessionInfo();
@@ -774,6 +800,9 @@ const setupPipeline = (): void => {
   });
 
   ams2Reader.on("ams2:frame", (frame: GameFrame) => {
+    lastFrameAt.ams2 = Date.now();
+    if (currentSessionId !== null && currentSessionGame !== "ams2") return;
+    if (currentSessionId === null) activeGame = "ams2";
     const info = ams2Reader.getSessionInfo();
     let statusDirty = false;
     if (info.car && info.car !== currentCar) {
@@ -992,14 +1021,20 @@ const setupPipeline = (): void => {
   // Session lifecycle IPC
   // ──────────────────────────────────────────────
 
-  const startSession = (): SessionStartResult => {
-    if (!r3eConnected && !aceConnected && !ams2Connected) {
+  const startSession = (game: GameSource): SessionStartResult => {
+    if (!isLive(game)) {
+      const label =
+        game === "ace"
+          ? "Assetto Corsa EVO"
+          : game === "ams2"
+            ? "Automobilista 2"
+            : "RaceRoom";
       return {
         ok: false,
-        reason:
-          "Nessun simulatore connesso. Avvia RaceRoom, Assetto Corsa EVO o Automobilista 2 prima di aprire una sessione.",
+        reason: `${label} non è connesso. Avvialo ed entra in pista prima di aprire una sessione.`,
       };
     }
+    activeGame = game;
     console.log(
       `[startSession] activeGame="${activeGame}" car="${currentCar}" track="${currentTrack}" layout="${currentLayout}"`,
     );
@@ -1040,7 +1075,9 @@ const setupPipeline = (): void => {
     }
   };
 
-  ipcMain.handle("session:start", () => startSession());
+  ipcMain.handle("session:start", (_event, game: GameSource) =>
+    startSession(game),
+  );
 
   ipcMain.handle("session:end", () => {
     if (!currentSessionId) return;
@@ -1457,13 +1494,8 @@ const setupPipeline = (): void => {
   ipcMain.handle(
     "session:reopen",
     (_event, { id, game }: { id: number; game: GameSource }) => {
-      // Validation 1: the session's game must be connected
-      const gameConnected =
-        game === "ace"
-          ? aceConnected
-          : game === "ams2"
-            ? ams2Connected
-            : r3eConnected;
+      // Validation 1: the session's game must be connected (live frames)
+      const gameConnected = isLive(game);
       if (!gameConnected) {
         const label =
           game === "ace"
@@ -1692,7 +1724,9 @@ const setupPipeline = (): void => {
     console.log("[VoiceCoach] intent:", intent);
 
     if (intent === "newSession") {
-      const res = startSession();
+      // No picker over voice: use the sim currently emitting frames (activeGame
+      // mirrors it while idle). startSession validates it is actually live.
+      const res = startSession(activeGame);
       if (res.ok) {
         const names = resolveNames(
           activeGame,
@@ -2091,6 +2125,7 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
   // This is the single before-quit handler; the module-level one has been removed
   // to avoid double execution of cleanup logic.
   app.on("before-quit", () => {
+    clearInterval(liveTicker);
     closeSession("app closing");
     inputManager?.destroy();
     r3eReader.stop();

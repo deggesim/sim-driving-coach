@@ -886,6 +886,24 @@ body {
   border: none;
   border-radius: 0.375rem;
 }
+
+/* ── Game-identity badges (R3E / ACE / AMS2) ── */
+/* Applied to both react-bootstrap Badge and the StatusBar reset Buttons. */
+.game-badge {
+  font-weight: 600;
+}
+.game-badge--r3e {
+  background-color: #e53935 !important; /* rosso, testo chiaro */
+  color: #fff !important;
+}
+.game-badge--ace {
+  background-color: #039be5 !important; /* azzurro, testo chiaro */
+  color: #fff !important;
+}
+.game-badge--ams2 {
+  background-color: #f5c518 !important; /* giallo, testo scuro */
+  color: #1a1a1a !important;
+}
 .status-dot {
   width: 7px;
   height: 7px;

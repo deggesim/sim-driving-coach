@@ -31,7 +31,7 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
           <Button
             variant="success"
             size="sm"
-            className="status-badge"
+            className="status-badge game-badge game-badge--r3e"
             title="Forza riconnessione R3E"
             onClick={() => onResetReader?.("r3e")}
           >
@@ -46,7 +46,7 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
           <Button
             variant="success"
             size="sm"
-            className="status-badge ms-1"
+            className="status-badge game-badge game-badge--ace ms-1"
             title="Forza riconnessione ACE"
             onClick={() => onResetReader?.("ace")}
           >
@@ -61,7 +61,7 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
           <Button
             variant="success"
             size="sm"
-            className="status-badge ms-1"
+            className="status-badge game-badge game-badge--ams2 ms-1"
             title="Forza riconnessione AMS2"
             onClick={() => onResetReader?.("ams2")}
           >
