@@ -5,11 +5,11 @@ import {
   AMS2_STRUCT_SIZE,
   AMS2_VERSION,
   CAR_TCS,
-  GAME_INGAME_PLAYING,
   MAX_PARTICIPANTS,
   OFF,
   PART,
   participantOffset,
+  RACESTATE_RACING,
   readFloat,
   readFloatArray,
   readInt32,
@@ -230,7 +230,7 @@ export const createAms2Reader = (
       }
 
       const version = readUint32(buf, OFF.version);
-      const gameState = readUint32(buf, OFF.gameState);
+      const raceState = readUint32(buf, OFF.raceState);
 
       if (!loggedOffsets) {
         loggedOffsets = true;
@@ -242,8 +242,11 @@ export const createAms2Reader = (
         );
       }
 
-      // Only produce coach data while actually driving.
-      if (gameState !== GAME_INGAME_PLAYING) {
+      // Only produce coach data while actually on track. We gate on mRaceState,
+      // not mGameState: AMS2 reports mGameState=3 (nominally paused) during normal
+      // driving, so the documented GAME_INGAME_PLAYING check would drop every
+      // driving frame. RACESTATE_RACING means the car is in a live, running session.
+      if (raceState !== RACESTATE_RACING) {
         pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
         return;
       }

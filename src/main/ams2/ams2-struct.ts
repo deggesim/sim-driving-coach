@@ -15,8 +15,12 @@ export const MAX_PARTICIPANTS = 64;
 export const PARTICIPANT_SIZE = 100; // sizeof(ParticipantInfo), Pack=4
 export const AMS2_STRUCT_SIZE = 20700; // sizeof(SharedMemory), Pack=4
 
-// mGameState enum (Type#1)
-export const GAME_INGAME_PLAYING = 2;
+// mRaceState enum (Type#3): the car is in a live, running session.
+// NOTE: we intentionally gate coach data on mRaceState, NOT mGameState. AMS2 does
+// not honour the documented pCARS2 mGameState enum — it reports mGameState=3
+// (nominally GAME_INGAME_PAUSED) during normal driving — so gating on
+// GAME_INGAME_PLAYING (2) would drop every driving frame. mRaceState is reliable.
+export const RACESTATE_RACING = 2;
 
 // mCarFlags bits (Type#9)
 export const CAR_ABS = 1 << 4; // 16
