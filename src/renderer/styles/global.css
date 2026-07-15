@@ -645,6 +645,24 @@ body {
   overflow-y: auto;
 }
 
+/* ── Game Picker Modal ── */
+.game-picker-modal .modal-content {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.game-picker-modal .modal-header,
+.game-picker-modal .modal-footer {
+  background: var(--bg3);
+  border-color: var(--border);
+}
+.game-picker-modal .modal-body {
+  background: var(--bg2);
+}
+.game-picker-modal .btn-close {
+  filter: invert(1) grayscale(1);
+}
+
 /* ── Screenshot Picker Modal ── */
 .screenshot-picker-modal .modal-content {
   background: var(--bg2);
