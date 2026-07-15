@@ -43,15 +43,18 @@ Post-install native rebuild is required because `better-sqlite3` needs compilati
 
 ```
 Active game is chosen by the user at session start (GamePickerModal, 3 radios).
-All three readers still run in parallel and poll continuously; connection state
-is frame-recency based (a game is "live" only if it emitted a frame in the last
-~2.5s, so a closed sim whose SHM survives drops off instead of lingering).
-`activeGame` = the picked game during a session; while idle it mirrors whichever
-sim is currently emitting frames. No auto-priority selection.
+Readers poll SHM ON DEMAND, one at a time: nothing runs while idle. On session
+start / reopen the picked game's reader is started and probed (awaitReaderReady:
+wait for live frames + car/track, ~3s timeout); it keeps running for the session
+and is stopped on close (stopAllReaders → back to zero SHM reads). Connection
+state is frame-recency based (a game is "live" only if it emitted a frame in the
+last ~2.5s, so a closed sim whose SHM survives drops off instead of lingering).
+`activeGame` = the picked game during a session; while idle it holds the last
+picked game (no reader emitting → no live mirroring). No auto-priority selection.
               |
               v
-   R3EReader, AceReader, or Ams2Reader (EventEmitter, all running in parallel)
-     — poll 16ms, emit: connected/disconnected/frame/lapComplete
+   R3EReader, AceReader, or Ams2Reader (EventEmitter, one active at a time)
+     — poll 16ms while running, emit: connected/disconnected/frame/lapComplete
           |          |
           |          +-- onFrame → ZoneTracker → RuleEngine (P1/P2 immediate)
           |          |                              |
@@ -82,7 +85,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 ### Main process (`src/main/`)
 
-- **main.ts** — Electron entry point; wires IPC handlers, runs `R3EReader`/`AceReader`/`Ams2Reader` in parallel, manages session/lap lifecycle in SQLite. `activeGame` is set from the game the user picks at session start (`session:start` takes a `GameSource`); while idle it mirrors the sim currently emitting frames. Connection state is frame-recency based (`isLive(game)` = frame within `LIVE_STALE_MS`; a `liveTicker` re-pushes status so a closed sim drops off the badges). No auto-priority selection
+- **main.ts** — Electron entry point; wires IPC handlers, owns the three readers (`R3EReader`/`AceReader`/`Ams2Reader`) but runs them ON DEMAND — one at a time, only during a session (or briefly while probing at start/reopen); idle = zero SHM polling. `startSession`/`session:reopen` are async: they call `awaitReaderReady(game, ~3s)` (start reader → wait for live frames + car/track, else `not-live`/`no-data` error), and `closeSession` calls `stopAllReaders` (stop reader + clear car/track globals). `readerRunning` tracks the single active reader; `startReader`/`stopReader` keep it in sync. `activeGame` is the game the user picks at session start (`session:start` takes a `GameSource`); while idle it holds the last picked game. Connection state is frame-recency based (`isLive(game)` = frame within `LIVE_STALE_MS`; a `liveTicker` re-pushes status so a closed sim drops off the badges). No auto-priority selection
 - **preload** (`src/preload/index.ts`) — Context bridge exposing `window.electronAPI` to renderer. Compiled as CJS by electron-vite (required by `sandbox: true`)
 - **game-adapter.ts** — Projects R3EFrame → GameFrame (unified 7-field struct: lapDistance, tcActive, absActive, brakeTemps FL/FR/RL/RR). ACE and AMS2 readers emit GameFrame natively
 - **input-manager.ts** — Registers global keyboard shortcuts via Electron `globalShortcut`. Fires `onInputTrigger` push event to renderer when the configured key is pressed. Non-Windows stub returns no-ops
@@ -264,7 +267,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 
 ## Key Design Decisions (Do Not Change)
 
-- **Multi-game**: No `activeGame` config field. All three readers (R3E/ACE/AMS2) run in parallel in the main process. The user picks the game at session start via `GamePickerModal` (3 radios) — `session:start` takes a `GameSource` and `activeGame` locks to it for the session; while idle `activeGame` mirrors the sim currently emitting frames. Connection state is frame-recency based (`isLive`), NOT a raw connected flag (a closed sim whose SHM survives, e.g. ACE held open by Steam, stops emitting frames and drops off the badges). No auto-priority selection. R3E, ACE, and AMS2 share the same coach/analysis pipeline via the `GameFrame` abstraction
+- **Multi-game**: No `activeGame` config field. The three readers (R3E/ACE/AMS2) exist in the main process but poll ON DEMAND — one at a time, only during an active session (or briefly while probing at start/reopen). Idle = zero SHM reads (no continuous parallel polling). The user picks the game at session start via `GamePickerModal` (3 radios, no live autodetect) — `session:start` takes a `GameSource`, starts that reader, and probes it (`awaitReaderReady`); `activeGame` locks to it for the session; while idle `activeGame` holds the last picked game. Connection state is still frame-recency based (`isLive`), NOT a raw connected flag (a closed sim stops emitting frames and drops off the badges). No auto-priority selection. R3E, ACE, and AMS2 share the same coach/analysis pipeline via the `GameFrame` abstraction
 - **Data source R3E**: Shared Memory (`$R3E`) via `koffi` — not telemetry files. Numeric car/track/layout IDs resolved via R3EDataLoader
 - **Data source ACE**: Three SHM pages (PhysicsEvo, GraphicsEvo, StaticEvo) via `koffi`. Car/track/layout are readable strings from SHM
 - **Data source AMS2**: A single SHM page (`$pcars2$`, the pCARS2-engine `SharedMemory` struct) via `koffi` — not three pages like ACE. Reads are made atomic by checking `mSequenceNumber` before and after the copy (torn-read detection), not by a locking API. Car/track/layout are readable strings from SHM
@@ -274,7 +277,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 - **Session lifecycle**: Explicit start/end managed by the user. Laps accumulate in the active session. Setup loads are stored as `session_setups_*` rows and linked to subsequent laps via `setup_id`. Analysis is triggered on demand ("Esegui analisi"), not automatically per-lap
 - **Analysis model**: Session-level, on-demand, versioned. `SessionCoachEngine` reads all laps + setups + prior analyses for the session and produces a new `SessionAnalysisRow`. Multiple analyses per session supported. Section [5] (max 3 sentences) is extracted for TTS playback
 - **Corner names**: Seeded from `corner-names.json` for known tracks. For unknown tracks, `seedCornersFromLap()` auto-generates "Curva N" names from braking zones on the first lap. Corner names are used in prompts and alerts
-- **Polling**: 16ms (`setTimeout`, not `setInterval`), reconnect every 2s if sim not running
+- **Polling**: 16ms (`setTimeout`, not `setInterval`), reconnect every 2s if sim not running. Readers poll only while running — started on demand for a session, stopped on close (see Multi-game above)
 - **Alerts during lap**: Audio only, alert-driven (no continuous delta). Only fire when there's a problem
 - **Alert priorities**: P1 (safety, immediate, interrupts), P2 (TC/ABS anomaly, immediate, queued), P3 (technique, post-corner, max 1 per zone per lap)
 - **Anti-spam**: Max 1 alert per (zone × type) per lap, 4s silence window, no P3 within 3s of zone entry

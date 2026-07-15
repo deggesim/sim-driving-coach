@@ -599,6 +599,7 @@ const setupPipeline = (): void => {
     currentSessionId = null;
     currentSetupId = null;
     pushToRenderer("session:closed", { id, game });
+    stopAllReaders(); // back to idle: no SHM polling until the next session
   };
 
   const saveLap = (sessionId: number, lap: LapRecord): void => {
@@ -656,7 +657,9 @@ const setupPipeline = (): void => {
   };
 
   // ──────────────────────────────────────────────
-  // Reader lifecycle - both readers run in parallel
+  // Reader lifecycle - on-demand, one reader at a time
+  // SHM is only polled during an active session, or briefly while probing at
+  // session start/reopen. Idle = no reader running (zero SHM reads).
   // ──────────────────────────────────────────────
 
   const r3eReader = createR3EReader();
@@ -665,6 +668,72 @@ const setupPipeline = (): void => {
   r3eReaderInst = r3eReader;
   aceReaderInst = aceReader;
   ams2ReaderInst = ams2Reader;
+
+  const READER_READY_TIMEOUT_MS = 3000;
+  const readerRunning: Record<GameSource, boolean> = {
+    r3e: false,
+    ace: false,
+    ams2: false,
+  };
+  const getReader = (
+    game: GameSource,
+  ): { start: () => void; stop: () => void } =>
+    game === "r3e" ? r3eReader : game === "ace" ? aceReader : ams2Reader;
+
+  const startReader = (game: GameSource): void => {
+    if (readerRunning[game]) return;
+    getReader(game).start();
+    readerRunning[game] = true;
+  };
+
+  const stopReader = (game: GameSource): void => {
+    if (!readerRunning[game]) return;
+    getReader(game).stop();
+    readerRunning[game] = false;
+    lastFrameAt[game] = 0; // avoid a stale isLive() hit on the next probe
+  };
+
+  // Stop every reader and clear the shared car/track globals, so a later probe
+  // never mistakes another sim's leftover identifiers for freshly read data.
+  const stopAllReaders = (): void => {
+    stopReader("r3e");
+    stopReader("ace");
+    stopReader("ams2");
+    currentCar = "";
+    currentTrack = "";
+    currentLayout = "";
+  };
+
+  const sleep = (ms: number): Promise<void> =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Ready = live frames AND car/track (and layout for R3E) resolved.
+  const readerReady = (game: GameSource): boolean =>
+    isLive(game) &&
+    !!currentCar &&
+    !!currentTrack &&
+    (game !== "r3e" || !!currentLayout);
+
+  // Start the reader for `game` and wait until it emits usable data, or time out.
+  const awaitReaderReady = async (
+    game: GameSource,
+    timeoutMs: number,
+  ): Promise<"ok" | "not-live" | "no-data"> => {
+    startReader(game);
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (readerReady(game)) return "ok";
+      await sleep(100);
+    }
+    return isLive(game) ? "no-data" : "not-live";
+  };
+
+  const gameLabel = (game: GameSource): string =>
+    game === "ace"
+      ? "Assetto Corsa EVO"
+      : game === "ams2"
+        ? "Automobilista 2"
+        : "RaceRoom";
 
   // Connection events only trigger a status push / telemetry cleanup now.
   // The active game is no longer derived from them (see startSession).
@@ -1011,44 +1080,41 @@ const setupPipeline = (): void => {
   ipcMain.handle("telemetry:getLogDir", () => telemetryLogDir);
 
   ipcMain.handle("reader:reset", (_event, { game }: { game: GameSource }) => {
-    const reader =
-      game === "r3e" ? r3eReader : game === "ace" ? aceReader : ams2Reader;
-    reader.stop();
-    setTimeout(() => reader.start(), 150);
+    // Only the active session's reader polls; a reset is a forced stop+start of
+    // that reader. A no-op if the game isn't currently running (idle).
+    if (!readerRunning[game]) return;
+    stopReader(game);
+    setTimeout(() => startReader(game), 150);
   });
 
   // ──────────────────────────────────────────────
   // Session lifecycle IPC
   // ──────────────────────────────────────────────
 
-  const startSession = (game: GameSource): SessionStartResult => {
-    if (!isLive(game)) {
-      const label =
-        game === "ace"
-          ? "Assetto Corsa EVO"
-          : game === "ams2"
-            ? "Automobilista 2"
-            : "RaceRoom";
+  const startSession = async (
+    game: GameSource,
+  ): Promise<SessionStartResult> => {
+    if (currentSessionId) {
+      // Close the existing session (explicit intent: new session)
+      closeSession("new session requested");
+    }
+    // Fresh probe: ensure no reader is polling and no stale globals linger.
+    stopAllReaders();
+    const probe = await awaitReaderReady(game, READER_READY_TIMEOUT_MS);
+    if (probe !== "ok") {
+      stopReader(game);
       return {
         ok: false,
-        reason: `${label} non è connesso. Avvialo ed entra in pista prima di aprire una sessione.`,
+        reason:
+          probe === "not-live"
+            ? `${gameLabel(game)} non è connesso. Avvialo ed entra in pista prima di aprire una sessione.`
+            : "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
       };
     }
     activeGame = game;
     console.log(
       `[startSession] activeGame="${activeGame}" car="${currentCar}" track="${currentTrack}" layout="${currentLayout}"`,
     );
-    const layoutRequired = activeGame === "r3e";
-    if (!currentCar || !currentTrack || (layoutRequired && !currentLayout)) {
-      return {
-        ok: false,
-        reason: "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
-      };
-    }
-    if (currentSessionId) {
-      // Close the existing session (explicit intent: new session)
-      closeSession("new session requested");
-    }
 
     try {
       const result = db
@@ -1071,6 +1137,7 @@ const setupPipeline = (): void => {
       return { ok: true, sessionId: currentSessionId, game: activeGame };
     } catch (err) {
       console.error("[Main] startSession error:", err);
+      stopAllReaders(); // failed to persist: back to idle
       return { ok: false, reason: String(err) };
     }
   };
@@ -1493,19 +1560,24 @@ const setupPipeline = (): void => {
 
   ipcMain.handle(
     "session:reopen",
-    (_event, { id, game }: { id: number; game: GameSource }) => {
-      // Validation 1: the session's game must be connected (live frames)
-      const gameConnected = isLive(game);
-      if (!gameConnected) {
-        const label =
-          game === "ace"
-            ? "Assetto Corsa EVO"
-            : game === "ams2"
-              ? "Automobilista 2"
-              : "RaceRoom";
+    async (_event, { id, game }: { id: number; game: GameSource }) => {
+      // Reopening a different session ends the current one first (frees its reader).
+      if (currentSessionId && currentSessionId !== id) {
+        closeSession("reopen: different session requested");
+      }
+
+      // Validation 1: probe the session's game on demand — it must be live with
+      // usable data (car/track derived from the historical session below).
+      stopAllReaders();
+      const probe = await awaitReaderReady(game, READER_READY_TIMEOUT_MS);
+      if (probe !== "ok") {
+        stopReader(game);
         return {
           ok: false,
-          reason: `${label} non è connesso. Avvia il simulatore prima di riaprire la sessione.`,
+          reason:
+            probe === "not-live"
+              ? `${gameLabel(game)} non è connesso. Avvia il simulatore prima di riaprire la sessione.`
+              : "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
         };
       }
 
@@ -1516,6 +1588,7 @@ const setupPipeline = (): void => {
         )
         .get(id) as { car: string; track: string; layout: string } | undefined;
       if (!sessionRow) {
+        stopReader(game);
         return { ok: false, reason: "Sessione non trovata." };
       }
 
@@ -1524,6 +1597,7 @@ const setupPipeline = (): void => {
         sessionRow.track !== currentTrack ||
         (game === "r3e" && sessionRow.layout !== currentLayout)
       ) {
+        stopReader(game);
         const names = resolveNames(
           game,
           sessionRow.car,
@@ -1536,15 +1610,14 @@ const setupPipeline = (): void => {
         };
       }
 
-      if (currentSessionId && currentSessionId !== id) {
-        closeSession("reopen: different session requested");
-      }
+      activeGame = game;
       try {
         db.prepare(
           `UPDATE ${t("sessions", game)} SET ended_at = NULL WHERE id = ?`,
         ).run(id);
       } catch (err) {
         console.error("[Main] session:reopen error:", err);
+        stopAllReaders();
         return { ok: false, reason: String(err) };
       }
 
@@ -1724,9 +1797,10 @@ const setupPipeline = (): void => {
     console.log("[VoiceCoach] intent:", intent);
 
     if (intent === "newSession") {
-      // No picker over voice: use the sim currently emitting frames (activeGame
-      // mirrors it while idle). startSession validates it is actually live.
-      const res = startSession(activeGame);
+      // No picker over voice: retry the last known game (activeGame). Readers are
+      // idle until now, so startSession starts it on demand and validates it is
+      // actually live; if the user is on a different sim, use the UI picker.
+      const res = await startSession(activeGame);
       if (res.ok) {
         const names = resolveNames(
           activeGame,
@@ -2134,10 +2208,9 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
     closeDb();
   });
 
-  // Start all readers
-  r3eReader.start();
-  aceReader.start();
-  ams2Reader.start();
+  // Readers are NOT started here. They run on demand, one at a time, only for
+  // an active session (or briefly while probing at session start/reopen). Idle
+  // means zero SHM polling. See startSession / session:reopen.
   pushStatus();
 
   mainWindow?.webContents.once("did-finish-load", () => {
