@@ -148,7 +148,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionDetail` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
 - **TTSManager.tsx** — Headless component, Web Speech API (it-IT), priority queue, P1 interrupts. Used for real-time lap alerts when Azure TTS is not enabled
 - **StatusBar.tsx** — Connection status, car/track/layout (resolved names), calibration state, last alert
-- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector, assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
+- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector (populated live from the Models API via `anthropicListModels` on mount; a saved model missing from the list is flagged obsolete with a warning `Alert` and kept selectable), assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
 - **VoiceCoachOverlay.tsx** — Fixed overlay showing voice interaction state: idle (hidden), listening (pulsing mic), processing (spinner + transcript), speaking (streaming answer)
 - **R3eSetupPicker.tsx** — R3E only. Modal to paste the JSON exported by RaceRoom (CTRL+C in the setup screen). Parses JSON into categorised `SetupParam[]` (Italian labels), previews via `R3eSetupTabs`, then saves as `SetupData`
 - **R3eSetupTabs.tsx** — Tabbed display of R3E `SetupParam[]` grouped by category (Freni, Gomme, Sospensioni, etc.). Used inside `R3eSetupPicker` and `SetupDetailModal`
@@ -261,6 +261,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 | Handle    | `voiceQuery`                                                               | Streaming voice response via `VoiceCoach`                    |
 | Handle    | `sttTranscribe`                                                            | Azure STT → transcribed string                               |
 | Handle    | `ttsGetVoices / ttsSynthesize / ttsTest`                                   | Azure TTS                                                    |
+| Handle    | `anthropicListModels`                                                      | Live Claude model list (`GET /v1/models`) for the analysis model selector; `[]` on missing key/error |
 | Handle    | `telemetryLogGetDir`                                                       | Returns the path of the telemetry log directory              |
 | Handle    | `aceListSetupCars / aceListSetupTracks / aceListSetupFiles / aceReadSetup` | ACE file-based setup                                         |
 | One-way   | `windowClose / windowMinimize / windowMaximize`                            | Frameless window                                             |
