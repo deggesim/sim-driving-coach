@@ -138,6 +138,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   ttsSynthesize: (text: string) => ipcRenderer.invoke("tts:synthesize", text),
   ttsTest: (voiceName: string) => ipcRenderer.invoke("tts:test", voiceName),
 
+  anthropicListModels: () => ipcRenderer.invoke("anthropic:listModels"),
+
   windowClose: () => ipcRenderer.send("window:close"),
   windowMinimize: () => ipcRenderer.send("window:minimize"),
   windowMaximize: () => ipcRenderer.send("window:maximize"),

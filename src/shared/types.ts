@@ -381,6 +381,11 @@ export type AzureVoice = {
   };
 };
 
+export type AnthropicModelInfo = {
+  id: string;
+  display_name: string;
+};
+
 // --- electronAPI exposed via preload ---
 
 export type SessionStartResult =
@@ -541,6 +546,9 @@ export type ElectronAPI = {
   ttsGetVoices: () => Promise<AzureVoice[]>;
   ttsSynthesize: (text: string) => Promise<unknown>;
   ttsTest: (voiceName: string) => Promise<unknown>;
+
+  // Anthropic models (live list for the analysis model selector)
+  anthropicListModels: () => Promise<AnthropicModelInfo[]>;
 
   // Window
   windowClose: () => void;

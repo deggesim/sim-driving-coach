@@ -7,13 +7,14 @@ import {
   Row,
   Col,
   Badge,
+  Alert,
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useConfig } from "../hooks/useIPC";
 import { useIPCStore } from "../store/ipcStore";
 import { useSettingsStore } from "../store/settingsStore";
-import type { AzureVoice } from "../../shared/types";
+import type { AzureVoice, AnthropicModelInfo } from "../../shared/types";
 
 const AZURE_REGIONS = [
   { value: "australiacentral", label: "Australia Central" },
@@ -188,6 +189,29 @@ const SettingsPanel = () => {
   const [isCapturingKey, setIsCapturingKey] = useState(false);
   const [telemetryLogDir, setTelemetryLogDir] = useState<string | null>(null);
   const telemetryDirFetchedRef = useRef(false);
+
+  // Live Claude model list, refreshed on mount (empty until loaded / on error).
+  const [models, setModels] = useState<AnthropicModelInfo[]>([]);
+  useEffect(() => {
+    window.electronAPI
+      .anthropicListModels()
+      .then(setModels)
+      .catch((err) => console.error("anthropicListModels failed:", err));
+  }, []);
+
+  // A saved model missing from the live list is obsolete (retired by Anthropic).
+  const modelObsolete =
+    models.length > 0 && !models.some((m) => m.id === anthropicModel);
+  // Keep the obsolete model selectable so the dropdown still shows it.
+  const modelOptions =
+    models.length === 0
+      ? [{ id: anthropicModel, display_name: anthropicModel }]
+      : modelObsolete
+        ? [
+            { id: anthropicModel, display_name: `${anthropicModel} (obsoleto)` },
+            ...models,
+          ]
+        : models;
 
   const handleSaveApiKey = async () => {
     await configSet("anthropicApiKey", apiKey);
@@ -413,14 +437,19 @@ const SettingsPanel = () => {
                   value={anthropicModel}
                   onChange={(e) => setAnthropicModel(e.target.value)}
                 >
-                  <option value="claude-haiku-4-5-20251001">
-                    Haiku 4.5 (veloce, consigliato)
-                  </option>
-                  <option value="claude-sonnet-4-6">
-                    Sonnet 4.6 (bilanciato)
-                  </option>
-                  <option value="claude-opus-4-7">Opus 4.7 (potente)</option>
+                  {modelOptions.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                    </option>
+                  ))}
                 </Form.Select>
+                {modelObsolete && (
+                  <Alert variant="warning" className="mt-2 mb-0 py-2">
+                    Il modello selezionato (<code>{anthropicModel}</code>) non è
+                    più disponibile: selezionane uno aggiornato dall'elenco e
+                    salva.
+                  </Alert>
+                )}
               </Col>
               <Col sm={2}>
                 <Button variant="danger" onClick={handleSaveModel}>

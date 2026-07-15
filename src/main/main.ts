@@ -1732,6 +1732,26 @@ const setupPipeline = (): void => {
     return synthesizeAzure(testPhrase, key, region, voiceName);
   });
 
+  // Live list of Claude models for the analysis model selector.
+  // ponytail: returns [] on missing key / API error — the renderer falls back
+  // to showing the saved model and skips the obsolete-model check.
+  ipcMain.handle("anthropic:listModels", async () => {
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) return [];
+    try {
+      const Anthropic = (await import("@anthropic-ai/sdk")).default;
+      const client = new Anthropic({ apiKey });
+      const models = [];
+      for await (const m of client.models.list()) {
+        models.push({ id: m.id, display_name: m.display_name });
+      }
+      return models;
+    } catch (err) {
+      console.error("[anthropic] listModels failed:", err);
+      return [];
+    }
+  });
+
   ipcMain.handle(
     "stt:transcribe",
     async (_event, audioBuffer: ArrayBuffer, mimeType?: string) => {
