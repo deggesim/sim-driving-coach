@@ -645,6 +645,24 @@ body {
   overflow-y: auto;
 }
 
+/* ── Game Picker Modal ── */
+.game-picker-modal .modal-content {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.game-picker-modal .modal-header,
+.game-picker-modal .modal-footer {
+  background: var(--bg3);
+  border-color: var(--border);
+}
+.game-picker-modal .modal-body {
+  background: var(--bg2);
+}
+.game-picker-modal .btn-close {
+  filter: invert(1) grayscale(1);
+}
+
 /* ── Screenshot Picker Modal ── */
 .screenshot-picker-modal .modal-content {
   background: var(--bg2);
@@ -885,6 +903,24 @@ body {
   line-height: 1;
   border: none;
   border-radius: 0.375rem;
+}
+
+/* ── Game-identity badges (R3E / ACE / AMS2) ── */
+/* Applied to both react-bootstrap Badge and the StatusBar reset Buttons. */
+.game-badge {
+  font-weight: 600;
+}
+.game-badge--r3e {
+  background-color: #e53935 !important; /* rosso, testo chiaro */
+  color: #fff !important;
+}
+.game-badge--ace {
+  background-color: #039be5 !important; /* azzurro, testo chiaro */
+  color: #fff !important;
+}
+.game-badge--ams2 {
+  background-color: #f5c518 !important; /* giallo, testo scuro */
+  color: #1a1a1a !important;
 }
 .status-dot {
   width: 7px;

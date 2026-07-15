@@ -83,7 +83,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   configSet: (key: string, value: unknown) =>
     ipcRenderer.invoke("config:set", key, value),
 
-  sessionStart: () => ipcRenderer.invoke("session:start"),
+  sessionStart: (game: GameSource) =>
+    ipcRenderer.invoke("session:start", game),
   sessionEnd: () => ipcRenderer.invoke("session:end"),
   sessionUpdateFlags: (params: { sessionId?: number; game?: string; leaderboardMode: boolean; fixedSetup: boolean }) =>
     ipcRenderer.invoke("session:updateFlags", params),

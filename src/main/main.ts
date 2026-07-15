@@ -379,9 +379,17 @@ const setupPipeline = (): void => {
   let currentTrack = "";
   let currentLayout = "";
   let currentLayoutLength = 6000;
-  let r3eConnected = false;
-  let aceConnected = false;
-  let ams2Connected = false;
+  // Connection state is frame-recency based: a game counts as "live" only if it
+  // emitted a frame within LIVE_STALE_MS. A closed sim whose SHM survives (e.g.
+  // ACE held open by Steam) stops emitting frames, so it drops off the badges
+  // instead of showing as connected forever (the old raw-flag bug).
+  const lastFrameAt: Record<GameSource, number> = { r3e: 0, ace: 0, ams2: 0 };
+  const LIVE_STALE_MS = 2500;
+  const isLive = (g: GameSource): boolean =>
+    Date.now() - lastFrameAt[g] < LIVE_STALE_MS;
+  // activeGame is picked by the user at session start (no auto-detection). While
+  // idle it mirrors whichever sim is currently emitting frames, for correct
+  // status/lap processing; during a session it stays locked to the session game.
   let activeGame: GameSource = "r3e";
 
   // Session lifecycle state
@@ -434,25 +442,38 @@ const setupPipeline = (): void => {
   const recorder = createLapRecorder(baseline.isReady());
 
   const pushStatus = (): void => {
+    // Resolve R3E numeric ids to names, but only when the value is actually
+    // numeric: while idle another sim's string ids may sit in the globals.
+    const numeric = (v: string): boolean => /^\d+$/.test(v);
     const names =
-      activeGame !== "r3e"
+      activeGame === "r3e"
         ? {
+            carName:
+              currentCar && numeric(currentCar)
+                ? getCarName(Number(currentCar))
+                : currentCar,
+            trackName:
+              currentTrack && numeric(currentTrack)
+                ? getTrackName(Number(currentTrack))
+                : currentTrack,
+            layoutName:
+              currentLayout && numeric(currentLayout)
+                ? getLayoutName(Number(currentLayout))
+                : currentLayout,
+          }
+        : {
             carName: currentCar,
             trackName: currentTrack,
             layoutName: currentLayout,
-          }
-        : {
-            carName: currentCar ? getCarName(Number(currentCar)) : "",
-            trackName: currentTrack ? getTrackName(Number(currentTrack)) : "",
-            layoutName: currentLayout
-              ? getLayoutName(Number(currentLayout))
-              : "",
           };
+    const r3eLive = isLive("r3e");
+    const aceLive = isLive("ace");
+    const ams2Live = isLive("ams2");
     const status: GameStatus = {
-      connected: r3eConnected || aceConnected || ams2Connected,
-      r3eConnected,
-      aceConnected,
-      ams2Connected,
+      connected: r3eLive || aceLive || ams2Live,
+      r3eConnected: r3eLive,
+      aceConnected: aceLive,
+      ams2Connected: ams2Live,
       calibrating: recorder.isCalibrating(),
       lapsToCalibration: recorder.lapsToCalibration(),
       car: names.carName || null,
@@ -578,6 +599,7 @@ const setupPipeline = (): void => {
     currentSessionId = null;
     currentSetupId = null;
     pushToRenderer("session:closed", { id, game });
+    stopAllReaders(); // back to idle: no SHM polling until the next session
   };
 
   const saveLap = (sessionId: number, lap: LapRecord): void => {
@@ -635,7 +657,9 @@ const setupPipeline = (): void => {
   };
 
   // ──────────────────────────────────────────────
-  // Reader lifecycle - both readers run in parallel
+  // Reader lifecycle - on-demand, one reader at a time
+  // SHM is only polled during an active session, or briefly while probing at
+  // session start/reopen. Idle = no reader running (zero SHM reads).
   // ──────────────────────────────────────────────
 
   const r3eReader = createR3EReader();
@@ -645,23 +669,84 @@ const setupPipeline = (): void => {
   aceReaderInst = aceReader;
   ams2ReaderInst = ams2Reader;
 
+  const READER_READY_TIMEOUT_MS = 3000;
+  const readerRunning: Record<GameSource, boolean> = {
+    r3e: false,
+    ace: false,
+    ams2: false,
+  };
+  const getReader = (
+    game: GameSource,
+  ): { start: () => void; stop: () => void } =>
+    game === "r3e" ? r3eReader : game === "ace" ? aceReader : ams2Reader;
+
+  const startReader = (game: GameSource): void => {
+    if (readerRunning[game]) return;
+    getReader(game).start();
+    readerRunning[game] = true;
+  };
+
+  const stopReader = (game: GameSource): void => {
+    if (!readerRunning[game]) return;
+    getReader(game).stop();
+    readerRunning[game] = false;
+    lastFrameAt[game] = 0; // avoid a stale isLive() hit on the next probe
+  };
+
+  // Stop every reader and clear the shared car/track globals, so a later probe
+  // never mistakes another sim's leftover identifiers for freshly read data.
+  const stopAllReaders = (): void => {
+    stopReader("r3e");
+    stopReader("ace");
+    stopReader("ams2");
+    currentCar = "";
+    currentTrack = "";
+    currentLayout = "";
+  };
+
+  const sleep = (ms: number): Promise<void> =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Ready = live frames AND car/track (and layout for R3E) resolved.
+  const readerReady = (game: GameSource): boolean =>
+    isLive(game) &&
+    !!currentCar &&
+    !!currentTrack &&
+    (game !== "r3e" || !!currentLayout);
+
+  // Start the reader for `game` and wait until it emits usable data, or time out.
+  const awaitReaderReady = async (
+    game: GameSource,
+    timeoutMs: number,
+  ): Promise<"ok" | "not-live" | "no-data"> => {
+    startReader(game);
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (readerReady(game)) return "ok";
+      await sleep(100);
+    }
+    return isLive(game) ? "no-data" : "not-live";
+  };
+
+  const gameLabel = (game: GameSource): string =>
+    game === "ace"
+      ? "Assetto Corsa EVO"
+      : game === "ams2"
+        ? "Automobilista 2"
+        : "RaceRoom";
+
+  // Connection events only trigger a status push / telemetry cleanup now.
+  // The active game is no longer derived from them (see startSession).
   r3eReader.on("connected", () => {
-    r3eConnected = true;
-    if (!aceConnected) activeGame = "r3e";
     pushStatus();
   });
 
   r3eReader.on("disconnected", () => {
-    r3eConnected = false;
-    if (aceConnected) activeGame = "ace";
-    else if (ams2Connected) activeGame = "ams2";
     closeTelemetryFile();
     pushStatus();
   });
 
   aceReader.on("connected", () => {
-    aceConnected = true;
-    if (!r3eConnected) activeGame = "ace";
     // Track/layout come from StaticEvo and are available immediately on connect
     const info = aceReader.getSessionInfo();
     if (info.track) currentTrack = info.track;
@@ -671,16 +756,11 @@ const setupPipeline = (): void => {
   });
 
   aceReader.on("disconnected", () => {
-    aceConnected = false;
-    if (r3eConnected) activeGame = "r3e";
-    else if (ams2Connected) activeGame = "ams2";
     closeTelemetryFile();
     pushStatus();
   });
 
   ams2Reader.on("connected", () => {
-    ams2Connected = true;
-    if (!r3eConnected && !aceConnected) activeGame = "ams2";
     const info = ams2Reader.getSessionInfo();
     if (info.track) currentTrack = info.track;
     if (info.layout) currentLayout = info.layout;
@@ -689,14 +769,26 @@ const setupPipeline = (): void => {
   });
 
   ams2Reader.on("disconnected", () => {
-    ams2Connected = false;
-    if (r3eConnected) activeGame = "r3e";
-    else if (aceConnected) activeGame = "ace";
     closeTelemetryFile();
     pushStatus();
   });
 
+  // Re-push status on a timer so a sim that stopped emitting frames (closed, or
+  // SHM gone stale) drops off the badges within LIVE_STALE_MS even when no other
+  // status-changing event fires.
+  let lastLiveSnapshot = "";
+  const liveTicker = setInterval(() => {
+    const snap = `${isLive("r3e")}|${isLive("ace")}|${isLive("ams2")}`;
+    if (snap !== lastLiveSnapshot) {
+      lastLiveSnapshot = snap;
+      pushStatus();
+    }
+  }, 1000);
+
   r3eReader.on("r3e:frame", (frame: R3EFrame) => {
+    lastFrameAt.r3e = Date.now();
+    if (currentSessionId !== null && currentSessionGame !== "r3e") return;
+    if (currentSessionId === null) activeGame = "r3e";
     let statusDirty = false;
     if (frame.carModelId > 0 && String(frame.carModelId) !== currentCar) {
       currentCar = String(frame.carModelId);
@@ -733,6 +825,9 @@ const setupPipeline = (): void => {
   });
 
   aceReader.on("ace:frame", (frame: GameFrame) => {
+    lastFrameAt.ace = Date.now();
+    if (currentSessionId !== null && currentSessionGame !== "ace") return;
+    if (currentSessionId === null) activeGame = "ace";
     // Update car/track/layout from every AC_LIVE frame, re-syncing when StaticEvo
     // was not yet populated at connect time (app launched before ACE session loads).
     const info = aceReader.getSessionInfo();
@@ -774,6 +869,9 @@ const setupPipeline = (): void => {
   });
 
   ams2Reader.on("ams2:frame", (frame: GameFrame) => {
+    lastFrameAt.ams2 = Date.now();
+    if (currentSessionId !== null && currentSessionGame !== "ams2") return;
+    if (currentSessionId === null) activeGame = "ams2";
     const info = ams2Reader.getSessionInfo();
     let statusDirty = false;
     if (info.car && info.car !== currentCar) {
@@ -982,38 +1080,41 @@ const setupPipeline = (): void => {
   ipcMain.handle("telemetry:getLogDir", () => telemetryLogDir);
 
   ipcMain.handle("reader:reset", (_event, { game }: { game: GameSource }) => {
-    const reader =
-      game === "r3e" ? r3eReader : game === "ace" ? aceReader : ams2Reader;
-    reader.stop();
-    setTimeout(() => reader.start(), 150);
+    // Only the active session's reader polls; a reset is a forced stop+start of
+    // that reader. A no-op if the game isn't currently running (idle).
+    if (!readerRunning[game]) return;
+    stopReader(game);
+    setTimeout(() => startReader(game), 150);
   });
 
   // ──────────────────────────────────────────────
   // Session lifecycle IPC
   // ──────────────────────────────────────────────
 
-  const startSession = (): SessionStartResult => {
-    if (!r3eConnected && !aceConnected && !ams2Connected) {
-      return {
-        ok: false,
-        reason:
-          "Nessun simulatore connesso. Avvia RaceRoom, Assetto Corsa EVO o Automobilista 2 prima di aprire una sessione.",
-      };
-    }
-    console.log(
-      `[startSession] activeGame="${activeGame}" car="${currentCar}" track="${currentTrack}" layout="${currentLayout}"`,
-    );
-    const layoutRequired = activeGame === "r3e";
-    if (!currentCar || !currentTrack || (layoutRequired && !currentLayout)) {
-      return {
-        ok: false,
-        reason: "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
-      };
-    }
+  const startSession = async (
+    game: GameSource,
+  ): Promise<SessionStartResult> => {
     if (currentSessionId) {
       // Close the existing session (explicit intent: new session)
       closeSession("new session requested");
     }
+    // Fresh probe: ensure no reader is polling and no stale globals linger.
+    stopAllReaders();
+    const probe = await awaitReaderReady(game, READER_READY_TIMEOUT_MS);
+    if (probe !== "ok") {
+      stopReader(game);
+      return {
+        ok: false,
+        reason:
+          probe === "not-live"
+            ? `${gameLabel(game)} non è connesso. Avvialo ed entra in pista prima di aprire una sessione.`
+            : "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
+      };
+    }
+    activeGame = game;
+    console.log(
+      `[startSession] activeGame="${activeGame}" car="${currentCar}" track="${currentTrack}" layout="${currentLayout}"`,
+    );
 
     try {
       const result = db
@@ -1036,11 +1137,14 @@ const setupPipeline = (): void => {
       return { ok: true, sessionId: currentSessionId, game: activeGame };
     } catch (err) {
       console.error("[Main] startSession error:", err);
+      stopAllReaders(); // failed to persist: back to idle
       return { ok: false, reason: String(err) };
     }
   };
 
-  ipcMain.handle("session:start", () => startSession());
+  ipcMain.handle("session:start", (_event, game: GameSource) =>
+    startSession(game),
+  );
 
   ipcMain.handle("session:end", () => {
     if (!currentSessionId) return;
@@ -1456,24 +1560,24 @@ const setupPipeline = (): void => {
 
   ipcMain.handle(
     "session:reopen",
-    (_event, { id, game }: { id: number; game: GameSource }) => {
-      // Validation 1: the session's game must be connected
-      const gameConnected =
-        game === "ace"
-          ? aceConnected
-          : game === "ams2"
-            ? ams2Connected
-            : r3eConnected;
-      if (!gameConnected) {
-        const label =
-          game === "ace"
-            ? "Assetto Corsa EVO"
-            : game === "ams2"
-              ? "Automobilista 2"
-              : "RaceRoom";
+    async (_event, { id, game }: { id: number; game: GameSource }) => {
+      // Reopening a different session ends the current one first (frees its reader).
+      if (currentSessionId && currentSessionId !== id) {
+        closeSession("reopen: different session requested");
+      }
+
+      // Validation 1: probe the session's game on demand — it must be live with
+      // usable data (car/track derived from the historical session below).
+      stopAllReaders();
+      const probe = await awaitReaderReady(game, READER_READY_TIMEOUT_MS);
+      if (probe !== "ok") {
+        stopReader(game);
         return {
           ok: false,
-          reason: `${label} non è connesso. Avvia il simulatore prima di riaprire la sessione.`,
+          reason:
+            probe === "not-live"
+              ? `${gameLabel(game)} non è connesso. Avvia il simulatore prima di riaprire la sessione.`
+              : "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
         };
       }
 
@@ -1484,6 +1588,7 @@ const setupPipeline = (): void => {
         )
         .get(id) as { car: string; track: string; layout: string } | undefined;
       if (!sessionRow) {
+        stopReader(game);
         return { ok: false, reason: "Sessione non trovata." };
       }
 
@@ -1492,6 +1597,7 @@ const setupPipeline = (): void => {
         sessionRow.track !== currentTrack ||
         (game === "r3e" && sessionRow.layout !== currentLayout)
       ) {
+        stopReader(game);
         const names = resolveNames(
           game,
           sessionRow.car,
@@ -1504,15 +1610,14 @@ const setupPipeline = (): void => {
         };
       }
 
-      if (currentSessionId && currentSessionId !== id) {
-        closeSession("reopen: different session requested");
-      }
+      activeGame = game;
       try {
         db.prepare(
           `UPDATE ${t("sessions", game)} SET ended_at = NULL WHERE id = ?`,
         ).run(id);
       } catch (err) {
         console.error("[Main] session:reopen error:", err);
+        stopAllReaders();
         return { ok: false, reason: String(err) };
       }
 
@@ -1692,7 +1797,10 @@ const setupPipeline = (): void => {
     console.log("[VoiceCoach] intent:", intent);
 
     if (intent === "newSession") {
-      const res = startSession();
+      // No picker over voice: retry the last known game (activeGame). Readers are
+      // idle until now, so startSession starts it on demand and validates it is
+      // actually live; if the user is on a different sim, use the UI picker.
+      const res = await startSession(activeGame);
       if (res.ok) {
         const names = resolveNames(
           activeGame,
@@ -2091,6 +2199,7 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
   // This is the single before-quit handler; the module-level one has been removed
   // to avoid double execution of cleanup logic.
   app.on("before-quit", () => {
+    clearInterval(liveTicker);
     closeSession("app closing");
     inputManager?.destroy();
     r3eReader.stop();
@@ -2099,10 +2208,9 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
     closeDb();
   });
 
-  // Start all readers
-  r3eReader.start();
-  aceReader.start();
-  ams2Reader.start();
+  // Readers are NOT started here. They run on demand, one at a time, only for
+  // an active session (or briefly while probing at session start/reopen). Idle
+  // means zero SHM polling. See startSession / session:reopen.
   pushStatus();
 
   mainWindow?.webContents.once("did-finish-load", () => {

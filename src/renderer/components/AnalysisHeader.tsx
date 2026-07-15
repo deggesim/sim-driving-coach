@@ -12,6 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { formatLapTime } from "../../shared/format";
 import { useSessionStore } from "../store/sessionStore";
+import { GameBadge } from "./GameBadge";
 
 interface Props {
   isLive: boolean;
@@ -72,22 +73,7 @@ const AnalysisHeader = ({
             {currentTrack} {session.layout_name ?? session.layout}
           </span>
           <span className="text-muted">·</span>
-          <Badge
-            bg={
-              session.game === "ace"
-                ? "info"
-                : session.game === "ams2"
-                  ? "primary"
-                  : "secondary"
-            }
-            className="ms-1"
-          >
-            {session.game === "ace"
-              ? "ACE"
-              : session.game === "ams2"
-                ? "AMS2"
-                : "R3E"}
-          </Badge>
+          <GameBadge game={session.game} className="ms-1" />
           <Badge bg={sessionActive ? "success" : "secondary"}>
             {sessionActive ? "Attiva" : "Chiusa"}
           </Badge>
