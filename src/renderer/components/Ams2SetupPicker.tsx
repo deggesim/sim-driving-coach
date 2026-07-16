@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import type { SetupData } from "../../shared/types";
+import Ams2SetupTabs from "./Ams2SetupTabs";
 
 type AlreadyUsedInfo = {
   setupName: string;
@@ -274,24 +275,7 @@ export const Ams2SetupPicker = ({
 
             {decodedSetup.params.length > 0 && (
               <div className="picker-params">
-                <table className="setup-table w-100">
-                  <thead>
-                    <tr>
-                      <th>Categoria</th>
-                      <th>Parametro</th>
-                      <th>Valore</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {decodedSetup.params.map((p) => (
-                      <tr key={`${p.category}-${p.parameter}`}>
-                        <td className="text-dim">{p.category}</td>
-                        <td>{p.parameter}</td>
-                        <td className="setup-value">{p.value}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Ams2SetupTabs params={decodedSetup.params} />
               </div>
             )}
           </div>

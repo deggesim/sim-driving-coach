@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import type { GameSource, SessionSetupRow } from "../../shared/types";
 import AceSetupTabs from "./AceSetupTabs";
+import Ams2SetupTabs from "./Ams2SetupTabs";
 import R3eSetupTabs from "./R3eSetupTabs";
 
 export type SetupDetailModalProps = {
@@ -43,6 +44,8 @@ export const SetupDetailModal = ({
         {row.setup.params.length > 0 ? (
           game === "ace" ? (
             <AceSetupTabs params={row.setup.params} />
+          ) : game === "ams2" ? (
+            <Ams2SetupTabs params={row.setup.params} />
           ) : (
             <R3eSetupTabs params={row.setup.params} />
           )
