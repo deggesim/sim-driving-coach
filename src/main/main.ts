@@ -669,7 +669,11 @@ const setupPipeline = (): void => {
   aceReaderInst = aceReader;
   ams2ReaderInst = ams2Reader;
 
-  const READER_READY_TIMEOUT_MS = 3000;
+  // Session open keeps probing for up to a minute so the user can start the sim /
+  // enter the track after clicking. ponytail: awaitReaderReady polls every 100ms
+  // and the reader auto-reconnects every 2s, so this is a finer retry than the
+  // requested 5s cadence (catches readiness sooner) — no per-attempt restart needed.
+  const READER_READY_TIMEOUT_MS = 60_000;
   const readerRunning: Record<GameSource, boolean> = {
     r3e: false,
     ace: false,
@@ -1134,7 +1138,13 @@ const setupPipeline = (): void => {
         .get(currentSessionId) as Record<string, unknown>;
       const session = enrichSession(row, activeGame);
       pushToRenderer("session:started", session);
-      return { ok: true, sessionId: currentSessionId, game: activeGame };
+      return {
+        ok: true,
+        sessionId: currentSessionId,
+        game: activeGame,
+        car: session.car_name ?? session.car,
+        track: session.track_name ?? session.track,
+      };
     } catch (err) {
       console.error("[Main] startSession error:", err);
       stopAllReaders(); // failed to persist: back to idle
@@ -1650,7 +1660,13 @@ const setupPipeline = (): void => {
       console.log(
         `[Main] session reopened id=${id} game=${game} setupId=${currentSetupId ?? "none"}`,
       );
-      return { ok: true, sessionId: id, game };
+      return {
+        ok: true,
+        sessionId: id,
+        game,
+        car: session.car_name ?? session.car,
+        track: session.track_name ?? session.track,
+      };
     },
   );
 

@@ -389,7 +389,7 @@ export type AnthropicModelInfo = {
 // --- electronAPI exposed via preload ---
 
 export type SessionStartResult =
-  | { ok: true; sessionId: number; game: GameSource }
+  | { ok: true; sessionId: number; game: GameSource; car: string; track: string }
   | { ok: false; reason: string };
 
 export type SessionListParams = {

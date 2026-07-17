@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef, useCallback } from "react";
+import { useIPCStore } from "../store/ipcStore";
 
 type TTSManagerProps = {
   postLapText: string | null;
@@ -149,6 +150,16 @@ const TTSManager = ({
     lastPostLapRef.current = postLapText;
     enqueue(postLapText, 3);
   }, [postLapText, enqueue]);
+
+  // One-shot announcements (e.g. session-open outcome). Cleared after enqueue so
+  // an identical message can fire again next time.
+  const announce = useIPCStore((s) => s.announce);
+  const setAnnounce = useIPCStore((s) => s.setAnnounce);
+  useEffect(() => {
+    if (!announce) return;
+    enqueue(announce, 2);
+    setAnnounce(null);
+  }, [announce, enqueue, setAnnounce]);
 
   // Welcome message - fires once when settings are loaded from config
   useEffect(() => {
