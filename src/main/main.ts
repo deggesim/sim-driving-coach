@@ -1420,7 +1420,7 @@ const setupPipeline = (): void => {
 
       const pageSql = `
         SELECT * FROM (${unionSql})
-        ORDER BY started_at ${sort}, id ${sort}
+        ORDER BY COALESCE(ended_at, started_at) ${sort}, id ${sort}
         LIMIT ? OFFSET ?
       `;
       const pageArgs = [...countArgs, pageSize, page * pageSize];

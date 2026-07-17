@@ -1,7 +1,7 @@
 /**
  * SessionHistory - Paginated list of past sessions (R3E + ACE).
  * Columns: Simulator / Car / Track / Date. 10 rows per page.
- * Filters: game / car / track. Sort: started_at asc|desc.
+ * Filters: game / car / track. Sort: modification date (ended_at) asc|desc.
  * Row click → shows SessionDetail inline (back button returns to list).
  */
 
@@ -158,8 +158,12 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
       result = result.filter((s) => s.track === t && s.layout === l);
     }
     const mul = sort === "asc" ? 1 : -1;
+    // Sort by modification date (ended_at), falling back to started_at for
+    // still-open sessions that have no ended_at yet.
     return [...result].sort(
-      (a, b) => mul * a.started_at.localeCompare(b.started_at),
+      (a, b) =>
+        mul *
+        (a.ended_at ?? a.started_at).localeCompare(b.ended_at ?? b.started_at),
     );
   }, [gameSessions, filterCar, filterTrack, sort]);
 
@@ -351,7 +355,9 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
                   <td className="sh-laptime">
                     {s.best_lap != null ? formatLapTime(s.best_lap) : "—"}
                   </td>
-                  <td className="sh-date">{formatDate(s.started_at)}</td>
+                  <td className="sh-date">
+                    {formatDate(s.ended_at ?? s.started_at)}
+                  </td>
                   <td>
                     {s.analysis_count != null && s.analysis_count > 0 && (
                       <Badge bg="primary" style={{ fontSize: 12 }}>
