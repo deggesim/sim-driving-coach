@@ -2143,7 +2143,19 @@ Analizza le schermate del setup dell'auto e restituisci un JSON con questa strut
   ]
 }
 Devi verificare se l'auto nelle schermate corrisponde a: "${expectedCar}".
-Estrai TUTTI i parametri di setup visibili: sospensioni, freni, aerodinamica, trasmissione, gomme, differenziale, elettronica, ecc.
+Estrai TUTTI i parametri di setup visibili.
+Per ogni parametro assegna "category" ESATTAMENTE uno di questi valori:
+- "Gomme": parametri gomma per singola ruota (pressioni, ecc.)
+- "Freni": pressione/bilanciamento freni, condotti freni
+- "Chassis": parametri telaio non per-ruota (zavorra, ripartizione pesi, sterzo)
+- "Sospensioni": parametri sospensione per singola ruota (altezza, molla, camber, convergenza, ammortizzatori bump/rebound, ecc.)
+- "Anteriore": parametri sospensione assale anteriore non per-ruota (es. barra antirollio anteriore)
+- "Posteriore": parametri sospensione assale posteriore non per-ruota (es. barra antirollio posteriore)
+- "Sospensioni attive": parametri di sospensione attiva, se presenti
+- "Motore/Elettronica": mappa motore, freno motore, boost, TC, ABS, ecc.
+- "Rapporti del cambio": rapporto finale e singole marce
+- "Differenziale": precarico, rampe power/coast, dischi, differenziale anteriore e posteriore
+Per i parametri per singola ruota (category "Gomme" e "Sospensioni") crea un parametro per ruota e aggiungi il codice ruota in fondo al nome del parametro: " FL", " FR", " RL", " RR" (es. "Pressione FL"). Non usare categorie diverse da quelle elencate.
 IMPORTANTE — precisione numerica: leggi ogni cifra di ogni valore con la massima attenzione. Gli slider e altri elementi grafici dell'UI possono apparire adiacenti ai numeri: ignorali e trascrivi solo le cifre del testo numerico visualizzato sullo schermo.
 Restituisci solo il JSON, senza testo aggiuntivo.`;
 

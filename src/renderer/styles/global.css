@@ -484,27 +484,6 @@ body {
   min-width: 0;
 }
 
-.setup-table {
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.setup-table th {
-  text-align: left;
-  color: var(--text-dim);
-  padding: 5px 10px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 500;
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-}
-.setup-table td {
-  padding: 4px 10px;
-  border-bottom: 1px solid var(--border);
-}
-.setup-table tr:nth-child(even) td {
-  background: var(--bg2);
-}
 .setup-value {
   color: var(--yellow);
   font-variant-numeric: tabular-nums;
