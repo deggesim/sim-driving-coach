@@ -208,10 +208,16 @@ const SettingsPanel = () => {
       ? [{ id: anthropicModel, display_name: anthropicModel }]
       : modelObsolete
         ? [
-            { id: anthropicModel, display_name: `${anthropicModel} (obsoleto)` },
+            {
+              id: anthropicModel,
+              display_name: `${anthropicModel} (obsoleto)`,
+            },
             ...models,
           ]
         : models;
+  const modelOptionsSorted = [...modelOptions].sort((a, b) =>
+    a.display_name.localeCompare(b.display_name),
+  );
 
   const handleSaveApiKey = async () => {
     await configSet("anthropicApiKey", apiKey);
@@ -437,7 +443,7 @@ const SettingsPanel = () => {
                   value={anthropicModel}
                   onChange={(e) => setAnthropicModel(e.target.value)}
                 >
-                  {modelOptions.map((m) => (
+                  {modelOptionsSorted.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.display_name}
                     </option>
@@ -853,8 +859,8 @@ const SettingsPanel = () => {
                   Quando attivo, aggiunge nello storico una sessione R3E (BMW M4
                   GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una
                   AMS2 (Formula Ultimate - Interlagos), ognuna con 3 giri e
-                  un&apos;analisi Template v3 precompilata. Utile per testare
-                  la UI senza una sessione reale in corso.
+                  un&apos;analisi Template v3 precompilata. Utile per testare la
+                  UI senza una sessione reale in corso.
                 </Form.Text>
               </Col>
             </Row>
