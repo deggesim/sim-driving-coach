@@ -1124,14 +1124,16 @@ git commit -m "feat(coach): analyzeSession now generates Level-1 summary only (f
 
 ## Fase 5 — Livello 2 backend (`expandAnalysis` + IPC)
 
-### Task 8: `expandAnalysis` in `session-coach.ts`
+### Task 8: `loadSessionBundle` condiviso + `expandAnalysis` in `session-coach.ts`
 
 **Files:**
-- Modify: `src/main/coach/session-coach.ts` (import, type `SessionCoachEngine`, nuova funzione)
+- Modify: `src/main/coach/session-coach.ts` (import, nuovo helper interno `loadSessionBundle`, refactor `analyzeSession` per usarlo, type `SessionCoachEngine`, nuova funzione `expandAnalysis`)
 
 **Interfaces:**
 - Consumes: `SESSION_SYSTEM_PROMPT`, `buildSessionPrompt`, `computeSessionStats`.
-- Produces: `expandAnalysis(analysisId, game, resolved?, modelOverride?): Promise<SessionAnalysisRow | null>` — genera `detail` col modello `modelOverride ?? model`, aggiorna la riga esistente, riusa i canali push per `(sessionId, version)`.
+- Produces:
+  - `loadSessionBundle(game, sessionId, opts?: { beforeVersion?: number }): { session, laps, setups, priorAnalyses } | null` — helper interno alla closure `createSessionCoachEngine`; carica in un colpo i dati di sessione condivisi da `analyzeSession` ed `expandAnalysis`. `beforeVersion` (usato da `expandAnalysis`) restringe `priorAnalyses` alle versioni `< beforeVersion`; omesso (`analyzeSession`) le restituisce tutte. `null` quando la sessione non esiste.
+  - `expandAnalysis(analysisId, game, resolved?, modelOverride?): Promise<SessionAnalysisRow | null>` — genera `detail` col modello `modelOverride ?? model`, aggiorna la riga esistente, riusa i canali push per `(sessionId, version)`.
 
 - [ ] **Step 1: Reintroduci gli import Livello 2** (`src/main/coach/session-coach.ts`)
 
@@ -1146,7 +1148,120 @@ import {
 } from "./prompt-builder.js";
 ```
 
-- [ ] **Step 2: Aggiungi la firma a `SessionCoachEngine`** (dopo `analyzeSession`, righe 80-86)
+- [ ] **Step 2: Aggiungi l'helper interno `loadSessionBundle`** (nella closure `createSessionCoachEngine`, subito prima del `return {`)
+
+```ts
+  /**
+   * Shared session-data loader used by analyzeSession and expandAnalysis.
+   * Returns null when the session row does not exist.
+   * `beforeVersion` (expandAnalysis) restricts priorAnalyses to versions < it;
+   * omitted (analyzeSession) returns all versions.
+   */
+  const loadSessionBundle = (
+    game: GameSource,
+    sessionId: number,
+    opts?: { beforeVersion?: number },
+  ): {
+    session: SessionRow;
+    laps: LapRow[];
+    setups: SessionSetupRow[];
+    priorAnalyses: SessionAnalysisRow[];
+  } | null => {
+    const sessionsTable = tableFor(game, "sessions");
+    const lapsTable = tableFor(game, "laps");
+    const setupsTable = tableFor(game, "session_setups");
+    const analysesTable = tableFor(game, "session_analyses");
+
+    const sessionRow = db
+      .prepare(`SELECT * FROM ${sessionsTable} WHERE id = ?`)
+      .get(sessionId) as
+      | (Omit<SessionRow, "game"> & Record<string, unknown>)
+      | undefined;
+    if (!sessionRow) return null;
+
+    const session: SessionRow = {
+      id: sessionRow.id as number,
+      game,
+      car: sessionRow.car as string,
+      track: sessionRow.track as string,
+      layout: sessionRow.layout as string,
+      session_type: sessionRow.session_type as string,
+      started_at: sessionRow.started_at as string,
+      ended_at: (sessionRow.ended_at as string | null) ?? null,
+      best_lap: (sessionRow.best_lap as number | null) ?? null,
+      lap_count: sessionRow.lap_count as number,
+    };
+
+    const laps = db
+      .prepare(
+        `SELECT * FROM ${lapsTable} WHERE session_id = ? ORDER BY lap_number ASC`,
+      )
+      .all(sessionId) as LapRow[];
+
+    const setupRowsRaw = db
+      .prepare(
+        `SELECT * FROM ${setupsTable} WHERE session_id = ? ORDER BY loaded_at ASC, id ASC`,
+      )
+      .all(sessionId) as Array<{
+      id: number;
+      session_id: number;
+      loaded_at: string;
+      setup_json: string;
+      setup_screenshots: string | null;
+    }>;
+    const setups: SessionSetupRow[] = setupRowsRaw.map(parseSetupRow);
+
+    const priorAnalysesRaw = (
+      opts?.beforeVersion != null
+        ? db
+            .prepare(
+              `SELECT * FROM ${analysesTable} WHERE session_id = ? AND version < ? ORDER BY version ASC`,
+            )
+            .all(sessionId, opts.beforeVersion)
+        : db
+            .prepare(
+              `SELECT * FROM ${analysesTable} WHERE session_id = ? ORDER BY version ASC`,
+            )
+            .all(sessionId)
+    ) as Array<{
+      id: number;
+      session_id: number;
+      version: number;
+      synthesis: string;
+      summary: string | null;
+      detail: string | null;
+      created_at: string;
+      comments_json: string | null;
+    }>;
+    const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
+      id: r.id,
+      session_id: r.session_id,
+      version: r.version,
+      synthesis: r.synthesis,
+      detail: r.detail,
+      summary: r.summary,
+      created_at: r.created_at,
+      comments: parseAnalysisComments(r.comments_json),
+    }));
+
+    return { session, laps, setups, priorAnalyses };
+  };
+```
+
+- [ ] **Step 3: Refactor `analyzeSession` per usare `loadSessionBundle`**
+
+In `analyzeSession`, sostituisci l'intero blocco di caricamento in testa alla funzione — i quattro `const …Table = tableFor(...)`, il load di `sessionRow` + mapping `session`, `laps`, `setupRowsRaw` + `setups`, e `priorAnalysesRaw` + `priorAnalyses` (dopo Fase 1 ai nomi nuovi) — con:
+
+```ts
+      const analysesTable = tableFor(game, "session_analyses");
+      const bundle = loadSessionBundle(game, sessionId);
+      if (!bundle) return null;
+      const { session, laps, setups, priorAnalyses } = bundle;
+```
+
+`analysesTable` resta perché serve alla `INSERT` più in basso; `session`/`laps`/`setups`/`priorAnalyses` mantengono gli stessi nomi, quindi il resto di `analyzeSession` (stats, `buildSummaryPrompt`, `nextVersion`, streaming, INSERT) è invariato.
+
+- [ ] **Step 4: Aggiungi la firma a `SessionCoachEngine`** (dopo `analyzeSession`, righe 80-86)
 
 ```ts
   expandAnalysis: (
@@ -1157,14 +1272,11 @@ import {
   ) => Promise<SessionAnalysisRow | null>;
 ```
 
-- [ ] **Step 3: Implementa `expandAnalysis`** (nel returned object, dopo `analyzeSession`)
+- [ ] **Step 5: Implementa `expandAnalysis`** (nel returned object, dopo `analyzeSession`)
 
 ```ts
     expandAnalysis: async (analysisId, game, resolved, modelOverride) => {
       const useModel = modelOverride ?? model;
-      const sessionsTable = tableFor(game, "sessions");
-      const lapsTable = tableFor(game, "laps");
-      const setupsTable = tableFor(game, "session_setups");
       const analysesTable = tableFor(game, "session_analyses");
 
       const row = db
@@ -1184,69 +1296,11 @@ import {
       if (!row) return null;
       const sessionId = row.session_id;
 
-      const sessionRow = db
-        .prepare(`SELECT * FROM ${sessionsTable} WHERE id = ?`)
-        .get(sessionId) as
-        | (Omit<SessionRow, "game"> & Record<string, unknown>)
-        | undefined;
-      if (!sessionRow) return null;
-
-      const session: SessionRow = {
-        id: sessionRow.id as number,
-        game,
-        car: sessionRow.car as string,
-        track: sessionRow.track as string,
-        layout: sessionRow.layout as string,
-        session_type: sessionRow.session_type as string,
-        started_at: sessionRow.started_at as string,
-        ended_at: (sessionRow.ended_at as string | null) ?? null,
-        best_lap: (sessionRow.best_lap as number | null) ?? null,
-        lap_count: sessionRow.lap_count as number,
-      };
-
-      const laps = db
-        .prepare(
-          `SELECT * FROM ${lapsTable} WHERE session_id = ? ORDER BY lap_number ASC`,
-        )
-        .all(sessionId) as LapRow[];
-
-      const setupRowsRaw = db
-        .prepare(
-          `SELECT * FROM ${setupsTable} WHERE session_id = ? ORDER BY loaded_at ASC, id ASC`,
-        )
-        .all(sessionId) as Array<{
-        id: number;
-        session_id: number;
-        loaded_at: string;
-        setup_json: string;
-        setup_screenshots: string | null;
-      }>;
-      const setups: SessionSetupRow[] = setupRowsRaw.map(parseSetupRow);
-
-      const priorAnalysesRaw = db
-        .prepare(
-          `SELECT * FROM ${analysesTable} WHERE session_id = ? AND version < ? ORDER BY version ASC`,
-        )
-        .all(sessionId, row.version) as Array<{
-        id: number;
-        session_id: number;
-        version: number;
-        synthesis: string;
-        summary: string | null;
-        detail: string | null;
-        created_at: string;
-        comments_json: string | null;
-      }>;
-      const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
-        id: r.id,
-        session_id: r.session_id,
-        version: r.version,
-        synthesis: r.synthesis,
-        detail: r.detail,
-        summary: r.summary,
-        created_at: r.created_at,
-        comments: parseAnalysisComments(r.comments_json),
-      }));
+      const bundle = loadSessionBundle(game, sessionId, {
+        beforeVersion: row.version,
+      });
+      if (!bundle) return null;
+      const { session, laps, setups, priorAnalyses } = bundle;
 
       const stats = computeSessionStats({
         laps,
@@ -1327,12 +1381,12 @@ import {
     },
 ```
 
-- [ ] **Step 4: typecheck + lint + commit**
+- [ ] **Step 6: typecheck + lint + commit**
 
 Run: `npm run typecheck && npm run lint`
 ```bash
 git add src/main/coach/session-coach.ts
-git commit -m "feat(coach): add expandAnalysis for on-demand Level-2 deep-dive"
+git commit -m "feat(coach): extract loadSessionBundle, add expandAnalysis for on-demand Level-2 deep-dive"
 ```
 
 ### Task 9: IPC `session:expandAnalysis` + preload + types
@@ -1805,6 +1859,7 @@ git commit -m "perf(coach): cache Level-2 system prefix (ephemeral)"
 - Livello 1 (Analisi sintetica + Azioni suggerite + `<sintesi-vocale>`), `extractVoiceSummary`/`stripVoiceTag`, riscrittura `analyzeSession`, `max_tokens 2000` → Task 5-7. ✅
 - Fix `652f7d4` preservata nel Livello 2 (`max_tokens 32000` + `stop_reason`) → Task 8. ✅
 - `expandAnalysis` + IPC + preload + types → Task 8-9. ✅
+- Loader condiviso `loadSessionBundle` (DRY: `analyzeSession` + `expandAnalysis` non duplicano il caricamento sessione) → Task 8 Step 2-3. ✅
 - Renderer (store + AnalysisList) + PDF `detail ?? synthesis` → Task 10-12. ✅
 - Override modello Livello 2 (`anthropicModelDetail`, base + override, live) → Task 8 (param `modelOverride`) + Task 9 (risoluzione live nell'handler) + Task 13 (config key + selettore SettingsPanel). ✅
 - Contesto analisi precedenti usa `summary`/`synthesis` → Task 1 Step 7-8. ✅
