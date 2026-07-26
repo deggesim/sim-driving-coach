@@ -49,8 +49,14 @@ Tre leve, un'unica architettura a due livelli:
   (Razionale/Implementazione/Target/…).
 - **Precalcolo fatti, non giudizi**: numeri esatti in TS; l'"impatto stimato in
   secondi/giro" resta al modello, derivato dai fatti forniti.
-- **Modello invariato** (`anthropicModel`, default Haiku): il guadagno di velocità
-  viene dall'output più piccolo, non dal modello. Nessun nuovo knob.
+- **Modello per livello** (base + override L2): `anthropicModel` (default Haiku)
+  guida il Livello 1 e la voce; una nuova chiave nullable `anthropicModelDetail`
+  fa da override per il **solo Livello 2** (se vuota → ricade su `anthropicModel`).
+  Il guadagno di velocità del Livello 1 resta dovuto all'output più piccolo; il
+  Livello 2, on-demand, può usare un modello più capace per il ragionamento. Il
+  modello del Livello 2 è risolto **live** nell'handler IPC (letto da config a ogni
+  chiamata) e passato a `expandAnalysis` come parametro — nessuno stato mutabile
+  nell'engine.
 - **Non perdere la fix `652f7d4`**: il Livello 2 eredita `max_tokens: 32000` + la
   gestione `stop_reason === "max_tokens"`. Il Livello 1 non ne ha bisogno.
 - **Prompt caching**: fase opzionale, non blocca il core.
@@ -186,11 +192,13 @@ omissibile (nessun setup).
   expandAnalysis: (
     analysisId: number, game: GameSource,
     resolved?: { carName?: string; trackName?: string; layoutName?: string },
+    modelOverride?: string, // Livello 2 (anthropicModelDetail); default = base model
   ) => Promise<SessionAnalysisRow | null>;
   ```
   Ricarica sessione+giri+setup+precedenti, ricomputa `SessionStats`,
-  `buildSessionPrompt`, streaming `max_tokens: 32000` + gestione
-  `stop_reason === "max_tokens"` → `onError` (eredita `652f7d4`).
+  `buildSessionPrompt`, streaming con `model: modelOverride ?? model`,
+  `max_tokens: 32000` + gestione `stop_reason === "max_tokens"` → `onError`
+  (eredita `652f7d4`).
   `UPDATE … SET detail = ?`. Ritorna la riga aggiornata.
   Streaming instradato alla riga esistente via `(sessionId, version)` sui canali
   push esistenti — non crea una nuova versione.
@@ -201,7 +209,9 @@ omissibile (nessun setup).
 
 - Nuovo IPC `session:expandAnalysis` (`{ analysisId, game }`), stesso schema di
   `session:analyze` (valida apiKey, aggiorna cornerNames, risolve nomi,
-  fire-and-forget con `analyzingInProgress`).
+  fire-and-forget con `analyzingInProgress`). Risolve il modello Livello 2 live:
+  `(getConfig("anthropicModelDetail") as string) || getAnthropicModel()` e lo passa
+  come `modelOverride` a `expandAnalysis`.
 - `loadSessionDetail` (righe ~568–581): mapping ai nomi nuovi + `detail`.
 - TTS post-analisi (~1896): `analysis.section5_summary` → `analysis.summary`.
 
@@ -239,6 +249,15 @@ omissibile (nessun setup).
 ### global.css
 
 Override dark-theme per l'eventuale contenitore/toggle "Analisi approfondita".
+
+### SettingsPanel.tsx + settingsStore + settingsLoader
+
+Nuova chiave config nullable `anthropicModelDetail` (modello del Livello 2). Un
+secondo selettore modello in `SettingsPanel` che **riusa la stessa lista live**
+(`anthropicListModels`) del selettore base, con un'opzione vuota "Come modello base
+(default)". `settingsStore` aggiunge il campo `anthropicModelDetail` (default `""`) +
+setter; `settingsLoader` lo bulk-carica; su salvataggio `configSet("anthropicModelDetail", …)`.
+Stringa vuota = usa `anthropicModel`.
 
 ## PDF (`pdf-generator.ts`)
 

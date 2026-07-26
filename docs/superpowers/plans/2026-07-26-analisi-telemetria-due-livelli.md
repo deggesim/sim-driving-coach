@@ -14,7 +14,7 @@
 - **TypeScript strict**, `type` non `interface`, **arrow functions** ovunque, **no `class`**, named export, import relativi con estensione `.js`.
 - Nessun framework di test nel repo: verifica = `npm run typecheck` + `npm run lint`; logica non banale ⇒ un self-check `assert`-based `.selfcheck.ts` (pattern in `src/main/ams2/ams2-struct.selfcheck.ts`).
 - `npm run typecheck` = `tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit`; `npm run lint` = `eslint .`.
-- Modello invariato: `anthropicModel` (default `claude-haiku-4-5-20251001`). Nessun nuovo knob.
+- Modello: `anthropicModel` (default `claude-haiku-4-5-20251001`) per Livello 1 + voce; nuova chiave config nullable `anthropicModelDetail` come override del **solo Livello 2** (vuota → base). L'override è risolto **live** nell'handler IPC `session:expandAnalysis` e passato come `modelOverride` a `expandAnalysis` (nessuno stato mutabile nell'engine). `anthropicModelDetail` sta in `app_config` (nessuna migrazione schema).
 - Non committare senza conferma esplicita dell'utente.
 - `RENAME COLUMN` richiede SQLite ≥ 3.25 (incluso in better-sqlite3): ok.
 - Spec di riferimento: `docs/superpowers/specs/2026-07-26-analisi-telemetria-due-livelli-design.md`.
@@ -27,7 +27,7 @@
 - `src/main/coach/voice-summary.ts` — helper puri `extractVoiceSummary` / `stripVoiceTag` (regex sul tag `<sintesi-vocale>`). Modulo separato **per renderli self-checkable senza trascinare l'SDK Anthropic/better-sqlite3** che `session-coach.ts` importa (deviazione consapevole dalla spec, che li colloca in `session-coach.ts`).
 - `src/main/coach/voice-summary.selfcheck.ts` — self-check `assert`-based.
 
-**File modificati:** `src/main/db/db.ts`, `src/shared/types.ts`, `src/main/main.ts`, `src/main/coach/session-coach.ts`, `src/main/coach/prompt-builder.ts`, `src/main/coach/voice-coach.ts`, `src/main/pdf-generator.ts`, `src/preload/index.ts`, `src/renderer/store/sessionStore.ts`, `src/renderer/components/AnalysisList.tsx`, `src/renderer/global.css`, `src/renderer/mocks/mockData.ts`.
+**File modificati:** `src/main/db/db.ts`, `src/shared/types.ts`, `src/main/main.ts`, `src/main/coach/session-coach.ts`, `src/main/coach/prompt-builder.ts`, `src/main/coach/voice-coach.ts`, `src/main/pdf-generator.ts`, `src/preload/index.ts`, `src/renderer/store/sessionStore.ts`, `src/renderer/components/AnalysisList.tsx`, `src/renderer/global.css`, `src/renderer/mocks/mockData.ts`, `src/renderer/store/settingsStore.ts`, `src/renderer/loaders/settingsLoader.ts`, `src/renderer/components/SettingsPanel.tsx`.
 
 ---
 
@@ -1131,7 +1131,7 @@ git commit -m "feat(coach): analyzeSession now generates Level-1 summary only (f
 
 **Interfaces:**
 - Consumes: `SESSION_SYSTEM_PROMPT`, `buildSessionPrompt`, `computeSessionStats`.
-- Produces: `expandAnalysis(analysisId, game, resolved?): Promise<SessionAnalysisRow | null>` — genera `detail`, aggiorna la riga esistente, riusa i canali push per `(sessionId, version)`.
+- Produces: `expandAnalysis(analysisId, game, resolved?, modelOverride?): Promise<SessionAnalysisRow | null>` — genera `detail` col modello `modelOverride ?? model`, aggiorna la riga esistente, riusa i canali push per `(sessionId, version)`.
 
 - [ ] **Step 1: Reintroduci gli import Livello 2** (`src/main/coach/session-coach.ts`)
 
@@ -1153,13 +1153,15 @@ import {
     analysisId: number,
     game: GameSource,
     resolved?: { carName?: string; trackName?: string; layoutName?: string },
+    modelOverride?: string, // Level-2 model (anthropicModelDetail); default = base model
   ) => Promise<SessionAnalysisRow | null>;
 ```
 
 - [ ] **Step 3: Implementa `expandAnalysis`** (nel returned object, dopo `analyzeSession`)
 
 ```ts
-    expandAnalysis: async (analysisId, game, resolved) => {
+    expandAnalysis: async (analysisId, game, resolved, modelOverride) => {
+      const useModel = modelOverride ?? model;
       const sessionsTable = tableFor(game, "sessions");
       const lapsTable = tableFor(game, "laps");
       const setupsTable = tableFor(game, "session_setups");
@@ -1268,8 +1270,9 @@ import {
       let fullText = "";
       try {
         // Level 2 inherits the 652f7d4 fix: generous cap + truncation surfacing.
+        // useModel = anthropicModelDetail override (or base model when unset).
         const stream = client.messages.stream({
-          model,
+          model: useModel,
           max_tokens: 32000,
           system: SESSION_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
@@ -1375,13 +1378,18 @@ git commit -m "feat(coach): add expandAnalysis for on-demand Level-2 deep-dive"
         ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
         : undefined;
 
+      // Resolve the Level-2 model live: anthropicModelDetail override, else base.
+      const detailModel =
+        (getConfig("anthropicModelDetail") as string | undefined) ||
+        getAnthropicModel();
+
       const expandKey = `expand:${params.analysisId}:${game}`;
       if (analyzingInProgress.has(expandKey)) {
         return { ok: false, reason: "Approfondimento già in corso." };
       }
       analyzingInProgress.add(expandKey);
       sessionCoach
-        .expandAnalysis(params.analysisId, game, resolved)
+        .expandAnalysis(params.analysisId, game, resolved, detailModel)
         .catch((err) => console.error("[SessionCoach] expand error:", err))
         .finally(() => analyzingInProgress.delete(expandKey));
 
@@ -1618,11 +1626,142 @@ git commit -m "feat(pdf,mock): render detail when present; migrate mock analyses
 Run: `npm run dev`
 Verifica: (1) "Esegui analisi" produce solo Analisi sintetica + Azioni suggerite in ~15-25s; il `<sintesi-vocale>` NON compare nel testo; (2) "Mostra analisi approfondita" genera e mostra l'Analisi approfondita in streaming; (3) mock mode mostra le 3 analisi (una col pulsante non ancora espanso); (4) PDF export rende l'approfondita quando presente.
 
+### Task 13: SettingsPanel — override modello Livello 2 (`anthropicModelDetail`)
+
+**Files:**
+- Modify: `src/renderer/store/settingsStore.ts`
+- Modify: `src/renderer/loaders/settingsLoader.ts`
+- Modify: `src/renderer/components/SettingsPanel.tsx`
+
+**Interfaces:**
+- Produces: config key `anthropicModelDetail` (stringa; `""` = usa il modello base). Letta live dall'handler `session:expandAnalysis` (Task 9).
+
+- [ ] **Step 1: `settingsStore.ts` — campo + setter + initFromConfig**
+
+Nel type `SettingsStore` aggiungi accanto a `anthropicModel: string;` (riga 13):
+```ts
+  anthropicModel: string;
+  anthropicModelDetail: string; // Level-2 override; "" = use anthropicModel
+```
+Aggiungi il setter accanto a `setAnthropicModel` (riga 41):
+```ts
+  setAnthropicModel: (v: string) => void;
+  setAnthropicModelDetail: (v: string) => void;
+```
+Nel type di `initFromConfig` aggiungi accanto a `anthropicModel: string | null;` (riga 67):
+```ts
+    anthropicModel: string | null;
+    anthropicModelDetail: string | null;
+```
+Nel valore iniziale accanto a `anthropicModel: "claude-haiku-4-5-20251001",` (riga 78):
+```ts
+  anthropicModel: "claude-haiku-4-5-20251001",
+  anthropicModelDetail: "",
+```
+Nell'implementazione setter accanto a `setAnthropicModel` (riga 95):
+```ts
+  setAnthropicModel: (anthropicModel) => set({ anthropicModel }),
+  setAnthropicModelDetail: (anthropicModelDetail) =>
+    set({ anthropicModelDetail }),
+```
+In `initFromConfig` accanto al blocco `anthropicModel` (righe 127-129):
+```ts
+      ...(values.anthropicModel
+        ? { anthropicModel: values.anthropicModel }
+        : {}),
+      ...(values.anthropicModelDetail
+        ? { anthropicModelDetail: values.anthropicModelDetail }
+        : {}),
+```
+
+- [ ] **Step 2: `settingsLoader.ts` — carica la chiave**
+
+In `src/renderer/loaders/settingsLoader.ts`: aggiungi `anthropicModelDetail` alla destructuring (dopo `anthropicModel,`, riga 33), la `configGet("anthropicModelDetail")` all'array `Promise.all` (dopo `configGet("anthropicModel"),`, riga 45), e `anthropicModelDetail` all'oggetto passato a `initFromConfig` (dopo `anthropicModel,`, riga 59).
+
+- [ ] **Step 3: `SettingsPanel.tsx` — destructure + handler**
+
+Nel destructuring dello store (righe 161-162) aggiungi:
+```ts
+    anthropicModel,
+    setAnthropicModel,
+    anthropicModelDetail,
+    setAnthropicModelDetail,
+```
+Dopo `handleSaveModel` (riga 230) aggiungi:
+```ts
+  const handleSaveModelDetail = async () => {
+    await configSet("anthropicModelDetail", anthropicModelDetail);
+    showSaved("modelDetail");
+  };
+```
+
+- [ ] **Step 4: `SettingsPanel.tsx` — secondo selettore**
+
+Subito dopo la chiusura del `Form.Group` del modello base + il suo `Form.Text` (dopo riga 479, prima di `</div>`) inserisci:
+```tsx
+            <Form.Group
+              as={Row}
+              className="mb-2"
+              controlId="anthropic-model-detail"
+            >
+              <Form.Label column sm={3}>
+                Modello analisi approfondita
+              </Form.Label>
+              <Col sm={7}>
+                <Form.Select
+                  value={anthropicModelDetail}
+                  onChange={(e) => setAnthropicModelDetail(e.target.value)}
+                >
+                  <option value="">Come modello base (default)</option>
+                  {modelOptionsSorted.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col sm={2}>
+                <Button variant="danger" onClick={handleSaveModelDetail}>
+                  {settingSaved === "modelDetail" ? (
+                    <>
+                      <FontAwesomeIcon icon={faCheck} /> Salvato
+                    </>
+                  ) : (
+                    "Salva"
+                  )}
+                </Button>
+              </Col>
+            </Form.Group>
+            <Row>
+              <Col sm={{ span: 9, offset: 3 }}>
+                <Form.Text>
+                  Modello usato solo per l&apos;analisi approfondita (on-demand).
+                  Vuoto = stesso modello base. Il Livello 1 (sintesi) e la voce
+                  usano sempre il modello base.
+                </Form.Text>
+              </Col>
+            </Row>
+```
+> ponytail: un modello di dettaglio non più presente nella lista live non viene marcato "(obsoleto)" come il base; lasciarlo così finché non serve.
+
+- [ ] **Step 5: typecheck + lint + commit**
+
+Run: `npm run typecheck && npm run lint`
+```bash
+git add src/renderer/store/settingsStore.ts src/renderer/loaders/settingsLoader.ts src/renderer/components/SettingsPanel.tsx
+git commit -m "feat(settings): add optional Level-2 analysis model override (anthropicModelDetail)"
+```
+
+- [ ] **Step 6: Smoke manuale (dev)**
+
+Run: `npm run dev`
+Verifica: impostando "Modello analisi approfondita" su un modello diverso dal base e salvando, un nuovo "Mostra analisi approfondita" usa quel modello (senza restart); lasciandolo vuoto usa il base.
+
 ---
 
 ## Fase 7 — (Opzionale) Prompt caching
 
-### Task 13: `cache_control` sul prefisso stabile del Livello 2
+### Task 14: `cache_control` sul prefisso stabile del Livello 2
 
 **Files:**
 - Modify: `src/main/coach/session-coach.ts` (solo `expandAnalysis`)
@@ -1667,13 +1806,14 @@ git commit -m "perf(coach): cache Level-2 system prefix (ephemeral)"
 - Fix `652f7d4` preservata nel Livello 2 (`max_tokens 32000` + `stop_reason`) → Task 8. ✅
 - `expandAnalysis` + IPC + preload + types → Task 8-9. ✅
 - Renderer (store + AnalysisList) + PDF `detail ?? synthesis` → Task 10-12. ✅
+- Override modello Livello 2 (`anthropicModelDetail`, base + override, live) → Task 8 (param `modelOverride`) + Task 9 (risoluzione live nell'handler) + Task 13 (config key + selettore SettingsPanel). ✅
 - Contesto analisi precedenti usa `summary`/`synthesis` → Task 1 Step 7-8. ✅
 - mockData migrato → Task 1 Step 11 (rename) + Task 12 (contenuti). ✅
 - Verifica self-check `computeSessionStats` + `extractVoiceSummary`/`stripVoiceTag` → Task 2 / Task 5. ✅
-- Prompt caching opzionale → Task 13. ✅
+- Prompt caching opzionale → Task 14. ✅
 - Nota follow-up `CLAUDE.md` (fuori runtime) → vedi sotto.
 
-**2. Placeholder scan:** nessun "TBD"/"handle edge cases"; ogni step di codice mostra il codice reale. L'unico punto con due varianti è Task 10 Step 2 (cast difensivo vs versione tipizzata): preferire la versione tipizzata — annotato inline.
+**2. Placeholder scan:** nessun "TBD"/"handle edge cases"; ogni step di codice mostra il codice reale. Unica semplificazione dichiarata: Task 13 Step 4 non marca "(obsoleto)" un modello di dettaglio ritirato (nota `ponytail:` inline).
 
 **3. Type consistency:** `synthesis`/`detail`/`summary` coerenti da DB→raw row→`SessionAnalysisRow`→renderer. `computeSessionStats`/`ComputeStatsInput`/`SessionStats` coerenti tra Task 2, 3, 4, 7, 8. `buildSessionContext` (interno), `buildSessionPrompt`/`buildSummaryPrompt` (export) e `SessionPromptInput.stats` coerenti. `sessionExpandAnalysis({ analysisId, game })` coerente tra preload, types, store, main.
 
@@ -1683,4 +1823,4 @@ git commit -m "perf(coach): cache Level-2 system prefix (ephemeral)"
 
 ## Follow-up (fuori dalle Fasi 1-7)
 
-`CLAUDE.md` cita "Template v3" e "section [5]" (architettura `session-coach`, decisioni di design, schema DB): aggiornare ai nuovi nomi (Analisi sintetica/approfondita, `synthesis`/`detail`/`summary`, `<sintesi-vocale>`) a implementazione conclusa. Non è nella catena runtime.
+`CLAUDE.md` cita "Template v3" e "section [5]" (architettura `session-coach`, decisioni di design, schema DB): aggiornare ai nuovi nomi (Analisi sintetica/approfondita, `synthesis`/`detail`/`summary`, `<sintesi-vocale>`) a implementazione conclusa. Aggiornare anche la decisione "Analysis model"/"Coach model" per riflettere il knob `anthropicModelDetail` (override del solo Livello 2; Livello 1 + voce restano su `anthropicModel`). Non è nella catena runtime.
