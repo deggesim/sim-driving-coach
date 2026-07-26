@@ -85,7 +85,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
   const deleteAnalysis = useSessionStore((s) => s.deleteAnalysis);
 
   const renderedAnalyses = useMemo(
-    () => analyses.map((a) => ({ id: a.id, html: renderMd(a.template_v3) })),
+    () => analyses.map((a) => ({ id: a.id, html: renderMd(a.synthesis) })),
     [analyses],
   );
   const renderedById = useMemo(

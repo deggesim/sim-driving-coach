@@ -112,7 +112,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
     .map(
       (a) => `
         <h2>Analisi #${a.version} <span class="muted">(${new Date(a.created_at).toLocaleString("it-IT")})</span></h2>
-        <div class="analysis-body">${postProcess(marked.parse(a.template_v3, { async: false }) as string)}</div>
+        <div class="analysis-body">${postProcess(marked.parse(a.synthesis, { async: false }) as string)}</div>
         ${commentsHtml(a)}`,
     )
     .join("");

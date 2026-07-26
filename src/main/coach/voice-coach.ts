@@ -145,8 +145,8 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     parts.push(`\n## Analisi precedenti della sessione`);
     for (const a of ctx.analyses) {
       parts.push(`### Analisi #${a.version} (${a.created_at})`);
-      if (a.section5_summary) parts.push(a.section5_summary);
-      else parts.push(a.template_v3.slice(0, 600));
+      if (a.summary) parts.push(a.summary);
+      else parts.push(a.synthesis.slice(0, 600));
     }
   }
 

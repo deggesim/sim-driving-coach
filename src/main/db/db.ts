@@ -140,8 +140,9 @@ const initSchema = (db: Database.Database): void => {
       id                INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id        INTEGER NOT NULL REFERENCES sessions_r3e(id) ON DELETE CASCADE,
       version           INTEGER NOT NULL,
-      template_v3       TEXT NOT NULL,
-      section5_summary  TEXT,
+      synthesis         TEXT NOT NULL,
+      summary           TEXT,
+      detail            TEXT,
       created_at        TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(session_id, version)
     );
@@ -188,8 +189,9 @@ const initSchema = (db: Database.Database): void => {
       id                INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id        INTEGER NOT NULL REFERENCES sessions_ace(id) ON DELETE CASCADE,
       version           INTEGER NOT NULL,
-      template_v3       TEXT NOT NULL,
-      section5_summary  TEXT,
+      synthesis         TEXT NOT NULL,
+      summary           TEXT,
+      detail            TEXT,
       created_at        TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(session_id, version)
     );
@@ -257,7 +259,7 @@ const initSchema = (db: Database.Database): void => {
     CREATE TABLE IF NOT EXISTS session_analyses_ams2 (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id INTEGER NOT NULL REFERENCES sessions_ams2(id) ON DELETE CASCADE,
-      version INTEGER NOT NULL, template_v3 TEXT NOT NULL, section5_summary TEXT,
+      version INTEGER NOT NULL, synthesis TEXT NOT NULL, summary TEXT, detail TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(session_id, version)
     );
     CREATE INDEX IF NOT EXISTS idx_analyses_ams2_session ON session_analyses_ams2(session_id);
@@ -281,6 +283,16 @@ const migrateSchema = (db: Database.Database): void => {
     `ALTER TABLE sessions_ams2 ADD COLUMN leaderboard_mode INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE sessions_ams2 ADD COLUMN fixed_setup      INTEGER NOT NULL DEFAULT 1`,
     `ALTER TABLE session_analyses_ams2 ADD COLUMN comments_json TEXT`,
+    // Two-tier analysis: rename columns + add on-demand detail (guarded, per game)
+    `ALTER TABLE session_analyses_r3e RENAME COLUMN template_v3 TO synthesis`,
+    `ALTER TABLE session_analyses_r3e RENAME COLUMN section5_summary TO summary`,
+    `ALTER TABLE session_analyses_r3e ADD COLUMN detail TEXT`,
+    `ALTER TABLE session_analyses_ace RENAME COLUMN template_v3 TO synthesis`,
+    `ALTER TABLE session_analyses_ace RENAME COLUMN section5_summary TO summary`,
+    `ALTER TABLE session_analyses_ace ADD COLUMN detail TEXT`,
+    `ALTER TABLE session_analyses_ams2 RENAME COLUMN template_v3 TO synthesis`,
+    `ALTER TABLE session_analyses_ams2 RENAME COLUMN section5_summary TO summary`,
+    `ALTER TABLE session_analyses_ams2 ADD COLUMN detail TEXT`,
   ];
   for (const sql of migrations) {
     try {

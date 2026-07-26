@@ -566,8 +566,9 @@ const setupPipeline = (): void => {
       id: number;
       session_id: number;
       version: number;
-      template_v3: string;
-      section5_summary: string | null;
+      synthesis: string;
+      summary: string | null;
+      detail: string | null;
       created_at: string;
       comments_json: string | null;
     }>;
@@ -575,8 +576,9 @@ const setupPipeline = (): void => {
       id: r.id,
       session_id: r.session_id,
       version: r.version,
-      template_v3: r.template_v3,
-      section5_summary: r.section5_summary,
+      synthesis: r.synthesis,
+      detail: r.detail,
+      summary: r.summary,
       created_at: r.created_at,
       comments: parseAnalysisComments(r.comments_json),
     }));
@@ -1893,8 +1895,8 @@ const setupPipeline = (): void => {
         resolved,
         [...sessionAlerts],
       );
-      if (analysis?.section5_summary) {
-        await speakText(analysis.section5_summary);
+      if (analysis?.summary) {
+        await speakText(analysis.summary);
       } else {
         await speakText("Analisi completata.");
       }

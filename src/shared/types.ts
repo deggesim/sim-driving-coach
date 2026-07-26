@@ -241,8 +241,9 @@ export type SessionAnalysisRow = {
   id: number;
   session_id: number;
   version: number;
-  template_v3: string;
-  section5_summary: string | null;
+  synthesis: string; // ex template_v3 — Analisi sintetica (Livello 1)
+  detail: string | null; // Analisi approfondita (Livello 2, on-demand)
+  summary: string | null; // ex section5_summary — estratto TTS
   created_at: string;
   comments: AnalysisComment[];
 };

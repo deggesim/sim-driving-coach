@@ -180,8 +180,9 @@ export const createSessionCoachEngine = (
         id: number;
         session_id: number;
         version: number;
-        template_v3: string;
-        section5_summary: string | null;
+        synthesis: string;
+        summary: string | null;
+        detail: string | null;
         created_at: string;
         comments_json: string | null;
       }>;
@@ -189,8 +190,9 @@ export const createSessionCoachEngine = (
         id: r.id,
         session_id: r.session_id,
         version: r.version,
-        template_v3: r.template_v3,
-        section5_summary: r.section5_summary,
+        synthesis: r.synthesis,
+        detail: r.detail,
+        summary: r.summary,
         created_at: r.created_at,
         comments: parseAnalysisComments(r.comments_json),
       }));
@@ -257,7 +259,7 @@ export const createSessionCoachEngine = (
 
       const result = db
         .prepare(
-          `INSERT INTO ${analysesTable} (session_id, version, template_v3, section5_summary, created_at)
+          `INSERT INTO ${analysesTable} (session_id, version, synthesis, summary, created_at)
            VALUES (?, ?, ?, ?, ?)`,
         )
         .run(sessionId, nextVersion, fullText, section5, createdAt);
@@ -266,8 +268,9 @@ export const createSessionCoachEngine = (
         id: Number(result.lastInsertRowid),
         session_id: sessionId,
         version: nextVersion,
-        template_v3: fullText,
-        section5_summary: section5,
+        synthesis: fullText,
+        detail: null,
+        summary: section5,
         created_at: createdAt,
         comments: [],
       };
@@ -285,8 +288,9 @@ export const createSessionCoachEngine = (
             id: number;
             session_id: number;
             version: number;
-            template_v3: string;
-            section5_summary: string | null;
+            synthesis: string;
+            summary: string | null;
+            detail: string | null;
             created_at: string;
             comments_json: string | null;
           }
@@ -295,7 +299,7 @@ export const createSessionCoachEngine = (
 
       const priorComments = parseAnalysisComments(row.comments_json);
       const prompt = buildCommentPrompt({
-        analysisText: row.template_v3,
+        analysisText: row.synthesis,
         priorComments,
         comment,
         carName: resolved?.carName,
@@ -336,8 +340,9 @@ export const createSessionCoachEngine = (
         id: row.id,
         session_id: row.session_id,
         version: row.version,
-        template_v3: row.template_v3,
-        section5_summary: row.section5_summary,
+        synthesis: row.synthesis,
+        detail: row.detail,
+        summary: row.summary,
         created_at: row.created_at,
         comments,
       };

@@ -9,7 +9,7 @@ const ANALYSIS_R3E: SessionAnalysisRow = {
   id: -1,
   session_id: -1,
   version: 1,
-  template_v3: `## [1] Dati sessione
+  synthesis: `## [1] Dati sessione
 **Simulatore:** RaceRoom Racing Experience · **Auto:** BMW M4 GT3 (GT3)
 **Circuito:** Nürburgring - Grand Prix · **Giri analizzati:** 2 (giro 2-3)
 **Miglior giro:** 1:55.234 (giro 2) · **Δ giri:** +0.546s
@@ -43,7 +43,8 @@ Giro 2 (1:55.234): **-1.222s** rispetto al giro di calibrazione. Miglioramento l
 
 ## [5] Sintesi radio
 Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford Kurve. Anticipa la staccata di dieci metri e apri il gas prima in uscita. Il tuo settore tre è competitivo: mantienilo.`,
-  section5_summary:
+  detail: null,
+  summary:
     "Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford Kurve. Anticipa la staccata di dieci metri e apri il gas prima in uscita.",
   created_at: "2026-04-17T08:25:00.000Z",
   comments: [],
@@ -53,7 +54,7 @@ const ANALYSIS_ACE: SessionAnalysisRow = {
   id: -2,
   session_id: -2,
   version: 1,
-  template_v3: `## [1] Dati sessione
+  synthesis: `## [1] Dati sessione
 **Simulatore:** Assetto Corsa EVO · **Auto:** Porsche 718 GT4
 **Circuito:** Monza - Circuit · **Giri analizzati:** 2 (giro 2-3)
 **Miglior giro:** 1:47.456 (giro 2) · **Δ giri:** +0.436s
@@ -87,7 +88,8 @@ Giro 2 (1:47.456): **-1.664s** rispetto al giro di calibrazione. Settore 1 in li
 
 ## [5] Sintesi radio
 Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovrapponendo freno e gas: separa le fasi. Alla seconda, entra con più fiducia e apri il gas 0.5 secondi prima. Lesmo 2: anticipa la frenata di 12 metri.`,
-  section5_summary:
+  detail: null,
+  summary:
     "Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovrapponendo freno e gas: separa le fasi. Alla seconda, entra con più fiducia e apri il gas 0.5 secondi prima.",
   created_at: "2026-04-17T14:38:00.000Z",
   comments: [],
@@ -97,7 +99,7 @@ const ANALYSIS_AMS2: SessionAnalysisRow = {
   id: -3,
   session_id: -3,
   version: 1,
-  template_v3: `## [1] Dati sessione
+  synthesis: `## [1] Dati sessione
 **Simulatore:** Automobilista 2 · **Auto:** Formula Ultimate Gen2 (Formula)
 **Circuito:** Interlagos - Grand Prix · **Giri analizzati:** 2 (giro 2-3)
 **Miglior giro:** 1:11.234 (giro 2) · **Δ giri:** +0.444s
@@ -131,7 +133,8 @@ Giro 2 (1:11.234): **-2.326s** rispetto al giro di calibrazione. Settore 1 già 
 
 ## [5] Sintesi radio
 Formula, buon passo generale. Stai perdendo tempo alla Senna S e alla Junção: anticipa la staccata e separa freno e gas. Sulla retta opposta apri il gas un decimo prima in uscita.`,
-  section5_summary:
+  detail: null,
+  summary:
     "Formula, buon passo generale. Stai perdendo tempo alla Senna S e alla Junção: anticipa la staccata e separa freno e gas. Sulla retta opposta apri il gas un decimo prima in uscita.",
   created_at: "2026-04-17T18:32:00.000Z",
   comments: [],

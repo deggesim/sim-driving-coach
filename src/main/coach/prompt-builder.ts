@@ -367,11 +367,11 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     parts.push(`## Analisi precedenti (riassunto)`);
     for (const a of priorAnalyses) {
       parts.push(`### Analisi #${a.version} (${a.created_at})`);
-      if (a.section5_summary) {
-        parts.push(`Sintesi: ${a.section5_summary}`);
+      if (a.summary) {
+        parts.push(`Sintesi: ${a.summary}`);
       } else {
-        // Fallback: first ~500 chars of templateV3
-        parts.push(a.template_v3.slice(0, 500));
+        // Fallback: first ~500 chars of the synthesis
+        parts.push(a.synthesis.slice(0, 500));
       }
       if (a.comments && a.comments.length > 0) {
         parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
