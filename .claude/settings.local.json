@@ -15,13 +15,12 @@
       "Skill(superpowers:writing-plans)",
       "Skill(superpowers:subagent-driven-development)",
       "Skill(commit-commands:commit)",
+      "Skill(claude-api)",
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
       "PowerShell(npm run *)"
     ],
-    "additionalDirectories": [
-      "C:\\Users\\simon\\AppData\\Local\\Temp"
-    ]
+    "additionalDirectories": ["C:\\Users\\simon\\AppData\\Local\\Temp"]
   },
   "hooks": {
     "PostToolUse": [
