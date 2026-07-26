@@ -213,9 +213,12 @@ export const createSessionCoachEngine = (
 
       let fullText = "";
       try {
+        // Streaming (no HTTP timeout concern), so max_tokens can be generous.
+        // Template v3 is long: 16k was hit and truncated silently. 32k doubles
+        // the headroom and stays under every selectable model's cap (Haiku 4.5 = 64k).
         const stream = client.messages.stream({
           model,
-          max_tokens: 16000,
+          max_tokens: 32000,
           system: SESSION_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
@@ -234,7 +237,13 @@ export const createSessionCoachEngine = (
           }
         }
 
-        await stream.finalMessage();
+        // Surface truncation instead of silently saving a partial analysis.
+        const finalMsg = await stream.finalMessage();
+        if (finalMsg.stop_reason === "max_tokens") {
+          options.onError?.(
+            "Analisi troncata: raggiunto il limite di token. L'analisi parziale è stata salvata; riesegui l'analisi per una versione completa.",
+          );
+        }
       } catch (err) {
         console.error("[SessionCoach] Claude API error:", err);
         if (isCreditOrQuotaError(err)) {

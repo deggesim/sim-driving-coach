@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert } from "react-bootstrap";
-import type { GameSource } from "../../shared/types";
+import type { GameSource, SessionStartResult } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
 import { useIPCStore } from "../store/ipcStore";
@@ -61,9 +61,23 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
 
   const handleStart = (): void => setShowGamePicker(true);
 
+  // Speak the open outcome only when the app is not in the foreground (the user
+  // has alt-tabbed to the sim). Routed through the TTS queue (respects mute/Azure).
+  const announceOutcome = (res: SessionStartResult): void => {
+    if (document.hasFocus()) return;
+    useIPCStore
+      .getState()
+      .setAnnounce(
+        res.ok
+          ? `Sessione aperta: auto ${res.car}, circuito ${res.track}`
+          : "Attenzione, impossibile aprire la sessione",
+      );
+  };
+
   const handleGamePicked = async (game: GameSource): Promise<void> => {
     setShowGamePicker(false);
     const res = await window.electronAPI.sessionStart(game);
+    announceOutcome(res);
     if (!res.ok) {
       showFlash("danger", res.reason);
     } else {
@@ -83,6 +97,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       id: session.id,
       game: session.game,
     });
+    announceOutcome(res);
     if (!res.ok) {
       showFlash(
         "danger",
