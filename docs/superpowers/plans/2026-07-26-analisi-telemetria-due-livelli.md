@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Stato implementazione (2026-07-27):** Task 1-8 completati (Fasi 1-4 chiuse, Fase 5 a metà). **Riprendere dal Task 9.** Il Livello 1 è operativo (`analyzeSession`: "Analisi sintetica" + "Azioni suggerite" + `<sintesi-vocale>`, `max_tokens: 2000`, **non** streamato — la UI mostra lo spinner e riceve il testo finito). `expandAnalysis` esiste e streamma il Livello 2 a `max_tokens: 32000`, ma **non è ancora raggiungibile dalla UI** finché non esiste l'IPC (Task 9).
+> **Stato implementazione (2026-07-27):** Task 1-9 completati (Fasi 1-5 chiuse). **Riprendere dal Task 10** (Fase 6). Il Livello 1 è operativo (`analyzeSession`: "Analisi sintetica" + "Azioni suggerite" + `<sintesi-vocale>`, `max_tokens: 2000`, **non** streamato — la UI mostra lo spinner e riceve il testo finito). `expandAnalysis` streamma il Livello 2 a `max_tokens: 32000` ed è esposto su `window.electronAPI.sessionExpandAnalysis`, ma **non è ancora raggiungibile dalla UI**: manca il chiamante (Task 10-11). La chiave `anthropicModelDetail` non è ancora scritta da nessuno (Task 13), quindi il Livello 2 usa per ora il modello base.
 >
 > **Fix applicate al Task 8 oltre allo snippet del piano** (il piano non le prevedeva):
 >
