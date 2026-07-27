@@ -72,7 +72,12 @@ type SessionCoachOptions = {
     version: number;
     token: string;
   }) => void;
-  onDone?: (data: { sessionId: number; analysis: SessionAnalysisRow }) => void;
+  // analysis === null means the attempt ended without producing a row (API
+  // error): the renderer uses it to release the spinner it holds while working.
+  onDone?: (data: {
+    sessionId: number;
+    analysis: SessionAnalysisRow | null;
+  }) => void;
   onError?: (message: string) => void;
 };
 
@@ -208,36 +213,31 @@ export const createSessionCoachEngine = (
 
       const nextVersion = (priorAnalyses.at(-1)?.version ?? 0) + 1;
 
-      let fullText = "";
+      // Level 1 is NOT streamed to the UI: partial markdown rendering added no
+      // value on a short output. The renderer only needs to know a version is
+      // being worked on so it can hold the spinner, so one empty token opens the
+      // placeholder panel and the finished text arrives in one go via onDone.
+      options.onChunk?.({ sessionId, version: nextVersion, token: "" });
+
+      let fullText: string;
       try {
-        // Level 1 is two short sections plus the voice block: 2k tokens is ~3x
-        // the typical output. The deep-dive keeps the generous cap (expandAnalysis).
-        const stream = client.messages.stream({
+        // Two short sections plus the voice block: 2k tokens is ~3x the typical
+        // output. Non-streaming create() mirrors commentAnalysis and is safe at
+        // this budget; the deep-dive still streams (see expandAnalysis).
+        const msg = await client.messages.create({
           model,
           max_tokens: 2000,
           system: SUMMARY_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
-
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            fullText += event.delta.text;
-            options.onChunk?.({
-              sessionId,
-              version: nextVersion,
-              token: event.delta.text,
-            });
-          }
-        }
+        fullText = msg.content
+          .map((b) => (b.type === "text" ? b.text : ""))
+          .join("");
 
         // Surface truncation instead of silently saving a partial analysis.
         // A truncated Level 1 can also lose the <sintesi-vocale> block, which
         // would leave the post-analysis TTS silent with no visible cause.
-        const finalMsg = await stream.finalMessage();
-        if (finalMsg.stop_reason === "max_tokens") {
+        if (msg.stop_reason === "max_tokens") {
           options.onError?.(
             "Sintesi troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riesegui l'analisi.",
           );
@@ -247,6 +247,8 @@ export const createSessionCoachEngine = (
         if (isCreditOrQuotaError(err)) {
           options.onError?.(buildAnthropicErrorMessage(err));
         }
+        // Release the spinner opened by the start signal above.
+        options.onDone?.({ sessionId, analysis: null });
         return null;
       }
 

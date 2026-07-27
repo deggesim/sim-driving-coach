@@ -211,13 +211,20 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
               Analisi #{streamingVersion.version} (in corso…)
             </Accordion.Header>
             <Accordion.Body className="overflow-y-auto">
-              <div
-                className="deb-content"
-                // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                dangerouslySetInnerHTML={{
-                  __html: renderMd(streamingVersion.text),
-                }}
-              />
+              {/* Level 1 sends no text while working, only a start signal. */}
+              {streamingVersion.text ? (
+                <div
+                  className="deb-content"
+                  // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                  dangerouslySetInnerHTML={{
+                    __html: renderMd(streamingVersion.text),
+                  }}
+                />
+              ) : (
+                <div style={{ color: "var(--text-dim)" }}>
+                  Elaborazione in corso…
+                </div>
+              )}
             </Accordion.Body>
           </Accordion.Item>
         )}

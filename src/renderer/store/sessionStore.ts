@@ -58,9 +58,10 @@ type State = {
     version: number;
     token: string;
   }) => void;
+  // analysis === null: the attempt failed, just release the spinner.
   _applyAnalysisDone: (payload: {
     sessionId: number;
-    analysis: SessionAnalysisRow;
+    analysis: SessionAnalysisRow | null;
   }) => void;
   _applySessionStarted: (session: SessionRow) => void;
   _applySessionClosed: (payload: { id: number; game: GameSource }) => void;
@@ -231,6 +232,10 @@ export const useSessionStore = create<State>((set, get) => ({
   _applyAnalysisDone: ({ sessionId, analysis }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
+    if (!analysis) {
+      set({ streaming: null });
+      return;
+    }
     // Replace or append analysis
     const others = s.analyses.filter((a) => a.version !== analysis.version);
     set({
@@ -300,7 +305,7 @@ export const subscribeSessionIPC = (): void => {
   );
   window.electronAPI.onSessionAnalysisDone((d) =>
     store()._applyAnalysisDone(
-      d as { sessionId: number; analysis: SessionAnalysisRow },
+      d as { sessionId: number; analysis: SessionAnalysisRow | null },
     ),
   );
 };
