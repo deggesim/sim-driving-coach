@@ -2,9 +2,18 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Stato implementazione (2026-07-27):** Task 1-7 completati (Fasi 1-4 chiuse). **Riprendere da Task 8** (Fase 5). Il Livello 1 è operativo: `analyzeSession` produce "Analisi sintetica" + "Azioni suggerite" + `<sintesi-vocale>` con `max_tokens: 2000`. Il Livello 2 (`buildSessionPrompt`/`SESSION_SYSTEM_PROMPT`) è scritto ma senza chiamanti finché `expandAnalysis` non esiste — quindi al momento l'analisi approfondita **non è raggiungibile dalla UI**.
+> **Stato implementazione (2026-07-27):** Task 1-8 completati (Fasi 1-4 chiuse, Fase 5 a metà). **Riprendere dal Task 9.** Il Livello 1 è operativo (`analyzeSession`: "Analisi sintetica" + "Azioni suggerite" + `<sintesi-vocale>`, `max_tokens: 2000`, **non** streamato — la UI mostra lo spinner e riceve il testo finito). `expandAnalysis` esiste e streamma il Livello 2 a `max_tokens: 32000`, ma **non è ancora raggiungibile dalla UI** finché non esiste l'IPC (Task 9).
 >
-> **Da decidere al Task 8:** lo snippet di `expandAnalysis` nel piano chiama `computeSessionStats` **senza** `alerts` e `buildSessionPrompt` senza `alerts`, perché `sessionAlerts` vive solo in memoria in `main.ts` (mai persistito). Conseguenza: il Livello 2 — cioè proprio la sezione che deve ordinare le "curve critiche per volume di alert" — riceverebbe `criticalCorners` vuoto anche a sessione viva. Fix suggerito: aggiungere un parametro `alerts?: Alert[]` a `expandAnalysis` e passare `[...sessionAlerts]` dall'handler IPC quando l'analisi appartiene alla sessione corrente (stesso pattern di `main.ts:1286-1287`).
+> **Fix applicate al Task 8 oltre allo snippet del piano** (il piano non le prevedeva):
+>
+> 1. `expandAnalysis` accetta `alerts?: Alert[]` (5° param, prima di `modelOverride`). Senza, il Livello 2 — la sezione che deve ordinare le "curve critiche per volume di alert" — girerebbe su `criticalCorners` vuoto, perché `sessionAlerts` vive solo in memoria in `main.ts` e non è mai persistito.
+> 2. `loadSessionBundle` restituisce anche `flags: { leaderboardMode, fixedSetup }`, ricavati dalla riga di sessione che carica già (colonne `leaderboard_mode`/`fixed_setup`, `NOT NULL DEFAULT 1`). Nessun parametro nuovo. Senza, il livello che propone modifiche di setup non saprebbe che in Fixed Setup sono toccabili solo bias e pressioni freni.
+> 3. Il path di errore di `expandAnalysis` emette `onDone({ analysis: null })` per rilasciare il pannello di streaming, come il Livello 1.
+>
+> **Note per i task rimanenti:**
+>
+> - **Task 9:** `expandAnalysis` prende `analysisId`, non `sessionId`, quindi l'handler deve risolvere `session_id` (un `SELECT session_id FROM session_analyses_<game> WHERE id = ?`) prima di decidere se passare `[...sessionAlerts]` — cioè solo quando `session_id === currentSessionId`.
+> - **Task 11:** il genitore di `AnalysisList` è **`SessionPanel.tsx`**, non `RealtimeAnalysis`/`SessionDetail` come scrivono il piano e `CLAUDE.md`. Inoltre `AnalysisList` ha già un item di accordion "in corso" separato, agganciato a `streamingVersion`: durante l'expand di una versione già completata quell'item **duplicherebbe** la riga esistente. Va riconciliato lì.
 
 **Goal:** Rendere l'analisi di sessione più veloce (default = solo sintesi breve, approfondimento on-demand) e più precisa (fatti numerici precalcolati in TypeScript), riorganizzando il prompt in sezioni semantiche.
 
