@@ -14,6 +14,7 @@ import {
   buildCommentPrompt,
   buildSessionPrompt,
 } from "./prompt-builder.js";
+import { computeSessionStats } from "./session-stats.js";
 import {
   parseAnalysisComments,
   parseSetupRow,
@@ -197,6 +198,14 @@ export const createSessionCoachEngine = (
         comments: parseAnalysisComments(r.comments_json),
       }));
 
+      const stats = computeSessionStats({
+        laps,
+        bestLap: session.best_lap,
+        setups,
+        alerts,
+        cornerNames,
+      });
+
       const prompt = buildSessionPrompt({
         session,
         laps,
@@ -209,6 +218,7 @@ export const createSessionCoachEngine = (
         alerts,
         leaderboardMode: flags?.leaderboardMode,
         fixedSetup: flags?.fixedSetup,
+        stats,
       });
 
       const nextVersion = (priorAnalyses.at(-1)?.version ?? 0) + 1;
