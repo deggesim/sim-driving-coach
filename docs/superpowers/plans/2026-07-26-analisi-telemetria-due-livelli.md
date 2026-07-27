@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Stato implementazione (2026-07-27):** Task 1-6 completati. **Riprendere da Task 7** (Fase 4). Attenzione: lo stato attuale è transitorio — `analyzeSession` genera già l'"Analisi approfondita" ma `extractSection5` cerca ancora i marcatori `[5]`, quindi `summary` esce vuoto e il TTS post-analisi non parla finché il Task 7 non è fatto.
+> **Stato implementazione (2026-07-27):** Task 1-7 completati (Fasi 1-4 chiuse). **Riprendere da Task 8** (Fase 5). Il Livello 1 è operativo: `analyzeSession` produce "Analisi sintetica" + "Azioni suggerite" + `<sintesi-vocale>` con `max_tokens: 2000`. Il Livello 2 (`buildSessionPrompt`/`SESSION_SYSTEM_PROMPT`) è scritto ma senza chiamanti finché `expandAnalysis` non esiste — quindi al momento l'analisi approfondita **non è raggiungibile dalla UI**.
+>
+> **Da decidere al Task 8:** lo snippet di `expandAnalysis` nel piano chiama `computeSessionStats` **senza** `alerts` e `buildSessionPrompt` senza `alerts`, perché `sessionAlerts` vive solo in memoria in `main.ts` (mai persistito). Conseguenza: il Livello 2 — cioè proprio la sezione che deve ordinare le "curve critiche per volume di alert" — riceverebbe `criticalCorners` vuoto anche a sessione viva. Fix suggerito: aggiungere un parametro `alerts?: Alert[]` a `expandAnalysis` e passare `[...sessionAlerts]` dall'handler IPC quando l'analisi appartiene alla sessione corrente (stesso pattern di `main.ts:1286-1287`).
 
 **Goal:** Rendere l'analisi di sessione più veloce (default = solo sintesi breve, approfondimento on-demand) e più precisa (fatti numerici precalcolati in TypeScript), riorganizzando il prompt in sezioni semantiche.
 

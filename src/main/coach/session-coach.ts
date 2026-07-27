@@ -10,11 +10,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import type Database from "better-sqlite3";
 import {
   COMMENT_SYSTEM_PROMPT,
-  SESSION_SYSTEM_PROMPT,
+  SUMMARY_SYSTEM_PROMPT,
   buildCommentPrompt,
-  buildSessionPrompt,
+  buildSummaryPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
   parseAnalysisComments,
   parseSetupRow,
@@ -91,22 +92,6 @@ export type SessionCoachEngine = {
     comment: string,
     resolved?: { carName?: string; trackName?: string },
   ) => Promise<SessionAnalysisRow | null>;
-};
-
-const extractSection5 = (text: string): string => {
-  const match = text.match(/\[5\][^\n]*\n([\s\S]*?)(?=\n\[\d+\]|$)/);
-  if (!match) return "";
-  const raw = match[1].trim();
-  const stripped = raw
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/__([^_]+)__/g, "$1")
-    .replace(/_([^_]+)_/g, "$1")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^[-*+]\s+/gm, "")
-    .replace(/`([^`]+)`/g, "$1");
-  const sentences = stripped.match(/[^.!?]+[.!?]+/g) ?? [];
-  return sentences.slice(0, 3).join(" ").trim();
 };
 
 export const createSessionCoachEngine = (
@@ -206,7 +191,7 @@ export const createSessionCoachEngine = (
         cornerNames,
       });
 
-      const prompt = buildSessionPrompt({
+      const prompt = buildSummaryPrompt({
         session,
         laps,
         setups,
@@ -225,13 +210,12 @@ export const createSessionCoachEngine = (
 
       let fullText = "";
       try {
-        // Streaming (no HTTP timeout concern), so max_tokens can be generous.
-        // Template v3 is long: 16k was hit and truncated silently. 32k doubles
-        // the headroom and stays under every selectable model's cap (Haiku 4.5 = 64k).
+        // Level 1 is two short sections plus the voice block: 2k tokens is ~3x
+        // the typical output. The deep-dive keeps the generous cap (expandAnalysis).
         const stream = client.messages.stream({
           model,
-          max_tokens: 32000,
-          system: SESSION_SYSTEM_PROMPT,
+          max_tokens: 2000,
+          system: SUMMARY_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
 
@@ -250,10 +234,12 @@ export const createSessionCoachEngine = (
         }
 
         // Surface truncation instead of silently saving a partial analysis.
+        // A truncated Level 1 can also lose the <sintesi-vocale> block, which
+        // would leave the post-analysis TTS silent with no visible cause.
         const finalMsg = await stream.finalMessage();
         if (finalMsg.stop_reason === "max_tokens") {
           options.onError?.(
-            "Analisi troncata: raggiunto il limite di token. L'analisi parziale è stata salvata; riesegui l'analisi per una versione completa.",
+            "Sintesi troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riesegui l'analisi.",
           );
         }
       } catch (err) {
@@ -264,7 +250,8 @@ export const createSessionCoachEngine = (
         return null;
       }
 
-      const section5 = extractSection5(fullText);
+      const synthesis = stripVoiceTag(fullText);
+      const summary = extractVoiceSummary(fullText);
       const createdAt = new Date().toISOString();
 
       const result = db
@@ -272,15 +259,15 @@ export const createSessionCoachEngine = (
           `INSERT INTO ${analysesTable} (session_id, version, synthesis, summary, created_at)
            VALUES (?, ?, ?, ?, ?)`,
         )
-        .run(sessionId, nextVersion, fullText, section5, createdAt);
+        .run(sessionId, nextVersion, synthesis, summary, createdAt);
 
       const analysis: SessionAnalysisRow = {
         id: Number(result.lastInsertRowid),
         session_id: sessionId,
         version: nextVersion,
-        synthesis: fullText,
+        synthesis,
         detail: null,
-        summary: section5,
+        summary,
         created_at: createdAt,
         comments: [],
       };
