@@ -10,8 +10,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import type Database from "better-sqlite3";
 import {
   COMMENT_SYSTEM_PROMPT,
+  SESSION_SYSTEM_PROMPT,
   SUMMARY_SYSTEM_PROMPT,
   buildCommentPrompt,
+  buildSessionPrompt,
   buildSummaryPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
@@ -91,6 +93,16 @@ export type SessionCoachEngine = {
     alerts?: Alert[],
     flags?: { leaderboardMode?: boolean; fixedSetup?: boolean },
   ) => Promise<SessionAnalysisRow | null>;
+  expandAnalysis: (
+    analysisId: number,
+    game: GameSource,
+    resolved?: { carName?: string; trackName?: string; layoutName?: string },
+    // Live-session alerts (in-memory only in main.ts, never persisted). Without
+    // them the deep-dive ranks critical corners on an empty alert set — exactly
+    // the section this level exists for. undefined for a past session.
+    alerts?: Alert[],
+    modelOverride?: string, // Level-2 model (anthropicModelDetail); default = base model
+  ) => Promise<SessionAnalysisRow | null>;
   commentAnalysis: (
     analysisId: number,
     game: GameSource,
@@ -109,6 +121,115 @@ export const createSessionCoachEngine = (
   });
   let cornerNames = new Map<number, string>();
 
+  /**
+   * Shared session-data loader used by analyzeSession and expandAnalysis.
+   * Returns null when the session row does not exist.
+   * `beforeVersion` (expandAnalysis) restricts priorAnalyses to versions < it;
+   * omitted (analyzeSession) returns all versions.
+   */
+  const loadSessionBundle = (
+    game: GameSource,
+    sessionId: number,
+    opts?: { beforeVersion?: number },
+  ): {
+    session: SessionRow;
+    laps: LapRow[];
+    setups: SessionSetupRow[];
+    priorAnalyses: SessionAnalysisRow[];
+    flags: { leaderboardMode: boolean; fixedSetup: boolean };
+  } | null => {
+    const sessionsTable = tableFor(game, "sessions");
+    const lapsTable = tableFor(game, "laps");
+    const setupsTable = tableFor(game, "session_setups");
+    const analysesTable = tableFor(game, "session_analyses");
+
+    const sessionRow = db
+      .prepare(`SELECT * FROM ${sessionsTable} WHERE id = ?`)
+      .get(sessionId) as
+      | (Omit<SessionRow, "game"> & Record<string, unknown>)
+      | undefined;
+    if (!sessionRow) return null;
+
+    const session: SessionRow = {
+      id: sessionRow.id as number,
+      game,
+      car: sessionRow.car as string,
+      track: sessionRow.track as string,
+      layout: sessionRow.layout as string,
+      session_type: sessionRow.session_type as string,
+      started_at: sessionRow.started_at as string,
+      ended_at: (sessionRow.ended_at as string | null) ?? null,
+      best_lap: (sessionRow.best_lap as number | null) ?? null,
+      lap_count: sessionRow.lap_count as number,
+    };
+
+    // Both columns are NOT NULL DEFAULT 1, so a missing value can only mean a
+    // pre-migration row: `!== 0` maps that to true, same default as the
+    // session:analyze handler. Derived here (not passed in) because the SELECT
+    // above already carries them — expandAnalysis needs no extra parameter.
+    // ponytail: analyzeSession still takes its own `flags` param from the IPC
+    // handler; collapse the two onto this one when a third caller shows up.
+    const flagOn = (v: unknown): boolean => v !== 0;
+    const flags = {
+      leaderboardMode: flagOn(sessionRow.leaderboard_mode),
+      fixedSetup: flagOn(sessionRow.fixed_setup),
+    };
+
+    const laps = db
+      .prepare(
+        `SELECT * FROM ${lapsTable} WHERE session_id = ? ORDER BY lap_number ASC`,
+      )
+      .all(sessionId) as LapRow[];
+
+    const setupRowsRaw = db
+      .prepare(
+        `SELECT * FROM ${setupsTable} WHERE session_id = ? ORDER BY loaded_at ASC, id ASC`,
+      )
+      .all(sessionId) as Array<{
+      id: number;
+      session_id: number;
+      loaded_at: string;
+      setup_json: string;
+      setup_screenshots: string | null;
+    }>;
+    const setups: SessionSetupRow[] = setupRowsRaw.map(parseSetupRow);
+
+    const priorAnalysesRaw = (
+      opts?.beforeVersion != null
+        ? db
+            .prepare(
+              `SELECT * FROM ${analysesTable} WHERE session_id = ? AND version < ? ORDER BY version ASC`,
+            )
+            .all(sessionId, opts.beforeVersion)
+        : db
+            .prepare(
+              `SELECT * FROM ${analysesTable} WHERE session_id = ? ORDER BY version ASC`,
+            )
+            .all(sessionId)
+    ) as Array<{
+      id: number;
+      session_id: number;
+      version: number;
+      synthesis: string;
+      summary: string | null;
+      detail: string | null;
+      created_at: string;
+      comments_json: string | null;
+    }>;
+    const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
+      id: r.id,
+      session_id: r.session_id,
+      version: r.version,
+      synthesis: r.synthesis,
+      detail: r.detail,
+      summary: r.summary,
+      created_at: r.created_at,
+      comments: parseAnalysisComments(r.comments_json),
+    }));
+
+    return { session, laps, setups, priorAnalyses, flags };
+  };
+
   return {
     updateApiKey: (apiKey) => {
       client = new Anthropic({ apiKey });
@@ -118,75 +239,10 @@ export const createSessionCoachEngine = (
     },
 
     analyzeSession: async (sessionId, game, resolved, alerts, flags) => {
-      const sessionsTable = tableFor(game, "sessions");
-      const lapsTable = tableFor(game, "laps");
-      const setupsTable = tableFor(game, "session_setups");
       const analysesTable = tableFor(game, "session_analyses");
-
-      const sessionRow = db
-        .prepare(`SELECT * FROM ${sessionsTable} WHERE id = ?`)
-        .get(sessionId) as
-        | (Omit<SessionRow, "game"> & Record<string, unknown>)
-        | undefined;
-      if (!sessionRow) return null;
-
-      const session: SessionRow = {
-        id: sessionRow.id as number,
-        game,
-        car: sessionRow.car as string,
-        track: sessionRow.track as string,
-        layout: sessionRow.layout as string,
-        session_type: sessionRow.session_type as string,
-        started_at: sessionRow.started_at as string,
-        ended_at: (sessionRow.ended_at as string | null) ?? null,
-        best_lap: (sessionRow.best_lap as number | null) ?? null,
-        lap_count: sessionRow.lap_count as number,
-      };
-
-      const laps = db
-        .prepare(
-          `SELECT * FROM ${lapsTable} WHERE session_id = ? ORDER BY lap_number ASC`,
-        )
-        .all(sessionId) as LapRow[];
-
-      const setupRowsRaw = db
-        .prepare(
-          `SELECT * FROM ${setupsTable} WHERE session_id = ? ORDER BY loaded_at ASC, id ASC`,
-        )
-        .all(sessionId) as Array<{
-        id: number;
-        session_id: number;
-        loaded_at: string;
-        setup_json: string;
-        setup_screenshots: string | null;
-      }>;
-
-      const setups: SessionSetupRow[] = setupRowsRaw.map(parseSetupRow);
-
-      const priorAnalysesRaw = db
-        .prepare(
-          `SELECT * FROM ${analysesTable} WHERE session_id = ? ORDER BY version ASC`,
-        )
-        .all(sessionId) as Array<{
-        id: number;
-        session_id: number;
-        version: number;
-        synthesis: string;
-        summary: string | null;
-        detail: string | null;
-        created_at: string;
-        comments_json: string | null;
-      }>;
-      const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
-        id: r.id,
-        session_id: r.session_id,
-        version: r.version,
-        synthesis: r.synthesis,
-        detail: r.detail,
-        summary: r.summary,
-        created_at: r.created_at,
-        comments: parseAnalysisComments(r.comments_json),
-      }));
+      const bundle = loadSessionBundle(game, sessionId);
+      if (!bundle) return null;
+      const { session, laps, setups, priorAnalyses } = bundle;
 
       const stats = computeSessionStats({
         laps,
@@ -272,6 +328,126 @@ export const createSessionCoachEngine = (
         summary,
         created_at: createdAt,
         comments: [],
+      };
+
+      options.onDone?.({ sessionId, analysis });
+      return analysis;
+    },
+
+    expandAnalysis: async (
+      analysisId,
+      game,
+      resolved,
+      alerts,
+      modelOverride,
+    ) => {
+      const useModel = modelOverride ?? model;
+      const analysesTable = tableFor(game, "session_analyses");
+
+      const row = db
+        .prepare(`SELECT * FROM ${analysesTable} WHERE id = ?`)
+        .get(analysisId) as
+        | {
+            id: number;
+            session_id: number;
+            version: number;
+            synthesis: string;
+            summary: string | null;
+            detail: string | null;
+            created_at: string;
+            comments_json: string | null;
+          }
+        | undefined;
+      if (!row) return null;
+      const sessionId = row.session_id;
+
+      const bundle = loadSessionBundle(game, sessionId, {
+        beforeVersion: row.version,
+      });
+      if (!bundle) return null;
+      const { session, laps, setups, priorAnalyses, flags } = bundle;
+
+      const stats = computeSessionStats({
+        laps,
+        bestLap: session.best_lap,
+        setups,
+        alerts,
+        cornerNames,
+      });
+
+      const prompt = buildSessionPrompt({
+        session,
+        laps,
+        setups,
+        priorAnalyses,
+        cornerNames,
+        carName: resolved?.carName,
+        trackName: resolved?.trackName,
+        layoutName: resolved?.layoutName,
+        alerts,
+        // This is the level that proposes setup changes: without fixedSetup it
+        // would confidently suggest edits a Fixed Setup session cannot apply.
+        leaderboardMode: flags.leaderboardMode,
+        fixedSetup: flags.fixedSetup,
+        stats,
+      });
+
+      let fullText = "";
+      try {
+        // Level 2 keeps streaming (unlike Level 1): the output is long enough
+        // that progressive rendering is the difference between a live panel and
+        // a frozen one. Generous cap + truncation surfacing.
+        const stream = client.messages.stream({
+          model: useModel,
+          max_tokens: 32000,
+          system: SESSION_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: prompt }],
+        });
+
+        for await (const event of stream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            fullText += event.delta.text;
+            options.onChunk?.({
+              sessionId,
+              version: row.version,
+              token: event.delta.text,
+            });
+          }
+        }
+
+        const finalMsg = await stream.finalMessage();
+        if (finalMsg.stop_reason === "max_tokens") {
+          options.onError?.(
+            "Analisi approfondita troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riprova.",
+          );
+        }
+      } catch (err) {
+        console.error("[SessionCoach] expand API error:", err);
+        if (isCreditOrQuotaError(err)) {
+          options.onError?.(buildAnthropicErrorMessage(err));
+        }
+        // Release the streaming panel the chunks above opened in the renderer.
+        options.onDone?.({ sessionId, analysis: null });
+        return null;
+      }
+
+      db.prepare(`UPDATE ${analysesTable} SET detail = ? WHERE id = ?`).run(
+        fullText,
+        analysisId,
+      );
+
+      const analysis: SessionAnalysisRow = {
+        id: row.id,
+        session_id: sessionId,
+        version: row.version,
+        synthesis: row.synthesis,
+        detail: fullText,
+        summary: row.summary,
+        created_at: row.created_at,
+        comments: parseAnalysisComments(row.comments_json),
       };
 
       options.onDone?.({ sessionId, analysis });
