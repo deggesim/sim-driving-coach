@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Stato implementazione (2026-07-27):** Task 1-5 completati. **Riprendere da Task 6** (Fase 4). Attenzione: lo stato attuale è transitorio — `analyzeSession` genera già l'"Analisi approfondita" ma `extractSection5` cerca ancora i marcatori `[5]`, quindi `summary` esce vuoto e il TTS post-analisi non parla finché il Task 7 non è fatto.
+> **Stato implementazione (2026-07-27):** Task 1-6 completati. **Riprendere da Task 7** (Fase 4). Attenzione: lo stato attuale è transitorio — `analyzeSession` genera già l'"Analisi approfondita" ma `extractSection5` cerca ancora i marcatori `[5]`, quindi `summary` esce vuoto e il TTS post-analisi non parla finché il Task 7 non è fatto.
 
 **Goal:** Rendere l'analisi di sessione più veloce (default = solo sintesi breve, approfondimento on-demand) e più precisa (fatti numerici precalcolati in TypeScript), riorganizzando il prompt in sezioni semantiche.
 

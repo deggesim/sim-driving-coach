@@ -85,6 +85,26 @@ Tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti. Poi 
 
 Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se nessun setup è caricato.`;
 
+export const SUMMARY_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
+I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
+
+Output ESATTO: due sezioni markdown seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
+
+## Analisi sintetica
+Un paragrafo condensato: diagnosi della sessione con i dati chiave (problema più critico con numeri, trend giri). È già la sintesi — nessuna etichetta "Sintesi".
+
+## Azioni suggerite
+Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una o due righe ciascuna:
+1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
+2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
+
+Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
+<sintesi-vocale>
+Massimo 3 frasi, SENZA markdown (no asterischi, no elenchi, no intestazioni). Menziona il problema più critico con un dato numerico e l'azione principale.
+</sintesi-vocale>
+
+Regole: nomi curva SOLO dalla whitelist "## Nomi Curve Autorizzati" (altrimenti "@XXXm"); unità sempre esplicite ("XXXm" per le distanze, "X secondi"/"X s" per i tempi).`;
+
 /** Aggregate brake temps across all zones of a lap (best-effort from zones_json). */
 const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
   const UNAVAIL = -1;
@@ -409,6 +429,18 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     `"Analisi telemetria", "Problemi identificati" e "Setup attuale vs proposto". ` +
     `Ometti "Setup attuale vs proposto" SOLO se nessun setup è caricato. ` +
     `NON produrre la sintesi né le azioni suggerite (già generate a parte). ` +
+    `Cita i numeri dal blocco "## Dati Calcolati".`
+  );
+};
+
+/** Level 1 (always): short "Analisi sintetica" + "Azioni suggerite" + <sintesi-vocale>. */
+export const buildSummaryPrompt = (input: SessionPromptInput): string => {
+  const context = buildSessionContext(input);
+  return (
+    context +
+    "\n" +
+    `Produci SOLO le due sezioni "## Analisi sintetica" e "## Azioni suggerite", ` +
+    `seguite dal blocco <sintesi-vocale>. Niente tabelle, niente analisi approfondita. ` +
     `Cita i numeri dal blocco "## Dati Calcolati".`
   );
 };
