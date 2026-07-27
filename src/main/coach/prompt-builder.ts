@@ -18,6 +18,7 @@ import type {
   SessionAnalysisRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import type { SessionStats } from "./session-stats.js";
 
 /**
  * Select zones that are "interesting" for the analysis:
@@ -213,6 +214,61 @@ const summarizeLapZones = (
     lines.push(`  - ${label} → ${bits.join(", ")}`);
   }
   return lines;
+};
+
+/**
+ * Authoritative numeric facts block, injected verbatim into both prompts.
+ * The system prompts instruct the model to cite these numbers and never recompute.
+ */
+export const buildStatsBlock = (stats: SessionStats): string => {
+  const lines: string[] = [];
+  lines.push(
+    `## Dati Calcolati (autorevoli — cita questi numeri, NON ricalcolare)`,
+  );
+  lines.push(
+    `- Giri: ${stats.lapCount} (analizzabili: ${stats.analyzableLapCount}) · Trend: ${stats.trend}` +
+      (stats.bestLap != null
+        ? ` · Miglior giro: ${formatLapTime(stats.bestLap)}`
+        : ""),
+  );
+  lines.push(`- Setup caricati: ${stats.setupCount}`);
+  if (stats.laps.length > 0) {
+    lines.push(`- Tempi giro:`);
+    for (const l of stats.laps) {
+      const dp =
+        l.deltaPrevSec == null
+          ? "—"
+          : `${l.deltaPrevSec >= 0 ? "+" : ""}${l.deltaPrevSec.toFixed(3)}s`;
+      lines.push(
+        `  - Giro ${l.lapNumber}: ${formatLapTime(l.lapTime)} ` +
+          `(∆prec ${dp}, gap best +${l.deltaBestSec.toFixed(3)}s / +${l.gapToBestPct.toFixed(2)}%)` +
+          `${l.valid ? "" : " [non valido]"}` +
+          `${l.setupLabel ? ` [setup "${l.setupLabel}"]` : ""}`,
+      );
+    }
+  }
+  if (stats.criticalCorners.length > 0) {
+    lines.push(`- Curve critiche (ordinate per numero di alert):`);
+    for (const c of stats.criticalCorners) {
+      const label = c.cornerName
+        ? `${c.cornerName} (@${c.dist}m)`
+        : `@${c.dist}m`;
+      const types = Object.entries(c.alertsByType)
+        .map(([t, n]) => `${t}×${n}`)
+        .join(", ");
+      const bits = [
+        `${c.alertCount} alert (${types})`,
+        `v.min ${c.minSpeedKmh.toFixed(0)}km/h`,
+        `freno ${(c.maxBrakePct * 100).toFixed(0)}%`,
+      ];
+      if (c.tcEvents > 0) bits.push(`TC ${c.tcEvents}ev/${c.tcMs}ms`);
+      if (c.absEvents > 0) bits.push(`ABS ${c.absEvents}ev/${c.absMs}ms`);
+      if (c.overlapMs > 0) bits.push(`overlap ${c.overlapMs}ms`);
+      lines.push(`  - Zona ${c.zone} ${label}: ${bits.join(", ")}`);
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
 };
 
 export type SessionPromptInput = {
