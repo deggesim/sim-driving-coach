@@ -499,6 +499,10 @@ export type ElectronAPI = {
     game: GameSource;
     comment: string;
   }) => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
+  sessionExpandAnalysis: (params: {
+    analysisId: number;
+    game: GameSource;
+  }) => Promise<{ ok: boolean; reason?: string }>;
   sessionDeleteSetup: (params: {
     id: number;
     game: GameSource;

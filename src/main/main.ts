@@ -1300,6 +1300,62 @@ const setupPipeline = (): void => {
     },
   );
 
+  ipcMain.handle(
+    "session:expandAnalysis",
+    async (_event, params: { analysisId: number; game?: GameSource }) => {
+      const game = params.game ?? currentSessionGame;
+      if (!params.analysisId) {
+        return { ok: false, reason: "Nessuna analisi selezionata." };
+      }
+      const apiKey = getAnthropicApiKey();
+      if (!apiKey) {
+        return { ok: false, reason: "API Key Anthropic non configurata." };
+      }
+      sessionCoach.updateApiKey(apiKey);
+      sessionCoach.updateCornerNames(buildCornerMap());
+
+      // session_id comes along for free here and decides the alerts below.
+      const sRow = db
+        .prepare(
+          `SELECT s.id AS session_id, s.car, s.track, s.layout FROM ${t("sessions", game)} s
+           JOIN ${t("session_analyses", game)} a ON a.session_id = s.id
+           WHERE a.id = ?`,
+        )
+        .get(params.analysisId) as
+        | { session_id: number; car: string; track: string; layout: string }
+        | undefined;
+      if (!sRow) return { ok: false, reason: "Analisi non trovata." };
+      const resolved = resolveNames(game, sRow.car, sRow.track, sRow.layout);
+
+      // Same rule as session:analyze: sessionAlerts is in-memory only, so it
+      // describes the current session and nothing else.
+      const alertsForAnalysis =
+        sRow.session_id === currentSessionId ? [...sessionAlerts] : undefined;
+
+      // Resolve the Level-2 model live: anthropicModelDetail override, else base.
+      const detailModel =
+        getConfig("anthropicModelDetail") || getAnthropicModel();
+
+      const expandKey = `expand:${params.analysisId}:${game}`;
+      if (analyzingInProgress.has(expandKey)) {
+        return { ok: false, reason: "Approfondimento già in corso." };
+      }
+      analyzingInProgress.add(expandKey);
+      sessionCoach
+        .expandAnalysis(
+          params.analysisId,
+          game,
+          resolved,
+          alertsForAnalysis,
+          detailModel,
+        )
+        .catch((err) => console.error("[SessionCoach] expand error:", err))
+        .finally(() => analyzingInProgress.delete(expandKey));
+
+      return { ok: true };
+    },
+  );
+
   ipcMain.handle("session:getCurrent", () => {
     if (!currentSessionId) return null;
     return loadSessionDetail(currentSessionId, currentSessionGame);
