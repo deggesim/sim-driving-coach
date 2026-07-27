@@ -8,6 +8,7 @@ Electron + React app serving as a **real-time voice coach** for sim racing. Supp
 
 **Language**: All voice output and UI text in Italian. Engineer tone, always include numeric data.
 **Code language**: TypeScript strict mode for all source code. Use `.ts` for main/shared modules and `.tsx` for React components.
+**Code generation**: Ponytail mode active (lazy style) — shortest working code, reuse before abstraction, no speculative features. See Development Tips for details.
 
 ## Commands
 
@@ -37,7 +38,31 @@ npm run build:electron
 
 Post-install native rebuild is required because `better-sqlite3` needs compilation against Electron's Node version. `koffi` (shared memory FFI) does **not** need rebuilding.
 
-**Note**: `npm run dev` uses electron-vite, which compiles main, preload, and renderer in parallel with HMR. If TypeScript errors occur in main, run `npm run typecheck` to diagnose before starting.
+**Build sequence:**
+- `npm run typecheck` — Fast type-check only (no emit). Run before committing or when `npm run dev` reports main-process errors.
+- `npm run dev` — Watch mode with HMR; uses electron-vite to compile main, preload, and renderer in parallel. Best for development.
+- `npm run build` — Production bundle (Vite optimized, no native recompilation needed).
+- `npm run build:electron` — Full distributable build including native modules and electron-builder packaging.
+
+**Note**: If TypeScript errors occur in `npm run dev`, stop and run `npm run typecheck` to see the full error list before restarting.
+
+## Development Tips
+
+### Common Gotchas
+
+- **Native rebuild forgotten**: After `npm install`, always run `npm run rebuild:native`. Without it, `better-sqlite3` won't load and the app crashes on session start.
+- **TypeScript errors on commit**: Run `npm run typecheck` before committing. Commit hooks may catch errors that passed type-check but break the build.
+- **Struct offset mismatches**: If `npm run test:reader` shows zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Use `ams2-struct.selfcheck.ts` to validate (command in the file header).
+- **Session start probes fail ("not-live", "no-data")**: The reader started but `awaitReaderReady(~3s)` timed out. Ensure the sim is running AND emitting live frames (not paused menu). Frame-recency check requires fresh SHM updates.
+- **Mock history mode leaks into production**: Check `settingsStore` `mockHistoryMode` is **always false** before building. Sessions with negative IDs are test data only.
+
+### Code Style Notes
+
+- Code generation follows **Ponytail mode** (lazy style): prefer stdlib over abstractions, reuse existing patterns before writing new ones, no boilerplate.
+- All voice/UI text is in **Italian** (eng tone, numeric data always included).
+- Use **arrow functions exclusively** (no `function` keyword); prefer **factory functions** over classes.
+- No `class` keyword; use closures and plain objects for state.
+- **Bootstrap dark theme only** — override Bootstrap components with `--bg`, `--text`, etc. CSS variables in `global.css`.
 
 ## Architecture
 
@@ -312,16 +337,16 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 | Task                                    | Skill (nell'ordine)                                                                                 | Agente (uno, in base al bisogno)                                                                                                          |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Nuova feature **semplice**              | `feature-dev:feature-dev` (implementazione guidata)                                                 | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
-| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` (o `executing-plans`) → `superpowers:verification-before-completion` | agenti di superpowers (es. `Explore` in parallelo via `superpowers:dispatching-parallel-agents`) |
-| Bug fix                                 | `superpowers:systematic-debugging`                                                                  | `voltagent-qa-sec:debugger` (crash/eccezioni) \| `voltagent-qa-sec:error-detective` (correlazione errori tra moduli)                      |
-| Code review                             | `superpowers:requesting-code-review`                                                                | `feature-dev:code-reviewer`                                                                                                               |
-| Refactoring TypeScript / tipi avanzati  | `typescript-advanced-types`                                                                         | `voltagent-lang:typescript-pro`                                                                                                           |
-| Componente React / hook / store Zustand | `react-vite-best-practices`                                                                         | `voltagent-lang:react-specialist`                                                                                                         |
-| Electron (IPC, sicurezza, packaging)    | `electron-best-practices`                                                                           | `voltagent-core-dev:electron-pro`                                                                                                         |
-| SQLite / query / schema                 | `sqlite-database-expert`                                                                            | `voltagent-data-ai:database-optimizer`                                                                                                    |
-| Claude API / Anthropic SDK              | `claude-api`                                                                                        | `voltagent-data-ai:ai-engineer`                                                                                                           |
+| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` → `superpowers:verification-before-completion` | agenti in parallelo via `superpowers:dispatching-parallel-agents` (es. 2+ `Explore` per R3E/ACE/AMS2 analysis) |
+| Bug fix                                 | `superpowers:systematic-debugging`                                                                  | `Explore` (narrow search for error pattern) \| `general-purpose` (if correlation across modules needed)                                  |
+| Code review                             | `superpowers:requesting-code-review` o `code-review:code-review`                                   | `feature-dev:code-reviewer`                                                                                                               |
+| Refactoring TypeScript / tipi avanzati  | `simplify` (per semplificare codice) \| `code-simplifier` (per refactoring locale)                 | `code-simplifier` agent oppure handle inline                                                                                              |
+| Componente React / hook / store Zustand | `react-vite-best-practices` (prima di implementare)                                                 | `general-purpose` (con react-vite-best-practices skill menzionata nel prompt)                                                              |
+| Electron (IPC, sicurezza, packaging)    | Menzionare `claude-api` se tocca Claude/Anthropic SDK; altrimenti modifiche IPC/main process       | `general-purpose` (con contesto CLAUDE.md)                                                                                                |
+| SQLite / query / schema                 | Context dal CLAUDE.md Database Schema section; nessuna skill specifica                              | `general-purpose` (con contesto DB schema)                                                                                                |
+| Claude API / Anthropic SDK              | `claude-api` (SEMPRE, per model IDs, pricing, params, streaming, tool-use, token-counting)         | `general-purpose` (contesto skill fornito da `claude-api`)                                                                                |
 | Fine branch / PR / commit               | `superpowers:finishing-a-development-branch`                                                        | —                                                                                                                                         |
-| Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                           | due o più agenti `Explore` simultanei (es. analisi R3E e ACE in parallelo)                                                                |
+| Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                           | due o più `Explore` o `general-purpose` agents simultanei (es. R3E struct audit + ACE setup reader in parallelo)                          |
 | Verifica prima di completare            | `superpowers:verification-before-completion`                                                        | —                                                                                                                                         |
 
 **Soglia semplice vs complessa**: una feature è **semplice** se soddisfa _tutte_ queste condizioni — tocca un solo dominio (solo React, o solo IPC, o solo SQLite…), non introduce nuovi layer/file architetturali (solo modifiche a file esistenti o un singolo file nuovo), il design è già chiaro senza brainstorming, e l'implementazione è stimabile in ≤ ~3 step. Se anche solo una condizione non regge (multi-dominio, nuovi layer/astrazioni, design da concordare, o > ~3 step) è **complessa** → percorso `superpowers` completo.
