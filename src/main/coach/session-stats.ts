@@ -156,6 +156,11 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     }
   }
 
+  // ponytail: TODO — a corner with alerts but no zone data in any lap (P1/P2
+  // fired on a lap that never completed) is floored to 0 here and renders as
+  // "v.min 0km/h, freno 0%" in the prompt, which the model can read as a real
+  // measured zero. Upgrade path: keep it null and have buildStatsBlock omit the
+  // field instead of flooring it.
   const criticalCorners = [...byZone.values()]
     .map((c) => ({
       ...c,

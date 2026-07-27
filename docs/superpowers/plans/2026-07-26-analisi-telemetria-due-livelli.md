@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Stato implementazione (2026-07-27):** Task 1-5 completati. **Riprendere da Task 6** (Fase 4). Attenzione: lo stato attuale è transitorio — `analyzeSession` genera già l'"Analisi approfondita" ma `extractSection5` cerca ancora i marcatori `[5]`, quindi `summary` esce vuoto e il TTS post-analisi non parla finché il Task 7 non è fatto.
+
 **Goal:** Rendere l'analisi di sessione più veloce (default = solo sintesi breve, approfondimento on-demand) e più precisa (fatti numerici precalcolati in TypeScript), riorganizzando il prompt in sezioni semantiche.
 
 **Architecture:** Ogni analisi resta una riga in `session_analyses_<game>`. Le colonne `template_v3`/`section5_summary` diventano `synthesis`/`summary`; si aggiunge `detail` (nullable). `analyzeSession` genera solo il Livello 1 (Analisi sintetica + Azioni suggerite + blocco `<sintesi-vocale>`); il nuovo `expandAnalysis` genera on-demand il Livello 2 (Analisi approfondita) e lo salva in `detail`. Un modulo puro `session-stats.ts` calcola i fatti numerici esatti, iniettati come blocco "Dati Calcolati" in entrambi i prompt.
@@ -1877,5 +1879,7 @@ git commit -m "perf(coach): cache Level-2 system prefix (ephemeral)"
 - Rigenerazione parziale di singoli paragrafi; secondo modello per il Livello 2; più versioni di `detail` (una sola, ri-espandere sovrascrive); Agent Skills.
 
 ## Follow-up (fuori dalle Fasi 1-7)
+
+`session-stats.ts` (`criticalCorners`): una curva con alert ma senza dati zona in nessun giro viene azzerata a `minSpeedKmh: 0` / `maxBrakePct: 0` e nel blocco Dati Calcolati appare come "v.min 0km/h, freno 0%" — il modello può leggerlo come uno zero misurato. Fix: tenerli `null` e far omettere il campo a `buildStatsBlock`. Tracciato come commento `ponytail:` nel codice.
 
 `CLAUDE.md` cita "Template v3" e "section [5]" (architettura `session-coach`, decisioni di design, schema DB): aggiornare ai nuovi nomi (Analisi sintetica/approfondita, `synthesis`/`detail`/`summary`, `<sintesi-vocale>`) a implementazione conclusa. Aggiornare anche la decisione "Analysis model"/"Coach model" per riflettere il knob `anthropicModelDetail` (override del solo Livello 2; Livello 1 + voce restano su `anthropicModel`). Non è nella catena runtime.
