@@ -83,6 +83,7 @@ const renderMd = (md: string): string =>
 const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
   const analyses = useSessionStore((s) => s.analyses);
   const deleteAnalysis = useSessionStore((s) => s.deleteAnalysis);
+  const expandAnalysis = useSessionStore((s) => s.expandAnalysis);
 
   const renderedAnalyses = useMemo(
     () => analyses.map((a) => ({ id: a.id, html: renderMd(a.synthesis) })),
@@ -91,6 +92,26 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
   const renderedById = useMemo(
     () => new Map(renderedAnalyses.map((r) => [r.id, r.html])),
     [renderedAnalyses],
+  );
+  const renderedDetailById = useMemo(
+    () =>
+      new Map(
+        analyses.filter((a) => a.detail).map((a) => [a.id, renderMd(a.detail!)]),
+      ),
+    [analyses],
+  );
+
+  // Both levels stream on the same (sessionId, version) key, but they mean
+  // different things: a NEW version is a Level-1 analysis and gets its own
+  // placeholder item, while a version already in the list is a Level-2 expand
+  // and must render inside that item's body instead of duplicating its header.
+  const expandingVersion = useMemo(
+    () =>
+      streamingVersion &&
+      analyses.some((a) => a.version === streamingVersion.version)
+        ? streamingVersion.version
+        : null,
+    [streamingVersion, analyses],
   );
 
   // User-controlled open key (persisted across streaming transitions).
@@ -125,8 +146,11 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
   // Streaming panel takes priority while active; otherwise use the user-selected key.
   const effectiveActiveKey = useMemo<string | null>(() => {
     if (!streamingVersion) return userActiveKey;
+    // An expand must keep the existing item open: forcing the placeholder key
+    // here would collapse the very panel the detail is streaming into.
+    if (expandingVersion !== null) return `v${expandingVersion}`;
     return `streaming-${streamingVersion.version}`;
-  }, [userActiveKey, streamingVersion]);
+  }, [userActiveKey, streamingVersion, expandingVersion]);
 
   // useActionState for delete: manages async lifecycle (pending state for free)
   // and keeps the action co-located with the confirmation UI.
@@ -186,6 +210,48 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                   __html: renderedById.get(a.id) ?? "",
                 }}
               />
+              {renderedDetailById.has(a.id) ? (
+                <details className="analysis-detail" open>
+                  <summary>Analisi approfondita</summary>
+                  <div
+                    className="deb-content"
+                    // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                    dangerouslySetInnerHTML={{
+                      __html: renderedDetailById.get(a.id) ?? "",
+                    }}
+                  />
+                </details>
+              ) : expandingVersion === a.version && streamingVersion ? (
+                <div className="analysis-detail-streaming">
+                  <div className="analysis-detail-label">
+                    <Spinner size="sm" className="me-2" />
+                    Analisi approfondita in corso…
+                  </div>
+                  {/* ponytail: re-parses the whole markdown on every chunk, so
+                      it is O(n^2) over a 32k-token deep-dive. Fine at observed
+                      lengths; if it gets janky, throttle the parse to ~200ms or
+                      stream as plain text and parse once at onDone. */}
+                  <div
+                    className="deb-content"
+                    // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                    dangerouslySetInnerHTML={{
+                      __html: renderMd(streamingVersion.text),
+                    }}
+                  />
+                </div>
+              ) : (
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  className="mt-2"
+                  // The store keeps a single streaming slot: a second stream
+                  // would overwrite the one in flight instead of queueing.
+                  disabled={streamingVersion !== null}
+                  onClick={() => expandAnalysis(a.id)}
+                >
+                  Mostra analisi approfondita
+                </Button>
+              )}
               {a.comments.length > 0 && (
                 <div className="analysis-comments">
                   {a.comments.map((c) => (
@@ -204,7 +270,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
             </Accordion.Body>
           </Accordion.Item>
         ))}
-        {streamingVersion && (
+        {streamingVersion && expandingVersion === null && (
           <Accordion.Item eventKey={`streaming-${streamingVersion.version}`}>
             <Accordion.Header>
               <Spinner size="sm" className="me-2" />
