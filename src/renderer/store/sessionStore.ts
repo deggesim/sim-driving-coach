@@ -37,6 +37,9 @@ type State = {
   setDetail: (detail: SessionDetail | null, mode: ViewMode) => void;
   deleteAnalysis: (id: number) => Promise<void>;
   commentAnalysis: (id: number, comment: string) => Promise<void>;
+  // Fires the Level-2 deep-dive. Resolves as soon as main accepts the request:
+  // the text arrives through the analysisChunk/analysisDone push channels.
+  expandAnalysis: (id: number) => Promise<void>;
   deleteSetup: (
     id: number,
     game: GameSource,
@@ -167,6 +170,18 @@ export const useSessionStore = create<State>((set, get) => ({
       set({
         error: res.reason ?? "Errore durante l'integrazione del commento.",
       });
+    }
+  },
+
+  expandAnalysis: async (id) => {
+    const s = get();
+    if (!s.session) return;
+    const res = await window.electronAPI.sessionExpandAnalysis({
+      analysisId: id,
+      game: s.session.game,
+    });
+    if (!res.ok) {
+      set({ error: res.reason ?? "Errore durante l'approfondimento." });
     }
   },
 
