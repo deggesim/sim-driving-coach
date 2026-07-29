@@ -1,14 +1,13 @@
 /**
  * Runnable self-check for computeSessionStats (assert-only, no framework).
  *
- * `npx ts-node --esm` is broken in this environment. WORKING approach — compile
- * with tsc to a scratch outDir, then run with plain node:
+ * Run it (with every other self-check) via:
  *
- *   npx tsc --ignoreConfig --module NodeNext --moduleResolution NodeNext --target ES2022 \
- *     --strict --esModuleInterop --types node --outDir .selfcheck-out \
- *     src/shared/types.ts src/main/coach/session-stats.ts src/main/coach/session-stats.selfcheck.ts
- *   node .selfcheck-out/main/coach/session-stats.selfcheck.js
- *   rm -rf .selfcheck-out
+ *   npm run selfcheck
+ *
+ * `npx ts-node --esm` is broken in this environment, and passing `--types node`
+ * to tsc fails with TS2688 because @types/node is not linked at
+ * node_modules/@types in this pnpm layout — hence tsconfig.selfcheck.json.
  */
 import assert from "node:assert/strict";
 import { computeSessionStats } from "./session-stats.js";

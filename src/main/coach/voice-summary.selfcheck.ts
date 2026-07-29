@@ -1,11 +1,7 @@
 /**
  * Self-check for the <sintesi-vocale> helpers (assert-only).
  *
- *   npx tsc --ignoreConfig --module NodeNext --moduleResolution NodeNext --target ES2022 \
- *     --strict --esModuleInterop --types node --outDir .selfcheck-out \
- *     src/main/coach/voice-summary.ts src/main/coach/voice-summary.selfcheck.ts
- *   node .selfcheck-out/voice-summary.selfcheck.js
- *   rm -rf .selfcheck-out
+ *   npm run selfcheck
  */
 import assert from "node:assert/strict";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";

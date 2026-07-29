@@ -29,6 +29,9 @@ npm run typecheck
 # Lint
 npm run lint
 
+# Run the assert-based self-checks (struct offsets, session stats, voice summary)
+npm run selfcheck
+
 # Production build
 npm run build
 
@@ -52,7 +55,9 @@ Post-install native rebuild is required because `better-sqlite3` needs compilati
 
 - **Native rebuild forgotten**: After `npm install`, always run `npm run rebuild:native`. Without it, `better-sqlite3` won't load and the app crashes on session start.
 - **TypeScript errors on commit**: Run `npm run typecheck` before committing. Commit hooks may catch errors that passed type-check but break the build.
-- **Struct offset mismatches**: If `npm run test:reader` shows zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Use `ams2-struct.selfcheck.ts` to validate (command in the file header).
+- **Struct offset mismatches**: If `npm run test:reader` shows zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Run `npm run selfcheck` to validate the offset arithmetic.
+- **Multi-line commit messages in PowerShell**: `git commit -m @'…'@` with a here-string fails in this environment (`Remove-Item on system path '/' is blocked`). Write the message to a temp file and use `git commit -F <path>` instead.
+- **Prettier is not wired up**: the global style rules name Prettier, but it is **not** a dependency here and the checked-in files do not match its output — running `npx prettier --write` would reformat the whole repo and bury real diffs. Formatting is enforced only by `npm run lint`. Match the surrounding file's style by hand.
 - **Session start probes fail ("not-live", "no-data")**: The reader started but `awaitReaderReady(~3s)` timed out. Ensure the sim is running AND emitting live frames (not paused menu). Frame-recency check requires fresh SHM updates.
 - **Mock history mode leaks into production**: Check `settingsStore` `mockHistoryMode` is **always false** before building. Sessions with negative IDs are test data only.
 
@@ -171,15 +176,15 @@ Gamepad button held (or keyboard shortcut via InputManager)
 #### `components/`
 
 - **TitleBar.tsx** — Custom frameless title bar with app icon, tab switcher (current session / session list / settings), TTS mute toggle, and window controls (minimize/maximize/close). Drag region for frameless mode
-- **RealtimeAnalysis.tsx** — Live session panel (tab "Analisi in tempo reale"). Manages session lifecycle (start/end), setup loading, on-demand analysis trigger. Composed of `AnalysisHeader` + `LapsTable` + `AnalysisList`
-- **SessionDetail.tsx** — Historical session detail panel. Shown when a row is clicked in `SessionHistory`. Same composition as RealtimeAnalysis but read-only for session lifecycle (analyze + PDF export still enabled). Has a "Indietro" button
+- **SessionPanel.tsx** — The one session panel, shared by the live and historical views via `mode: "live" | "historical"`. Owns session lifecycle (start/end), setup loading and the on-demand analysis trigger, and composes `AnalysisHeader` + `LapsTable` + `AnalysisList` plus the setup modals. In `historical` mode the lifecycle controls are read-only (analyze + PDF export stay enabled) and a "Indietro" button appears. **This is the parent of `AnalysisList`** — there is no separate `SessionDetail.tsx`
+- **RealtimeAnalysis.tsx** — Thin wrapper for the live tab ("Analisi in tempo reale"): calls `loadCurrent()` on mount and renders `<SessionPanel mode="live">`. No layout of its own
 - **AnalysisHeader.tsx** — Session header bar with car/track/status badge and action buttons: [Nuova sessione] [Chiudi sessione] [Carica setup] [Esegui analisi] [Esporta PDF] [Indietro]. Reads from `sessionStore`. Game badge via `GameBadge`
 - **GamePickerModal.tsx** — Modal shown on "Nuova sessione": 3 radios (R3E/ACE/AMS2) to declare the running sim. Reads live connection state from `ipcStore` status (frame-recency), preselects the single live sim, and calls `sessionStart(game)` on confirm (Confirm disabled when the selected sim is not live)
 - **GameBadge.tsx** — Shared game-identity badge (`GameSource` → label + colour class). Used in `AnalysisHeader`, `SessionHistory`, `GamePickerModal`, `StatusBar`. Colours in `global.css`: R3E red, ACE azure (light text), AMS2 yellow (dark text)
 - **AnalysisList.tsx** — Accordion of all `SessionAnalysisRow` versions for the current session, rendered from markdown via `marked`. Each item shows the Level-1 synthesis plus a `<details>` block for the Level-2 deep-dive: the saved `detail`, or a "Mostra analisi approfondita" button when it is null. Both levels stream on the same `(sessionId, version)` key, so the component discriminates them: a version **not** yet in the list is a new Level-1 analysis and gets its own placeholder item (with Spinner), while a version already present is an expand and streams inside that item's body
 - **LapsTable.tsx** — Bootstrap dark Table listing laps for the current session (lap#, time, sectors, valid flag, setup badge, timestamp). Reads from `sessionStore`. Setup badge shows "#N" index linked to session setups. Row click opens `LapTelemetryCharts`
 - **LapTelemetryCharts.tsx** — Modal/panel with Recharts line charts (brake, throttle, speed vs. lap distance) and a SVG track-map overlay for a selected lap. Fetches frame data via `lapGetFrames` IPC and track geometry via `trackMapGet` IPC
-- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionDetail` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
+- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionPanel mode="historical"` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
 - **TTSManager.tsx** — Headless component, Web Speech API (it-IT), priority queue, P1 interrupts. Used for real-time lap alerts when Azure TTS is not enabled
 - **StatusBar.tsx** — Connection status, car/track/layout (resolved names), calibration state, last alert
 - **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector (populated live from the Models API via `anthropicListModels` on mount; a saved model missing from the list is flagged obsolete with a warning `Alert` and kept selectable), assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
@@ -357,7 +362,8 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 | Bug fix                                 | `superpowers:systematic-debugging`                                                                  | `Explore` (narrow search for error pattern) \| `general-purpose` (if correlation across modules needed)                                  |
 | Code review                             | `superpowers:requesting-code-review` o `code-review:code-review`                                   | `feature-dev:code-reviewer`                                                                                                               |
 | Refactoring TypeScript / tipi avanzati  | `simplify` (per semplificare codice) \| `code-simplifier` (per refactoring locale)                 | `code-simplifier` agent oppure handle inline                                                                                              |
-| Componente React / hook / store Zustand | `react-vite-best-practices` (prima di implementare)                                                 | `general-purpose` (con react-vite-best-practices skill menzionata nel prompt)                                                              |
+| Componente React / hook                 | `react-vite-best-practices` (prima di implementare)                                                 | `general-purpose` (con react-vite-best-practices skill menzionata nel prompt)                                                              |
+| Store Zustand                           | Nessuna skill: `react-vite-best-practices` copre build/code-splitting Vite, non lo state management. Seguire i pattern in `sessionStore.ts` | `general-purpose` (con il contesto della sezione `store/` di questo file)                              |
 | Electron (IPC, sicurezza, packaging)    | Menzionare `claude-api` se tocca Claude/Anthropic SDK; altrimenti modifiche IPC/main process       | `general-purpose` (con contesto CLAUDE.md)                                                                                                |
 | SQLite / query / schema                 | Context dal CLAUDE.md Database Schema section; nessuna skill specifica                              | `general-purpose` (con contesto DB schema)                                                                                                |
 | Claude API / Anthropic SDK              | `claude-api` (SEMPRE, per model IDs, pricing, params, streaming, tool-use, token-counting)         | `general-purpose` (contesto skill fornito da `claude-api`)                                                                                |

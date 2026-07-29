@@ -1,0 +1,24 @@
+// Compiles the runnable assert-based self-checks so plain `node` can execute
+// them (`npm run selfcheck`). Extends tsconfig.node.json so Node types resolve
+// the same way the real main-process build resolves them, via
+// `types: ["electron-vite/node"]` — @types/node is not linked at
+// node_modules/@types/node in this pnpm layout, so passing `--types node` on
+// the command line fails with TS2688.
+//
+// module/moduleResolution are overridden to NodeNext: package.json has
+// "type": "module" and the sources already import with explicit .js
+// extensions, so the emitted files run under node with no loader.
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    // TypeScript 6 requires this explicitly; it fixes the emitted layout at
+    // .selfcheck-out/main/... which the npm script's node paths depend on.
+    "rootDir": "src",
+    "outDir": ".selfcheck-out",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/main/**/*.ts", "src/shared/**/*.ts"]
+}

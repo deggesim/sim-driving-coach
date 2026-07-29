@@ -1,20 +1,17 @@
 /**
  * Runnable self-check for the pCARS2 struct offset math.
  *
- * `npx ts-node --esm --project tsconfig.node.json src/main/ams2/ams2-struct.selfcheck.ts`
- * is BROKEN in this environment (Node 24 + ts-node 10.9.2 ESM-loader bug).
+ * Run it (with every other self-check) via:
  *
- * WORKING approach: compile this file + ams2-struct.ts directly with tsc to a scratch
- * outDir (NodeNext module/moduleResolution, strict, esModuleInterop, node types), then
- * run the emitted .js with plain node:
+ *   npm run selfcheck
  *
- *   npx tsc --ignoreConfig --module NodeNext --moduleResolution NodeNext --target ES2022 \
- *     --strict --esModuleInterop --types node --outDir <scratch-dir> \
- *     src/main/ams2/ams2-struct.ts src/main/ams2/ams2-struct.selfcheck.ts
- *   node <scratch-dir>/ams2-struct.selfcheck.js
- *
- * (`--ignoreConfig` is required on TypeScript 6.x when passing files on the command line
- * while a tsconfig.json is present in the project root.)
+ * Two dead ends, recorded so they are not retried:
+ * `npx ts-node --esm --project tsconfig.node.json …` is BROKEN here (Node 24 +
+ * ts-node 10.9.2 ESM-loader bug), and compiling with explicit CLI flags needs
+ * `--ignoreConfig` on TypeScript 6.x, which then makes `--types node` fail with
+ * TS2688 — @types/node is not linked at node_modules/@types in this pnpm layout,
+ * it is only reachable transitively through electron-vite. tsconfig.selfcheck.json
+ * extends tsconfig.node.json precisely to inherit that resolution.
  *
  * No test framework (assert only) — fails loudly if the offset arithmetic breaks.
  */

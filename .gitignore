@@ -2,6 +2,7 @@ node_modules/
 dist/
 out/
 release/
+.selfcheck-out/
 *.js.map
 *.d.ts.map
 .env
