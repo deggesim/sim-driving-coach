@@ -9,41 +9,26 @@ const ANALYSIS_R3E: SessionAnalysisRow = {
   id: -1,
   session_id: -1,
   version: 1,
-  synthesis: `## [1] Dati sessione
-**Simulatore:** RaceRoom Racing Experience · **Auto:** BMW M4 GT3 (GT3)
-**Circuito:** Nürburgring - Grand Prix · **Giri analizzati:** 2 (giro 2-3)
-**Miglior giro:** 1:55.234 (giro 2) · **Δ giri:** +0.546s
+  synthesis: `## Analisi sintetica
+Sessione in miglioramento: dal giro 1 (1:58.456, non valido) al giro 2 (1:55.234) il ∆ è -3.222s, best al giro 2; il giro 3 (1:55.780) conferma il ritmo a +0.546s. Perdi circa 0.25 s/giro complessivi in staccata alla Einfahrt Mercedes (freno 18m più tardi della baseline, apice -3 km/h) e alla Ford Kurve (trail braking fino a 22m dall'apice contro 14m di riferimento).
 
----
+## Azioni suggerite
+1. **Guida — @380m Einfahrt Mercedes** — anticipa la staccata di ~10m; effetto atteso ~0.12 s/giro.
+2. **Guida — @730m Rettifilo est** — apri il gas 0.4s prima dopo l'apice, il posteriore è stabile; effetto atteso ~0.08 s/giro.
+3. **Guida — @1080m Ford Kurve** — rilascia il freno 5m prima per stabilizzare l'uscita; effetto atteso ~0.05 s/giro.`,
+  detail: `## Analisi approfondita
 
-## [2] Setup
-*Nessun setup caricato.*
+### Analisi telemetria
+3 giri registrati, 2 validi (giro 2-3), trend in miglioramento, best 1:55.234 al giro 2. Convergenza di -3.222s tra giro 1 e giro 2, poi +0.546s al giro 3: il guadagno è concentrato nelle zone 5-18, mentre le zone 20-28 restano stabili circa 0.3s sopra il riferimento cumulativo.
 
----
-
-## [3] Analisi tecnica per zona
-
-| Zona | Km | Curva | Problema | Δ |
+### Problemi identificati
+| Rank | Problema | Localizzazione | Alert | Impatto stimato |
 |---|---|---|---|---|
-| Z-08 | 0.38 km | Einfahrt Mercedes | LATE_BRAKE | -0.12s |
-| Z-15 | 0.73 km | Rettifilo est | SLOW_THROTTLE | -0.08s |
-| Z-22 | 1.08 km | Ford Kurve | TRAIL_BRAKING | -0.05s |
+| 1 | Staccata ritardata | @380m Einfahrt Mercedes | 2 (LATE_BRAKE) | -0.10 / -0.15 s/giro |
+| 2 | Gas ritardato in uscita | @730m Rettifilo est | 1 (SLOW_THROTTLE) | -0.08 s/giro |
+| 3 | Trail braking eccessivo | @1080m Ford Kurve | 1 (TRAIL_BRAKING) | -0.05 s/giro |
 
-**Dettaglio:**
-- **Z-08 Einfahrt Mercedes** - freno 18m più tardi della baseline, velocità di apice 3 km/h inferiore (82 vs 85 km/h). Prova ad anticipare di 10m il punto di staccata.
-- **Z-15 Rettifilo est** - gas ritardato di 0.4s dopo l'apice. Il posteriore è stabile: accelera prima.
-- **Z-22 Ford Kurve** - trail braking eccessivo (freno fino a 22m dall'apice vs baseline 14m). Rischio sovrasterzo in uscita. Rilascia il freno 5m prima.
-
----
-
-## [4] Progressione rispetto alla baseline
-Giro 2 (1:55.234): **-1.222s** rispetto al giro di calibrazione. Miglioramento lineare nelle zone 5-18. Zone 20-28 ancora da ottimizzare (perdi 0.3s cumulativi).
-
----
-
-## [5] Sintesi radio
-Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford Kurve. Anticipa la staccata di dieci metri e apri il gas prima in uscita. Il tuo settore tre è competitivo: mantienilo.`,
-  detail: null,
+**Pattern sistemico:** il miglioramento arriva dall'apprendimento sulle staccate, non dalla gestione termica — le temperature freno restano nella finestra 413-688°C su tutti i giri validi.`,
   summary:
     "Buon ritmo, BMW. Stai perdendo tre decimi in frenata alla Mercedes e alla Ford Kurve. Anticipa la staccata di dieci metri e apri il gas prima in uscita.",
   created_at: "2026-04-17T08:25:00.000Z",
@@ -54,41 +39,26 @@ const ANALYSIS_ACE: SessionAnalysisRow = {
   id: -2,
   session_id: -2,
   version: 1,
-  synthesis: `## [1] Dati sessione
-**Simulatore:** Assetto Corsa EVO · **Auto:** Porsche 718 GT4
-**Circuito:** Monza - Circuit · **Giri analizzati:** 2 (giro 2-3)
-**Miglior giro:** 1:47.456 (giro 2) · **Δ giri:** +0.436s
+  synthesis: `## Analisi sintetica
+Progressione netta: dal giro 1 (1:49.120, non valido) al giro 2 (1:47.456) il ∆ è -1.664s, best al giro 2; il giro 3 chiude a 1:47.892 (+0.436s). Il tempo si perde quasi tutto nelle due varianti — 0.3s di sovrapposizione freno/gas alla Prima variante e 0.7s di coasting alla Seconda — per circa 0.20 s/giro complessivi.
 
----
+## Azioni suggerite
+1. **Guida — @180m Prima variante** — separa le fasi: chiudi la frenata prima di aprire il gas; effetto atteso ~0.09 s/giro.
+2. **Guida — @530m Seconda variante** — elimina il coasting, passa dal freno al gas senza pausa; effetto atteso ~0.11 s/giro.
+3. **Guida — @1330m Lesmo 2** — anticipa la staccata di ~12m, il grip posteriore è disponibile; effetto atteso ~0.07 s/giro.`,
+  detail: `## Analisi approfondita
 
-## [2] Setup
-*Nessun setup caricato.*
+### Analisi telemetria
+3 giri registrati, 2 validi (giro 2-3), trend in miglioramento, best 1:47.456 al giro 2. Il settore 1 è già allineato al riferimento; settori 2 e 3 restano migliorabili di circa 0.4s ciascuno, concentrati sulle varianti e sull'uscita dai Lesmo. La ripetibilità è buona: +0.436s tra best e giro 3.
 
----
-
-## [3] Analisi tecnica per zona
-
-| Zona | Km | Curva | Problema | Δ |
+### Problemi identificati
+| Rank | Problema | Localizzazione | Alert | Impatto stimato |
 |---|---|---|---|---|
-| Z-04 | 0.18 km | Prima variante | BRAKE_THROTTLE_OVERLAP | -0.09s |
-| Z-11 | 0.53 km | Seconda variante | COASTING | -0.11s |
-| Z-27 | 1.33 km | Lesmo 2 | LATE_BRAKE | -0.07s |
+| 1 | Coasting tra freno e gas | @530m Seconda variante | 3 (COASTING) | -0.11 s/giro |
+| 2 | Sovrapposizione freno/gas | @180m Prima variante | 2 (BRAKE_THROTTLE_OVERLAP) | -0.09 s/giro |
+| 3 | Staccata ritardata | @1330m Lesmo 2 | 1 (LATE_BRAKE) | -0.07 s/giro |
 
-**Dettaglio:**
-- **Z-04 Prima variante** - sovrapposizione freno/gas di 0.3s in ingresso curva. Separa le fasi: frena, poi gas. Stai penalizzando l'assetto anteriore.
-- **Z-11 Seconda variante** - 0.7s di coasting tra freno e gas. La Porsche GT4 risponde bene al gas precoce su questo tipo di curva.
-- **Z-27 Lesmo 2** - staccata 12m più tardi della baseline. Velocità in uscita 5 km/h sotto. Il grip posteriore è disponibile: anticipa.
-
----
-
-## [4] Progressione rispetto alla baseline
-Giro 2 (1:47.456): **-1.664s** rispetto al giro di calibrazione. Settore 1 in linea con la baseline. Settori 2 e 3 migliorabili di 0.4s ciascuno ottimizzando le varianti e i Lesmo.
-
----
-
-## [5] Sintesi radio
-Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovrapponendo freno e gas: separa le fasi. Alla seconda, entra con più fiducia e apri il gas 0.5 secondi prima. Lesmo 2: anticipa la frenata di 12 metri.`,
-  detail: null,
+**Pattern sistemico:** entrambi i problemi principali sono di transizione tra i pedali, non di traiettoria — la velocità di apice è in linea col riferimento in tutte le zone tranne Lesmo 2 (-5 km/h in uscita).`,
   summary:
     "Porsche, perdi il tempo principalmente alle due varianti. Alla prima, stai sovrapponendo freno e gas: separa le fasi. Alla seconda, entra con più fiducia e apri il gas 0.5 secondi prima.",
   created_at: "2026-04-17T14:38:00.000Z",
@@ -99,40 +69,15 @@ const ANALYSIS_AMS2: SessionAnalysisRow = {
   id: -3,
   session_id: -3,
   version: 1,
-  synthesis: `## [1] Dati sessione
-**Simulatore:** Automobilista 2 · **Auto:** Formula Ultimate Gen2 (Formula)
-**Circuito:** Interlagos - Grand Prix · **Giri analizzati:** 2 (giro 2-3)
-**Miglior giro:** 1:11.234 (giro 2) · **Δ giri:** +0.444s
+  // detail intentionally null: exercises the "Mostra analisi approfondita"
+  // button in mock mode, where the other two sessions render a saved detail.
+  synthesis: `## Analisi sintetica
+Buon passo generale: dal giro 1 (1:13.560, non valido) al giro 2 (1:11.234) il ∆ è -2.326s, best al giro 2; il giro 3 chiude a 1:11.678 (+0.444s). Perdi circa 0.25 s/giro tra la staccata della Senna S (freno 9m più tardi, apice -4 km/h) e la sovrapposizione freno/gas alla Junção (0.2s in ingresso).
 
----
-
-## [2] Setup
-*Nessun setup caricato.*
-
----
-
-## [3] Analisi tecnica per zona
-
-| Zona | Km | Curva | Problema | Δ |
-|---|---|---|---|---|
-| Z-03 | 0.13 km | Curva 1 (Senna S) | LATE_BRAKE | -0.10s |
-| Z-14 | 0.68 km | Reta Oposta | SLOW_THROTTLE | -0.09s |
-| Z-19 | 0.93 km | Junção | BRAKE_THROTTLE_OVERLAP | -0.06s |
-
-**Dettaglio:**
-- **Z-03 Curva 1 (Senna S)** - freno 9m più tardi della baseline, velocità di apice 4 km/h inferiore. La monoposto ha ancora carico disponibile: anticipa la staccata.
-- **Z-14 Reta Oposta** - gas ritardato di 0.3s dopo l'apice in uscita. Il posteriore regge: apri prima.
-- **Z-19 Junção** - sovrapposizione freno/gas di 0.2s in ingresso. Separa le fasi per non destabilizzare l'anteriore.
-
----
-
-## [4] Progressione rispetto alla baseline
-Giro 2 (1:11.234): **-2.326s** rispetto al giro di calibrazione. Settore 1 già in linea con la baseline. Settori 2 e 3 ancora migliorabili di circa 0.2s ciascuno.
-
----
-
-## [5] Sintesi radio
-Formula, buon passo generale. Stai perdendo tempo alla Senna S e alla Junção: anticipa la staccata e separa freno e gas. Sulla retta opposta apri il gas un decimo prima in uscita.`,
+## Azioni suggerite
+1. **Guida — @130m Curva 1 (Senna S)** — anticipa la staccata, la monoposto ha ancora carico disponibile; effetto atteso ~0.10 s/giro.
+2. **Guida — @680m Reta Oposta** — apri il gas 0.3s prima dopo l'apice, il posteriore regge; effetto atteso ~0.09 s/giro.
+3. **Guida — @930m Junção** — separa freno e gas in ingresso per non destabilizzare l'anteriore; effetto atteso ~0.06 s/giro.`,
   detail: null,
   summary:
     "Formula, buon passo generale. Stai perdendo tempo alla Senna S e alla Junção: anticipa la staccata e separa freno e gas. Sulla retta opposta apri il gas un decimo prima in uscita.",

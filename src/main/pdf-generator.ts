@@ -55,6 +55,9 @@ const postProcess = (html: string): string => {
   return html;
 };
 
+const md = (src: string): string =>
+  postProcess(marked.parse(src, { async: false }) as string);
+
 // ── Session PDF ───────────────────────────────────────────────────────────────
 
 const buildSessionHtml = (detail: SessionDetail): string => {
@@ -103,7 +106,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
         <div class="comment-box">
           <div class="comment-label">Commento pilota</div>
           <div class="comment-text">${escapeHtml(c.comment)}</div>
-          <div class="comment-response">${postProcess(marked.parse(c.response, { async: false }) as string)}</div>
+          <div class="comment-response">${md(c.response)}</div>
         </div>`,
           )
           .join("");
@@ -112,7 +115,8 @@ const buildSessionHtml = (detail: SessionDetail): string => {
     .map(
       (a) => `
         <h2>Analisi #${a.version} <span class="muted">(${new Date(a.created_at).toLocaleString("it-IT")})</span></h2>
-        <div class="analysis-body">${postProcess(marked.parse(a.synthesis, { async: false }) as string)}</div>
+        <div class="analysis-body">${md(a.synthesis)}</div>
+        ${a.detail ? `<div class="analysis-body">${md(a.detail)}</div>` : ""}
         ${commentsHtml(a)}`,
     )
     .join("");
