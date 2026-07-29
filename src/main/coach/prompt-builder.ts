@@ -504,7 +504,7 @@ export const buildCommentPrompt = (input: CommentPromptInput): string => {
   if (input.trackName) parts.push(`- Circuito: ${input.trackName}`);
   parts.push("");
   parts.push(`## Analisi a cui si riferisce il commento`);
-  parts.push(input.analysisText);
+  parts.push(nestHeadings(input.analysisText, 1));
   parts.push("");
   if (input.priorComments.length > 0) {
     parts.push(`## Commenti e integrazioni precedenti su questa analisi`);

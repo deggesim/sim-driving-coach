@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import type { SessionAnalysisRow, SessionRow } from "../../shared/types.js";
 import {
+  buildCommentPrompt,
   buildSessionPrompt,
   buildSynthesisPrompt,
   type SessionPromptInput,
@@ -122,5 +123,17 @@ const l1 = buildSynthesisPrompt({
 });
 assert.ok(!l1.includes("SINTESI-CORRENTE"));
 assert.ok(l1.includes("<sintesi-vocale>"), "Level 1 still asks for the TTS block");
+
+// The comment engine sees both levels: a driver pushing back on a setup proposal
+// is pushing back on something that exists only in the deep-dive.
+const commentPrompt = buildCommentPrompt({
+  analysisText:
+    "## Analisi sintetica\nCorpo.\n\n## Analisi approfondita\nARB post: 4 → 3.",
+  priorComments: [],
+  comment: "L'ARB posteriore non è regolabile su questa auto.",
+});
+assert.ok(commentPrompt.includes("ARB post: 4 → 3"), "deep-dive must reach it");
+assert.ok(commentPrompt.includes("### Analisi approfondita"), "nested by 1");
+assert.ok(!/^## Analisi approfondita$/m.test(commentPrompt));
 
 console.log("prompt-builder.selfcheck OK");

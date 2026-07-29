@@ -496,7 +496,12 @@ export const createSessionCoachEngine = (
 
       const priorComments = parseAnalysisComments(row.comments_json);
       const prompt = buildCommentPrompt({
-        analysisText: row.synthesis,
+        // Both levels, not just the synthesis: the concrete setup proposals live
+        // in `detail`, so a comment like "quel parametro non lo posso toccare"
+        // was answered by a model that could not see the parameter.
+        analysisText: row.detail
+          ? `${row.synthesis}\n\n${row.detail}`
+          : row.synthesis,
         priorComments,
         comment,
         carName: resolved?.carName,
