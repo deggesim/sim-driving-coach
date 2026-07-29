@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Stato implementazione (2026-07-29): PIANO COMPLETATO.** Tutti i 14 task (Fasi 1-7) sono implementati e committati sul branch `feat/analisi-telemetria-due-livelli`; `npm run typecheck` e `npm run lint` sono puliti (resta il solo warning preesistente in `SetupSelectionModal.tsx:55`, file non toccato). `CLAUDE.md` aggiornato alla forma a due livelli.
+> **Stato implementazione (2026-07-29): PIANO COMPLETATO.** Tutti i 14 task (Fasi 1-7) sono implementati e committati sul branch `feat/analisi-telemetria-due-livelli`; `npm run typecheck` e `npm run lint` sono puliti (il warning preesistente in `SetupSelectionModal.tsx` è stato risolto dopo, nel giro di pulizia dei debiti tecnici). `CLAUDE.md` aggiornato alla forma a due livelli.
+>
+> **Task 14 (`cache_control`) rimosso il 2026-07-29, dopo l'implementazione.** Misurato: il blocco `system` del Livello 2 è ~1039 token, sotto il minimo di 4096 di `claude-haiku-4-5` (default) → non ha mai scritto una entry, silenziosamente. E il `system` è l'unica parte che i due livelli **non** condividono (i due system prompt divergono il prefisso prima di arrivare al contesto comune), quindi anche su un modello con soglia più bassa l'unico hit possibile era una ri-espansione entro il TTL, che la UI non permette (a `detail` non nullo il pulsante scompare). Con la cadenza reale d'uso (~10 min tra un'analisi e la successiva) anche il TTL di 5 minuti scadeva sempre. Il prefisso davvero riusabile è `buildSessionContext`, condiviso dai due livelli e byte-identico (stesso builder, stesso insieme di `priorAnalyses` grazie a `beforeVersion`, nessun timestamp generato a runtime): cacharlo richiede spostare le regole di formato per-livello fuori dai due system prompt in un blocco utente finale — ~0.003 USD di risparmio per analisi, non vale il rischio sul formato dell'output che UI e PDF parsano. Resta il `console.log` dell'usage (`in`/`out`) in `expandAnalysis`.
 >
 > **Resta da fare (richiede sim in esecuzione / GUI, non verificabile da typecheck):** gli smoke test manuali di Task 12 Step 4 e Task 13 Step 6 — "Esegui analisi" produce solo le due sezioni di Livello 1 in ~15-25s senza `<sintesi-vocale>` visibile nel testo; "Mostra analisi approfondita" streamma il Livello 2 nello stesso item; mock mode mostra 3 analisi (una col pulsante non espanso); il PDF rende l'approfondita quando c'è; cambiare il modello di dettaglio ha effetto senza riavvio.
 >
@@ -1880,7 +1882,7 @@ git commit -m "perf(coach): cache Level-2 system prefix (ephemeral)"
 - Contesto analisi precedenti usa `summary`/`synthesis` → Task 1 Step 7-8. ✅
 - mockData migrato → Task 1 Step 11 (rename) + Task 12 (contenuti). ✅
 - Verifica self-check `computeSessionStats` + `extractVoiceSummary`/`stripVoiceTag` → Task 2 / Task 5. ✅
-- Prompt caching opzionale → Task 14. ✅
+- Prompt caching opzionale → Task 14. ✅ implementato, poi **rimosso il 2026-07-29** (vedi nota in testa al piano).
 - Nota follow-up `CLAUDE.md` (fuori runtime) → vedi sotto.
 
 **2. Placeholder scan:** nessun "TBD"/"handle edge cases"; ogni step di codice mostra il codice reale. Unica semplificazione dichiarata: Task 13 Step 4 non marca "(obsoleto)" un modello di dettaglio ritirato (nota `ponytail:` inline).

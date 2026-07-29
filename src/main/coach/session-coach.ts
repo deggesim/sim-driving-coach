@@ -397,25 +397,20 @@ export const createSessionCoachEngine = (
         // Level 2 keeps streaming (unlike Level 1): the output is long enough
         // that progressive rendering is the difference between a live panel and
         // a frozen one. Generous cap + truncation surfacing.
-        // cache_control on the system block: the prefix is frozen (a module
-        // constant) while every volatile per-session byte lives in the user
-        // message that follows, so repeated expands within the 5-min TTL read
-        // it at ~0.1x instead of re-billing it.
-        // ponytail: inert below the model's minimum cacheable prefix, and this
-        // block is ~1050 tokens. Active on claude-opus-5 (min 512); NO-OP on
-        // the default claude-haiku-4-5 (min 4096) - no error, no charge, just
-        // cache_creation_input_tokens: 0. Only worth revisiting if the prompt
-        // grows past the floor of whatever anthropicModelDetail points at.
+        // No cache_control here, deliberately. A breakpoint on this system block
+        // caches ~1050 tokens, below the 4096-token floor of the default
+        // claude-haiku-4-5, so it silently never wrote an entry; and the block
+        // is the one part Level 1 and Level 2 do NOT share (different system
+        // prompts diverge the prefix before the shared context is reached), so
+        // even above the floor it could only be hit by re-expanding within the
+        // TTL - which the UI has no path for. The reusable prefix is the shared
+        // buildSessionContext, and caching it means moving the per-level format
+        // rules out of both system prompts into a trailing user block; not worth
+        // the output-format risk for ~0.003 USD per analysis.
         const stream = client.messages.stream({
           model: useModel,
           max_tokens: 32000,
-          system: [
-            {
-              type: "text",
-              text: SESSION_SYSTEM_PROMPT,
-              cache_control: { type: "ephemeral" },
-            },
-          ],
+          system: SESSION_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
 
@@ -435,15 +430,14 @@ export const createSessionCoachEngine = (
 
         const finalMsg = await stream.finalMessage();
 
-        // Makes the cache_control above verifiable instead of assumed: on a
-        // model whose minimum prefix this system block clears, the first expand
-        // logs cacheWrite>0 and the next one cacheRead>0. Both staying 0 means
-        // it is not caching (prefix below the model's floor, or invalidated).
+        // The real cost of a deep-dive, which is the only reliable way to know
+        // how close `out` runs to the 32000 cap and whether the prompt is
+        // growing. Cache counters dropped with the breakpoint: nothing writes a
+        // cache on this path, so they would print 0 forever.
         const u = finalMsg.usage;
         console.log(
-          `[SessionCoach] L2 usage model=${useModel} in=${u.input_tokens} ` +
-            `cacheWrite=${u.cache_creation_input_tokens ?? 0} ` +
-            `cacheRead=${u.cache_read_input_tokens ?? 0} out=${u.output_tokens}`,
+          `[SessionCoach] L2 usage model=${useModel} ` +
+            `in=${u.input_tokens} out=${u.output_tokens}`,
         );
 
         if (finalMsg.stop_reason === "max_tokens") {
