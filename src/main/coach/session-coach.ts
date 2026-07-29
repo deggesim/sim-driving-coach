@@ -397,10 +397,25 @@ export const createSessionCoachEngine = (
         // Level 2 keeps streaming (unlike Level 1): the output is long enough
         // that progressive rendering is the difference between a live panel and
         // a frozen one. Generous cap + truncation surfacing.
+        // cache_control on the system block: the prefix is frozen (a module
+        // constant) while every volatile per-session byte lives in the user
+        // message that follows, so repeated expands within the 5-min TTL read
+        // it at ~0.1x instead of re-billing it.
+        // ponytail: inert below the model's minimum cacheable prefix, and this
+        // block is ~1050 tokens. Active on claude-opus-5 (min 512); NO-OP on
+        // the default claude-haiku-4-5 (min 4096) - no error, no charge, just
+        // cache_creation_input_tokens: 0. Only worth revisiting if the prompt
+        // grows past the floor of whatever anthropicModelDetail points at.
         const stream = client.messages.stream({
           model: useModel,
           max_tokens: 32000,
-          system: SESSION_SYSTEM_PROMPT,
+          system: [
+            {
+              type: "text",
+              text: SESSION_SYSTEM_PROMPT,
+              cache_control: { type: "ephemeral" },
+            },
+          ],
           messages: [{ role: "user", content: prompt }],
         });
 
