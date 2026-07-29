@@ -20,9 +20,6 @@ npm run rebuild:native
 # Dev mode with HMR (electron-vite — starts main + preload + renderer concurrently)
 npm run dev
 
-# Test shared memory reader standalone (requires R3E running)
-npm run test:reader
-
 # Type-check without emitting (run before committing)
 npm run typecheck
 
@@ -55,7 +52,7 @@ Post-install native rebuild is required because `better-sqlite3` needs compilati
 
 - **Native rebuild forgotten**: After `npm install`, always run `npm run rebuild:native`. Without it, `better-sqlite3` won't load and the app crashes on session start.
 - **TypeScript errors on commit**: Run `npm run typecheck` before committing. Commit hooks may catch errors that passed type-check but break the build.
-- **Struct offset mismatches**: If `npm run test:reader` shows zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Run `npm run selfcheck` to validate the offset arithmetic.
+- **Struct offset mismatches**: If the reader logs zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Run `npm run selfcheck` to validate the offset arithmetic. There is **no standalone reader harness**: start `npm run dev` with the sim running and read the `[R3E]`/`[ACE]`/`[AMS2]` console lines.
 - **Multi-line commit messages in PowerShell**: `git commit -m @'…'@` with a here-string fails in this environment (`Remove-Item on system path '/' is blocked`). Write the message to a temp file and use `git commit -F <path>` instead.
 - **Prettier is not wired up**: the global style rules name Prettier, but it is **not** a dependency here and the checked-in files do not match its output — running `npx prettier --write` would reformat the whole repo and bury real diffs. Formatting is enforced only by `npm run lint`. Match the surrounding file's style by hand.
 - **Session start probes fail ("not-live", "no-data")**: The reader started but `awaitReaderReady(~3s)` timed out. Ensure the sim is running AND emitting live frames (not paused menu). Frame-recency check requires fresh SHM updates.
@@ -379,9 +376,9 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 
 ## Struct Offset Debugging
 
-If `npm run test:reader` shows all zeros or -1: struct offset mismatch. Check:
+If the reader logs all zeros or -1 (`npm run dev` with the sim running — there is no standalone reader script): struct offset mismatch. Check:
 
 1. `VersionMajor` at offset 0 must be `3` (updated to v3.x for R3E)
 2. If version OK but other fields wrong: `PlayerData` inline size differs from installed R3E version. Compare with `R3E.cs` from SecondMonitor connectors
 3. For ACE: verify `AC_LIVE = 2` in PhysicsEvo status field; if 0, ACE is not running
-4. For AMS2: the `[AMS2] connected: ...` log line must show `mVersion=14`. If `mVersion` is wrong or speed/lapDistance/car/track are zero or garbage, the offsets in `ams2-struct.ts` (`OFF`/`PART`) don't match the installed AMS2 version — compare against `SharedMemory.h` (likely a `PARTICIPANT_SIZE` or struct-padding change), update the offsets, then re-run `ams2-struct.selfcheck.ts` (see its header comment for the working compile-and-run command; `npx ts-node --esm` is broken in this environment)
+4. For AMS2: the `[AMS2] connected: ...` log line must show `mVersion=14`. If `mVersion` is wrong or speed/lapDistance/car/track are zero or garbage, the offsets in `ams2-struct.ts` (`OFF`/`PART`) don't match the installed AMS2 version — compare against `SharedMemory.h` (likely a `PARTICIPANT_SIZE` or struct-padding change), update the offsets, then re-run `npm run selfcheck`

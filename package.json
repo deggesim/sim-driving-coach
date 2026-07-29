@@ -13,8 +13,7 @@
     "start": "electron-vite preview",
     "lint": "eslint .",
     "selfcheck": "tsc -p tsconfig.selfcheck.json && node scripts/run-selfchecks.mjs",
-    "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3",
-    "migrate:dates": "node scripts/migrate-dates.cjs"
+    "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
