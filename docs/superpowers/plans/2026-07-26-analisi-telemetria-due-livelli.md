@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Stato implementazione (2026-07-27):** Task 1-9 completati (Fasi 1-5 chiuse). **Riprendere dal Task 10** (Fase 6). Il Livello 1 è operativo (`analyzeSession`: "Analisi sintetica" + "Azioni suggerite" + `<sintesi-vocale>`, `max_tokens: 2000`, **non** streamato — la UI mostra lo spinner e riceve il testo finito). `expandAnalysis` streamma il Livello 2 a `max_tokens: 32000` ed è esposto su `window.electronAPI.sessionExpandAnalysis`, ma **non è ancora raggiungibile dalla UI**: manca il chiamante (Task 10-11). La chiave `anthropicModelDetail` non è ancora scritta da nessuno (Task 13), quindi il Livello 2 usa per ora il modello base.
+> **Stato implementazione (2026-07-29): PIANO COMPLETATO.** Tutti i 14 task (Fasi 1-7) sono implementati e committati sul branch `feat/analisi-telemetria-due-livelli`; `npm run typecheck` e `npm run lint` sono puliti (resta il solo warning preesistente in `SetupSelectionModal.tsx:55`, file non toccato). `CLAUDE.md` aggiornato alla forma a due livelli.
+>
+> **Resta da fare (richiede sim in esecuzione / GUI, non verificabile da typecheck):** gli smoke test manuali di Task 12 Step 4 e Task 13 Step 6 — "Esegui analisi" produce solo le due sezioni di Livello 1 in ~15-25s senza `<sintesi-vocale>` visibile nel testo; "Mostra analisi approfondita" streamma il Livello 2 nello stesso item; mock mode mostra 3 analisi (una col pulsante non espanso); il PDF rende l'approfondita quando c'è; cambiare il modello di dettaglio ha effetto senza riavvio.
 >
 > **Fix applicate al Task 8 oltre allo snippet del piano** (il piano non le prevedeva):
 >

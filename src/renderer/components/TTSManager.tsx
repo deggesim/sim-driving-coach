@@ -5,7 +5,7 @@
  * When not: uses Web Speech API (SpeechSynthesisUtterance, it-IT).
  *
  * Priority queue: P1 interrupts current speech, P2/P3 are queued.
- * Post-lap: reads Section [5] of Template v3 (passed as postLapText).
+ * Post-lap: reads the <sintesi-vocale> extract of an analysis (passed as postLapText).
  */
 
 import { useEffect, useRef, useCallback } from "react";

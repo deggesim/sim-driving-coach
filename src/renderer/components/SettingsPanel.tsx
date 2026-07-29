@@ -922,8 +922,10 @@ const SettingsPanel = () => {
                   Quando attivo, aggiunge nello storico una sessione R3E (BMW M4
                   GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una
                   AMS2 (Formula Ultimate - Interlagos), ognuna con 3 giri e
-                  un&apos;analisi Template v3 precompilata. Utile per testare la
-                  UI senza una sessione reale in corso.
+                  un&apos;analisi precompilata. Le sessioni R3E e ACE hanno
+                  anche l&apos;analisi approfondita salvata, la AMS2 no: serve a
+                  provare il pulsante &quot;Mostra analisi approfondita&quot;.
+                  Utile per testare la UI senza una sessione reale in corso.
                 </Form.Text>
               </Col>
             </Row>
