@@ -160,6 +160,8 @@ const SettingsPanel = () => {
     setCapturingVoiceInput,
     anthropicModel,
     setAnthropicModel,
+    anthropicModelDetail,
+    setAnthropicModelDetail,
     ttsEnabled,
     setTtsEnabled,
     azureTtsEnabled,
@@ -218,6 +220,20 @@ const SettingsPanel = () => {
   const modelOptionsSorted = [...modelOptions].sort((a, b) =>
     a.display_name.localeCompare(b.display_name),
   );
+  // Same reason as modelOptions above: a saved detail model missing from the
+  // list must stay selectable, or the select would display "Come modello base"
+  // while a different model is actually persisted.
+  const detailOptions =
+    anthropicModelDetail &&
+    !modelOptionsSorted.some((m) => m.id === anthropicModelDetail)
+      ? [
+          {
+            id: anthropicModelDetail,
+            display_name: `${anthropicModelDetail} (obsoleto)`,
+          },
+          ...modelOptionsSorted,
+        ]
+      : modelOptionsSorted;
 
   const handleSaveApiKey = async () => {
     await configSet("anthropicApiKey", apiKey);
@@ -227,6 +243,11 @@ const SettingsPanel = () => {
   const handleSaveModel = async () => {
     await configSet("anthropicModel", anthropicModel);
     showSaved("model");
+  };
+
+  const handleSaveModelDetail = async () => {
+    await configSet("anthropicModelDetail", anthropicModelDetail);
+    showSaved("modelDetail");
   };
 
   const handleSaveAssistant = async () => {
@@ -472,8 +493,50 @@ const SettingsPanel = () => {
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
-                  Usato per debriefing e coach vocale. Le modifiche hanno
-                  effetto al prossimo utilizzo.
+                  Usato per l&apos;analisi sintetica, i commenti e il coach
+                  vocale. Le modifiche hanno effetto al prossimo utilizzo.
+                </Form.Text>
+              </Col>
+            </Row>
+
+            <Form.Group
+              as={Row}
+              className="mb-2"
+              controlId="anthropic-model-detail"
+            >
+              <Form.Label column sm={3}>
+                Modello analisi approfondita
+              </Form.Label>
+              <Col sm={7}>
+                <Form.Select
+                  value={anthropicModelDetail}
+                  onChange={(e) => setAnthropicModelDetail(e.target.value)}
+                >
+                  <option value="">Come modello base (default)</option>
+                  {detailOptions.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+              <Col sm={2}>
+                <Button variant="danger" onClick={handleSaveModelDetail}>
+                  {settingSaved === "modelDetail" ? (
+                    <>
+                      <FontAwesomeIcon icon={faCheck} /> Salvato
+                    </>
+                  ) : (
+                    "Salva"
+                  )}
+                </Button>
+              </Col>
+            </Form.Group>
+            <Row>
+              <Col sm={{ span: 9, offset: 3 }}>
+                <Form.Text>
+                  Modello usato solo per l&apos;analisi approfondita
+                  (on-demand). Vuoto = stesso modello base.
                 </Form.Text>
               </Col>
             </Row>
