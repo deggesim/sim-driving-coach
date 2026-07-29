@@ -238,7 +238,20 @@ export type SessionPromptInput = {
   leaderboardMode?: boolean;
   fixedSetup?: boolean;
   stats: SessionStats;
+  // Level 2 only: the Level-1 output of the analysis being expanded. Not part of
+  // priorAnalyses, which excludes the current version by design (beforeVersion).
+  currentSynthesis?: string;
 };
+
+/**
+ * Push injected markdown below its wrapper heading. Analysis text carries its own
+ * `## Analisi sintetica` / `## Analisi approfondita`, and injecting it verbatim
+ * puts a second copy of the exact headings the model is asked to produce at the
+ * same level as its own output - so it either continues the wrong hierarchy or
+ * treats the section as already written.
+ */
+const nestHeadings = (md: string, levels: number): string =>
+  md.replace(/^(#{1,6} )/gm, "#".repeat(levels) + "$1");
 
 /** Shared data context for both analysis levels (no closing instruction). */
 const buildSessionContext = (input: SessionPromptInput): string => {
@@ -376,10 +389,26 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   }
 
   if (priorAnalyses.length > 0) {
-    parts.push(`## Analisi precedenti (riassunto)`);
+    // The most recent prior analysis goes in whole (synthesis + deep-dive when
+    // it exists), older ones stay as their 3-sentence voice summary. The system
+    // prompts ask to "confermare/aggiornare i consigli", and the concrete setup
+    // proposals live in `detail`: a voice summary cannot carry them, so with
+    // summaries alone the model re-derived or re-proposed them blind.
+    // ponytail: no cap on `detail`. A deep-dive that hit the 32000-token ceiling
+    // is injected whole; slice it, or keep only its "Setup attuale vs proposto"
+    // subsection, if the prompt size starts to matter.
+    const latestVersion = priorAnalyses.at(-1)?.version;
+    parts.push(`## Analisi precedenti`);
     for (const a of priorAnalyses) {
-      parts.push(`### Analisi #${a.version} (${a.created_at})`);
-      if (a.summary) {
+      const isLatest = a.version === latestVersion;
+      parts.push(
+        `### Analisi #${a.version} (${a.created_at})` +
+          (isLatest ? ` — la più recente, testo integrale` : ""),
+      );
+      if (isLatest) {
+        parts.push(nestHeadings(a.synthesis, 2));
+        if (a.detail) parts.push("", nestHeadings(a.detail, 2));
+      } else if (a.summary) {
         parts.push(`Sintesi: ${a.summary}`);
       } else {
         // Fallback: first ~500 chars of the synthesis
@@ -422,9 +451,17 @@ const buildSessionContext = (input: SessionPromptInput): string => {
 /** Level 2 (on-demand): full "Analisi approfondita" deep-dive. */
 export const buildSessionPrompt = (input: SessionPromptInput): string => {
   const context = buildSessionContext(input);
+  // Level 1 of THIS analysis. Without it the deep-dive is written blind to the
+  // synthesis and the actions it must complement - while the closing instruction
+  // below tells it not to repeat them, which it cannot honour unseen.
+  const alreadyProduced = input.currentSynthesis
+    ? `## Livello 1 già prodotto per questa analisi (NON ripeterlo)\n` +
+      `${nestHeadings(input.currentSynthesis, 1)}\n\n`
+    : "";
   return (
     context +
     "\n" +
+    alreadyProduced +
     `Produci l'analisi come "## Analisi approfondita" con le sottosezioni ` +
     `"Analisi telemetria", "Problemi identificati" e "Setup attuale vs proposto". ` +
     `Ometti "Setup attuale vs proposto" SOLO se nessun setup è caricato. ` +

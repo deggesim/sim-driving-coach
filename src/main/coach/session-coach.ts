@@ -390,6 +390,7 @@ export const createSessionCoachEngine = (
         leaderboardMode: flags.leaderboardMode,
         fixedSetup: flags.fixedSetup,
         stats,
+        currentSynthesis: row.synthesis,
       });
 
       let fullText = "";
