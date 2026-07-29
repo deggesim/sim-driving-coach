@@ -266,6 +266,12 @@ body {
   font-weight: 600;
   margin-bottom: 8px;
 }
+/* Reason a Level-2 expand is unavailable. Deliberately not .analysis-detail-label:
+   that one is an uppercase 11px tag, which shouts when given a full sentence. */
+.analysis-detail-blocked {
+  font-size: 12px;
+  color: var(--text-dim);
+}
 .analysis-detail-label {
   display: flex;
   align-items: center;

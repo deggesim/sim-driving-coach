@@ -51,8 +51,18 @@ const SetupSelectionModal = ({
   const [deleteState, setDeleteState] = useState<DeleteState>({ phase: "idle" });
   const deleteSetup = useSessionStore((s) => s.deleteSetup);
 
-  useEffect(() => {
+  // Reset the delete flow whenever the modal opens or closes. SessionPanel keeps
+  // this component mounted and only toggles `show`, so it never remounts and the
+  // state has to be cleared explicitly. Done during render (React's documented
+  // "adjust state when a prop changes" pattern) rather than in the effect below:
+  // an effect would render the stale phase once before clearing it.
+  const [prevShow, setPrevShow] = useState(show);
+  if (prevShow !== show) {
+    setPrevShow(show);
     setDeleteState({ phase: "idle" });
+  }
+
+  useEffect(() => {
     if (!show || !car || !track) return;
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setLoading(true);

@@ -72,6 +72,28 @@ const AnalysisAccordionHeader = ({
   );
 };
 
+/** Level-2 trigger. `blocked` non-null disables it and states why. */
+const ExpandButton = ({
+  blocked,
+  onExpand,
+}: {
+  blocked: string | null;
+  onExpand: () => void;
+}) => (
+  <>
+    <Button
+      variant="outline-light"
+      size="sm"
+      className="mt-2"
+      disabled={blocked !== null}
+      onClick={onExpand}
+    >
+      Mostra analisi approfondita
+    </Button>
+    {blocked && <div className="analysis-detail-blocked mt-1">{blocked}</div>}
+  </>
+);
+
 type Props = {
   streamingVersion: StreamingVersion | null;
   startClosed?: boolean;
@@ -99,6 +121,24 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
         analyses.filter((a) => a.detail).map((a) => [a.id, renderMd(a.detail!)]),
       ),
     [analyses],
+  );
+
+  // Streamed text is re-parsed as markdown, and re-parsing the whole document
+  // on every chunk is O(n^2): a 32k-token deep-dive is ~130KB over ~4000 chunks,
+  // which hands marked ~260MB of cumulative work and freezes the renderer.
+  // Fix: key the parse on the text truncated to the last 2KB boundary, so it
+  // runs once per 2KB (~65 times) instead of once per chunk, and stays a pure
+  // derived value — no timers, no extra state. Cost: the visible tail lags by
+  // up to 2KB, which analysisDone then replaces with the full render.
+  const STREAM_PARSE_CHUNK = 2048;
+  const streamText = streamingVersion?.text ?? "";
+  const bucketedStreamText = streamText.slice(
+    0,
+    Math.floor(streamText.length / STREAM_PARSE_CHUNK) * STREAM_PARSE_CHUNK,
+  );
+  const streamedHtml = useMemo(
+    () => renderMd(bucketedStreamText),
+    [bucketedStreamText],
   );
 
   // Both levels stream on the same (sessionId, version) key, but they mean
@@ -227,30 +267,30 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                     <Spinner size="sm" className="me-2" />
                     Analisi approfondita in corso…
                   </div>
-                  {/* ponytail: re-parses the whole markdown on every chunk, so
-                      it is O(n^2) over a 32k-token deep-dive. Fine at observed
-                      lengths; if it gets janky, throttle the parse to ~200ms or
-                      stream as plain text and parse once at onDone. */}
                   <div
                     className="deb-content"
                     // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                    dangerouslySetInnerHTML={{
-                      __html: renderMd(streamingVersion.text),
-                    }}
+                    dangerouslySetInnerHTML={{ __html: streamedHtml }}
                   />
                 </div>
               ) : (
-                <Button
-                  variant="outline-light"
-                  size="sm"
-                  className="mt-2"
-                  // The store keeps a single streaming slot: a second stream
-                  // would overwrite the one in flight instead of queueing.
-                  disabled={streamingVersion !== null}
-                  onClick={() => expandAnalysis(a.id)}
-                >
-                  Mostra analisi approfondita
-                </Button>
+                <ExpandButton
+                  // Negative ids are mockHistoryMode rows: they exist only in
+                  // mockData.ts, so the IPC handler's lookup would fail with
+                  // "Analisi non trovata." The store keeps a single streaming
+                  // slot, so a second concurrent expand would overwrite the one
+                  // in flight. Both reasons are shown, not just enforced —
+                  // Bootstrap sets pointer-events:none on a disabled .btn, so a
+                  // title tooltip would never appear.
+                  blocked={
+                    a.id < 0
+                      ? "Non disponibile in mock mode: questa analisi non esiste nel database."
+                      : streamingVersion !== null
+                        ? "Attendi il completamento dell'analisi in corso."
+                        : null
+                  }
+                  onExpand={() => expandAnalysis(a.id)}
+                />
               )}
               {a.comments.length > 0 && (
                 <div className="analysis-comments">
@@ -282,9 +322,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                 <div
                   className="deb-content"
                   // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                  dangerouslySetInnerHTML={{
-                    __html: renderMd(streamingVersion.text),
-                  }}
+                  dangerouslySetInnerHTML={{ __html: streamedHtml }}
                 />
               ) : (
                 <div style={{ color: "var(--text-dim)" }}>
