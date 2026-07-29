@@ -250,7 +250,7 @@ export type SessionPromptInput = {
  * same level as its own output - so it either continues the wrong hierarchy or
  * treats the section as already written.
  */
-const nestHeadings = (md: string, levels: number): string =>
+export const nestHeadings = (md: string, levels: number): string =>
   md.replace(/^(#{1,6} )/gm, "#".repeat(levels) + "$1");
 
 /** Shared data context for both analysis levels (no closing instruction). */

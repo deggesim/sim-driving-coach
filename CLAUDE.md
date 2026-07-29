@@ -152,7 +152,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **prompt-builder.ts** — Builds the Claude prompts from session data + laps + setups + deviations + corner names + the precomputed stats block. Exports `buildSynthesisPrompt` / `SYNTHESIS_SYSTEM_PROMPT` (Level 1 — named after the `synthesis` column, deliberately **not** "summary", which in this codebase means only the `<sintesi-vocale>` TTS extract), `buildSessionPrompt` / `SESSION_SYSTEM_PROMPT` (Level 2), `buildCommentPrompt` / `COMMENT_SYSTEM_PROMPT`, plus `buildStatsBlock` and `getSignificantZones`
 - **session-stats.ts** — Computes the authoritative numeric facts in TypeScript (lap deltas, convergence, alert counts, aid durations) and injects them as a "## Dati Calcolati" block. The system prompts instruct Claude to **cite** these numbers, never recompute them — the only figure it may estimate is the seconds/lap impact
 - **track-map-builder.ts** — Derives a 2D SVG path of the circuit from a lap's world-space frames (wx/wz). Down-samples to ~100ms intervals, filters outliers, returns `TrackMapGeometry` (svgPath + bounds). Called after lap completion; result persisted to `track_maps` table
-- **voice-coach.ts** — Handles free-form voice queries; builds session context from SQLite (laps, zones, deviations, corner names), streams Claude response in Italian (max 3-4 sentences, radio tone)
+- **voice-coach.ts** — Handles free-form voice queries; streams Claude response in Italian (max 3-4 sentences, radio tone). Does **no DB access**: `main.ts` owns the session identity and pushes laps, setups and analyses in via `updateContext` before each query (resolved by id+game, so a reopened session gets its own data). Renders the most recent analysis in full (`synthesis` + `detail` + driver comments), older ones as their `summary`
 
 #### `tts/`
 
@@ -162,7 +162,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 - **db.ts** — `better-sqlite3` wrapper. Schema has separate tables for each game (see Database Schema below). Exposes `seedCornersFromLap()` (auto-generates "Curva N" corner names from braking zones), `getTrackMap()` / `saveTrackMap()` (track-map geometry cache)
 - **r3e-corners.ts** — Auto-generated corner seed data for R3E tracks (sourced from sealhud). Do not edit manually. Used by `db.ts` to seed `corner_names`
-- **setup-row.ts** — Shared DB helpers: `tableFor(game, base)` resolves game-specific table names; `parseSetupRow()` deserializes `setup_json`. Used by `main.ts`, `session-coach.ts`, `voice-coach.ts`
+- **setup-row.ts** — Shared DB helpers: `tableFor(game, base)` resolves game-specific table names; `parseSetupRow()` deserializes `setup_json`. Used by `main.ts` and `session-coach.ts`
 
 #### `pdf-generator.ts`
 

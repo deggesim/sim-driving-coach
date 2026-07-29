@@ -504,7 +504,7 @@ const setupPipeline = (): void => {
     const apiKey = getConfig("anthropicApiKey");
     if (!apiKey) return null;
     if (!voiceCoach) {
-      voiceCoach = createVoiceCoachEngine(db, apiKey, getAnthropicModel());
+      voiceCoach = createVoiceCoachEngine(apiKey, getAnthropicModel());
     }
     return voiceCoach;
   };
@@ -1061,13 +1061,10 @@ const setupPipeline = (): void => {
       }
       lastDeviations = deviations;
 
-      // Update voice coach context (full session view refreshed on demand)
+      // Live per-lap slice of the voice context. Setups and analyses are pushed
+      // separately, right before a query, from the active session's detail.
       const zonesJson = JSON.stringify(lapWithNames.zones);
       voiceCoach?.updateContext({
-        game: activeGame,
-        car: lapWithNames.car,
-        track: lapWithNames.track,
-        layout: lapWithNames.layout,
         carName: lapWithNames.carName,
         trackName: lapWithNames.trackName,
         layoutName: lapWithNames.layoutName,
@@ -1958,16 +1955,19 @@ const setupPipeline = (): void => {
       return;
     }
     coach.updateContext({ cornerMap: buildCornerMap() });
-    // Extend context with full session view (setups + analyses)
-    if (currentSessionId) {
-      const detail = loadSessionDetail(currentSessionId, currentSessionGame);
-      if (detail) {
-        coach.updateContext({
-          laps: detail.laps,
-          // voice-coach reads analyses/setups from extended context (set via same updateContext)
-        });
-      }
-    }
+    // Full session view, resolved by id+game rather than re-derived from car and
+    // track: this is the only place that knows WHICH session is active, and a
+    // reopened one is not necessarily the most recently started for that car.
+    // Cleared when no session is open, otherwise the previous one's setups and
+    // analyses would keep answering questions about a session that ended.
+    const detail = currentSessionId
+      ? loadSessionDetail(currentSessionId, currentSessionGame)
+      : null;
+    coach.updateContext({
+      laps: detail?.laps ?? [],
+      setups: detail?.setups ?? [],
+      analyses: detail?.analyses ?? [],
+    });
 
     let fullAnswer =
       "Si è verificato un errore durante l'elaborazione della domanda.";
