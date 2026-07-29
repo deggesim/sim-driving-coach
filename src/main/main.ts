@@ -1257,19 +1257,15 @@ const setupPipeline = (): void => {
       sessionCoach.updateApiKey(apiKey);
       sessionCoach.updateCornerNames(buildCornerMap());
 
-      // Resolve names and read persisted flags from DB
+      // Names only: leaderboard_mode/fixed_setup are read off the same session
+      // row inside loadSessionBundle, so both analysis levels and both callers
+      // of analyzeSession (this one and the voice path) agree by construction.
       const sRow = db
         .prepare(
-          `SELECT car, track, layout, leaderboard_mode, fixed_setup FROM ${t("sessions", game)} WHERE id = ?`,
+          `SELECT car, track, layout FROM ${t("sessions", game)} WHERE id = ?`,
         )
         .get(sessionId) as
-        | {
-            car: string;
-            track: string;
-            layout: string;
-            leaderboard_mode: number;
-            fixed_setup: number;
-          }
+        | { car: string; track: string; layout: string }
         | undefined;
       const resolved = sRow
         ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
@@ -1285,14 +1281,10 @@ const setupPipeline = (): void => {
 
       const alertsForSession =
         sessionId === currentSessionId ? [...sessionAlerts] : undefined;
-      const flags = {
-        leaderboardMode: sRow ? sRow.leaderboard_mode !== 0 : true,
-        fixedSetup: sRow ? sRow.fixed_setup !== 0 : true,
-      };
 
       analyzingInProgress.add(analyzeKey);
       sessionCoach
-        .analyzeSession(sessionId, game, resolved, alertsForSession, flags)
+        .analyzeSession(sessionId, game, resolved, alertsForSession)
         .catch((err) => console.error("[SessionCoach] error:", err))
         .finally(() => analyzingInProgress.delete(analyzeKey));
 

@@ -85,7 +85,7 @@ Tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti. Poi 
 
 Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se nessun setup è caricato.`;
 
-export const SUMMARY_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
+export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
 I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
 
 Output ESATTO: due sezioni markdown seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
@@ -434,7 +434,7 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
 };
 
 /** Level 1 (always): short "Analisi sintetica" + "Azioni suggerite" + <sintesi-vocale>. */
-export const buildSummaryPrompt = (input: SessionPromptInput): string => {
+export const buildSynthesisPrompt = (input: SessionPromptInput): string => {
   const context = buildSessionContext(input);
   return (
     context +

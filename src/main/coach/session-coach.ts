@@ -11,10 +11,10 @@ import type Database from "better-sqlite3";
 import {
   COMMENT_SYSTEM_PROMPT,
   SESSION_SYSTEM_PROMPT,
-  SUMMARY_SYSTEM_PROMPT,
+  SYNTHESIS_SYSTEM_PROMPT,
   buildCommentPrompt,
   buildSessionPrompt,
-  buildSummaryPrompt,
+  buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
@@ -90,8 +90,10 @@ export type SessionCoachEngine = {
     sessionId: number,
     game: GameSource,
     resolved?: { carName?: string; trackName?: string; layoutName?: string },
+    // Live-session alerts (in-memory only in main.ts, never persisted).
+    // undefined for a past session. leaderboardMode/fixedSetup are NOT params:
+    // both levels read them off the session row via loadSessionBundle.
     alerts?: Alert[],
-    flags?: { leaderboardMode?: boolean; fixedSetup?: boolean },
   ) => Promise<SessionAnalysisRow | null>;
   expandAnalysis: (
     analysisId: number,
@@ -163,12 +165,10 @@ export const createSessionCoachEngine = (
       lap_count: sessionRow.lap_count as number,
     };
 
-    // Both columns are NOT NULL DEFAULT 1, so a missing value can only mean a
-    // pre-migration row: `!== 0` maps that to true, same default as the
-    // session:analyze handler. Derived here (not passed in) because the SELECT
-    // above already carries them — expandAnalysis needs no extra parameter.
-    // ponytail: analyzeSession still takes its own `flags` param from the IPC
-    // handler; collapse the two onto this one when a third caller shows up.
+    // Single source of truth for both levels: derived from the row the SELECT
+    // above already carries, so no caller passes these in. Both columns are
+    // NOT NULL DEFAULT 1, so a missing value can only mean a pre-migration row
+    // and `!== 0` maps that to true.
     const flagOn = (v: unknown): boolean => v !== 0;
     const flags = {
       leaderboardMode: flagOn(sessionRow.leaderboard_mode),
@@ -238,11 +238,11 @@ export const createSessionCoachEngine = (
       cornerNames = names;
     },
 
-    analyzeSession: async (sessionId, game, resolved, alerts, flags) => {
+    analyzeSession: async (sessionId, game, resolved, alerts) => {
       const analysesTable = tableFor(game, "session_analyses");
       const bundle = loadSessionBundle(game, sessionId);
       if (!bundle) return null;
-      const { session, laps, setups, priorAnalyses } = bundle;
+      const { session, laps, setups, priorAnalyses, flags } = bundle;
 
       const stats = computeSessionStats({
         laps,
@@ -252,7 +252,7 @@ export const createSessionCoachEngine = (
         cornerNames,
       });
 
-      const prompt = buildSummaryPrompt({
+      const prompt = buildSynthesisPrompt({
         session,
         laps,
         setups,
@@ -262,8 +262,8 @@ export const createSessionCoachEngine = (
         trackName: resolved?.trackName,
         layoutName: resolved?.layoutName,
         alerts,
-        leaderboardMode: flags?.leaderboardMode,
-        fixedSetup: flags?.fixedSetup,
+        leaderboardMode: flags.leaderboardMode,
+        fixedSetup: flags.fixedSetup,
         stats,
       });
 
@@ -283,7 +283,7 @@ export const createSessionCoachEngine = (
         const msg = await client.messages.create({
           model,
           max_tokens: 2000,
-          system: SUMMARY_SYSTEM_PROMPT,
+          system: SYNTHESIS_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
         fullText = msg.content
@@ -434,6 +434,18 @@ export const createSessionCoachEngine = (
         }
 
         const finalMsg = await stream.finalMessage();
+
+        // Makes the cache_control above verifiable instead of assumed: on a
+        // model whose minimum prefix this system block clears, the first expand
+        // logs cacheWrite>0 and the next one cacheRead>0. Both staying 0 means
+        // it is not caching (prefix below the model's floor, or invalidated).
+        const u = finalMsg.usage;
+        console.log(
+          `[SessionCoach] L2 usage model=${useModel} in=${u.input_tokens} ` +
+            `cacheWrite=${u.cache_creation_input_tokens ?? 0} ` +
+            `cacheRead=${u.cache_read_input_tokens ?? 0} out=${u.output_tokens}`,
+        );
+
         if (finalMsg.stop_reason === "max_tokens") {
           options.onError?.(
             "Analisi approfondita troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riprova.",
