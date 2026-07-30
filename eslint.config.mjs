@@ -27,7 +27,7 @@ export default defineConfig([
       parserOptions: {
         // Enable project service for better TypeScript integration
         projectService: {
-          allowDefaultProject: ['vite.config.ts'],
+          allowDefaultProject: ["vite.config.ts"],
         },
         tsconfigRootDir: import.meta.dirname,
       },

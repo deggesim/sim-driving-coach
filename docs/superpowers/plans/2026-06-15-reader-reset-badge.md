@@ -12,19 +12,20 @@
 
 ## File modificati
 
-| File | Modifica |
-|------|----------|
-| `src/main/main.ts` | Nuovo handler `ipcMain.handle("reader:reset", ...)` |
-| `src/shared/types.ts` | Aggiunta `readerReset` a `ElectronAPI` |
-| `src/preload/index.ts` | Esposizione `readerReset` via `contextBridge` |
-| `src/renderer/components/StatusBar.tsx` | Prop `onResetReader`, badge connesso → `<Button>` |
-| `src/renderer/App.tsx` | Passaggio `onResetReader` a `<StatusBar>` |
+| File                                    | Modifica                                            |
+| --------------------------------------- | --------------------------------------------------- |
+| `src/main/main.ts`                      | Nuovo handler `ipcMain.handle("reader:reset", ...)` |
+| `src/shared/types.ts`                   | Aggiunta `readerReset` a `ElectronAPI`              |
+| `src/preload/index.ts`                  | Esposizione `readerReset` via `contextBridge`       |
+| `src/renderer/components/StatusBar.tsx` | Prop `onResetReader`, badge connesso → `<Button>`   |
+| `src/renderer/App.tsx`                  | Passaggio `onResetReader` a `<StatusBar>`           |
 
 ---
 
 ## Task 1: IPC handler `reader:reset` in main.ts
 
 **Files:**
+
 - Modify: `src/main/main.ts` (intorno a riga 898, dopo `ipcMain.handle("telemetry:getLogDir", ...)`)
 
 - [ ] **Step 1: Aggiungere l'handler IPC**
@@ -32,18 +33,15 @@
 Inserire subito dopo la riga 898 (`ipcMain.handle("telemetry:getLogDir", () => telemetryLogDir);`):
 
 ```ts
-  ipcMain.handle(
-    "reader:reset",
-    (_event, { game }: { game: GameSource }) => {
-      if (game === "r3e") {
-        r3eReader.stop();
-        setTimeout(() => r3eReader.start(), 150);
-      } else {
-        aceReader.stop();
-        setTimeout(() => aceReader.start(), 150);
-      }
-    },
-  );
+ipcMain.handle("reader:reset", (_event, { game }: { game: GameSource }) => {
+  if (game === "r3e") {
+    r3eReader.stop();
+    setTimeout(() => r3eReader.start(), 150);
+  } else {
+    aceReader.stop();
+    setTimeout(() => aceReader.start(), 150);
+  }
+});
 ```
 
 `r3eReader` e `aceReader` sono già in scope a riga 620-621 di `main.ts` e la variabile `GameSource` è già importata. Il `stop()` emette `disconnected` → i listener esistenti (`r3eReader.on("disconnected", ...)` e `aceReader.on("disconnected", ...)`) aggiornano `activeGame` e chiamano `pushStatus()` automaticamente.
@@ -68,6 +66,7 @@ git commit -m "feat: add reader:reset IPC handler for forced stop+start cycle"
 ## Task 2: Tipo `readerReset` in `ElectronAPI`
 
 **Files:**
+
 - Modify: `src/shared/types.ts` (intorno a riga 550, prima della chiusura di `ElectronAPI`)
 
 - [ ] **Step 1: Aggiungere la firma a `ElectronAPI`**
@@ -75,8 +74,8 @@ git commit -m "feat: add reader:reset IPC handler for forced stop+start cycle"
 In `src/shared/types.ts`, aggiungere prima di `};` che chiude `ElectronAPI` (riga 551):
 
 ```ts
-  // Reader control
-  readerReset: (game: GameSource) => Promise<void>;
+// Reader control
+readerReset: (game: GameSource) => Promise<void>;
 ```
 
 Il blocco finale di `ElectronAPI` diventa:
@@ -109,6 +108,7 @@ git commit -m "feat: add readerReset to ElectronAPI type"
 ## Task 3: Esposizione `readerReset` nel preload
 
 **Files:**
+
 - Modify: `src/preload/index.ts` (ultima voce prima di `});`)
 
 - [ ] **Step 1: Aggiungere l'esposizione nel contextBridge**
@@ -142,6 +142,7 @@ git commit -m "feat: expose readerReset via contextBridge preload"
 ## Task 4: StatusBar — badge connesso → Button cliccabile
 
 **Files:**
+
 - Modify: `src/renderer/components/StatusBar.tsx`
 
 - [ ] **Step 1: Aggiornare props e import**
@@ -269,6 +270,7 @@ git commit -m "feat: make connected StatusBar badge a clickable reset button"
 ## Task 5: App.tsx — passare `onResetReader` a `<StatusBar>`
 
 **Files:**
+
 - Modify: `src/renderer/App.tsx` (riga 124)
 
 - [ ] **Step 1: Aggiornare il mount di `<StatusBar>`**
@@ -276,16 +278,16 @@ git commit -m "feat: make connected StatusBar badge a clickable reset button"
 In `src/renderer/App.tsx`, sostituire:
 
 ```tsx
-      <StatusBar status={status} />
+<StatusBar status={status} />
 ```
 
 con:
 
 ```tsx
-      <StatusBar
-        status={status}
-        onResetReader={(game) => window.electronAPI.readerReset(game)}
-      />
+<StatusBar
+  status={status}
+  onResetReader={(game) => window.electronAPI.readerReset(game)}
+/>
 ```
 
 - [ ] **Step 2: Verificare typecheck**

@@ -201,8 +201,7 @@ export const createVoiceCoachEngine = (
            ORDER BY started_at DESC LIMIT 1`,
         )
         .get(currentContext.car, currentContext.track) as
-        | { id: number }
-        | undefined;
+        { id: number } | undefined;
       if (!sessionRow) return;
 
       const setupsRaw = db

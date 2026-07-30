@@ -14,6 +14,7 @@ all'analisi esistente insieme al commento dell'utente, mostrato con uno sfondo
 più chiaro per distinguere l'input umano.
 
 Inserimento commento tramite due pulsanti accanto al pulsante di eliminazione:
+
 - icona "commenta" → apre una modale con una `textarea`;
 - icona "microfono" → commento vocale.
 
@@ -87,6 +88,7 @@ commentAnalysis: (
 ```
 
 Flusso:
+
 1. `SELECT *` dell'analisi (template_v3 + comments_json) dalla tabella del gioco;
    `null` se assente.
 2. `buildCommentPrompt(...)`.
@@ -94,15 +96,15 @@ Flusso:
    `max_tokens` ridotto, es. 2000). Riusa `isCreditOrQuotaError` /
    `buildAnthropicErrorMessage` per gli errori.
 4. Accoda `{ comment, response, created_at }` all'array parsato, `UPDATE
-   comments_json`.
+comments_json`.
 5. Ritorna la `SessionAnalysisRow` aggiornata (con `comments` popolato).
 
 ### main.ts
 
 - IPC `session:commentAnalysis`:
   ```ts
-  ({ id, game, comment }: { id: number; game: GameSource; comment: string })
-    => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>
+  ({ id, game, comment }: { id: number; game: GameSource; comment: string }) =>
+    Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
   ```
   Valida apiKey (riusa `getAnthropicApiKey`), aggiorna apiKey/cornerNames sul
   motore, risolve i nomi, delega a `sessionCoach.commentAnalysis`. Restituisce
@@ -127,6 +129,7 @@ comportamento.
 ### AnalysisCommentControls.tsx (nuovo)
 
 Componente per-analisi, riceve `{ analysisId }`. Contiene:
+
 - pulsante `faComment` → apre la modale con `textarea`; "Conferma" →
   `commentAnalysis(analysisId, text)`.
 - pulsante `faMicrophone` → registra (riuso `MediaRecorder` + `convertToWav` +
@@ -148,6 +151,7 @@ Componente per-analisi, riceve `{ analysisId }`. Contiene:
 ```ts
 commentAnalysis: (id: number, comment: string) => Promise<void>;
 ```
+
 Chiama l'IPC; se `ok`, rimpiazza la riga analisi in `analyses` con
 `res.analysis`. Se `!ok`, imposta `error`.
 
@@ -165,6 +169,7 @@ padding, label "Commento").
 ## Verifica (self-check)
 
 Un piccolo script/test `assert`-based che copre la logica non banale:
+
 - roundtrip append → serialize → parse di `comments_json` (l'ordine e i campi si
   conservano);
 - `buildCommentPrompt` include il testo del commento e NON è un Template v3

@@ -195,7 +195,9 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                       <div
                         className="analysis-comment-response deb-content"
                         // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                        dangerouslySetInnerHTML={{ __html: renderMd(c.response) }}
+                        dangerouslySetInnerHTML={{
+                          __html: renderMd(c.response),
+                        }}
                       />
                     </div>
                   ))}

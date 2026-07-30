@@ -1,0 +1,9 @@
+out/
+dist/
+release/
+package-lock.json
+
+# Vendored / auto-generated — do not reformat
+r3e-data.json
+src/main/db/r3e-corners.ts
+.tldr/

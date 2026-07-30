@@ -172,9 +172,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           />
         </div>
 
-        <div
-          className="flex-grow-1 d-flex flex-column overflow-hidden mt-3 session-analyses-section"
-        >
+        <div className="flex-grow-1 d-flex flex-column overflow-hidden mt-3 session-analyses-section">
           <h6 className="text-uppercase flex-shrink-0">Analisi</h6>
           {analyses.length === 0 && !streamingVersion && (
             <p>Nessuna analisi ancora generata.</p>

@@ -30,7 +30,9 @@ for (let i = 0; i < lines.length; i++) {
     violations.push(`L${n}: 'process.env' — use 'import.meta.env'`);
 
   if (/import \* as .+from '@fortawesome/.test(stripped))
-    violations.push(`L${n}: FontAwesome wildcard import — import icons individually`);
+    violations.push(
+      `L${n}: FontAwesome wildcard import — import icons individually`,
+    );
 }
 
 if (violations.length > 0) {
@@ -42,6 +44,6 @@ if (violations.length > 0) {
         hookEventName: "PostToolUse",
         additionalContext: msg,
       },
-    })
+    }),
   );
 }

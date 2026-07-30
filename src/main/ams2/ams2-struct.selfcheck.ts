@@ -44,8 +44,16 @@ assert.equal(OFF.sequenceNumber, 7320, "mSequenceNumber offset");
 
 // Participant arithmetic: player 0's lapDistance sits at 28 + 0*100 + 80 = 108.
 assert.equal(PART.currentLapDistance, 80, "PART.currentLapDistance");
-assert.equal(participantOffset(0, PART.currentLapDistance), 108, "player 0 lapDistance");
-assert.equal(participantOffset(1, PART.currentLapDistance), 208, "player 1 lapDistance");
+assert.equal(
+  participantOffset(0, PART.currentLapDistance),
+  108,
+  "player 0 lapDistance",
+);
+assert.equal(
+  participantOffset(1, PART.currentLapDistance),
+  208,
+  "player 1 lapDistance",
+);
 
 // Sample-buffer round-trip: write known values, read them back at computed offsets.
 const buf = Buffer.alloc(AMS2_STRUCT_SIZE);
@@ -56,6 +64,10 @@ buf.writeFloatLE(1234.5, participantOffset(3, PART.currentLapDistance));
 assert.equal(readUint32(buf, OFF.version), 14, "read version");
 assert.equal(readFloat(buf, OFF.speed), 72.5, "read speed");
 assert.equal(readUint32(buf, OFF.sequenceNumber), 6, "read seq");
-assert.equal(readFloat(buf, participantOffset(3, PART.currentLapDistance)), 1234.5, "read player 3 dist");
+assert.equal(
+  readFloat(buf, participantOffset(3, PART.currentLapDistance)),
+  1234.5,
+  "read player 3 dist",
+);
 
 console.log("ams2-struct self-check OK");

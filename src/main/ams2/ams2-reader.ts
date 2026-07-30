@@ -256,9 +256,19 @@ export const createAms2Reader = (
       let idx = readInt32(buf, OFF.viewedParticipantIndex);
       if (idx < 0 || idx >= MAX_PARTICIPANTS) idx = 0;
 
-      const lapDistance = readFloat(buf, participantOffset(idx, PART.currentLapDistance));
-      const lapsCompleted = readUint32(buf, participantOffset(idx, PART.lapsCompleted));
-      const wpos = readFloatArray(buf, participantOffset(idx, PART.worldPosition), 3);
+      const lapDistance = readFloat(
+        buf,
+        participantOffset(idx, PART.currentLapDistance),
+      );
+      const lapsCompleted = readUint32(
+        buf,
+        participantOffset(idx, PART.lapsCompleted),
+      );
+      const wpos = readFloatArray(
+        buf,
+        participantOffset(idx, PART.worldPosition),
+        3,
+      );
 
       const speed = readFloat(buf, OFF.speed); // m/s
       const throttle = readFloat(buf, OFF.throttle);

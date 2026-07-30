@@ -23,8 +23,8 @@ Rendere cliccabile il badge di stato solo quando il reader corrispondente è con
 Nuovo handler `reader:reset`:
 
 ```ts
-ipcMain.handle('reader:reset', (_, { game }: { game: GameSource }) => {
-  const reader = game === 'r3e' ? r3eReader : aceReader;
+ipcMain.handle("reader:reset", (_, { game }: { game: GameSource }) => {
+  const reader = game === "r3e" ? r3eReader : aceReader;
   reader.stop();
   setTimeout(() => reader.start(), 150);
 });

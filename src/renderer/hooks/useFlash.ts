@@ -13,4 +13,4 @@ export const useFlash = () => {
   }, []);
 
   return { flash, setFlash, showFlash };
-}
+};

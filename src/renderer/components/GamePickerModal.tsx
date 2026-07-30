@@ -24,7 +24,12 @@ export const GamePickerModal = ({ show, onCancel, onConfirm }: Props) => {
   const [selected, setSelected] = useState<GameSource>("r3e");
 
   return (
-    <Modal show={show} onHide={onCancel} centered dialogClassName="game-picker-modal">
+    <Modal
+      show={show}
+      onHide={onCancel}
+      centered
+      dialogClassName="game-picker-modal"
+    >
       <Modal.Header closeButton>
         <Modal.Title>Nuova sessione</Modal.Title>
       </Modal.Header>

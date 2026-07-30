@@ -227,44 +227,44 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 
 ## IPC Channels (`ElectronAPI` in `src/shared/types.ts`)
 
-| Direction | Method / Channel                                                           | Notes                                                        |
-| --------- | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Push      | `onFrame`                                                                  | Main → Renderer, `R3EFrame`                                  |
-| Push      | `onLapComplete`                                                            | Main → Renderer, `LapRecord`                                 |
-| Push      | `onStatus`                                                                 | Main → Renderer, `GameStatus`                                |
-| Push      | `onInputTrigger`                                                           | Keyboard shortcut fired (from `InputManager`)                |
-| Push      | `onVoiceChunk / onVoiceDone / onVoiceAudio`                                | Voice coach streaming                                        |
-| Push      | `onSessionStarted`                                                         | `SessionRow`                                                 |
-| Push      | `onSessionClosed`                                                          | `{ id, game }`                                               |
-| Push      | `onSessionLapAdded`                                                        | `{ sessionId, game, lap: LapRow }`                           |
-| Push      | `onSessionSetupLoaded`                                                     | `{ sessionId, game, setup: SessionSetupRow }`                |
-| Push      | `onSessionAnalysisChunk`                                                   | `{ sessionId, version, token }` — streaming                  |
-| Push      | `onSessionAnalysisDone`                                                    | `{ sessionId, analysis: SessionAnalysisRow }`                |
-| Handle    | `configGet / configSet`                                                    | app_config table                                             |
-| Handle    | `sessionStart`                                                             | Opens new session for the given `GameSource` → `SessionStartResult` |
-| Handle    | `sessionEnd`                                                               | Closes active session                                        |
-| Handle    | `sessionReopen`                                                            | Reopens a closed session as active → `SessionStartResult`    |
-| Handle    | `sessionAnalyze`                                                           | Triggers `SessionCoachEngine` on-demand                      |
-| Handle    | `sessionLoadSetup`                                                         | Saves setup to `session_setups_*`, links to active session   |
-| Handle    | `sessionGetSetupHistory`                                                   | Past setups for car/track/layout → `SessionSetupRow[]`       |
-| Handle    | `sessionReuseSetup`                                                        | Copies an existing setup to the active session               |
-| Handle    | `sessionList`                                                              | Paginated session list → `SessionListResult`                 |
-| Handle    | `sessionGetCurrent`                                                        | Current session + laps + setups + analyses → `SessionDetail` |
-| Handle    | `sessionGetDetail`                                                         | Historical session by id+game → `SessionDetail`              |
-| Handle    | `sessionExportPdf`                                                         | Generates PDF → file path                                    |
-| Handle    | `sessionDelete`                                                            | Delete single session `{ id, game }`                         |
-| Handle    | `sessionDeleteAll`                                                         | Bulk delete `[{ id, game }]` (transaction)                   |
-| Handle    | `sessionDeleteAnalysis`                                                    | Delete a single `SessionAnalysisRow` by id                   |
-| Handle    | `lapGetFrames`                                                             | Decompress `frames_blob` → `CompactFrame[]` for a lap        |
-| Handle    | `lapAssignSetup`                                                           | Reassign (or clear) the `setup_id` on a lap row              |
-| Handle    | `trackMapGet`                                                              | Retrieve cached `TrackMapGeometry` for game/car/track/layout |
-| Handle    | `voiceQuery`                                                               | Streaming voice response via `VoiceCoach`                    |
-| Handle    | `sttTranscribe`                                                            | Azure STT → transcribed string                               |
-| Handle    | `ttsGetVoices / ttsSynthesize / ttsTest`                                   | Azure TTS                                                    |
+| Direction | Method / Channel                                                           | Notes                                                                                                |
+| --------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Push      | `onFrame`                                                                  | Main → Renderer, `R3EFrame`                                                                          |
+| Push      | `onLapComplete`                                                            | Main → Renderer, `LapRecord`                                                                         |
+| Push      | `onStatus`                                                                 | Main → Renderer, `GameStatus`                                                                        |
+| Push      | `onInputTrigger`                                                           | Keyboard shortcut fired (from `InputManager`)                                                        |
+| Push      | `onVoiceChunk / onVoiceDone / onVoiceAudio`                                | Voice coach streaming                                                                                |
+| Push      | `onSessionStarted`                                                         | `SessionRow`                                                                                         |
+| Push      | `onSessionClosed`                                                          | `{ id, game }`                                                                                       |
+| Push      | `onSessionLapAdded`                                                        | `{ sessionId, game, lap: LapRow }`                                                                   |
+| Push      | `onSessionSetupLoaded`                                                     | `{ sessionId, game, setup: SessionSetupRow }`                                                        |
+| Push      | `onSessionAnalysisChunk`                                                   | `{ sessionId, version, token }` — streaming                                                          |
+| Push      | `onSessionAnalysisDone`                                                    | `{ sessionId, analysis: SessionAnalysisRow }`                                                        |
+| Handle    | `configGet / configSet`                                                    | app_config table                                                                                     |
+| Handle    | `sessionStart`                                                             | Opens new session for the given `GameSource` → `SessionStartResult`                                  |
+| Handle    | `sessionEnd`                                                               | Closes active session                                                                                |
+| Handle    | `sessionReopen`                                                            | Reopens a closed session as active → `SessionStartResult`                                            |
+| Handle    | `sessionAnalyze`                                                           | Triggers `SessionCoachEngine` on-demand                                                              |
+| Handle    | `sessionLoadSetup`                                                         | Saves setup to `session_setups_*`, links to active session                                           |
+| Handle    | `sessionGetSetupHistory`                                                   | Past setups for car/track/layout → `SessionSetupRow[]`                                               |
+| Handle    | `sessionReuseSetup`                                                        | Copies an existing setup to the active session                                                       |
+| Handle    | `sessionList`                                                              | Paginated session list → `SessionListResult`                                                         |
+| Handle    | `sessionGetCurrent`                                                        | Current session + laps + setups + analyses → `SessionDetail`                                         |
+| Handle    | `sessionGetDetail`                                                         | Historical session by id+game → `SessionDetail`                                                      |
+| Handle    | `sessionExportPdf`                                                         | Generates PDF → file path                                                                            |
+| Handle    | `sessionDelete`                                                            | Delete single session `{ id, game }`                                                                 |
+| Handle    | `sessionDeleteAll`                                                         | Bulk delete `[{ id, game }]` (transaction)                                                           |
+| Handle    | `sessionDeleteAnalysis`                                                    | Delete a single `SessionAnalysisRow` by id                                                           |
+| Handle    | `lapGetFrames`                                                             | Decompress `frames_blob` → `CompactFrame[]` for a lap                                                |
+| Handle    | `lapAssignSetup`                                                           | Reassign (or clear) the `setup_id` on a lap row                                                      |
+| Handle    | `trackMapGet`                                                              | Retrieve cached `TrackMapGeometry` for game/car/track/layout                                         |
+| Handle    | `voiceQuery`                                                               | Streaming voice response via `VoiceCoach`                                                            |
+| Handle    | `sttTranscribe`                                                            | Azure STT → transcribed string                                                                       |
+| Handle    | `ttsGetVoices / ttsSynthesize / ttsTest`                                   | Azure TTS                                                                                            |
 | Handle    | `anthropicListModels`                                                      | Live Claude model list (`GET /v1/models`) for the analysis model selector; `[]` on missing key/error |
-| Handle    | `telemetryLogGetDir`                                                       | Returns the path of the telemetry log directory              |
-| Handle    | `aceListSetupCars / aceListSetupTracks / aceListSetupFiles / aceReadSetup` | ACE file-based setup                                         |
-| One-way   | `windowClose / windowMinimize / windowMaximize`                            | Frameless window                                             |
+| Handle    | `telemetryLogGetDir`                                                       | Returns the path of the telemetry log directory                                                      |
+| Handle    | `aceListSetupCars / aceListSetupTracks / aceListSetupFiles / aceReadSetup` | ACE file-based setup                                                                                 |
+| One-way   | `windowClose / windowMinimize / windowMaximize`                            | Frameless window                                                                                     |
 
 ## Key Design Decisions (Do Not Change)
 
@@ -309,20 +309,20 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 - **Agente** — sottoagente da spawnare per quel sottocompito specifico (`|` = alternativa, scegliere uno)
 - Gli agenti sono sempre sequenziali rispetto alle skill. Il parallelismo tra agenti si attiva solo con `superpowers:dispatching-parallel-agents` quando i sottocompiti sono davvero indipendenti.
 
-| Task                                    | Skill (nell'ordine)                                                                                 | Agente (uno, in base al bisogno)                                                                                                          |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Nuova feature **semplice**              | `feature-dev:feature-dev` (implementazione guidata)                                                 | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
-| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` (o `executing-plans`) → `superpowers:verification-before-completion` | agenti di superpowers (es. `Explore` in parallelo via `superpowers:dispatching-parallel-agents`) |
-| Bug fix                                 | `superpowers:systematic-debugging`                                                                  | `voltagent-qa-sec:debugger` (crash/eccezioni) \| `voltagent-qa-sec:error-detective` (correlazione errori tra moduli)                      |
-| Code review                             | `superpowers:requesting-code-review`                                                                | `feature-dev:code-reviewer`                                                                                                               |
-| Refactoring TypeScript / tipi avanzati  | `typescript-advanced-types`                                                                         | `voltagent-lang:typescript-pro`                                                                                                           |
-| Componente React / hook / store Zustand | `react-vite-best-practices`                                                                         | `voltagent-lang:react-specialist`                                                                                                         |
-| Electron (IPC, sicurezza, packaging)    | `electron-best-practices`                                                                           | `voltagent-core-dev:electron-pro`                                                                                                         |
-| SQLite / query / schema                 | `sqlite-database-expert`                                                                            | `voltagent-data-ai:database-optimizer`                                                                                                    |
-| Claude API / Anthropic SDK              | `claude-api`                                                                                        | `voltagent-data-ai:ai-engineer`                                                                                                           |
-| Fine branch / PR / commit               | `superpowers:finishing-a-development-branch`                                                        | —                                                                                                                                         |
-| Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                           | due o più agenti `Explore` simultanei (es. analisi R3E e ACE in parallelo)                                                                |
-| Verifica prima di completare            | `superpowers:verification-before-completion`                                                        | —                                                                                                                                         |
+| Task                                    | Skill (nell'ordine)                                                                                                                                                        | Agente (uno, in base al bisogno)                                                                                                          |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Nuova feature **semplice**              | `feature-dev:feature-dev` (implementazione guidata)                                                                                                                        | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
+| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` (o `executing-plans`) → `superpowers:verification-before-completion` | agenti di superpowers (es. `Explore` in parallelo via `superpowers:dispatching-parallel-agents`)                                          |
+| Bug fix                                 | `superpowers:systematic-debugging`                                                                                                                                         | `voltagent-qa-sec:debugger` (crash/eccezioni) \| `voltagent-qa-sec:error-detective` (correlazione errori tra moduli)                      |
+| Code review                             | `superpowers:requesting-code-review`                                                                                                                                       | `feature-dev:code-reviewer`                                                                                                               |
+| Refactoring TypeScript / tipi avanzati  | `typescript-advanced-types`                                                                                                                                                | `voltagent-lang:typescript-pro`                                                                                                           |
+| Componente React / hook / store Zustand | `react-vite-best-practices`                                                                                                                                                | `voltagent-lang:react-specialist`                                                                                                         |
+| Electron (IPC, sicurezza, packaging)    | `electron-best-practices`                                                                                                                                                  | `voltagent-core-dev:electron-pro`                                                                                                         |
+| SQLite / query / schema                 | `sqlite-database-expert`                                                                                                                                                   | `voltagent-data-ai:database-optimizer`                                                                                                    |
+| Claude API / Anthropic SDK              | `claude-api`                                                                                                                                                               | `voltagent-data-ai:ai-engineer`                                                                                                           |
+| Fine branch / PR / commit               | `superpowers:finishing-a-development-branch`                                                                                                                               | —                                                                                                                                         |
+| Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                                                                                                  | due o più agenti `Explore` simultanei (es. analisi R3E e ACE in parallelo)                                                                |
+| Verifica prima di completare            | `superpowers:verification-before-completion`                                                                                                                               | —                                                                                                                                         |
 
 **Soglia semplice vs complessa**: una feature è **semplice** se soddisfa _tutte_ queste condizioni — tocca un solo dominio (solo React, o solo IPC, o solo SQLite…), non introduce nuovi layer/file architetturali (solo modifiche a file esistenti o un singolo file nuovo), il design è già chiaro senza brainstorming, e l'implementazione è stimabile in ≤ ~3 step. Se anche solo una condizione non regge (multi-dominio, nuovi layer/astrazioni, design da concordare, o > ~3 step) è **complessa** → percorso `superpowers` completo.
 

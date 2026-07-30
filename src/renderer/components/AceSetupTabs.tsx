@@ -38,18 +38,17 @@ const getAceTab = (p: SetupParam): AceTabId => {
 };
 
 const SuspensionTab = ({ params }: { params: SetupParam[] }) => {
-  const firstCornerIdx = params.findIndex((p) => getWheelKey(p.parameter) !== null);
+  const firstCornerIdx = params.findIndex(
+    (p) => getWheelKey(p.parameter) !== null,
+  );
   const lastCornerIdx = params.reduce(
     (acc, p, i) => (getWheelKey(p.parameter) !== null ? i : acc),
     -1,
   );
 
-  const sharedTop =
-    firstCornerIdx > 0 ? params.slice(0, firstCornerIdx) : [];
+  const sharedTop = firstCornerIdx > 0 ? params.slice(0, firstCornerIdx) : [];
   const cornerBlock =
-    firstCornerIdx >= 0
-      ? params.slice(firstCornerIdx, lastCornerIdx + 1)
-      : [];
+    firstCornerIdx >= 0 ? params.slice(firstCornerIdx, lastCornerIdx + 1) : [];
   const sharedBottom =
     lastCornerIdx >= 0 && lastCornerIdx < params.length - 1
       ? params.slice(lastCornerIdx + 1)
@@ -60,7 +59,10 @@ const SuspensionTab = ({ params }: { params: SetupParam[] }) => {
       {sharedTop.length > 0 && (
         <div className="mb-2">
           <ParamTable
-            rows={sharedTop.map((p) => ({ label: p.parameter, value: p.value }))}
+            rows={sharedTop.map((p) => ({
+              label: p.parameter,
+              value: p.value,
+            }))}
           />
         </div>
       )}
@@ -81,7 +83,7 @@ const SuspensionTab = ({ params }: { params: SetupParam[] }) => {
       )}
     </div>
   );
-}
+};
 
 const AceSetupTabs = ({ params }: { params: SetupParam[] }) => {
   const byTab: Partial<Record<AceTabId, SetupParam[]>> = {};

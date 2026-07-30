@@ -13,19 +13,19 @@ Il display del setup per ACE in `SetupDetailModal` è attualmente una tabella pi
 
 ## Sezione 1 — Mapping categorie → tab
 
-| Categoria (ace-setup-reader) | Tab |
-|---|---|
-| `Pneumatici` | Pneumatici |
-| `Geometria` | Pneumatici |
-| `Elettronica` | Elettronica |
-| `Carburante` | Carburante e Strategia |
-| `Identificazione` | Carburante e Strategia |
-| `Sospensioni` | Sospensioni |
-| `Sterzo` | Sospensioni |
-| `Freni` | Sospensioni |
-| `Ammortizzatori` | Ammortizzatori |
-| `Aerodinamica` | Aerodinamica |
-| `Assetto` | Aerodinamica |
+| Categoria (ace-setup-reader) | Tab                    |
+| ---------------------------- | ---------------------- |
+| `Pneumatici`                 | Pneumatici             |
+| `Geometria`                  | Pneumatici             |
+| `Elettronica`                | Elettronica            |
+| `Carburante`                 | Carburante e Strategia |
+| `Identificazione`            | Carburante e Strategia |
+| `Sospensioni`                | Sospensioni            |
+| `Sterzo`                     | Sospensioni            |
+| `Freni`                      | Sospensioni            |
+| `Ammortizzatori`             | Ammortizzatori         |
+| `Aerodinamica`               | Aerodinamica           |
+| `Assetto`                    | Aerodinamica           |
 
 I tab vengono mostrati solo se contengono almeno un parametro.
 
@@ -52,6 +52,7 @@ Mescola: Slick (S)   ← riga shared in fondo
 Tutti i parametri con suffisso `FL`/`FR`/`RL`/`RR` vanno nella cella corrispondente. I parametri senza suffisso (es. `Mescola`) appaiono come riga shared in fondo alla griglia.
 
 Mapping wheel → label italiano:
+
 - `FL` → `Ant. Sinistro`
 - `FR` → `Ant. Destro`
 - `RL` → `Post. Sinistro`

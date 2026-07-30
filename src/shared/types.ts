@@ -389,7 +389,13 @@ export type AnthropicModelInfo = {
 // --- electronAPI exposed via preload ---
 
 export type SessionStartResult =
-  | { ok: true; sessionId: number; game: GameSource; car: string; track: string }
+  | {
+      ok: true;
+      sessionId: number;
+      game: GameSource;
+      car: string;
+      track: string;
+    }
   | { ok: false; reason: string };
 
 export type SessionListParams = {
@@ -497,7 +503,11 @@ export type ElectronAPI = {
     id: number;
     game: GameSource;
     comment: string;
-  }) => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
+  }) => Promise<{
+    ok: boolean;
+    reason?: string;
+    analysis?: SessionAnalysisRow;
+  }>;
   sessionDeleteSetup: (params: {
     id: number;
     game: GameSource;

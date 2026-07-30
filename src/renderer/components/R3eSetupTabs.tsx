@@ -2,20 +2,42 @@ import { useState } from "react";
 import { Nav } from "react-bootstrap";
 import type { SetupParam } from "../../shared/types";
 
-const TAB_ORDER = ["Generale", "Anteriore", "Posteriore", "Elettronica", "Trasmissione", "Volante"] as const;
+const TAB_ORDER = [
+  "Generale",
+  "Anteriore",
+  "Posteriore",
+  "Elettronica",
+  "Trasmissione",
+  "Volante",
+] as const;
 type TabId = (typeof TAB_ORDER)[number];
 
 type Section =
-  | "shared" | "left" | "right"
-  | "abs_front" | "abs_rear" | "tc_cut" | "tc_slip" | "tc_lat"
-  | "engine" | "gears" | "diff" | "hybrid"
+  | "shared"
+  | "left"
+  | "right"
+  | "abs_front"
+  | "abs_rear"
+  | "tc_cut"
+  | "tc_slip"
+  | "tc_lat"
+  | "engine"
+  | "gears"
+  | "diff"
+  | "hybrid"
   | "default";
 
 const getTab = (p: SetupParam): TabId => {
   const { category, parameter } = p;
   if (category === "Sterzo") return "Volante";
-  if (category === "ABS" || category === "Controllo Trazione") return "Elettronica";
-  if (category === "Motore" || category === "Trasmissione" || category === "Differenziale" || category === "Ibrido")
+  if (category === "ABS" || category === "Controllo Trazione")
+    return "Elettronica";
+  if (
+    category === "Motore" ||
+    category === "Trasmissione" ||
+    category === "Differenziale" ||
+    category === "Ibrido"
+  )
     return "Trasmissione";
   if (category === "Freni" || category === "Carburante") return "Generale";
   if (category === "Gomme" && parameter.includes("Compound")) return "Generale";
@@ -23,7 +45,7 @@ const getTab = (p: SetupParam): TabId => {
   if (parameter.includes("Rear")) return "Posteriore";
   if (category === "Aerodinamica") return "Anteriore"; // Splitter (no axle suffix)
   return "Generale";
-}
+};
 
 const getSection = (p: SetupParam, tab: TabId): Section => {
   const { category, parameter } = p;
@@ -46,7 +68,7 @@ const getSection = (p: SetupParam, tab: TabId): Section => {
     if (category === "Ibrido") return "hybrid";
   }
   return "default";
-}
+};
 
 const cleanLabel = (parameter: string, section: Section): string => {
   switch (section) {
@@ -57,7 +79,9 @@ const cleanLabel = (parameter: string, section: Section): string => {
       return parameter.replace(/\s+(Front|Rear)$/i, "").trim();
     case "abs_front":
     case "abs_rear":
-      return parameter.replace(/ABS\s+Slip\s+(Front|Rear)\s+Preset\s+/i, "Preset ").trim();
+      return parameter
+        .replace(/ABS\s+Slip\s+(Front|Rear)\s+Preset\s+/i, "Preset ")
+        .trim();
     case "tc_cut":
       return parameter.replace(/Tc\s+Preset\s+/i, "Preset ").trim();
     case "tc_slip":
@@ -67,9 +91,13 @@ const cleanLabel = (parameter: string, section: Section): string => {
     default:
       return parameter;
   }
-}
+};
 
-const ParamTable = ({ rows }: { rows: Array<{ label: string; value: string }> }) => {
+const ParamTable = ({
+  rows,
+}: {
+  rows: Array<{ label: string; value: string }>;
+}) => {
   return (
     <table className="setup-tab-table w-100">
       <tbody>
@@ -85,10 +113,20 @@ const ParamTable = ({ rows }: { rows: Array<{ label: string; value: string }> })
 };
 
 const SimpleTab = ({ params }: { params: SetupParam[] }) => {
-  return <ParamTable rows={params.map((p) => ({ label: p.parameter, value: p.value }))} />;
+  return (
+    <ParamTable
+      rows={params.map((p) => ({ label: p.parameter, value: p.value }))}
+    />
+  );
 };
 
-const AxleTab = ({ params, axle }: { params: SetupParam[]; axle: "Anteriore" | "Posteriore" }) => {
+const AxleTab = ({
+  params,
+  axle,
+}: {
+  params: SetupParam[];
+  axle: "Anteriore" | "Posteriore";
+}) => {
   const prefix = axle === "Anteriore" ? "Ant." : "Post.";
   const shared = params.filter((p) => getSection(p, axle) === "shared");
   const left = params.filter((p) => getSection(p, axle) === "left");
@@ -98,41 +136,68 @@ const AxleTab = ({ params, axle }: { params: SetupParam[]; axle: "Anteriore" | "
       {shared.length > 0 && (
         <div className="mb-2">
           <div className="setup-subsection-title">Condiviso</div>
-          <ParamTable rows={shared.map((p) => ({ label: cleanLabel(p.parameter, "shared"), value: p.value }))} />
+          <ParamTable
+            rows={shared.map((p) => ({
+              label: cleanLabel(p.parameter, "shared"),
+              value: p.value,
+            }))}
+          />
         </div>
       )}
       <div className="d-flex gap-2">
         {left.length > 0 && (
           <div className="setup-axle-col">
             <div className="setup-subsection-title">{prefix} Sinistra</div>
-            <ParamTable rows={left.map((p) => ({ label: cleanLabel(p.parameter, "left"), value: p.value }))} />
+            <ParamTable
+              rows={left.map((p) => ({
+                label: cleanLabel(p.parameter, "left"),
+                value: p.value,
+              }))}
+            />
           </div>
         )}
         {right.length > 0 && (
           <div className="setup-axle-col">
             <div className="setup-subsection-title">{prefix} Destra</div>
-            <ParamTable rows={right.map((p) => ({ label: cleanLabel(p.parameter, "right"), value: p.value }))} />
+            <ParamTable
+              rows={right.map((p) => ({
+                label: cleanLabel(p.parameter, "right"),
+                value: p.value,
+              }))}
+            />
           </div>
         )}
       </div>
     </div>
   );
-}
+};
 
-const Section = ({ title, rows }: { title: string; rows: Array<{ label: string; value: string }> }) => {
+const Section = ({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: Array<{ label: string; value: string }>;
+}) => {
   return (
     <>
       <div className="setup-subsection-title">{title}</div>
       <ParamTable rows={rows} />
     </>
   );
-}
+};
 
 const ElettronicaTab = ({ params }: { params: SetupParam[] }) => {
-  const absF = params.filter((p) => getSection(p, "Elettronica") === "abs_front");
-  const absR = params.filter((p) => getSection(p, "Elettronica") === "abs_rear");
+  const absF = params.filter(
+    (p) => getSection(p, "Elettronica") === "abs_front",
+  );
+  const absR = params.filter(
+    (p) => getSection(p, "Elettronica") === "abs_rear",
+  );
   const tcCut = params.filter((p) => getSection(p, "Elettronica") === "tc_cut");
-  const tcSlip = params.filter((p) => getSection(p, "Elettronica") === "tc_slip");
+  const tcSlip = params.filter(
+    (p) => getSection(p, "Elettronica") === "tc_slip",
+  );
   const tcLat = params.filter((p) => getSection(p, "Elettronica") === "tc_lat");
 
   const absBoth = absF.length > 0 && absR.length > 0;
@@ -140,28 +205,79 @@ const ElettronicaTab = ({ params }: { params: SetupParam[] }) => {
 
   return (
     <div>
-      {(absF.length > 0 || absR.length > 0) && (
-        absBoth ? (
+      {(absF.length > 0 || absR.length > 0) &&
+        (absBoth ? (
           <div className="d-flex gap-2 mb-2">
             <div className="setup-axle-col">
-              <Section title="ABS Anteriore" rows={absF.map((p) => ({ label: cleanLabel(p.parameter, "abs_front"), value: p.value }))} />
+              <Section
+                title="ABS Anteriore"
+                rows={absF.map((p) => ({
+                  label: cleanLabel(p.parameter, "abs_front"),
+                  value: p.value,
+                }))}
+              />
             </div>
             <div className="setup-axle-col">
-              <Section title="ABS Posteriore" rows={absR.map((p) => ({ label: cleanLabel(p.parameter, "abs_rear"), value: p.value }))} />
+              <Section
+                title="ABS Posteriore"
+                rows={absR.map((p) => ({
+                  label: cleanLabel(p.parameter, "abs_rear"),
+                  value: p.value,
+                }))}
+              />
             </div>
           </div>
         ) : (
           <div className="mb-2">
-            {absF.length > 0 && <Section title="ABS Anteriore" rows={absF.map((p) => ({ label: cleanLabel(p.parameter, "abs_front"), value: p.value }))} />}
-            {absR.length > 0 && <Section title="ABS Posteriore" rows={absR.map((p) => ({ label: cleanLabel(p.parameter, "abs_rear"), value: p.value }))} />}
+            {absF.length > 0 && (
+              <Section
+                title="ABS Anteriore"
+                rows={absF.map((p) => ({
+                  label: cleanLabel(p.parameter, "abs_front"),
+                  value: p.value,
+                }))}
+              />
+            )}
+            {absR.length > 0 && (
+              <Section
+                title="ABS Posteriore"
+                rows={absR.map((p) => ({
+                  label: cleanLabel(p.parameter, "abs_rear"),
+                  value: p.value,
+                }))}
+              />
+            )}
           </div>
-        )
-      )}
+        ))}
       {tcTypeCount === 1 ? (
         <div className="mb-2">
-          {tcCut.length > 0 && <Section title="TC Cut" rows={tcCut.map((p) => ({ label: cleanLabel(p.parameter, "tc_cut"), value: p.value }))} />}
-          {tcSlip.length > 0 && <Section title="TC Slip" rows={tcSlip.map((p) => ({ label: cleanLabel(p.parameter, "tc_slip"), value: p.value }))} />}
-          {tcLat.length > 0 && <Section title="TC Laterale" rows={tcLat.map((p) => ({ label: cleanLabel(p.parameter, "tc_lat"), value: p.value }))} />}
+          {tcCut.length > 0 && (
+            <Section
+              title="TC Cut"
+              rows={tcCut.map((p) => ({
+                label: cleanLabel(p.parameter, "tc_cut"),
+                value: p.value,
+              }))}
+            />
+          )}
+          {tcSlip.length > 0 && (
+            <Section
+              title="TC Slip"
+              rows={tcSlip.map((p) => ({
+                label: cleanLabel(p.parameter, "tc_slip"),
+                value: p.value,
+              }))}
+            />
+          )}
+          {tcLat.length > 0 && (
+            <Section
+              title="TC Laterale"
+              rows={tcLat.map((p) => ({
+                label: cleanLabel(p.parameter, "tc_lat"),
+                value: p.value,
+              }))}
+            />
+          )}
         </div>
       ) : tcTypeCount > 1 ? (
         <>
@@ -169,12 +285,24 @@ const ElettronicaTab = ({ params }: { params: SetupParam[] }) => {
             <div className="d-flex gap-2 mb-2">
               {tcCut.length > 0 && (
                 <div className="setup-axle-col">
-                  <Section title="TC Cut" rows={tcCut.map((p) => ({ label: cleanLabel(p.parameter, "tc_cut"), value: p.value }))} />
+                  <Section
+                    title="TC Cut"
+                    rows={tcCut.map((p) => ({
+                      label: cleanLabel(p.parameter, "tc_cut"),
+                      value: p.value,
+                    }))}
+                  />
                 </div>
               )}
               {tcSlip.length > 0 && (
                 <div className="setup-axle-col">
-                  <Section title="TC Slip" rows={tcSlip.map((p) => ({ label: cleanLabel(p.parameter, "tc_slip"), value: p.value }))} />
+                  <Section
+                    title="TC Slip"
+                    rows={tcSlip.map((p) => ({
+                      label: cleanLabel(p.parameter, "tc_slip"),
+                      value: p.value,
+                    }))}
+                  />
                 </div>
               )}
             </div>
@@ -182,7 +310,13 @@ const ElettronicaTab = ({ params }: { params: SetupParam[] }) => {
           {tcLat.length > 0 && (
             <div className="d-flex gap-2 mb-2">
               <div className="setup-axle-col">
-                <Section title="TC Laterale" rows={tcLat.map((p) => ({ label: cleanLabel(p.parameter, "tc_lat"), value: p.value }))} />
+                <Section
+                  title="TC Laterale"
+                  rows={tcLat.map((p) => ({
+                    label: cleanLabel(p.parameter, "tc_lat"),
+                    value: p.value,
+                  }))}
+                />
               </div>
               <div className="setup-axle-col" />
             </div>
@@ -191,42 +325,54 @@ const ElettronicaTab = ({ params }: { params: SetupParam[] }) => {
       ) : null}
     </div>
   );
-}
+};
 
 const TrasmissioneTab = ({ params }: { params: SetupParam[] }) => {
-  const engine = params.filter((p) => getSection(p, "Trasmissione") === "engine");
+  const engine = params.filter(
+    (p) => getSection(p, "Trasmissione") === "engine",
+  );
   const gears = params.filter((p) => getSection(p, "Trasmissione") === "gears");
   const diff = params.filter((p) => getSection(p, "Trasmissione") === "diff");
-  const hybrid = params.filter((p) => getSection(p, "Trasmissione") === "hybrid");
+  const hybrid = params.filter(
+    (p) => getSection(p, "Trasmissione") === "hybrid",
+  );
   return (
     <div>
       {engine.length > 0 && (
         <div className="mb-2">
           <div className="setup-subsection-title">Motore</div>
-          <ParamTable rows={engine.map((p) => ({ label: p.parameter, value: p.value }))} />
+          <ParamTable
+            rows={engine.map((p) => ({ label: p.parameter, value: p.value }))}
+          />
         </div>
       )}
       {gears.length > 0 && (
         <div className="mb-2">
           <div className="setup-subsection-title">Marce</div>
-          <ParamTable rows={gears.map((p) => ({ label: p.parameter, value: p.value }))} />
+          <ParamTable
+            rows={gears.map((p) => ({ label: p.parameter, value: p.value }))}
+          />
         </div>
       )}
       {diff.length > 0 && (
         <div className="mb-2">
           <div className="setup-subsection-title">Differenziale</div>
-          <ParamTable rows={diff.map((p) => ({ label: p.parameter, value: p.value }))} />
+          <ParamTable
+            rows={diff.map((p) => ({ label: p.parameter, value: p.value }))}
+          />
         </div>
       )}
       {hybrid.length > 0 && (
         <div className="mb-2">
           <div className="setup-subsection-title">Ibrido</div>
-          <ParamTable rows={hybrid.map((p) => ({ label: p.parameter, value: p.value }))} />
+          <ParamTable
+            rows={hybrid.map((p) => ({ label: p.parameter, value: p.value }))}
+          />
         </div>
       )}
     </div>
   );
-}
+};
 
 const R3eSetupTabs = ({ params }: { params: SetupParam[] }) => {
   const byTab: Partial<Record<TabId, SetupParam[]>> = {};
@@ -256,11 +402,21 @@ const R3eSetupTabs = ({ params }: { params: SetupParam[] }) => {
         ))}
       </Nav>
       <div className="setup-tab-body">
-        {active === "Generale" && <SimpleTab params={byTab["Generale"] ?? []} />}
-        {active === "Anteriore" && <AxleTab params={byTab["Anteriore"] ?? []} axle="Anteriore" />}
-        {active === "Posteriore" && <AxleTab params={byTab["Posteriore"] ?? []} axle="Posteriore" />}
-        {active === "Elettronica" && <ElettronicaTab params={byTab["Elettronica"] ?? []} />}
-        {active === "Trasmissione" && <TrasmissioneTab params={byTab["Trasmissione"] ?? []} />}
+        {active === "Generale" && (
+          <SimpleTab params={byTab["Generale"] ?? []} />
+        )}
+        {active === "Anteriore" && (
+          <AxleTab params={byTab["Anteriore"] ?? []} axle="Anteriore" />
+        )}
+        {active === "Posteriore" && (
+          <AxleTab params={byTab["Posteriore"] ?? []} axle="Posteriore" />
+        )}
+        {active === "Elettronica" && (
+          <ElettronicaTab params={byTab["Elettronica"] ?? []} />
+        )}
+        {active === "Trasmissione" && (
+          <TrasmissioneTab params={byTab["Trasmissione"] ?? []} />
+        )}
         {active === "Volante" && <SimpleTab params={byTab["Volante"] ?? []} />}
       </div>
     </div>

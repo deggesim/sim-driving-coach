@@ -12,18 +12,19 @@
 
 ## File Map
 
-| File | Tipo | Modifica |
-|------|------|----------|
-| `src/main/db/db.ts` | Modifica | Aggiunge migrazione `ALTER TABLE` per 4 colonne |
-| `src/shared/types.ts` | Modifica | Aggiunge `leaderboard_mode?` e `fixed_setup?` a `SessionRow` |
-| `src/main/main.ts` | Modifica | Aggiorna `enrichSession` + aggiunge `UPDATE` in `session:analyze` |
-| `src/renderer/components/AnalysisHeader.tsx` | Modifica | Inizializza state da sessione + `useEffect` sync |
+| File                                         | Tipo     | Modifica                                                          |
+| -------------------------------------------- | -------- | ----------------------------------------------------------------- |
+| `src/main/db/db.ts`                          | Modifica | Aggiunge migrazione `ALTER TABLE` per 4 colonne                   |
+| `src/shared/types.ts`                        | Modifica | Aggiunge `leaderboard_mode?` e `fixed_setup?` a `SessionRow`      |
+| `src/main/main.ts`                           | Modifica | Aggiorna `enrichSession` + aggiunge `UPDATE` in `session:analyze` |
+| `src/renderer/components/AnalysisHeader.tsx` | Modifica | Inizializza state da sessione + `useEffect` sync                  |
 
 ---
 
 ## Task 1: Migrazione schema DB
 
 **Files:**
+
 - Modify: `src/main/db/db.ts` (funzione `initSchema`, dopo la `db.exec(...)`)
 
 - [ ] **Step 1: Aggiungi la migrazione in `db.ts`**
@@ -75,6 +76,7 @@
 ## Task 2: Aggiorna il tipo `SessionRow`
 
 **Files:**
+
 - Modify: `src/shared/types.ts` (tipo `SessionRow`, righe 190-207)
 
 - [ ] **Step 1: Aggiungi i due campi a `SessionRow`**
@@ -132,6 +134,7 @@
 ## Task 3: Popola i flag in `enrichSession` e salvali in `session:analyze`
 
 **Files:**
+
 - Modify: `src/main/main.ts`
   - `enrichSession` (righe ~247-275): aggiunge i due campi al return
   - `session:analyze` handler (righe ~969-1010): aggiunge `UPDATE` prima di avviare l'analisi
@@ -169,16 +172,19 @@
       typeof row.analysis_count === "number" ? row.analysis_count : undefined,
     leaderboard_mode:
       typeof row.leaderboard_mode === "number" ? row.leaderboard_mode : 1,
-    fixed_setup:
-      typeof row.fixed_setup === "number" ? row.fixed_setup : 1,
+    fixed_setup: typeof row.fixed_setup === "number" ? row.fixed_setup : 1,
   };
   ```
 
 - [ ] **Step 2: Aggiungi `UPDATE` in `session:analyze`**
 
   Nel handler `session:analyze` (riga ~1003), dopo la riga:
+
   ```ts
-  const flags = { leaderboardMode: params.leaderboardMode, fixedSetup: params.fixedSetup };
+  const flags = {
+    leaderboardMode: params.leaderboardMode,
+    fixedSetup: params.fixedSetup,
+  };
   ```
 
   Aggiungi l'UPDATE (prima di `analyzingInProgress.add(analyzeKey)`):
@@ -209,6 +215,7 @@
 ## Task 4: Inizializza i toggle di `AnalysisHeader` dalla sessione
 
 **Files:**
+
 - Modify: `src/renderer/components/AnalysisHeader.tsx` (righe 1-157)
 
 - [ ] **Step 1: Aggiungi l'import di `useEffect`**
@@ -222,19 +229,19 @@
 - [ ] **Step 2: Sostituisci l'inizializzazione dello state**
 
   Sostituisci le righe 48-49:
+
   ```ts
   const [leaderboardMode, setLeaderboardMode] = useState(true);
   const [fixedSetup, setFixedSetup] = useState(true);
   ```
 
   Con:
+
   ```ts
   const [leaderboardMode, setLeaderboardMode] = useState(
     session?.leaderboard_mode !== 0,
   );
-  const [fixedSetup, setFixedSetup] = useState(
-    session?.fixed_setup !== 0,
-  );
+  const [fixedSetup, setFixedSetup] = useState(session?.fixed_setup !== 0);
   ```
 
   `!== 0` gestisce correttamente:

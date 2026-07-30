@@ -12,9 +12,9 @@
 
 ## File Map
 
-| Azione | File |
-|---|---|
-| **Crea** | `src/renderer/components/AceSetupTabs.tsx` |
+| Azione       | File                                           |
+| ------------ | ---------------------------------------------- |
+| **Crea**     | `src/renderer/components/AceSetupTabs.tsx`     |
 | **Modifica** | `src/renderer/components/SetupDetailModal.tsx` |
 
 ---
@@ -22,6 +22,7 @@
 ### Task 1: Creare `AceSetupTabs.tsx` — utility functions
 
 **Files:**
+
 - Create: `src/renderer/components/AceSetupTabs.tsx`
 
 - [ ] **Step 1: Crea il file con le utility functions**
@@ -110,6 +111,7 @@ git commit -m "feat: add AceSetupTabs utility functions and tab mapping"
 ### Task 2: Aggiungere `ParamTable` e `FourCornerGrid`
 
 **Files:**
+
 - Modify: `src/renderer/components/AceSetupTabs.tsx`
 
 - [ ] **Step 1: Aggiungi i componenti dopo le utility functions**
@@ -117,7 +119,11 @@ git commit -m "feat: add AceSetupTabs utility functions and tab mapping"
 Appendi in fondo al file (prima dell'`export default` che ancora non c'è):
 
 ```tsx
-function ParamTable({ rows }: { rows: Array<{ label: string; value: string }> }) {
+function ParamTable({
+  rows,
+}: {
+  rows: Array<{ label: string; value: string }>;
+}) {
   return (
     <table className="setup-tab-table w-100">
       <tbody>
@@ -198,6 +204,7 @@ git commit -m "feat: add ParamTable and FourCornerGrid components"
 ### Task 3: Aggiungere `SuspensionTab` e il componente principale `AceSetupTabs`
 
 **Files:**
+
 - Modify: `src/renderer/components/AceSetupTabs.tsx`
 
 - [ ] **Step 1: Aggiungi `SuspensionTab` e `AceSetupTabs`**
@@ -206,18 +213,17 @@ Appendi in fondo al file:
 
 ```tsx
 function SuspensionTab({ params }: { params: SetupParam[] }) {
-  const firstCornerIdx = params.findIndex((p) => getWheelKey(p.parameter) !== null);
+  const firstCornerIdx = params.findIndex(
+    (p) => getWheelKey(p.parameter) !== null,
+  );
   const lastCornerIdx = params.reduce(
     (acc, p, i) => (getWheelKey(p.parameter) !== null ? i : acc),
     -1,
   );
 
-  const sharedTop =
-    firstCornerIdx > 0 ? params.slice(0, firstCornerIdx) : [];
+  const sharedTop = firstCornerIdx > 0 ? params.slice(0, firstCornerIdx) : [];
   const cornerBlock =
-    firstCornerIdx >= 0
-      ? params.slice(firstCornerIdx, lastCornerIdx + 1)
-      : [];
+    firstCornerIdx >= 0 ? params.slice(firstCornerIdx, lastCornerIdx + 1) : [];
   const sharedBottom =
     lastCornerIdx >= 0 && lastCornerIdx < params.length - 1
       ? params.slice(lastCornerIdx + 1)
@@ -228,7 +234,10 @@ function SuspensionTab({ params }: { params: SetupParam[] }) {
       {sharedTop.length > 0 && (
         <div className="mb-2">
           <ParamTable
-            rows={sharedTop.map((p) => ({ label: p.parameter, value: p.value }))}
+            rows={sharedTop.map((p) => ({
+              label: p.parameter,
+              value: p.value,
+            }))}
           />
         </div>
       )}
@@ -330,6 +339,7 @@ git commit -m "feat: add SuspensionTab and AceSetupTabs main component"
 ### Task 4: Aggiornare `SetupDetailModal` per usare `AceSetupTabs`
 
 **Files:**
+
 - Modify: `src/renderer/components/SetupDetailModal.tsx`
 
 - [ ] **Step 1: Sostituisci il branch ACE nella modal**
@@ -409,6 +419,7 @@ Vai in **Storico sessioni** → seleziona una sessione ACE → apri il dettaglio
 - [ ] **Step 3: Verifica tab Pneumatici**
 
 Controlla che:
+
 - I tab `Pneumatici`, `Elettronica`, `Carburante e Strategia`, `Sospensioni`, `Ammortizzatori`, `Aerodinamica` siano presenti (solo quelli con dati)
 - Il tab **Pneumatici** mostra la griglia 2×2 con titoli `Ant. Sinistro`, `Ant. Destro`, `Post. Sinistro`, `Post. Destro`
 - I label dei parametri non hanno il suffisso ruota (es. `Pressione (PSI)` non `Pressione FL (PSI)`)
@@ -417,6 +428,7 @@ Controlla che:
 - [ ] **Step 4: Verifica tab Sospensioni**
 
 Controlla che:
+
 - La sezione shared top mostri `Rapporto Sterzo`, `Ripartizione Freno Anteriore %`, `ARB Anteriore`
 - La griglia 4-corner mostri le molle per ruota
 - Se il setup ha ARB Posteriore o Precarico, appaiano in una sezione shared bottom dopo la griglia

@@ -16,8 +16,7 @@ import { useSettingsStore } from "../store/settingsStore";
 const configGet = async (key: string): Promise<string | null> => {
   if (!window.electronAPI) return null;
   const result = (await window.electronAPI.configGet(key)) as
-    | { value: string }
-    | undefined;
+    { value: string } | undefined;
   return result?.value ?? null;
 };
 

@@ -314,7 +314,11 @@ export const Ams2SetupPicker = ({
               <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
               Torna alla selezione
             </Button>
-            <Button variant="danger" size="sm" onClick={() => void startDecode()}>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => void startDecode()}
+            >
               Procedi comunque
             </Button>
           </>
