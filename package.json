@@ -2,7 +2,7 @@
   "name": "sim-driving-coach",
   "version": "0.3.0",
   "author": "Simone De Gennaro",
-  "description": "Sim Racing Driving Coach — real-time driving coach for Sim racing games, supports RaceRoom Racing Experience (R3E) and Assetto Corsa EVO.",
+  "description": "Sim Racing Driving Coach — real-time driving coach for Sim racing games, supports RaceRoom Racing Experience (R3E), Assetto Corsa EVO (ACE) and Automobilista 2 (AMS2).",
   "type": "module",
   "main": "out/main/main.js",
   "scripts": {
@@ -14,8 +14,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3",
-    "migrate:dates": "node scripts/migrate-dates.cjs"
+    "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",

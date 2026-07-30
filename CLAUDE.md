@@ -19,8 +19,8 @@ npm run rebuild:native
 # Dev mode with HMR (electron-vite — starts main + preload + renderer concurrently)
 npm run dev
 
-# Test shared memory reader standalone (requires R3E running)
-npm run test:reader
+# Preview a production build (electron-vite preview)
+npm start
 
 # Type-check without emitting (run before committing)
 npm run typecheck
@@ -50,15 +50,9 @@ Post-install native rebuild is required because `better-sqlite3` needs compilati
 ## Architecture
 
 ```
-Active game is chosen by the user at session start (GamePickerModal, 3 radios).
-Readers poll SHM ON DEMAND, one at a time: nothing runs while idle. On session
-start / reopen the picked game's reader is started and probed (awaitReaderReady:
-wait for live frames + car/track, ~3s timeout); it keeps running for the session
-and is stopped on close (stopAllReaders → back to zero SHM reads). Connection
-state is frame-recency based (a game is "live" only if it emitted a frame in the
-last ~2.5s, so a closed sim whose SHM survives drops off instead of lingering).
-`activeGame` = the picked game during a session; while idle it holds the last
-picked game (no reader emitting → no live mirroring). No auto-priority selection.
+Active game is picked by the user at session start (GamePickerModal, 3 radios);
+that game's reader is started + probed, runs for the session, and is stopped on
+close. Full contract: "Multi-game" under Key Design Decisions.
               |
               v
    R3EReader, AceReader, or Ams2Reader (EventEmitter, one active at a time)
@@ -93,7 +87,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 ### Main process (`src/main/`)
 
-- **main.ts** — Electron entry point; wires IPC handlers, owns the three readers (`R3EReader`/`AceReader`/`Ams2Reader`) but runs them ON DEMAND — one at a time, only during a session (or briefly while probing at start/reopen); idle = zero SHM polling. `startSession`/`session:reopen` are async: they call `awaitReaderReady(game, ~3s)` (start reader → wait for live frames + car/track, else `not-live`/`no-data` error), and `closeSession` calls `stopAllReaders` (stop reader + clear car/track globals). `readerRunning` tracks the single active reader; `startReader`/`stopReader` keep it in sync. `activeGame` is the game the user picks at session start (`session:start` takes a `GameSource`); while idle it holds the last picked game. Connection state is frame-recency based (`isLive(game)` = frame within `LIVE_STALE_MS`; a `liveTicker` re-pushes status so a closed sim drops off the badges). No auto-priority selection
+- **main.ts** — Electron entry point; wires every IPC handler and owns the three readers (`R3EReader`/`AceReader`/`Ams2Reader`), started and stopped on demand (contract: Multi-game in Key Design Decisions). Reader plumbing that lives only here: `awaitReaderReady(game, ~3s)` (start reader → wait for live frames + car/track, else `not-live`/`no-data` error) called by the async `startSession`/`session:reopen`; `stopAllReaders` on `closeSession` (stop reader + clear car/track globals); `readerRunning` tracking the single active reader, kept in sync by `startReader`/`stopReader`; `isLive(game)` (frame within `LIVE_STALE_MS`) plus a `liveTicker` that re-pushes status so a closed sim drops off the badges
 - **preload** (`src/preload/index.ts`) — Context bridge exposing `window.electronAPI` to renderer. Compiled as CJS by electron-vite (required by `sandbox: true`)
 - **game-adapter.ts** — Projects R3EFrame → GameFrame (unified 7-field struct: lapDistance, tcActive, absActive, brakeTemps FL/FR/RL/RR). ACE and AMS2 readers emit GameFrame natively
 - **input-manager.ts** — Registers global keyboard shortcuts via Electron `globalShortcut`. Fires `onInputTrigger` push event to renderer when the configured key is pressed. Non-Windows stub returns no-ops
@@ -110,7 +104,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 - **ace-reader.ts** — Opens three ACE SHM pages (PhysicsEvo 800B, GraphicsEvo 3940B, StaticEvo 256B) via koffi at 16ms. Emits GameFrame + CompactFrame (with ACE-only fields: rpm, gLat, gLon, tyre pressures, slip ratios, suspension travel). Car/track/layout are readable strings from SHM (e.g. `"ks_porsche_718_gt4"`, `"monza"`). Lap completion detected via `totalLapCount` increment. Mock fallback on non-Windows. **SHM spec:** https://docs.google.com/document/d/1WzqMLkW2o_C0LGcvdMRelAV31ZIifux0CSHD9k6ddz0/edit?tab=t.0
 - **ace-struct.ts** — Struct definitions for all three ACE SHM pages with read helpers
-- **ace-setup-reader.ts** — Decodes binary protobuf `.carsetup` files from `D:\Salvataggi\ACE\Car Setups\{car}\{track}\`. Extracts setup params (steering ratio, brake bias, ARBs, dampers, geometry, electronics, aero, fuel, compound). Returns `SetupData` with Italian-labelled params. **Spec:** `ace_carsetup_spec.md` (local, reverse-engineered)
+- **ace-setup-reader.ts** — Decodes binary protobuf `.carsetup` files from `{aceSetupsPath}\{car}\{track}\` — config key `aceSetupsPath`, falling back to `D:\Salvataggi\ACE\Car Setups` (`ACE_SETUPS_DEFAULT` in `main.ts`). Extracts setup params (steering ratio, brake bias, ARBs, dampers, geometry, electronics, aero, fuel, compound). Returns `SetupData` with Italian-labelled params. **Spec:** `ace_carsetup_spec.md` (local, reverse-engineered)
 
 #### `ams2/`
 
@@ -147,7 +141,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **TitleBar.tsx** — Custom frameless title bar with app icon, tab switcher (current session / session list / settings), TTS mute toggle, and window controls (minimize/maximize/close). Drag region for frameless mode
 - **SessionPanel.tsx** — The single session panel, live and historical. Takes `mode: "live" | "historical"` plus `onSessionClosed` / `onBack` / `onReopened` callbacks. Manages session lifecycle (start/end/reopen), setup loading, on-demand analysis trigger. Composed of `AnalysisHeader` + `LapsTable` + `AnalysisList` + `GamePickerModal` + the game-specific setup pickers. There is no separate `SessionDetail.tsx` — historical detail is this component with `mode="historical"`
 - **RealtimeAnalysis.tsx** — Thin wrapper for the live tab ("Analisi in tempo reale"): calls `sessionStore.loadCurrent()` on mount and renders `<SessionPanel mode="live" />`
-- **AnalysisHeader.tsx** — Session header bar with car/track/status badge and action buttons: [Nuova sessione] [Chiudi sessione] [Carica setup] [Esegui analisi] [Esporta PDF] [Indietro]. Reads from `sessionStore`. Game badge via `GameBadge`
+- **AnalysisHeader.tsx** — Session header bar with car/track/status badge and action buttons: [Nuova sessione] [Chiudi sessione] [Carica setup] [Esegui analisi] [Esporta PDF] [Indietro], plus two `Form.Check` switches — "Leaderboard" and "Setup fisso" — persisted via `sessionUpdateFlags`. Reads from `sessionStore`. Game badge via `GameBadge`
 - **GamePickerModal.tsx** — Modal shown on "Nuova sessione": 3 radios (R3E/ACE/AMS2) to declare the running sim. Reads live connection state from `ipcStore` status (frame-recency), preselects the single live sim, and calls `sessionStart(game)` on confirm (Confirm disabled when the selected sim is not live)
 - **GameBadge.tsx** — Shared game-identity badge (`GameSource` → label + colour class). Used in `AnalysisHeader`, `SessionHistory`, `GamePickerModal`, `StatusBar`. Colours in `global.css`: R3E red, ACE azure (light text), AMS2 yellow (dark text)
 - **AnalysisList.tsx** — Accordion of all `SessionAnalysisRow` versions for the current session. Shows a streaming placeholder (with Spinner) while an analysis is in progress. Renders Template v3 markdown via `marked`, the `comments` thread of each analysis, and an `AnalysisCommentControls` per version
@@ -157,7 +151,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionPanel mode="historical"` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
 - **TTSManager.tsx** — Headless component, Web Speech API (it-IT), priority queue, P1 interrupts. Used for real-time lap alerts when Azure TTS is not enabled
 - **StatusBar.tsx** — Connection status, car/track/layout (resolved names), calibration state, last alert
-- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector (populated live from the Models API via `anthropicListModels` on mount; a saved model missing from the list is flagged obsolete with a warning `Alert` and kept selectable), assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
+- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector (populated live from the Models API via `anthropicListModels` on mount; a saved model missing from the list is flagged obsolete with a warning `Alert` and kept selectable), assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, ACE setups path (`aceSetupsPath`), mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
 - **VoiceCoachOverlay.tsx** — Fixed overlay showing voice interaction state: idle (hidden), listening (pulsing mic), processing (spinner + transcript), speaking (streaming answer)
 - **R3eSetupPicker.tsx** — R3E only. Modal to paste the JSON exported by RaceRoom (CTRL+C in the setup screen). Parses JSON into categorised `SetupParam[]` (Italian labels), previews via `R3eSetupTabs`, then saves as `SetupData`
 - **R3eSetupTabs.tsx** — Tabbed display of R3E `SetupParam[]` grouped by category (Freni, Gomme, Sospensioni, etc.). Used inside `R3eSetupPicker` and `SetupDetailModal`
@@ -167,7 +161,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **SetupTabsCommon.tsx** — Shared primitives for the three `*SetupTabs` components: `WHEEL_KEYS` / `WHEEL_LABELS`, `getWheelKey`, `stripWheelSuffix`, plus the `ParamTable` and `FourCornerGrid` renderers
 - **SetupSelectionModal.tsx** — Modal for loading a setup. Offers two tabs: (1) browse setup history for the current car/track (`sessionGetSetupHistory` IPC → reuse via `sessionReuseSetup`); (2) open the game-specific picker (`R3eSetupPicker` or `AceSetupPicker`). Shows `SetupDetailModal` for preview
 - **SetupDetailModal.tsx** — Read-only modal showing all parameters of a `SessionSetupRow` via `R3eSetupTabs`. Optionally shows a "Usa" button to reuse the setup
-- **AceSetupPicker.tsx** — ACE only. Modal to browse `D:\Salvataggi\ACE\Car Setups\` via 3-step flow: car dropdown → track dropdown → .carsetup file list. IPC calls: `aceListSetupCars`, `aceListSetupTracks`, `aceListSetupFiles`, `aceReadSetup`. Shows a validation badge when the selected car/track doesn't match `expectedCar`/`expectedTrack`
+- **AceSetupPicker.tsx** — ACE only. Modal to browse the `aceSetupsPath` folder via 3-step flow: car dropdown → track dropdown → .carsetup file list. IPC calls: `aceListSetupCars`, `aceListSetupTracks`, `aceListSetupFiles`, `aceReadSetup`. Shows a validation badge when the selected car/track doesn't match `expectedCar`/`expectedTrack`
 - **Ams2SetupPicker.tsx** — AMS2 only. Modal to browse Steam screenshots for the AMS2 setup screen (IPC `setup:listScreenshots`), select one or more, then decode via Claude Vision (IPC `setup:decodeSetup`). Flags screenshots already used by a prior setup; shows a validation badge when the detected car doesn't match `expectedCar`
 
 #### `hooks/`
@@ -205,12 +199,14 @@ Gamepad button held (or keyboard shortcut via InputManager)
 
 ```sql
 -- R3E tables (numeric ids)
-sessions_r3e         (id PK, car, track, layout, session_type, started_at, ended_at, best_lap, lap_count)
+sessions_r3e         (id PK, car, track, layout, session_type, started_at, ended_at, best_lap, lap_count,
+                      leaderboard_mode, fixed_setup)          -- last two added by migrateSchema
 session_setups_r3e   (id PK, session_id FK→sessions_r3e, loaded_at, setup_json, setup_screenshots)
 laps_r3e             (id PK, session_id FK→sessions_r3e, setup_id FK→session_setups_r3e,
                       lap_number, lap_time, sector1/2/3, valid, zones_json, frames_blob, recorded_at)
 session_analyses_r3e (id PK, session_id FK→sessions_r3e, version, template_v3, section5_summary,
-                      created_at) -- UNIQUE(session_id, version)
+                      created_at, comments_json)              -- UNIQUE(session_id, version)
+                                                              -- comments_json added by migrateSchema
 
 -- ACE tables (same structure, string ids)
 sessions_ace / session_setups_ace / laps_ace / session_analyses_ace
@@ -239,7 +235,9 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 
 `session_setups_*` is separate from laps — one session can have multiple setups loaded over time. Each lap row has a `setup_id` FK pointing to which setup was active when the lap was recorded.
 
-`session_analyses_*` supports multiple versioned analyses per session (triggered on demand by the user).
+`session_analyses_*` supports multiple versioned analyses per session (triggered on demand by the user). `comments_json` holds the follow-up Q&A thread rendered by `AnalysisList`.
+
+**Adding a column**: never edit the `CREATE TABLE` block for an existing table — a shipped DB already exists and `CREATE TABLE IF NOT EXISTS` silently skips it. Append an `ALTER TABLE … ADD COLUMN` to the `migrations` array in `migrateSchema()` (`db.ts`); it runs every startup and swallows the "duplicate column" error, so it is idempotent. `leaderboard_mode` / `fixed_setup` on `sessions_*` and `comments_json` on `session_analyses_*` arrived this way, which is why they are absent from the `CREATE TABLE` statements.
 
 ## IPC Channels (`ElectronAPI` in `src/shared/types.ts`)
 
@@ -248,6 +246,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 | Push      | `onFrame`                                                                  | Main → Renderer, `R3EFrame`                                                                          |
 | Push      | `onLapComplete`                                                            | Main → Renderer, `LapRecord`                                                                         |
 | Push      | `onStatus`                                                                 | Main → Renderer, `GameStatus`                                                                        |
+| Push      | `onAppError`                                                               | Main → Renderer, `app:error` — surfaced main-process error                                           |
 | Push      | `onInputTrigger`                                                           | Keyboard shortcut fired (from `InputManager`)                                                        |
 | Push      | `onVoiceChunk / onVoiceDone / onVoiceAudio`                                | Voice coach streaming                                                                                |
 | Push      | `onSessionStarted`                                                         | `SessionRow`                                                                                         |
@@ -259,6 +258,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 | Handle    | `configGet / configSet`                                                    | app_config table                                                                                     |
 | Handle    | `sessionStart`                                                             | Opens new session for the given `GameSource` → `SessionStartResult`                                  |
 | Handle    | `sessionEnd`                                                               | Closes active session                                                                                |
+| Handle    | `sessionUpdateFlags`                                                       | Sets `leaderboard_mode` / `fixed_setup` on a session (defaults to the active one)                    |
 | Handle    | `sessionReopen`                                                            | Reopens a closed session as active → `SessionStartResult`                                            |
 | Handle    | `sessionAnalyze`                                                           | Triggers `SessionCoachEngine` on-demand                                                              |
 | Handle    | `sessionLoadSetup`                                                         | Saves setup to `session_setups_*`, links to active session                                           |
@@ -271,6 +271,8 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 | Handle    | `sessionDelete`                                                            | Delete single session `{ id, game }`                                                                 |
 | Handle    | `sessionDeleteAll`                                                         | Bulk delete `[{ id, game }]` (transaction)                                                           |
 | Handle    | `sessionDeleteAnalysis`                                                    | Delete a single `SessionAnalysisRow` by id                                                           |
+| Handle    | `sessionDeleteSetup`                                                       | Delete a single `SessionSetupRow` `{ id, game }`                                                     |
+| Handle    | `lapDelete`                                                                | Delete a single lap row `{ id, game }`                                                               |
 | Handle    | `lapGetFrames`                                                             | Decompress `frames_blob` → `CompactFrame[]` for a lap                                                |
 | Handle    | `lapAssignSetup`                                                           | Reassign (or clear) the `setup_id` on a lap row                                                      |
 | Handle    | `trackMapGet`                                                              | Retrieve cached `TrackMapGeometry` for game/car/track/layout                                         |
@@ -281,6 +283,9 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 | Handle    | `sessionCommentAnalysis`                                                   | Follow-up question on an analysis → answer appended to its `comments`                                |
 | Handle    | `telemetryLogGetDir`                                                       | Returns the path of the telemetry log directory                                                      |
 | Handle    | `aceListSetupCars / aceListSetupTracks / aceListSetupFiles / aceReadSetup` | ACE file-based setup                                                                                 |
+| Handle    | `listScreenshots`                                                          | `setup:listScreenshots` — AMS2 Steam screenshot list (appid `1066890`)                               |
+| Handle    | `decodeSetup`                                                              | `setup:decodeSetup` — AMS2 screenshots → Claude Vision → `SetupData`                                 |
+| Handle    | `readerReset`                                                              | `reader:reset` — restart the reader for a `GameSource`                                               |
 | One-way   | `windowClose / windowMinimize / windowMaximize`                            | Frameless window                                                                                     |
 
 ## Key Design Decisions (Do Not Change)
@@ -294,7 +299,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 - **Setup loading AMS2**: User selects one or more setup-screen screenshots (Steam screenshot folder, auto-detected steamid, appid `1066890`) via `Ams2SetupPicker` → sent to Claude Vision (`claude-sonnet-5`) for OCR/decode into `SetupData`. Distinct from both R3E (JSON paste) and ACE (binary file decode) — this is the only game whose setup import uses Claude Vision
 - **Session lifecycle**: Explicit start/end managed by the user. Laps accumulate in the active session. Setup loads are stored as `session_setups_*` rows and linked to subsequent laps via `setup_id`. Analysis is triggered on demand ("Esegui analisi"), not automatically per-lap
 - **Analysis model**: Session-level, on-demand, versioned. `SessionCoachEngine` reads all laps + setups + prior analyses for the session and produces a new `SessionAnalysisRow`. Multiple analyses per session supported. Section [5] (max 3 sentences) is extracted for TTS playback
-- **Corner names**: Seeded from `corner-names.json` for known tracks. For unknown tracks, `seedCornersFromLap()` auto-generates "Curva N" names from braking zones on the first lap. Corner names are used in prompts and alerts
+- **Corner names**: R3E is the only game with seed data — `R3E_CORNERS` from `db/r3e-corners.ts`, bulk-inserted into `corner_names_r3e` once (skipped if the table is already populated). ACE and AMS2 have no seed data: `seedCornersFromLap()` auto-generates "Curva N" names from the first lap's braking zones. Corner names are used in prompts and alerts
 - **Polling**: 16ms (`setTimeout`, not `setInterval`), reconnect every 2s if sim not running. Readers poll only while running — started on demand for a session, stopped on close (see Multi-game above)
 - **Alerts during lap**: Audio only, alert-driven (no continuous delta). Only fire when there's a problem
 - **Alert priorities**: P1 (safety, immediate, interrupts), P2 (TC/ABS anomaly, immediate, queued), P3 (technique, post-corner, max 1 per zone per lap)
@@ -303,7 +308,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 - **Coach model**: `claude-haiku-4-5-20251001` for both session analysis and voice queries. Model overridable via `anthropicModel` config key (applies to both engines)
 - **Zones**: 50m segments along track distance
 - **Brake temp window**: ideal 550°C ±137.5°C (413-688°C). Skip if value is -1 (unavailable)
-- **Qualification/Leaderboard**: Tire temps fixed at 85°C — do not flag as issue
+- **Session flags (R3E only)**: the "Leaderboard" and "Setup fisso" switches in `AnalysisHeader` persist to `leaderboard_mode` / `fixed_setup` (both **default 1 = on**) and are injected into the analysis prompt by `prompt-builder.ts` — but only when `session.game === "r3e"`, so they are inert for ACE/AMS2. Leaderboard ⇒ tyre temps/pressures are pinned at 85 °C and brake temps may be meaningless, do not flag them as issues. Setup fisso ⇒ only brake bias and brake pressure are adjustable, so sections [3]/[4] must omit or explicitly flag every other setup recommendation
 - **Delete**: Single (`sessionDelete`) and bulk (`sessionDeleteAll`) session deletion. Cascade deletes laps, setups, and analyses. Individual analyses can also be deleted via `sessionDeleteAnalysis`
 - **Window**: 1200×800, no frame, contextIsolation: true, nodeIntegration: false
 - **Platform**: Windows only (R3E, ACE, and AMS2 are all Windows-only)
@@ -349,7 +354,7 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 
 ## Struct Offset Debugging
 
-If `npm run test:reader` shows all zeros or -1: struct offset mismatch. Check:
+If telemetry reads all zeros or -1: struct offset mismatch. There is no standalone reader harness — diagnose with `npm run dev` and the main-process console: ACE logs `[AceReader] StaticEvo - smVersion="…" track="…"` on connect, AMS2 logs `[AMS2] connected: mVersion=14 …`. R3E logs nothing on connect (only `[R3EReader] lapComplete - …` per lap), so read its live values off the StatusBar. Then check:
 
 1. `VersionMajor` at offset 0 must be `3` (updated to v3.x for R3E)
 2. If version OK but other fields wrong: `PlayerData` inline size differs from installed R3E version. Compare with `R3E.cs` from SecondMonitor connectors
