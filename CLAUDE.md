@@ -28,6 +28,10 @@ npm run typecheck
 # Lint
 npm run lint
 
+# Format all files (Prettier) / verify formatting without writing
+npm run format
+npm run format:check
+
 # Production build
 npm run build
 
@@ -38,6 +42,10 @@ npm run build:electron
 Post-install native rebuild is required because `better-sqlite3` needs compilation against Electron's Node version. `koffi` (shared memory FFI) does **not** need rebuilding.
 
 **Note**: `npm run dev` uses electron-vite, which compiles main, preload, and renderer in parallel with HMR. If TypeScript errors occur in main, run `npm run typecheck` to diagnose before starting.
+
+**Formatting**: Prettier runs with default settings — `.prettierrc` is `{}` on purpose, do not add overrides (`endOfLine` included: `.gitattributes` pins the repo to `eol=lf`, which is what keeps `format:check` green on Windows with `core.autocrlf=true`). Generated/vendored files are listed in `.prettierignore`.
+
+**`npm audit` gotcha**: production dependencies are clean (`npm audit --omit=dev` → 0). The ~16 dev-only findings all come from `brace-expansion` 1.x/2.x under `electron-builder` (`@electron/asar` → `glob@7` → `minimatch@3`), which has no patch for those majors. **Do not run `npm audit fix --force`** — it downgrades `electron-builder` to 22.x — and do not override `brace-expansion` globally to 5.x: 5.x exports `expand` as a named CJS export while `minimatch` 3/5/9 require it as a callable default, so the packaging build breaks. Only the `minimatch@>=10` override in `package.json` is safe. Waits on upstream dropping `glob@7`.
 
 ## Architecture
 
@@ -137,15 +145,16 @@ Gamepad button held (or keyboard shortcut via InputManager)
 #### `components/`
 
 - **TitleBar.tsx** — Custom frameless title bar with app icon, tab switcher (current session / session list / settings), TTS mute toggle, and window controls (minimize/maximize/close). Drag region for frameless mode
-- **RealtimeAnalysis.tsx** — Live session panel (tab "Analisi in tempo reale"). Manages session lifecycle (start/end), setup loading, on-demand analysis trigger. Composed of `AnalysisHeader` + `LapsTable` + `AnalysisList`
-- **SessionDetail.tsx** — Historical session detail panel. Shown when a row is clicked in `SessionHistory`. Same composition as RealtimeAnalysis but read-only for session lifecycle (analyze + PDF export still enabled). Has a "Indietro" button
+- **SessionPanel.tsx** — The single session panel, live and historical. Takes `mode: "live" | "historical"` plus `onSessionClosed` / `onBack` / `onReopened` callbacks. Manages session lifecycle (start/end/reopen), setup loading, on-demand analysis trigger. Composed of `AnalysisHeader` + `LapsTable` + `AnalysisList` + `GamePickerModal` + the game-specific setup pickers. There is no separate `SessionDetail.tsx` — historical detail is this component with `mode="historical"`
+- **RealtimeAnalysis.tsx** — Thin wrapper for the live tab ("Analisi in tempo reale"): calls `sessionStore.loadCurrent()` on mount and renders `<SessionPanel mode="live" />`
 - **AnalysisHeader.tsx** — Session header bar with car/track/status badge and action buttons: [Nuova sessione] [Chiudi sessione] [Carica setup] [Esegui analisi] [Esporta PDF] [Indietro]. Reads from `sessionStore`. Game badge via `GameBadge`
 - **GamePickerModal.tsx** — Modal shown on "Nuova sessione": 3 radios (R3E/ACE/AMS2) to declare the running sim. Reads live connection state from `ipcStore` status (frame-recency), preselects the single live sim, and calls `sessionStart(game)` on confirm (Confirm disabled when the selected sim is not live)
 - **GameBadge.tsx** — Shared game-identity badge (`GameSource` → label + colour class). Used in `AnalysisHeader`, `SessionHistory`, `GamePickerModal`, `StatusBar`. Colours in `global.css`: R3E red, ACE azure (light text), AMS2 yellow (dark text)
-- **AnalysisList.tsx** — Accordion of all `SessionAnalysisRow` versions for the current session. Shows a streaming placeholder (with Spinner) while an analysis is in progress. Renders Template v3 markdown via `marked`
+- **AnalysisList.tsx** — Accordion of all `SessionAnalysisRow` versions for the current session. Shows a streaming placeholder (with Spinner) while an analysis is in progress. Renders Template v3 markdown via `marked`, the `comments` thread of each analysis, and an `AnalysisCommentControls` per version
+- **AnalysisCommentControls.tsx** — Per-analysis follow-up question, typed or dictated (MediaRecorder → `convertToWav` → Azure STT, auto-stop after 8s). Sends it via `sessionStore.commentAnalysis(id, comment)`; the answer is appended to that analysis's `comments`
 - **LapsTable.tsx** — Bootstrap dark Table listing laps for the current session (lap#, time, sectors, valid flag, setup badge, timestamp). Reads from `sessionStore`. Setup badge shows "#N" index linked to session setups. Row click opens `LapTelemetryCharts`
 - **LapTelemetryCharts.tsx** — Modal/panel with Recharts line charts (brake, throttle, speed vs. lap distance) and a SVG track-map overlay for a selected lap. Fetches frame data via `lapGetFrames` IPC and track geometry via `trackMapGet` IPC
-- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionDetail` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
+- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionPanel mode="historical"` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
 - **TTSManager.tsx** — Headless component, Web Speech API (it-IT), priority queue, P1 interrupts. Used for real-time lap alerts when Azure TTS is not enabled
 - **StatusBar.tsx** — Connection status, car/track/layout (resolved names), calibration state, last alert
 - **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector (populated live from the Models API via `anthropicListModels` on mount; a saved model missing from the list is flagged obsolete with a warning `Alert` and kept selectable), assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
@@ -153,6 +162,9 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **R3eSetupPicker.tsx** — R3E only. Modal to paste the JSON exported by RaceRoom (CTRL+C in the setup screen). Parses JSON into categorised `SetupParam[]` (Italian labels), previews via `R3eSetupTabs`, then saves as `SetupData`
 - **R3eSetupTabs.tsx** — Tabbed display of R3E `SetupParam[]` grouped by category (Freni, Gomme, Sospensioni, etc.). Used inside `R3eSetupPicker` and `SetupDetailModal`
 - **AceSetupTabs.tsx** — Tabbed display of ACE `SetupParam[]` grouped by category (Pneumatici, Elettronica, Carburante e Strategia, Sospensioni, Ammortizzatori, Aerodinamica) with per-wheel value breakdowns. Used inside `AceSetupPicker` and `SetupDetailModal`
+- **Ams2SetupTabs.tsx** — Tabbed display of AMS2 `SetupParam[]` in 3 fixed tabs (Tyres/Brakes/Chassis, Suspension, Drivetrain). Tabs with no parameters are hidden. Section→tab mapping lives in `ams2-setup-sections.ts`
+- **ams2-setup-sections.ts** — AMS2 tab/section lookup tables (`AMS2_TABS`, `SECTION_TO_TAB`, `TAB_SECTIONS`, `GRID_SECTIONS`, `sectionForCategory`). Plain `.ts`, no JSX
+- **SetupTabsCommon.tsx** — Shared primitives for the three `*SetupTabs` components: `WHEEL_KEYS` / `WHEEL_LABELS`, `getWheelKey`, `stripWheelSuffix`, plus the `ParamTable` and `FourCornerGrid` renderers
 - **SetupSelectionModal.tsx** — Modal for loading a setup. Offers two tabs: (1) browse setup history for the current car/track (`sessionGetSetupHistory` IPC → reuse via `sessionReuseSetup`); (2) open the game-specific picker (`R3eSetupPicker` or `AceSetupPicker`). Shows `SetupDetailModal` for preview
 - **SetupDetailModal.tsx** — Read-only modal showing all parameters of a `SessionSetupRow` via `R3eSetupTabs`. Optionally shows a "Usa" button to reuse the setup
 - **AceSetupPicker.tsx** — ACE only. Modal to browse `D:\Salvataggi\ACE\Car Setups\` via 3-step flow: car dropdown → track dropdown → .carsetup file list. IPC calls: `aceListSetupCars`, `aceListSetupTracks`, `aceListSetupFiles`, `aceReadSetup`. Shows a validation badge when the selected car/track doesn't match `expectedCar`/`expectedTrack`
@@ -165,6 +177,10 @@ Gamepad button held (or keyboard shortcut via InputManager)
 - **useSetupPicker.ts** — Manages setup selection UI state (open/close, selected game-specific picker, reuse flow)
 - **useFlash.ts** — Returns a boolean that briefly becomes `true` when triggered (used for visual flash animation on new lap)
 
+#### `lib/`
+
+- **audio.ts** — `pickMimeType()` (first MediaRecorder-supported type) and `convertToWav()` (decode + PCM 16-bit mono re-encode) for the audio Azure STT accepts. Used by `AnalysisCommentControls` and `useVoiceCoach`
+
 #### `loaders/`
 
 - **settingsLoader.ts** — Module-level Promise (`settingsLoaderPromise`) that bulk-loads all config keys from SQLite via IPC at startup and writes them to `settingsStore` in a single `initFromConfig()` call. Stable reference — safe for React 19's `use()` hook to avoid re-suspension
@@ -172,7 +188,7 @@ Gamepad button held (or keyboard shortcut via InputManager)
 #### `store/`
 
 - **ipcStore.ts** — Zustand store for real-time IPC push state (frame, lastAlert, lastLap, status)
-- **sessionStore.ts** — Zustand store for the active or selected session. Subscribes to `session:*` push channels via `subscribeSessionIPC()` (called once from `App.tsx`). State: `{ mode, session, laps, setups, analyses, streaming, loading, error }`. Methods: `loadCurrent()`, `loadById(id, game)`, `setDetail()`, `reset()`. Internal `_apply*` handlers for each push event
+- **sessionStore.ts** — Zustand store for the active or selected session. Subscribes to `session:*` push channels via `subscribeSessionIPC()` (called once from `App.tsx`). State: `{ mode, session, laps, setups, analyses, streaming, loading, error }`. Methods: `loadCurrent()`, `loadById(id, game)`, `setDetail()`, `reset()`, `commentAnalysis(id, comment)`. Internal `_apply*` handlers for each push event
 - **settingsStore.ts** — Zustand store for all user settings: `apiKey`, `anthropicModel`, `assistantName`, `gamepadButton` (config key: `gamepadTriggerButton`), `ttsEnabled`, `azureTtsEnabled`, `azureSpeechKey`, `azureRegion`, `azureVoiceName`, `mockHistoryMode`, `telemetryLogEnabled`, `keyboardVoiceKey`, `aceSetupsPath`. No `activeGame` field — the game is picked per-session at session start (`GamePickerModal`), not persisted
 
 #### `mocks/`
@@ -262,6 +278,7 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 | Handle    | `sttTranscribe`                                                            | Azure STT → transcribed string                                                                       |
 | Handle    | `ttsGetVoices / ttsSynthesize / ttsTest`                                   | Azure TTS                                                                                            |
 | Handle    | `anthropicListModels`                                                      | Live Claude model list (`GET /v1/models`) for the analysis model selector; `[]` on missing key/error |
+| Handle    | `sessionCommentAnalysis`                                                   | Follow-up question on an analysis → answer appended to its `comments`                                |
 | Handle    | `telemetryLogGetDir`                                                       | Returns the path of the telemetry log directory                                                      |
 | Handle    | `aceListSetupCars / aceListSetupTracks / aceListSetupFiles / aceReadSetup` | ACE file-based setup                                                                                 |
 | One-way   | `windowClose / windowMinimize / windowMaximize`                            | Frameless window                                                                                     |
