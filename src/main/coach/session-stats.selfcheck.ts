@@ -6,8 +6,8 @@
  *   npm run selfcheck
  *
  * `npx ts-node --esm` is broken in this environment, and passing `--types node`
- * to tsc fails with TS2688 because @types/node is not linked at
- * node_modules/@types in this pnpm layout — hence tsconfig.selfcheck.json.
+ * to tsc fails with TS2688 because @types/node is not a declared dependency
+ * (only transitive, via electron-vite) — hence tsconfig.selfcheck.json.
  */
 import assert from "node:assert/strict";
 import { computeSessionStats } from "./session-stats.js";

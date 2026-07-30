@@ -1,9 +1,9 @@
 // Compiles the runnable assert-based self-checks so plain `node` can execute
 // them (`npm run selfcheck`). Extends tsconfig.node.json so Node types resolve
 // the same way the real main-process build resolves them, via
-// `types: ["electron-vite/node"]` — @types/node is not linked at
-// node_modules/@types/node in this pnpm layout, so passing `--types node` on
-// the command line fails with TS2688.
+// `types: ["electron-vite/node"]` — @types/node is not a declared dependency
+// here (it only comes in transitively through electron-vite), so passing
+// `--types node` on the command line fails with TS2688.
 //
 // module/moduleResolution are overridden to NodeNext: package.json has
 // "type": "module" and the sources already import with explicit .js

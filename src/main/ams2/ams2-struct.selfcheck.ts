@@ -9,9 +9,9 @@
  * `npx ts-node --esm --project tsconfig.node.json …` is BROKEN here (Node 24 +
  * ts-node 10.9.2 ESM-loader bug), and compiling with explicit CLI flags needs
  * `--ignoreConfig` on TypeScript 6.x, which then makes `--types node` fail with
- * TS2688 — @types/node is not linked at node_modules/@types in this pnpm layout,
- * it is only reachable transitively through electron-vite. tsconfig.selfcheck.json
- * extends tsconfig.node.json precisely to inherit that resolution.
+ * TS2688 — @types/node is not a declared dependency here, it is only reachable
+ * transitively through electron-vite. tsconfig.selfcheck.json extends
+ * tsconfig.node.json precisely to inherit that resolution.
  *
  * No test framework (assert only) — fails loudly if the offset arithmetic breaks.
  */
