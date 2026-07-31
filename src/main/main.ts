@@ -1259,8 +1259,7 @@ const setupPipeline = (): void => {
           `SELECT car, track, layout FROM ${t("sessions", game)} WHERE id = ?`,
         )
         .get(sessionId) as
-        | { car: string; track: string; layout: string }
-        | undefined;
+        { car: string; track: string; layout: string } | undefined;
       const resolved = sRow
         ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
         : undefined;

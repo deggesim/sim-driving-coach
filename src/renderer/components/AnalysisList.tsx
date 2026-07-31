@@ -118,7 +118,9 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
   const renderedDetailById = useMemo(
     () =>
       new Map(
-        analyses.filter((a) => a.detail).map((a) => [a.id, renderMd(a.detail!)]),
+        analyses
+          .filter((a) => a.detail)
+          .map((a) => [a.id, renderMd(a.detail!)]),
       ),
     [analyses],
   );

@@ -7,8 +7,9 @@ package-lock.json
 r3e-data.json
 src/main/db/r3e-corners.ts
 
-# docs (superpowers)
+# docs
 docs/
 
-# Claude code files
+# Claude files
 .claude/
+CLAUDE.md

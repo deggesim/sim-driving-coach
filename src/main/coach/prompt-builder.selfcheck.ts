@@ -61,21 +61,33 @@ const input: SessionPromptInput = {
 // The most recent prior analysis goes in whole: full synthesis AND deep-dive.
 const l2 = buildSessionPrompt(input);
 assert.ok(l2.includes("SINTESI-V2"), "latest prior synthesis must be injected");
-assert.ok(l2.includes("APPROFONDITA-V2"), "latest prior detail must be injected");
+assert.ok(
+  l2.includes("APPROFONDITA-V2"),
+  "latest prior detail must be injected",
+);
 assert.ok(l2.includes("la più recente, testo integrale"));
 
 // Older ones stay as their voice summary - their deep-dive must NOT be injected,
 // otherwise a long session grows the prompt by one full deep-dive per analysis.
 assert.ok(l2.includes("VOCALE-V1"), "older prior summary must be injected");
-assert.ok(!l2.includes("APPROFONDITA-V1"), "older prior detail must be skipped");
-assert.ok(!l2.includes("SINTESI-V1"), "older prior full synthesis must be skipped");
+assert.ok(
+  !l2.includes("APPROFONDITA-V1"),
+  "older prior detail must be skipped",
+);
+assert.ok(
+  !l2.includes("SINTESI-V1"),
+  "older prior full synthesis must be skipped",
+);
 
 // summary === null falls back to the first 500 chars of the synthesis.
 const noSummary = buildSessionPrompt({
   ...input,
   priorAnalyses: [analysis(1, { summary: null }), analysis(2)],
 });
-assert.ok(noSummary.includes("SINTESI-V1"), "fallback to synthesis when no summary");
+assert.ok(
+  noSummary.includes("SINTESI-V1"),
+  "fallback to synthesis when no summary",
+);
 
 // A single prior analysis is itself the most recent one.
 const single = buildSessionPrompt({ ...input, priorAnalyses: [analysis(1)] });
@@ -122,7 +134,10 @@ const l1 = buildSynthesisPrompt({
   currentSynthesis: "SINTESI-CORRENTE del livello 1.",
 });
 assert.ok(!l1.includes("SINTESI-CORRENTE"));
-assert.ok(l1.includes("<sintesi-vocale>"), "Level 1 still asks for the TTS block");
+assert.ok(
+  l1.includes("<sintesi-vocale>"),
+  "Level 1 still asks for the TTS block",
+);
 
 // The comment engine sees both levels: a driver pushing back on a setup proposal
 // is pushing back on something that exists only in the deep-dive.

@@ -89,7 +89,10 @@ assert.equal(improving.trend, "improving");
 
 // --- criticalCorners sorted desc by alertCount + aggregation from zones ---
 const ranked = computeSessionStats({
-  laps: [mkLap(1, 100, [zone(8), zone(15)]), mkLap(2, 100, [zone(8), zone(15)])],
+  laps: [
+    mkLap(1, 100, [zone(8), zone(15)]),
+    mkLap(2, 100, [zone(8), zone(15)]),
+  ],
   bestLap: 100,
   setups: [],
   alerts: [
