@@ -4,13 +4,20 @@ const MODIFIER_PREFIXES = ["Ctrl", "Alt", "Shift", "Meta"];
 
 const mapKeyPart = (key: string): string => {
   switch (key) {
-    case " ":          return "Space";
-    case "+":          return "Plus";
-    case "ArrowUp":    return "Up";
-    case "ArrowDown":  return "Down";
-    case "ArrowLeft":  return "Left";
-    case "ArrowRight": return "Right";
-    case "Enter":      return "Return";
+    case " ":
+      return "Space";
+    case "+":
+      return "Plus";
+    case "ArrowUp":
+      return "Up";
+    case "ArrowDown":
+      return "Down";
+    case "ArrowLeft":
+      return "Left";
+    case "ArrowRight":
+      return "Right";
+    case "Enter":
+      return "Return";
     default:
       return key.length === 1 ? key.toUpperCase() : key;
   }
@@ -51,7 +58,11 @@ export const createInputManager = (onTrigger: () => void): InputManager => {
 
   const setKeyboard = (key: string | null): void => {
     if (currentAccelerator) {
-      try { globalShortcut.unregister(currentAccelerator); } catch { /* ignore */ }
+      try {
+        globalShortcut.unregister(currentAccelerator);
+      } catch {
+        /* ignore */
+      }
       currentAccelerator = null;
     }
     if (!key) return;
@@ -72,7 +83,11 @@ export const createInputManager = (onTrigger: () => void): InputManager => {
 
   const destroy = (): void => {
     if (currentAccelerator) {
-      try { globalShortcut.unregister(currentAccelerator); } catch { /* ignore */ }
+      try {
+        globalShortcut.unregister(currentAccelerator);
+      } catch {
+        /* ignore */
+      }
       currentAccelerator = null;
     }
   };

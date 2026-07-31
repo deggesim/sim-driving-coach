@@ -39,7 +39,10 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
       if (pendingLapId != null) {
         await assignLapSetup(pendingLapId, setupId);
         setPendingLapId(null);
-        showFlash("success", `Setup ${named.name} caricato e assegnato al giro.`);
+        showFlash(
+          "success",
+          `Setup ${named.name} caricato e assegnato al giro.`,
+        );
       } else {
         showFlash("success", `Setup caricato: ${named.name}`);
       }
@@ -73,7 +76,9 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
           const named: SetupData = row.setup.name
             ? row.setup
             : { ...row.setup, name: row.setup.carFound || "Setup" };
-          const result = await window.electronAPI.sessionLoadSetup({ setup: named });
+          const result = await window.electronAPI.sessionLoadSetup({
+            setup: named,
+          });
           targetSetupId = result.setupId;
         }
         await window.electronAPI.sessionReuseSetup({ setupId: targetSetupId });
@@ -122,4 +127,4 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     handleReuseSetup,
     handleLapReuseSetup,
   };
-}
+};

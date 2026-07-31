@@ -5,23 +5,27 @@ import type { GameSource } from "../shared/types";
 contextBridge.exposeInMainWorld("electronAPI", {
   // Main → Renderer (push channels)
   onFrame: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:frame", listener);
     return () => ipcRenderer.removeListener("session:frame", listener);
   },
   onLapComplete: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("lapComplete", listener);
     return () => ipcRenderer.removeListener("lapComplete", listener);
   },
   onStatus: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("status", listener);
     return () => ipcRenderer.removeListener("status", listener);
   },
 
   onAppError: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("app:error", listener);
     return () => ipcRenderer.removeListener("app:error", listener);
   },
@@ -33,48 +37,57 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   onVoiceChunk: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("coach:voiceChunk", listener);
     return () => ipcRenderer.removeListener("coach:voiceChunk", listener);
   },
   onVoiceDone: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("coach:voiceDone", listener);
     return () => ipcRenderer.removeListener("coach:voiceDone", listener);
   },
   onVoiceAudio: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("coach:voiceAudio", listener);
     return () => ipcRenderer.removeListener("coach:voiceAudio", listener);
   },
 
   onSessionStarted: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:started", listener);
     return () => ipcRenderer.removeListener("session:started", listener);
   },
   onSessionClosed: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:closed", listener);
     return () => ipcRenderer.removeListener("session:closed", listener);
   },
   onSessionLapAdded: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:lapAdded", listener);
     return () => ipcRenderer.removeListener("session:lapAdded", listener);
   },
   onSessionSetupLoaded: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:setupLoaded", listener);
     return () => ipcRenderer.removeListener("session:setupLoaded", listener);
   },
   onSessionAnalysisChunk: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:analysisChunk", listener);
     return () => ipcRenderer.removeListener("session:analysisChunk", listener);
   },
   onSessionAnalysisDone: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
     ipcRenderer.on("session:analysisDone", listener);
     return () => ipcRenderer.removeListener("session:analysisDone", listener);
   },
@@ -83,15 +96,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   configSet: (key: string, value: unknown) =>
     ipcRenderer.invoke("config:set", key, value),
 
-  sessionStart: (game: GameSource) =>
-    ipcRenderer.invoke("session:start", game),
+  sessionStart: (game: GameSource) => ipcRenderer.invoke("session:start", game),
   sessionEnd: () => ipcRenderer.invoke("session:end"),
-  sessionUpdateFlags: (params: { sessionId?: number; game?: string; leaderboardMode: boolean; fixedSetup: boolean }) =>
-    ipcRenderer.invoke("session:updateFlags", params),
+  sessionUpdateFlags: (params: {
+    sessionId?: number;
+    game?: string;
+    leaderboardMode: boolean;
+    fixedSetup: boolean;
+  }) => ipcRenderer.invoke("session:updateFlags", params),
   sessionAnalyze: (params?: { sessionId?: number; game?: string }) =>
     ipcRenderer.invoke("session:analyze", params ?? {}),
-  sessionLoadSetup: (params: { setup: unknown; sessionId?: number; game?: string }) =>
-    ipcRenderer.invoke("session:loadSetup", params),
+  sessionLoadSetup: (params: {
+    setup: unknown;
+    sessionId?: number;
+    game?: string;
+  }) => ipcRenderer.invoke("session:loadSetup", params),
   sessionList: (params: unknown) => ipcRenderer.invoke("session:list", params),
   sessionGetCurrent: () => ipcRenderer.invoke("session:getCurrent"),
   sessionGetDetail: (params: { id: number; game: string }) =>
@@ -104,8 +123,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("session:deleteAll", items),
   sessionReopen: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("session:reopen", params),
-  sessionGetSetupHistory: (params: { car: string; track: string; layout: string; game: string }) =>
-    ipcRenderer.invoke("session:getSetupHistory", params),
+  sessionGetSetupHistory: (params: {
+    car: string;
+    track: string;
+    layout: string;
+    game: string;
+  }) => ipcRenderer.invoke("session:getSetupHistory", params),
   sessionReuseSetup: (params: { setupId: number }) =>
     ipcRenderer.invoke("session:reuseSetup", params),
   sessionDeleteAnalysis: (params: { id: number; game: string }) =>
@@ -122,8 +145,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   lapGetFrames: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("lap:getFrames", params),
-  lapAssignSetup: (params: { lapId: number; setupId: number | null; game: string }) =>
-    ipcRenderer.invoke("lap:assignSetup", params),
+  lapAssignSetup: (params: {
+    lapId: number;
+    setupId: number | null;
+    game: string;
+  }) => ipcRenderer.invoke("lap:assignSetup", params),
   lapDelete: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("lap:delete", params),
 
@@ -133,7 +159,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   voiceQuery: (question: string) =>
     ipcRenderer.invoke("coach:voiceQuery", question),
 
-  sttTranscribe: (audioBuffer: ArrayBuffer, mimeType?: string): Promise<string> =>
+  sttTranscribe: (
+    audioBuffer: ArrayBuffer,
+    mimeType?: string,
+  ): Promise<string> =>
     ipcRenderer.invoke("stt:transcribe", audioBuffer, mimeType),
 
   ttsGetVoices: () => ipcRenderer.invoke("tts:getVoices"),

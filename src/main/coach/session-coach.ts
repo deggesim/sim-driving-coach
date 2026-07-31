@@ -148,8 +148,7 @@ export const createSessionCoachEngine = (
     const sessionRow = db
       .prepare(`SELECT * FROM ${sessionsTable} WHERE id = ?`)
       .get(sessionId) as
-      | (Omit<SessionRow, "game"> & Record<string, unknown>)
-      | undefined;
+      (Omit<SessionRow, "game"> & Record<string, unknown>) | undefined;
     if (!sessionRow) return null;
 
     const session: SessionRow = {

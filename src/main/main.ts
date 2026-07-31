@@ -292,16 +292,14 @@ const setupPipeline = (): void => {
   const getConfig = (key: string): string | undefined =>
     (
       db.prepare("SELECT value FROM app_config WHERE key = ?").get(key) as
-        | { value: string }
-        | undefined
+        { value: string } | undefined
     )?.value;
 
   // Register config handlers immediately - renderer may call configGet before
   // the rest of setupPipeline (readers, baseline, etc.) finishes initializing.
   ipcMain.handle("config:get", (_event, key: string) => {
     return db.prepare("SELECT value FROM app_config WHERE key = ?").get(key) as
-      | { value: string }
-      | undefined;
+      { value: string } | undefined;
   });
 
   let inputManager: InputManager | null = null;
@@ -956,8 +954,7 @@ const setupPipeline = (): void => {
           `SELECT car, track, layout FROM ${t("sessions", currentSessionGame)} WHERE id = ?`,
         )
         .get(currentSessionId) as
-        | { car: string; track: string; layout: string }
-        | undefined;
+        { car: string; track: string; layout: string } | undefined;
       if (sessionRow) {
         // For ACE/AMS2 sessions started before the track layout was populated,
         // the stored layout may be "". Treat it as a pending fill-in rather than a mismatch.
@@ -1583,9 +1580,9 @@ const setupPipeline = (): void => {
       if (lapCountRow.cnt > 0) {
         return { ok: false, lapCount: lapCountRow.cnt };
       }
-      db.prepare(
-        `DELETE FROM ${t("session_setups", game)} WHERE id = ?`,
-      ).run(id);
+      db.prepare(`DELETE FROM ${t("session_setups", game)} WHERE id = ?`).run(
+        id,
+      );
       return { ok: true };
     },
   );
@@ -1929,8 +1926,7 @@ const setupPipeline = (): void => {
           `SELECT car, track, layout FROM ${t("sessions", currentSessionGame)} WHERE id = ?`,
         )
         .get(currentSessionId) as
-        | { car: string; track: string; layout: string }
-        | undefined;
+        { car: string; track: string; layout: string } | undefined;
       const resolved = sRow
         ? resolveNames(currentSessionGame, sRow.car, sRow.track, sRow.layout)
         : undefined;
@@ -2073,9 +2069,7 @@ const setupPipeline = (): void => {
     const pathMod = await import("path");
     const steamBase = "C:\\Program Files (x86)\\Steam\\userdata";
     try {
-      const accounts = fs
-        .readdirSync(steamBase)
-        .filter((d) => /^\d+$/.test(d));
+      const accounts = fs.readdirSync(steamBase).filter((d) => /^\d+$/.test(d));
       if (accounts.length === 0) return null;
       return pathMod.join(
         steamBase,
@@ -2123,7 +2117,8 @@ const setupPipeline = (): void => {
         }
         let setupName = "";
         try {
-          setupName = (JSON.parse(row.setup_json) as { name?: string }).name ?? "";
+          setupName =
+            (JSON.parse(row.setup_json) as { name?: string }).name ?? "";
         } catch {
           /* ignore */
         }
@@ -2169,7 +2164,8 @@ const setupPipeline = (): void => {
       const fs = await import("fs");
       const pathMod = await import("path");
       const screenshotsDir = await getAms2ScreenshotsDir();
-      if (!screenshotsDir) throw new Error("Cartella screenshot AMS2 non trovata");
+      if (!screenshotsDir)
+        throw new Error("Cartella screenshot AMS2 non trovata");
 
       const apiKey = getAnthropicApiKey();
       if (!apiKey) throw new Error("Anthropic API Key non configurata");

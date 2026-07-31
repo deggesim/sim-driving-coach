@@ -249,7 +249,10 @@ const LapsTable = ({
                           onPickSetup?.(l);
                         }}
                       >
-                        <FontAwesomeIcon icon={faPen} className="laps-pen-icon" />
+                        <FontAwesomeIcon
+                          icon={faPen}
+                          className="laps-pen-icon"
+                        />
                       </Button>
                     )}
                   </td>

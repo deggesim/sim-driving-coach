@@ -127,10 +127,11 @@ Rear wheels (RL, RR): len=25 bytes (5 sub-fields, `f4.f4` absent on rear).
 | `f6.f5`   | float32 | **Angolo Ala Posteriore**       | click | 2.0 ✓                                   |
 
 **Mescola enum values** (partially confirmed):
-| Value | Mescola |
-|-------|---------|
-| 1.0 | Slick (S) |
-| 2.0 | ? (possibly Hard or Medium) |
+
+| Value | Mescola                     |
+| ----- | --------------------------- |
+| 1.0   | Slick (S)                   |
+| 2.0   | ? (possibly Hard or Medium) |
 
 ---
 

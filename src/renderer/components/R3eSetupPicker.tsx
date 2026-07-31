@@ -38,7 +38,7 @@ const categorize = (id: string): string => {
   if (/^Differential/.test(id)) return "Differenziale";
   if (/^(MGU|Discharge|Regen)/.test(id)) return "Ibrido";
   return "Altro";
-}
+};
 
 const idToLabel = (id: string): string => {
   return id
@@ -46,7 +46,7 @@ const idToLabel = (id: string): string => {
     .replace(/([a-z])([A-Z])/g, "$1 $2")
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
     .trim();
-}
+};
 
 const TYRE_COMPOUNDS: Record<number, string> = {
   0: "Hard",
@@ -78,7 +78,7 @@ const formatValue = (item: R3ESetupItem): string => {
 
   const suffix = Array.isArray(item.suffix) ? item.suffix[0] : item.suffix;
   return suffix ? `${rounded} ${suffix}` : String(rounded);
-}
+};
 
 const parseR3EJson = (text: string): SetupParam[] => {
   const parsed = JSON.parse(text) as { values?: R3ESetupItem[] };
@@ -92,7 +92,7 @@ const parseR3EJson = (text: string): SetupParam[] => {
       parameter: idToLabel(item.id),
       value: formatValue(item),
     }));
-}
+};
 
 const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
   const [jsonText, setJsonText] = useState("");
