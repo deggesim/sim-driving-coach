@@ -15,7 +15,8 @@
     "selfcheck": "tsc -p tsconfig.selfcheck.json && node scripts/run-selfchecks.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3"
+    "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
@@ -45,6 +46,8 @@
     "eslint": "^10.2.0",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
     "prettier": "3.9.6",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
