@@ -71,7 +71,6 @@ const App = () => {
     <div className="app">
       {/* Headless TTS */}
       <TTSManager
-        postLapText={null}
         enabled={ttsEnabled}
         azureEnabled={azureTtsEnabled}
         assistantName={assistantName}

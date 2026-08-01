@@ -4,6 +4,7 @@
  */
 
 import { create } from "zustand";
+import { useIPCStore } from "./ipcStore";
 import type {
   GameSource,
   LapRow,
@@ -253,6 +254,12 @@ export const useSessionStore = create<State>((set, get) => ({
     }
     // Replace or append analysis
     const others = s.analyses.filter((a) => a.version !== analysis.version);
+    // Level 1 only: same length ⇒ nothing was filtered out ⇒ this version is new.
+    // A Level-2 expand replaces an existing version and carries the same
+    // `summary`, which was already spoken when Level 1 landed.
+    if (others.length === s.analyses.length && analysis.summary) {
+      useIPCStore.getState().setAnnounce(analysis.summary);
+    }
     set({
       analyses: [...others, analysis].sort((a, b) => a.version - b.version),
       streaming: null,
