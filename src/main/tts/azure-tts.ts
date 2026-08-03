@@ -9,6 +9,7 @@
 
 import axios from "axios";
 import type { AzureVoice } from "../../shared/types.js";
+import { stripMarkdown } from "../../shared/format.js";
 
 // ---------------------------------------------------------------------------
 // Italian TTS text preprocessing
@@ -238,6 +239,9 @@ const lapTimeToItalian = (
  *   2.0s        →  "due secondi"
  */
 const preprocessTTSText = (text: string): string => {
+  // Claude answers in markdown even when told not to; the TTS would spell the marks out
+  text = stripMarkdown(text);
+
   // Track position: @<meters>m
   text = text.replace(/@(\d+)m\b/g, (_m, digits) => {
     return numberToItalian(parseInt(digits, 10)) + " metri";

@@ -11,5 +11,8 @@
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx",
     "src/shared/**/*.ts"
-  ]
+  ],
+  // Self-checks are Node scripts (node:assert); they typecheck under
+  // tsconfig.node.json / tsconfig.selfcheck.json, not with `types: []`.
+  "exclude": ["src/**/*.selfcheck.ts"]
 }
