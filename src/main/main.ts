@@ -491,7 +491,7 @@ const setupPipeline = (): void => {
     db,
     apiKey: getAnthropicApiKey(),
     model: getAnthropicModel(),
-    onChunk: (data) => pushToRenderer("session:analysisChunk", data),
+    onStart: (data) => pushToRenderer("session:analysisStart", data),
     onDone: (data) => pushToRenderer("session:analysisDone", data),
     onError: (message) => pushAppError(message),
   });

@@ -446,12 +446,8 @@ export type ElectronAPI = {
       setup: SessionSetupRow;
     }) => void,
   ) => () => void;
-  onSessionAnalysisChunk: (
-    callback: (data: {
-      sessionId: number;
-      version: number;
-      token: string;
-    }) => void,
+  onSessionAnalysisStart: (
+    callback: (data: { sessionId: number; version: number }) => void,
   ) => () => void;
   onSessionAnalysisDone: (
     callback: (data: {

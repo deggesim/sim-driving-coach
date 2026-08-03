@@ -12,6 +12,8 @@ import {
   buildCommentPrompt,
   buildSessionPrompt,
   buildSynthesisPrompt,
+  SESSION_SYSTEM_PROMPT,
+  SYNTHESIS_SYSTEM_PROMPT,
   type SessionPromptInput,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
@@ -150,5 +152,28 @@ const commentPrompt = buildCommentPrompt({
 assert.ok(commentPrompt.includes("ARB post: 4 → 3"), "deep-dive must reach it");
 assert.ok(commentPrompt.includes("### Analisi approfondita"), "nested by 1");
 assert.ok(!/^## Analisi approfondita$/m.test(commentPrompt));
+
+// Heading hierarchy: "Analisi sintetica" and "Analisi approfondita" are the ONLY
+// root "##" sections, everything else nests under them. The UI and the PDF style
+// h2 differently from h3+, and nestHeadings shifts by a fixed amount, so a prompt
+// that promotes a subsection back to "##" silently breaks both.
+const roots = (prompt: string): string[] =>
+  prompt.match(/^## .+$/gm)?.map((h) => h.slice(3)) ?? [];
+
+assert.deepEqual(roots(SYNTHESIS_SYSTEM_PROMPT), ["Analisi sintetica"]);
+assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("### Azioni suggerite"));
+assert.ok(l1.includes(`"### Azioni suggerite"`), "L1 closing instruction");
+
+assert.deepEqual(roots(SESSION_SYSTEM_PROMPT), [
+  "FORMATO OBBLIGATORIO",
+  "Regole Generali",
+]);
+for (const sub of [
+  "Analisi telemetria",
+  "Problemi identificati",
+  "Setup attuale vs proposto",
+]) {
+  assert.ok(SESSION_SYSTEM_PROMPT.includes(`### ${sub}`), sub);
+}
 
 console.log("prompt-builder.selfcheck OK");

@@ -60,7 +60,8 @@ Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo
 
 ## FORMATO OBBLIGATORIO
 
-Produci un'unica sezione radice "## Analisi approfondita" con queste sottosezioni:
+Produci un'unica sezione radice "## Analisi approfondita" con queste sottosezioni di livello "###".
+Eventuali ulteriori suddivisioni interne devono usare "####": NON introdurre altre intestazioni "##" oltre a "Analisi approfondita".
 
 ### Analisi telemetria
 Panoramica sessione (numero giri, setup, trend direzionale). Trend giro-per-giro con la causa meccanica del miglioramento/peggioramento. Curve critiche per volume di alert nel formato "@XXXm NomeCurva: N alert (tipo+durata in secondi, …), causa probabile". Osservazioni pressioni gomme (ometti se non disponibili). Dati critici mancanti (ometti se nessuno).
@@ -88,12 +89,12 @@ Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omis
 export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
 I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
 
-Output ESATTO: due sezioni markdown seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
+Output ESATTO: una sezione radice "##" con una sottosezione "###" seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
 
 ## Analisi sintetica
 Un paragrafo condensato: diagnosi della sessione con i dati chiave (problema più critico con numeri, trend giri). È già la sintesi — nessuna etichetta "Sintesi".
 
-## Azioni suggerite
+### Azioni suggerite
 Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una o due righe ciascuna:
 1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
@@ -470,13 +471,13 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
   );
 };
 
-/** Level 1 (always): short "Analisi sintetica" + "Azioni suggerite" + <sintesi-vocale>. */
+/** Level 1 (always): short "## Analisi sintetica" + "### Azioni suggerite" + <sintesi-vocale>. */
 export const buildSynthesisPrompt = (input: SessionPromptInput): string => {
   const context = buildSessionContext(input);
   return (
     context +
     "\n" +
-    `Produci SOLO le due sezioni "## Analisi sintetica" e "## Azioni suggerite", ` +
+    `Produci SOLO la sezione "## Analisi sintetica" con la sottosezione "### Azioni suggerite", ` +
     `seguite dal blocco <sintesi-vocale>. Niente tabelle, niente analisi approfondita. ` +
     `Cita i numeri dal blocco "## Dati Calcolati".`
   );

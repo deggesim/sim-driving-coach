@@ -79,11 +79,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("session:setupLoaded", listener);
     return () => ipcRenderer.removeListener("session:setupLoaded", listener);
   },
-  onSessionAnalysisChunk: (callback: (data: unknown) => void) => {
+  onSessionAnalysisStart: (callback: (data: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
       callback(data);
-    ipcRenderer.on("session:analysisChunk", listener);
-    return () => ipcRenderer.removeListener("session:analysisChunk", listener);
+    ipcRenderer.on("session:analysisStart", listener);
+    return () => ipcRenderer.removeListener("session:analysisStart", listener);
   },
   onSessionAnalysisDone: (callback: (data: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>

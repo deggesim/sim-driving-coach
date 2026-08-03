@@ -33,6 +33,10 @@ import type {
   SessionSetupRow,
 } from "../../shared/types.js";
 
+/** Level-2 request timeout. 20min > the 15min the SDK would derive from 32000
+ *  max_tokens; see the comment at the create() call for why it must be set. */
+const DETAIL_TIMEOUT_MS = 20 * 60 * 1000;
+
 export const isCreditOrQuotaError = (err: unknown): boolean => {
   if (!(err instanceof Error)) return false;
   const msg = err.message.toLowerCase();
@@ -69,11 +73,9 @@ type SessionCoachOptions = {
   db: Database.Database;
   apiKey?: string;
   model?: string;
-  onChunk?: (data: {
-    sessionId: number;
-    version: number;
-    token: string;
-  }) => void;
+  // Fired once when a level starts working. Neither level streams: the renderer
+  // only needs to know which version is in flight so it can hold the spinner.
+  onStart?: (data: { sessionId: number; version: number }) => void;
   // analysis === null means the attempt ended without producing a row (API
   // error): the renderer uses it to release the spinner it holds while working.
   onDone?: (data: {
@@ -269,16 +271,14 @@ export const createSessionCoachEngine = (
       const nextVersion = (priorAnalyses.at(-1)?.version ?? 0) + 1;
 
       // Level 1 is NOT streamed to the UI: partial markdown rendering added no
-      // value on a short output. The renderer only needs to know a version is
-      // being worked on so it can hold the spinner, so one empty token opens the
-      // placeholder panel and the finished text arrives in one go via onDone.
-      options.onChunk?.({ sessionId, version: nextVersion, token: "" });
+      // value on a short output. The start signal opens the placeholder panel and
+      // the finished text arrives in one go via onDone.
+      options.onStart?.({ sessionId, version: nextVersion });
 
       let fullText: string;
       try {
         // Two short sections plus the voice block: 2k tokens is ~3x the typical
-        // output. Non-streaming create() mirrors commentAnalysis and is safe at
-        // this budget; the deep-dive still streams (see expandAnalysis).
+        // output. Non-streaming create() mirrors commentAnalysis and expandAnalysis.
         const msg = await client.messages.create({
           model,
           max_tokens: 2000,
@@ -392,11 +392,21 @@ export const createSessionCoachEngine = (
         currentSynthesis: row.synthesis,
       });
 
-      let fullText = "";
+      // Same start signal as Level 1: the version is already in the list, so the
+      // renderer shows the spinner inside that item instead of a new panel.
+      options.onStart?.({ sessionId, version: row.version });
+
+      let fullText: string;
       try {
-        // Level 2 keeps streaming (unlike Level 1): the output is long enough
-        // that progressive rendering is the difference between a live panel and
-        // a frozen one. Generous cap + truncation surfacing.
+        // Non-streaming like Level 1, despite the 32000-token cap: progressive
+        // markdown re-parsing cost more than it showed.
+        // withOptions({ timeout }) is REQUIRED here, not a precaution: a
+        // non-streaming create() without a client-level timeout makes the SDK
+        // derive one from max_tokens ((60min × max_tokens) / 128000 = 15min here)
+        // and throw "Streaming is required for operations that may take longer
+        // than 10 minutes" before any HTTP call, for any max_tokens > 21333.
+        // An explicit timeout on the client suppresses the guard; a per-request
+        // one does not (the check reads client options only).
         // No cache_control here, deliberately. A breakpoint on this system block
         // caches ~1050 tokens, below the 4096-token floor of the default
         // claude-haiku-4-5, so it silently never wrote an entry; and the block
@@ -407,28 +417,17 @@ export const createSessionCoachEngine = (
         // buildSessionContext, and caching it means moving the per-level format
         // rules out of both system prompts into a trailing user block; not worth
         // the output-format risk for ~0.003 USD per analysis.
-        const stream = client.messages.stream({
-          model: useModel,
-          max_tokens: 32000,
-          system: SESSION_SYSTEM_PROMPT,
-          messages: [{ role: "user", content: prompt }],
-        });
-
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            fullText += event.delta.text;
-            options.onChunk?.({
-              sessionId,
-              version: row.version,
-              token: event.delta.text,
-            });
-          }
-        }
-
-        const finalMsg = await stream.finalMessage();
+        const finalMsg = await client
+          .withOptions({ timeout: DETAIL_TIMEOUT_MS })
+          .messages.create({
+            model: useModel,
+            max_tokens: 32000,
+            system: SESSION_SYSTEM_PROMPT,
+            messages: [{ role: "user", content: prompt }],
+          });
+        fullText = finalMsg.content
+          .map((b) => (b.type === "text" ? b.text : ""))
+          .join("");
 
         // The real cost of a deep-dive, which is the only reliable way to know
         // how close `out` runs to the 32000 cap and whether the prompt is
@@ -450,7 +449,7 @@ export const createSessionCoachEngine = (
         if (isCreditOrQuotaError(err)) {
           options.onError?.(buildAnthropicErrorMessage(err));
         }
-        // Release the streaming panel the chunks above opened in the renderer.
+        // Release the spinner opened by the start signal above.
         options.onDone?.({ sessionId, analysis: null });
         return null;
       }

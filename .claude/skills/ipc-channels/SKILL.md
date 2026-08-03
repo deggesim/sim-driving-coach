@@ -16,7 +16,7 @@ description: Full IPC channel reference for this app (ElectronAPI in src/shared/
 | Push      | `onSessionClosed`                                                          | `{ id, game }`                                               |
 | Push      | `onSessionLapAdded`                                                        | `{ sessionId, game, lap: LapRow }`                           |
 | Push      | `onSessionSetupLoaded`                                                     | `{ sessionId, game, setup: SessionSetupRow }`                |
-| Push      | `onSessionAnalysisChunk`                                                   | `{ sessionId, version, token }` — streaming                  |
+| Push      | `onSessionAnalysisStart`                                                   | `{ sessionId, version }` — a level started working (spinner) |
 | Push      | `onSessionAnalysisDone`                                                    | `{ sessionId, analysis: SessionAnalysisRow }`                |
 | Push      | `onAppError`                                                               | `{ message }` — main-process error surfaced to the UI (`app:error`) |
 | Handle    | `configGet / configSet`                                                    | app_config table                                             |
@@ -24,7 +24,7 @@ description: Full IPC channel reference for this app (ElectronAPI in src/shared/
 | Handle    | `sessionEnd`                                                               | Closes active session                                        |
 | Handle    | `sessionReopen`                                                            | Reopens a closed session as active → `SessionStartResult`    |
 | Handle    | `sessionAnalyze`                                                           | Triggers the Level-1 analysis on demand                      |
-| Handle    | `sessionExpandAnalysis`                                                    | Triggers the Level-2 deep-dive for one `analysisId` → `{ ok, reason? }`; text arrives on the `analysisChunk`/`analysisDone` push channels |
+| Handle    | `sessionExpandAnalysis`                                                    | Triggers the Level-2 deep-dive for one `analysisId` → `{ ok, reason? }`; text arrives on the `analysisStart`/`analysisDone` push channels |
 | Handle    | `sessionCommentAnalysis`                                                   | Sends a driver comment on an analysis → appended to `comments_json` |
 | Handle    | `sessionLoadSetup`                                                         | Saves setup to `session_setups_*`, links to active session   |
 | Handle    | `sessionGetSetupHistory`                                                   | Past setups for car/track/layout → `SessionSetupRow[]`       |

@@ -253,18 +253,12 @@ body {
   padding-top: 8px;
 }
 
-/* Level-2 deep-dive: saved (details) and streaming */
-.analysis-detail,
-.analysis-detail-streaming {
+/* Level-2 deep-dive: saved text, or the spinner while it is being generated.
+   Not collapsible - it sits right below the synthesis and carries its own heading. */
+.analysis-detail {
   margin-top: 12px;
   border-top: 1px solid var(--border);
   padding-top: 8px;
-}
-.analysis-detail > summary {
-  cursor: pointer;
-  color: var(--accent);
-  font-weight: 600;
-  margin-bottom: 8px;
 }
 /* Reason a Level-2 expand is unavailable. Deliberately not .analysis-detail-label:
    that one is an uppercase 11px tag, which shouts when given a full sentence. */
@@ -286,15 +280,33 @@ body {
   font-size: 14px;
   line-height: 1.7;
 }
+/* Analysis heading hierarchy: "Analisi sintetica"/"Analisi approfondita" are the
+   only h2s, everything else nests below them - so the levels must look different. */
 .deb-content h1,
-.deb-content h2,
-.deb-content h3,
+.deb-content h2 {
+  color: var(--accent);
+  margin: 20px 0 10px;
+  font-size: 17px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+}
+.deb-content h3 {
+  color: var(--accent);
+  margin: 16px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
 .deb-content h4,
 .deb-content h5,
 .deb-content h6 {
-  color: var(--accent);
-  margin: 16px 0 8px;
+  color: var(--text);
+  margin: 12px 0 6px;
   font-size: 14px;
+  font-weight: 600;
+}
+.deb-content > :first-child {
+  margin-top: 0;
 }
 .deb-content p {
   margin-bottom: 8px;

@@ -21,7 +21,7 @@ import {
 import { useSessionStore } from "../store/sessionStore";
 import AnalysisCommentControls from "./AnalysisCommentControls";
 
-type StreamingVersion = { sessionId: number; version: number; text: string };
+type WorkingVersion = { sessionId: number; version: number };
 type PendingDelete = { id: number; version: number } | null;
 
 const AnalysisAccordionHeader = ({
@@ -95,14 +95,14 @@ const ExpandButton = ({
 );
 
 type Props = {
-  streamingVersion: StreamingVersion | null;
+  workingVersion: WorkingVersion | null;
   startClosed?: boolean;
 };
 
 const renderMd = (md: string): string =>
   marked.parse(md, { async: false }) as string;
 
-const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
+const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
   const analyses = useSessionStore((s) => s.analyses);
   const deleteAnalysis = useSessionStore((s) => s.deleteAnalysis);
   const expandAnalysis = useSessionStore((s) => s.expandAnalysis);
@@ -125,39 +125,22 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
     [analyses],
   );
 
-  // Streamed text is re-parsed as markdown, and re-parsing the whole document
-  // on every chunk is O(n^2): a 32k-token deep-dive is ~130KB over ~4000 chunks,
-  // which hands marked ~260MB of cumulative work and freezes the renderer.
-  // Fix: key the parse on the text truncated to the last 2KB boundary, so it
-  // runs once per 2KB (~65 times) instead of once per chunk, and stays a pure
-  // derived value — no timers, no extra state. Cost: the visible tail lags by
-  // up to 2KB, which analysisDone then replaces with the full render.
-  const STREAM_PARSE_CHUNK = 2048;
-  const streamText = streamingVersion?.text ?? "";
-  const bucketedStreamText = streamText.slice(
-    0,
-    Math.floor(streamText.length / STREAM_PARSE_CHUNK) * STREAM_PARSE_CHUNK,
-  );
-  const streamedHtml = useMemo(
-    () => renderMd(bucketedStreamText),
-    [bucketedStreamText],
-  );
-
-  // Both levels stream on the same (sessionId, version) key, but they mean
+  // Both levels signal work on the same (sessionId, version) key, but they mean
   // different things: a NEW version is a Level-1 analysis and gets its own
   // placeholder item, while a version already in the list is a Level-2 expand
-  // and must render inside that item's body instead of duplicating its header.
+  // and must show its spinner inside that item's body instead of duplicating
+  // its header.
   const expandingVersion = useMemo(
     () =>
-      streamingVersion &&
-      analyses.some((a) => a.version === streamingVersion.version)
-        ? streamingVersion.version
+      workingVersion &&
+      analyses.some((a) => a.version === workingVersion.version)
+        ? workingVersion.version
         : null,
-    [streamingVersion, analyses],
+    [workingVersion, analyses],
   );
 
-  // User-controlled open key (persisted across streaming transitions).
-  // Streaming key is NOT stored here - it's computed at render time (see effectiveActiveKey).
+  // User-controlled open key (persisted across working transitions).
+  // The in-flight key is NOT stored here - it's computed at render time (see effectiveActiveKey).
   const [userActiveKey, setUserActiveKey] = useState<string | null>(() => {
     if (startClosed || analyses.length === 0) return null;
     return `v${analyses[analyses.length - 1].version}`;
@@ -165,34 +148,34 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
 
   const [pendingDelete, setPendingDelete] = useState<PendingDelete>(null);
 
-  // Track the last known streaming version number so we know which completed
-  // accordion panel to open when streaming finishes.
-  const lastStreamingVersionRef = useRef<number | null>(
-    streamingVersion?.version ?? null,
+  // Track the last known in-flight version number so we know which completed
+  // accordion panel to open when the analysis finishes.
+  const lastWorkingVersionRef = useRef<number | null>(
+    workingVersion?.version ?? null,
   );
 
-  // When streaming transitions from active → null, open the completed panel.
+  // When work transitions from active → null, open the completed panel.
   // We only need to track the version number (no analyses array comparison needed).
   useEffect(() => {
-    const prev = lastStreamingVersionRef.current;
-    lastStreamingVersionRef.current = streamingVersion?.version ?? null;
+    const prev = lastWorkingVersionRef.current;
+    lastWorkingVersionRef.current = workingVersion?.version ?? null;
 
-    if (streamingVersion !== null || prev === null) return;
+    if (workingVersion !== null || prev === null) return;
 
-    // Streaming just finished for version `prev` - open its completed accordion key.
+    // Version `prev` just finished - open its completed accordion key.
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setUserActiveKey(`v${prev}`);
-  }, [streamingVersion]);
+  }, [workingVersion]);
 
-  // Merge user-controlled key with the streaming key (derived, never stored in state).
-  // Streaming panel takes priority while active; otherwise use the user-selected key.
+  // Merge user-controlled key with the in-flight key (derived, never stored in state).
+  // The working panel takes priority while active; otherwise use the user-selected key.
   const effectiveActiveKey = useMemo<string | null>(() => {
-    if (!streamingVersion) return userActiveKey;
+    if (!workingVersion) return userActiveKey;
     // An expand must keep the existing item open: forcing the placeholder key
-    // here would collapse the very panel the detail is streaming into.
+    // here would collapse the very panel the deep-dive lands in.
     if (expandingVersion !== null) return `v${expandingVersion}`;
-    return `streaming-${streamingVersion.version}`;
-  }, [userActiveKey, streamingVersion, expandingVersion]);
+    return `working-${workingVersion.version}`;
+  }, [userActiveKey, workingVersion, expandingVersion]);
 
   // useActionState for delete: manages async lifecycle (pending state for free)
   // and keeps the action co-located with the confirmation UI.
@@ -253,33 +236,25 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                 }}
               />
               {renderedDetailById.has(a.id) ? (
-                <details className="analysis-detail" open>
-                  <summary>Analisi approfondita</summary>
-                  <div
-                    className="deb-content"
-                    // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                    dangerouslySetInnerHTML={{
-                      __html: renderedDetailById.get(a.id) ?? "",
-                    }}
-                  />
-                </details>
-              ) : expandingVersion === a.version && streamingVersion ? (
-                <div className="analysis-detail-streaming">
-                  <div className="analysis-detail-label">
-                    <Spinner size="sm" className="me-2" />
-                    Analisi approfondita in corso…
-                  </div>
-                  <div
-                    className="deb-content"
-                    // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                    dangerouslySetInnerHTML={{ __html: streamedHtml }}
-                  />
+                // No wrapper label: the deep-dive text opens with its own
+                // "## Analisi approfondita" heading, so any label here duplicates it.
+                <div
+                  className="analysis-detail deb-content"
+                  // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                  dangerouslySetInnerHTML={{
+                    __html: renderedDetailById.get(a.id) ?? "",
+                  }}
+                />
+              ) : expandingVersion === a.version ? (
+                <div className="analysis-detail analysis-detail-label">
+                  <Spinner size="sm" className="me-2" />
+                  Analisi approfondita in corso…
                 </div>
               ) : (
                 <ExpandButton
                   // Negative ids are mockHistoryMode rows: they exist only in
                   // mockData.ts, so the IPC handler's lookup would fail with
-                  // "Analisi non trovata." The store keeps a single streaming
+                  // "Analisi non trovata." The store keeps a single in-flight
                   // slot, so a second concurrent expand would overwrite the one
                   // in flight. Both reasons are shown, not just enforced —
                   // Bootstrap sets pointer-events:none on a disabled .btn, so a
@@ -287,7 +262,7 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
                   blocked={
                     a.id < 0
                       ? "Non disponibile in mock mode: questa analisi non esiste nel database."
-                      : streamingVersion !== null
+                      : workingVersion !== null
                         ? "Attendi il completamento dell'analisi in corso."
                         : null
                   }
@@ -314,25 +289,16 @@ const AnalysisList = ({ streamingVersion, startClosed = false }: Props) => {
             </Accordion.Body>
           </Accordion.Item>
         ))}
-        {streamingVersion && expandingVersion === null && (
-          <Accordion.Item eventKey={`streaming-${streamingVersion.version}`}>
+        {workingVersion && expandingVersion === null && (
+          <Accordion.Item eventKey={`working-${workingVersion.version}`}>
             <Accordion.Header>
               <Spinner size="sm" className="me-2" />
-              Analisi #{streamingVersion.version} (in corso…)
+              Analisi #{workingVersion.version} (in corso…)
             </Accordion.Header>
             <Accordion.Body className="overflow-y-auto">
-              {/* Level 1 sends no text while working, only a start signal. */}
-              {streamingVersion.text ? (
-                <div
-                  className="deb-content"
-                  // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-                  dangerouslySetInnerHTML={{ __html: streamedHtml }}
-                />
-              ) : (
-                <div style={{ color: "var(--text-dim)" }}>
-                  Elaborazione in corso…
-                </div>
-              )}
+              <div style={{ color: "var(--text-dim)" }}>
+                Elaborazione in corso…
+              </div>
             </Accordion.Body>
           </Accordion.Item>
         )}

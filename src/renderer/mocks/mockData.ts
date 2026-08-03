@@ -12,7 +12,7 @@ const ANALYSIS_R3E: SessionAnalysisRow = {
   synthesis: `## Analisi sintetica
 Sessione in miglioramento: dal giro 1 (1:58.456, non valido) al giro 2 (1:55.234) il ∆ è -3.222s, best al giro 2; il giro 3 (1:55.780) conferma il ritmo a +0.546s. Perdi circa 0.25 s/giro complessivi in staccata alla Einfahrt Mercedes (freno 18m più tardi della baseline, apice -3 km/h) e alla Ford Kurve (trail braking fino a 22m dall'apice contro 14m di riferimento).
 
-## Azioni suggerite
+### Azioni suggerite
 1. **Guida — @380m Einfahrt Mercedes** — anticipa la staccata di ~10m; effetto atteso ~0.12 s/giro.
 2. **Guida — @730m Rettifilo est** — apri il gas 0.4s prima dopo l'apice, il posteriore è stabile; effetto atteso ~0.08 s/giro.
 3. **Guida — @1080m Ford Kurve** — rilascia il freno 5m prima per stabilizzare l'uscita; effetto atteso ~0.05 s/giro.`,
@@ -42,7 +42,7 @@ const ANALYSIS_ACE: SessionAnalysisRow = {
   synthesis: `## Analisi sintetica
 Progressione netta: dal giro 1 (1:49.120, non valido) al giro 2 (1:47.456) il ∆ è -1.664s, best al giro 2; il giro 3 chiude a 1:47.892 (+0.436s). Il tempo si perde quasi tutto nelle due varianti — 0.3s di sovrapposizione freno/gas alla Prima variante e 0.7s di coasting alla Seconda — per circa 0.20 s/giro complessivi.
 
-## Azioni suggerite
+### Azioni suggerite
 1. **Guida — @180m Prima variante** — separa le fasi: chiudi la frenata prima di aprire il gas; effetto atteso ~0.09 s/giro.
 2. **Guida — @530m Seconda variante** — elimina il coasting, passa dal freno al gas senza pausa; effetto atteso ~0.11 s/giro.
 3. **Guida — @1330m Lesmo 2** — anticipa la staccata di ~12m, il grip posteriore è disponibile; effetto atteso ~0.07 s/giro.`,
@@ -74,7 +74,7 @@ const ANALYSIS_AMS2: SessionAnalysisRow = {
   synthesis: `## Analisi sintetica
 Buon passo generale: dal giro 1 (1:13.560, non valido) al giro 2 (1:11.234) il ∆ è -2.326s, best al giro 2; il giro 3 chiude a 1:11.678 (+0.444s). Perdi circa 0.25 s/giro tra la staccata della Senna S (freno 9m più tardi, apice -4 km/h) e la sovrapposizione freno/gas alla Junção (0.2s in ingresso).
 
-## Azioni suggerite
+### Azioni suggerite
 1. **Guida — @130m Curva 1 (Senna S)** — anticipa la staccata, la monoposto ha ancora carico disponibile; effetto atteso ~0.10 s/giro.
 2. **Guida — @680m Reta Oposta** — apri il gas 0.3s prima dopo l'apice, il posteriore regge; effetto atteso ~0.09 s/giro.
 3. **Guida — @930m Junção** — separa freno e gas in ingresso per non destabilizzare l'anteriore; effetto atteso ~0.06 s/giro.`,
