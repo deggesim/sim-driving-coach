@@ -29,6 +29,11 @@ assert.equal(matchGame("ams 2"), "ams2");
 // No game named, or two different ones: caller must ask instead of guessing
 assert.equal(matchGame("apri una sessione"), null);
 assert.equal(matchGame("apri sessione su raceroom o evo"), null);
+// Long-form patterns need trailing word boundaries too, or they grab a prefix
+// of a longer word/number instead of the whole spoken form
+assert.equal(matchGame("che bella la terrace room"), null);
+assert.equal(matchGame("automobilista duecento euro"), null);
+assert.equal(matchGame("conosco un automobilista, 25enne, bravo pilota"), null);
 
 // ── newSession carries the game ───────────────────────────────────────────────
 assert.deepEqual(classifyVoiceIntent("apri una sessione su ACE", NAME), {
@@ -101,11 +106,28 @@ assert.deepEqual(classifyVoiceIntent("come vado?", ""), {
   kind: "freeform",
   question: "come vado?",
 });
+// A multi-word name is spoken by its first word only: wake detection and
+// prefix stripping must agree on that same token
+assert.deepEqual(classifyVoiceIntent("Ciao Jarvis", "Jarvis Prime"), {
+  kind: "greeting",
+});
 
 // ── Freeform is the default, and keeps the original text ──────────────────────
 assert.deepEqual(classifyVoiceIntent("Quanto perdo in curva 3?", NAME), {
   kind: "freeform",
   question: "Quanto perdo in curva 3?",
+});
+
+// ── Empty/whitespace transcript is a deliberate no-op, not a crash ────────────
+// (the production caller already filters this out before reaching here, but
+// the module must still answer deterministically for any future caller)
+assert.deepEqual(classifyVoiceIntent("", NAME), {
+  kind: "freeform",
+  question: "",
+});
+assert.deepEqual(classifyVoiceIntent("   ", NAME), {
+  kind: "freeform",
+  question: "",
 });
 
 // ── Greeting rotation is deterministic ────────────────────────────────────────

@@ -47,9 +47,9 @@ const normalize = (text: string): string =>
 /** Long forms first, acronyms after: order does not matter for correctness here
  *  (a sentence naming two different games returns null anyway) but keeps it readable. */
 const GAME_PATTERNS: ReadonlyArray<readonly [GameSource, readonly RegExp[]]> = [
-  ["r3e", [/race ?room/, /\br ?3 ?e\b/, /\brre\b/, /\berre ?(tre|3) ?e\b/]],
-  ["ace", [/assetto corsa evo/, /\bac ?evo\b/, /\bace\b/, /\bevo\b/]],
-  ["ams2", [/automobilista ?(2|due)/, /\bams ?(2|due)\b/]],
+  ["r3e", [/\brace ?room\b/, /\br ?3 ?e\b/, /\brre\b/, /\berre ?(tre|3) ?e\b/]],
+  ["ace", [/\bassetto corsa evo\b/, /\bac ?evo\b/, /\bace\b/, /\bevo\b/]],
+  ["ams2", [/\bautomobilista ?(2|due)\b/, /\bams ?(2|due)\b/]],
 ];
 
 export const matchGame = (text: string): GameSource | null => {
@@ -76,12 +76,21 @@ const GREETING_WORDS = [
 ];
 
 /**
+ * The name is only ever spoken by its first word ("Jarvis Prime" is called
+ * "Jarvis"), so wake detection and prefix stripping must key off the same
+ * token - two separate reads of `assistantName` previously drifted apart on
+ * multi-word names.
+ */
+const wakeToken = (assistantName: string): string =>
+  assistantName.trim().split(/\s+/)[0];
+
+/**
  * True when the name opens the sentence, alone or after greeting words only.
  * ponytail: "dimmi tutto Robert" ends with the name but is a question, so a
  * bare "does it contain the name" test would eat it as a wake call.
  */
 const hasLeadingName = (text: string, assistantName: string): boolean => {
-  const name = normalize(assistantName).split(" ")[0];
+  const name = normalize(wakeToken(assistantName));
   if (!name) return false;
   const tokens = normalize(text).split(" ");
   const i = tokens.indexOf(name);
@@ -94,10 +103,11 @@ const hasLeadingName = (text: string, assistantName: string): boolean => {
  * reaches Claude, and stripping its accents and punctuation would degrade it.
  */
 const stripWakePrefix = (text: string, assistantName: string): string => {
-  const i = text.toLowerCase().indexOf(assistantName.toLowerCase());
+  const token = wakeToken(assistantName);
+  const i = text.toLowerCase().indexOf(token.toLowerCase());
   if (i < 0) return text;
   return text
-    .slice(i + assistantName.length)
+    .slice(i + token.length)
     .replace(/^[\s,.;:!?-]+/, "")
     .trim();
 };
@@ -133,6 +143,13 @@ export const classifyVoiceIntent = (
   text: string,
   assistantName: string,
 ): VoiceIntent => {
+  // Empty/whitespace-only transcript: no wake word, no command, nothing to ask.
+  // `VoiceIntent` has no "ignore" variant (Task 3 consumes this union as-is), so
+  // this is the deliberate answer rather than an accident of the checks below -
+  // the production caller (useVoiceCoach.ts) already gates on `text.trim()`
+  // before reaching here, but the module must not surprise a future caller that
+  // doesn't.
+  if (!text.trim()) return { kind: "freeform", question: "" };
   const wake = hasLeadingName(text, assistantName);
   const body = wake ? stripWakePrefix(text, assistantName) : text;
   // Name and nothing else (at most one filler word left): just a wake call.
