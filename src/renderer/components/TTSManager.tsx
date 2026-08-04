@@ -5,14 +5,15 @@
  * When not: uses Web Speech API (SpeechSynthesisUtterance, it-IT).
  *
  * Priority queue: P1 interrupts current speech, P2/P3 are queued.
- * Post-lap: reads Section [5] of Template v3 (passed as postLapText).
+ * The <sintesi-vocale> extract of a Level-1 analysis arrives through the same
+ * one-shot `announce` slot as any other spoken notice (see sessionStore).
  */
 
 import { useEffect, useRef, useCallback } from "react";
 import { useIPCStore } from "../store/ipcStore";
+import { preprocessTTSText } from "../../shared/format";
 
 type TTSManagerProps = {
-  postLapText: string | null;
   enabled?: boolean;
   azureEnabled?: boolean;
   assistantName?: string;
@@ -33,7 +34,6 @@ const toArrayBuffer = (data: unknown): ArrayBuffer => {
 };
 
 const TTSManager = ({
-  postLapText,
   enabled = true,
   azureEnabled = false,
   assistantName = "Aria",
@@ -41,7 +41,6 @@ const TTSManager = ({
 }: TTSManagerProps) => {
   const queueRef = useRef<QueuedUtterance[]>([]);
   const speakingRef = useRef(false);
-  const lastPostLapRef = useRef<string | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const welcomeSpokenRef = useRef(false);
 
@@ -86,7 +85,11 @@ const TTSManager = ({
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(item.text);
+    // The Azure path preprocesses in the main process (synthesizeAzure); here the
+    // renderer does it, else the it-IT voice reads "55.020" as a thousands group.
+    const utterance = new SpeechSynthesisUtterance(
+      preprocessTTSText(item.text),
+    );
     utterance.lang = "it-IT";
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
@@ -144,15 +147,8 @@ const TTSManager = ({
     [enabled, stopCurrent, speakNext],
   );
 
-  // React to new post-lap text
-  useEffect(() => {
-    if (!postLapText || postLapText === lastPostLapRef.current) return;
-    lastPostLapRef.current = postLapText;
-    enqueue(postLapText, 3);
-  }, [postLapText, enqueue]);
-
-  // One-shot announcements (e.g. session-open outcome). Cleared after enqueue so
-  // an identical message can fire again next time.
+  // One-shot announcements (session-open outcome, Level-1 <sintesi-vocale>).
+  // Cleared after enqueue so an identical message can fire again next time.
   const announce = useIPCStore((s) => s.announce);
   const setAnnounce = useIPCStore((s) => s.setAnnounce);
   useEffect(() => {

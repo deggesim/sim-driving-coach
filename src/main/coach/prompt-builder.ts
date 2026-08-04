@@ -1,9 +1,10 @@
 /**
- * Builds the Claude API prompt for session-level analysis (Template v3 output).
+ * Builds the Claude API prompts for session-level analysis.
  *
  * Output format: Italian, engineer tone, numeric data always included.
- * Exposes buildSessionPrompt + SESSION_SYSTEM_PROMPT (consumed by SessionCoachEngine)
- * and getSignificantZones (zone filtering shared with the session prompt).
+ * Level 2 ("Analisi approfondita") = buildSessionPrompt + SESSION_SYSTEM_PROMPT;
+ * both share buildSessionContext, which injects the authoritative stats block.
+ * Also exposes getSignificantZones (zone filtering shared with the session prompt).
  */
 
 import { BRAKE_TEMP } from "../../shared/alert-types.js";
@@ -18,6 +19,7 @@ import type {
   SessionAnalysisRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import type { SessionStats } from "./session-stats.js";
 
 /**
  * Select zones that are "interesting" for the analysis:
@@ -43,112 +45,66 @@ export const SESSION_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto che anal
 Rispondi SEMPRE in italiano con tono tecnico da ingegnere. Includi SEMPRE dati numerici specifici (durate in secondi, delta secondi, PSI/kPa, km/h, percentuali).
 I dati di telemetria riportano durate in millisecondi (1 campione = 16ms). Converti SEMPRE in secondi quando citi questi valori (es. 160ms → 0.16s).
 
+I numeri esatti della sessione (tempi giro, ∆, convergenza, conteggi alert, durate aiuti) sono nel blocco "## Dati Calcolati" del messaggio utente: CITA quei numeri, NON ricalcolarli. L'unico numero che DEVI stimare tu è l'impatto in secondi/giro (giudizio derivato dai dati).
+
 Analizzi più giri e più setup caricati nella sessione. Devi:
-- Identificare trend (miglioramento/peggioramento tra giri).
+- Identificare i trend (miglioramento/peggioramento tra giri), coerenti con il campo Trend dei Dati Calcolati.
 - Confrontare l'effetto dei diversi setup caricati (se più di uno) sulla telemetria e sui tempi.
 - Segnalare problemi ricorrenti per curva con volume di alert.
-- Se esistono analisi precedenti nella sessione, tieni conto di quanto già detto e aggiungi nuove osservazioni o conferma/smentisci raccomandazioni.
+- Se esistono analisi precedenti nella sessione, tenerne conto e confermare/aggiornare i consigli.
 
-Usa il simbolo ∆ per i delta di tempo. Esprimi sempre le durate in secondi (es. "0.16s di overlap freno/gas"). Calcola sempre l'impatto stimato in secondi per giro.
-Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo di 1:16.322" oppure "il tempo di 58.322s"). Non usare mai l'articolo apostrofato davanti al numero (mai "l'1:16").
-
----
-
-## FORMATO OBBLIGATORIO - Template v3
-
-### [1] Analisi Telemetria
-
-**Panoramica Sessione:**
-Paragrafo con: numero giri, setup utilizzato/i, trend direzionale della sessione. Includi tutti i tempi giro con ∆ rispetto al giro precedente e percentuale di convergenza.
-
-**Trend Giri:**
-Lista bullet, uno per transizione Giro N→N+1. Descrivi la causa meccanica del miglioramento/peggioramento (es. stabilizzazione gomme, gestione termica freni, cambio setup).
-
-**Curve Critiche (per volume di alert):**
-Lista numerata, ordinata per numero totale di alert. Formato per ogni voce:
-  @XXXm NomeCurva: N alert (tipo+durata in secondi, tipo+durata in secondi, …). Causa probabile e comportamento del pilota.
-
-**Osservazioni Pressioni Gomme:** (ometti se dati non disponibili)
-Valori FL/FR/RL/RR in PSI/kPa, margine operativo, valutazione bilanciamento ant/post.
-
-**Dati Critici Mancanti:** (ometti se nessuno)
-Riporta onestamente quali dati non erano disponibili (es. settori S1/S2/S3, temperature freni) e il loro impatto sull'analisi.
+Usa il simbolo ∆ per i delta di tempo. Esprimi sempre le durate in secondi (es. "0.16s di overlap freno/gas").
+Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo di 1:16.322"). Non usare mai l'articolo apostrofato davanti al numero (mai "l'1:16").
 
 ---
 
-### [2] Problemi Identificati
+## FORMATO OBBLIGATORIO
 
-Tabella markdown con colonne: Rank | Problema | Localizzazione | Alert Count | Impatto Stim.
-- Rank: numero progressivo per impatto decrescente
-- Localizzazione: @XXXm NomeCurva (più localizzazioni separate da virgola)
-- Alert Count: numero di alert + descrizione tipo
-- Impatto Stim.: range in secondi/giro (es. -0.15 a -0.25s/giro)
+Produci un'unica sezione radice "## Analisi approfondita" con queste sottosezioni di livello "###".
+Eventuali ulteriori suddivisioni interne devono usare "####": NON introdurre altre intestazioni "##" oltre a "Analisi approfondita".
 
-**Dettagli per Curva:**
-Lista bullet, una per curva critica. Formato:
-  @XXXm NomeCurva (NomeUfficiale se disponibile): descrizione comportamento con dati numerici (entry speed, ∆ sterzata %, durate in secondi). Causa meccanica e impatto teorico sul delta.
+### Analisi telemetria
+Panoramica sessione (numero giri, setup, trend direzionale). Trend giro-per-giro con la causa meccanica del miglioramento/peggioramento. Curve critiche per volume di alert nel formato "@XXXm NomeCurva: N alert (tipo+durata in secondi, …), causa probabile". Osservazioni pressioni gomme (ometti se non disponibili). Dati critici mancanti (ometti se nessuno).
 
-**Pattern Sistemico:**
-Paragrafo di analisi trasversale: confronto alert tra giri, distinzione tra miglioramento da apprendimento pilota vs da gestione termica vs da setup.
+### Problemi identificati
+Tabella markdown: Rank | Problema | Localizzazione | Alert Count | Impatto Stim.
+Poi "Dettagli per curva" (un bullet per curva critica, con entry speed, ∆ sterzata %, durate in secondi, causa meccanica) e "Pattern sistemico" (analisi trasversale: apprendimento pilota vs gestione termica vs setup).
 
-
----
-
-### [3] Setup Attuale vs Proposto
-
-(Ometti l'intera sezione se nessun setup è stato caricato.)
-
-**Setup "NomeSetup" Analisi:** (usa il nome esatto del setup dal contesto dati, non un numero sequenziale)
-Tabella markdown con colonne: Parametro | Valore | Valutazione
-Includi tutti i parametri rilevanti: sterzo, ripartizione freno, ARB, molle, ammortizzatori, campanatura, TC/ABS, ala posteriore, pressioni gomme.
-
-**Proposte Concrete:**
-Lista numerata. Per ogni proposta:
-  N. **Descrizione modifica (Parametro: ValoreAttuale → ValoreNuovo):**
-  Paragrafo con razionale meccanico, collegamento agli alert specifici (tipo @XXXm, durata in secondi), effetto atteso.
-
-**Sintesi Setup:**
-Paragrafo riassuntivo: punti di forza del setup attuale e trade-off sfavorevoli identificati.
-
-
----
-
-### [4] Raccomandazioni Modifiche
-
-**Azioni Concrete per Prossimi Giri:**
-
-Per ogni modifica usa un H3 con label di priorità:
-#### Modifica Prioritaria N: DescrizioneBreve (Parametro VecchioValore → NuovoValore)
-- **Razionale:** percentuale di variazione, effetto meccanico atteso, collegamento agli alert specifici.
-- **Implementazione:** numero setup da caricare, parametri da modificare.
-- **Target:** alert/metriche da eliminare (es. "alert sterzata anomala delta >10% scompaiono").
-- **Giro di verifica:** quando e dove verificare l'effetto (curva specifica, entry speed).
-- **Metrica di successo:** dato numerico misurabile (es. "overlap freno/gas <0.05s; velocità exit +2 km/h").
-- **Cautela:** (solo se la modifica ha rischi o effetti collaterali da monitorare)
-
-Usa label "Prioritaria" per modifiche setup che impattano >0.10s/giro, "Secondaria" per 0.05-0.10s, "Terziaria" per <0.05s o condizionali.
-
----
-
-### [5] Sintesi e Prossimo Step
-
-Paragrafo unico, massimo 3 frasi, SENZA markdown (no asterischi, no grassetto, no bullet).
-Menziona: problema più critico con dato numerico specifico, setup o parametro da caricare, tempo target atteso nel giro di validazione.
-Questa sezione viene letta ad alta voce - NO elenchi, NO tabelle, NO intestazioni.
+### Setup attuale vs proposto
+(OMETTI l'intera sottosezione se nessun setup è stato caricato.)
+Tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti. Poi proposte concrete numerate: "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro.
 
 ---
 
 ## Regole Generali
-- NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare, NON aggiungere nomi da conoscenza esterna del circuito (es. "Bus Stop", "Canada Corner", ecc. non presenti nell'elenco). Se una zona non ha nome nell'elenco, usa SOLO "@XXXm" senza alcun nome aggiuntivo.
+- NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C). Se valore = -1, ignora.
 - Pressioni gomme: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI).
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
-- Ogni affermazione deve essere supportata da almeno un dato numerico proveniente dalla telemetria.
-- Unità di misura OBBLIGATORIE per il TTS: scrivi SEMPRE l'unità accanto al numero. Distanze: "XXXm" (mai solo "XXX"). Delta tempi: "X secondi" oppure "X s" (mai solo "X" o "~X"). Esempio corretto: "frenata ritardata di 24m", "puoi guadagnare ~0.2 secondi". Il TTS legge "m" come "metri" e "s" come "secondi".
+- Ogni affermazione deve essere supportata da almeno un dato numerico.
+- Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
 
-## Sezioni obbligatorie
-Le sezioni [1], [3], [4] e [5] devono essere SEMPRE presenti, qualunque sia la quantità di dati disponibili.
-La sezione [2] è l'UNICA che può essere omessa (solo se nessun setup è stato caricato).`;
+Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se nessun setup è caricato.`;
+
+export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
+I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
+
+Output ESATTO: una sezione radice "##" con una sottosezione "###" seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
+
+## Analisi sintetica
+Un paragrafo condensato: diagnosi della sessione con i dati chiave (problema più critico con numeri, trend giri). È già la sintesi — nessuna etichetta "Sintesi".
+
+### Azioni suggerite
+Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una o due righe ciascuna:
+1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
+2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
+
+Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
+<sintesi-vocale>
+Massimo 3 frasi, SENZA markdown (no asterischi, no elenchi, no intestazioni). Menziona il problema più critico con un dato numerico e l'azione principale.
+</sintesi-vocale>
+
+Regole: nomi curva SOLO dalla whitelist "## Nomi Curve Autorizzati" (altrimenti "@XXXm"); unità sempre esplicite ("XXXm" per le distanze, "X secondi"/"X s" per i tempi).`;
 
 /** Aggregate brake temps across all zones of a lap (best-effort from zones_json). */
 const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
@@ -215,6 +171,61 @@ const summarizeLapZones = (
   return lines;
 };
 
+/**
+ * Authoritative numeric facts block, injected verbatim into both prompts.
+ * The system prompts instruct the model to cite these numbers and never recompute.
+ */
+export const buildStatsBlock = (stats: SessionStats): string => {
+  const lines: string[] = [];
+  lines.push(
+    `## Dati Calcolati (autorevoli — cita questi numeri, NON ricalcolare)`,
+  );
+  lines.push(
+    `- Giri: ${stats.lapCount} (analizzabili: ${stats.analyzableLapCount}) · Trend: ${stats.trend}` +
+      (stats.bestLap != null
+        ? ` · Miglior giro: ${formatLapTime(stats.bestLap)}`
+        : ""),
+  );
+  lines.push(`- Setup caricati: ${stats.setupCount}`);
+  if (stats.laps.length > 0) {
+    lines.push(`- Tempi giro:`);
+    for (const l of stats.laps) {
+      const dp =
+        l.deltaPrevSec == null
+          ? "—"
+          : `${l.deltaPrevSec >= 0 ? "+" : ""}${l.deltaPrevSec.toFixed(3)}s`;
+      lines.push(
+        `  - Giro ${l.lapNumber}: ${formatLapTime(l.lapTime)} ` +
+          `(∆prec ${dp}, gap best +${l.deltaBestSec.toFixed(3)}s / +${l.gapToBestPct.toFixed(2)}%)` +
+          `${l.valid ? "" : " [non valido]"}` +
+          `${l.setupLabel ? ` [setup "${l.setupLabel}"]` : ""}`,
+      );
+    }
+  }
+  if (stats.criticalCorners.length > 0) {
+    lines.push(`- Curve critiche (ordinate per numero di alert):`);
+    for (const c of stats.criticalCorners) {
+      const label = c.cornerName
+        ? `${c.cornerName} (@${c.dist}m)`
+        : `@${c.dist}m`;
+      const types = Object.entries(c.alertsByType)
+        .map(([t, n]) => `${t}×${n}`)
+        .join(", ");
+      const bits = [
+        `${c.alertCount} alert (${types})`,
+        `v.min ${c.minSpeedKmh.toFixed(0)}km/h`,
+        `freno ${(c.maxBrakePct * 100).toFixed(0)}%`,
+      ];
+      if (c.tcEvents > 0) bits.push(`TC ${c.tcEvents}ev/${c.tcMs}ms`);
+      if (c.absEvents > 0) bits.push(`ABS ${c.absEvents}ev/${c.absMs}ms`);
+      if (c.overlapMs > 0) bits.push(`overlap ${c.overlapMs}ms`);
+      lines.push(`  - Zona ${c.zone} ${label}: ${bits.join(", ")}`);
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
+};
+
 export type SessionPromptInput = {
   session: SessionRow;
   laps: LapRow[]; // ordered by lap_number asc
@@ -227,9 +238,24 @@ export type SessionPromptInput = {
   alerts?: Alert[];
   leaderboardMode?: boolean;
   fixedSetup?: boolean;
+  stats: SessionStats;
+  // Level 2 only: the Level-1 output of the analysis being expanded. Not part of
+  // priorAnalyses, which excludes the current version by design (beforeVersion).
+  currentSynthesis?: string;
 };
 
-export const buildSessionPrompt = (input: SessionPromptInput): string => {
+/**
+ * Push injected markdown below its wrapper heading. Analysis text carries its own
+ * `## Analisi sintetica` / `## Analisi approfondita`, and injecting it verbatim
+ * puts a second copy of the exact headings the model is asked to produce at the
+ * same level as its own output - so it either continues the wrong hierarchy or
+ * treats the section as already written.
+ */
+export const nestHeadings = (md: string, levels: number): string =>
+  md.replace(/^(#{1,6} )/gm, "#".repeat(levels) + "$1");
+
+/** Shared data context for both analysis levels (no closing instruction). */
+const buildSessionContext = (input: SessionPromptInput): string => {
   const {
     session,
     laps,
@@ -258,7 +284,7 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     }
     if (fixedSetup) {
       parts.push(
-        `- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. Tutte le altre raccomandazioni di setup (sospensioni, aerodinamica, differenziale, ecc.) non sono applicabili - ometti o segnala esplicitamente questa limitazione nella sezione [3] e [4].`,
+        `- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. Tutte le altre raccomandazioni di setup (sospensioni, aerodinamica, differenziale, ecc.) non sono applicabili - ometti o segnala esplicitamente questa limitazione nelle proposte di setup.`,
       );
     }
   }
@@ -352,26 +378,42 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     });
     if (setups.length > 1) {
       parts.push(
-        `Confronta i setup sopra elencati in sezione [2] evidenziando le differenze e l'impatto sulla telemetria dei giri associati.`,
+        `Confronta i setup sopra elencati evidenziando le differenze e l'impatto sulla telemetria dei giri associati.`,
       );
       parts.push("");
     }
   } else {
     parts.push(
-      `## Setup\nNessun setup caricato in sessione. Ometti la sezione [2] o proponi suggerimenti generici.`,
+      `## Setup\nNessun setup caricato in sessione. Ometti le proposte di setup o limitati a suggerimenti generici.`,
     );
     parts.push("");
   }
 
   if (priorAnalyses.length > 0) {
-    parts.push(`## Analisi precedenti (riassunto)`);
+    // The most recent prior analysis goes in whole (synthesis + deep-dive when
+    // it exists), older ones stay as their 3-sentence voice summary. The system
+    // prompts ask to "confermare/aggiornare i consigli", and the concrete setup
+    // proposals live in `detail`: a voice summary cannot carry them, so with
+    // summaries alone the model re-derived or re-proposed them blind.
+    // ponytail: no cap on `detail`. A deep-dive that hit the 32000-token ceiling
+    // is injected whole; slice it, or keep only its "Setup attuale vs proposto"
+    // subsection, if the prompt size starts to matter.
+    const latestVersion = priorAnalyses.at(-1)?.version;
+    parts.push(`## Analisi precedenti`);
     for (const a of priorAnalyses) {
-      parts.push(`### Analisi #${a.version} (${a.created_at})`);
-      if (a.section5_summary) {
-        parts.push(`Sintesi: ${a.section5_summary}`);
+      const isLatest = a.version === latestVersion;
+      parts.push(
+        `### Analisi #${a.version} (${a.created_at})` +
+          (isLatest ? ` — la più recente, testo integrale` : ""),
+      );
+      if (isLatest) {
+        parts.push(nestHeadings(a.synthesis, 2));
+        if (a.detail) parts.push("", nestHeadings(a.detail, 2));
+      } else if (a.summary) {
+        parts.push(`Sintesi: ${a.summary}`);
       } else {
-        // Fallback: first ~500 chars of templateV3
-        parts.push(a.template_v3.slice(0, 500));
+        // Fallback: first ~500 chars of the synthesis
+        parts.push(a.synthesis.slice(0, 500));
       }
       if (a.comments && a.comments.length > 0) {
         parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
@@ -402,20 +444,50 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
     parts.push("");
   }
 
-  parts.push(
-    `Produci l'analisi nel formato Template v3. Le sezioni [1], [3], [4] e [5] sono SEMPRE obbligatorie.\n` +
-      `ATTENZIONE: non interrompere la generazione prima di aver completato [4] Raccomandazioni Modifiche e [5] Sintesi e Prossimo Step.\n` +
-      `Se i dati sono pochi, scrivi sezioni più concise - ma NON omettere [4] e [5] in nessun caso.\n` +
-      `[5] deve essere un paragrafo singolo di massimo 3 frasi senza markdown.`,
-  );
+  parts.push(buildStatsBlock(input.stats));
+
   return parts.join("\n");
+};
+
+/** Level 2 (on-demand): full "Analisi approfondita" deep-dive. */
+export const buildSessionPrompt = (input: SessionPromptInput): string => {
+  const context = buildSessionContext(input);
+  // Level 1 of THIS analysis. Without it the deep-dive is written blind to the
+  // synthesis and the actions it must complement - while the closing instruction
+  // below tells it not to repeat them, which it cannot honour unseen.
+  const alreadyProduced = input.currentSynthesis
+    ? `## Livello 1 già prodotto per questa analisi (NON ripeterlo)\n` +
+      `${nestHeadings(input.currentSynthesis, 1)}\n\n`
+    : "";
+  return (
+    context +
+    "\n" +
+    alreadyProduced +
+    `Produci l'analisi come "## Analisi approfondita" con le sottosezioni ` +
+    `"Analisi telemetria", "Problemi identificati" e "Setup attuale vs proposto". ` +
+    `Ometti "Setup attuale vs proposto" SOLO se nessun setup è caricato. ` +
+    `NON produrre la sintesi né le azioni suggerite (già generate a parte). ` +
+    `Cita i numeri dal blocco "## Dati Calcolati".`
+  );
+};
+
+/** Level 1 (always): short "## Analisi sintetica" + "### Azioni suggerite" + <sintesi-vocale>. */
+export const buildSynthesisPrompt = (input: SessionPromptInput): string => {
+  const context = buildSessionContext(input);
+  return (
+    context +
+    "\n" +
+    `Produci SOLO la sezione "## Analisi sintetica" con la sottosezione "### Azioni suggerite", ` +
+    `seguite dal blocco <sintesi-vocale>. Niente tabelle, niente analisi approfondita. ` +
+    `Cita i numeri dal blocco "## Dati Calcolati".`
+  );
 };
 
 export const COMMENT_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Il pilota ha appena letto una tua analisi di sessione e ti lascia un commento per correggerla o chiederti un'integrazione (es. un parametro di setup non modificabile, una valutazione che ritiene errata, una richiesta di approfondimento mirato).
 
 Rispondi SOLO al commento, in italiano, con tono tecnico da ingegnere. Includi dati numerici quando rilevanti.
 La risposta deve essere BREVE e FOCALIZZATA (massimo 4-6 frasi): conferma o correggi la valutazione e, se serve, proponi un'alternativa concreta.
-NON riscrivere l'intera analisi. NON usare le intestazioni del Template v3 ([1], [2], [3], [4], [5]). NON produrre tabelle lunghe: al massimo poche righe markdown se indispensabili.
+NON riscrivere l'intera analisi. NON usare le intestazioni delle sezioni di analisi ("Analisi sintetica", "Azioni suggerite", "Analisi approfondita" e relative sottosezioni). NON produrre tabelle lunghe: al massimo poche righe markdown se indispensabili.
 Se il pilota segnala che un parametro non è modificabile, accetta la correzione e proponi una leva alternativa effettivamente disponibile.`;
 
 export type CommentPromptInput = {
@@ -433,7 +505,7 @@ export const buildCommentPrompt = (input: CommentPromptInput): string => {
   if (input.trackName) parts.push(`- Circuito: ${input.trackName}`);
   parts.push("");
   parts.push(`## Analisi a cui si riferisce il commento`);
-  parts.push(input.analysisText);
+  parts.push(nestHeadings(input.analysisText, 1));
   parts.push("");
   if (input.priorComments.length > 0) {
     parts.push(`## Commenti e integrazioni precedenti su questa analisi`);

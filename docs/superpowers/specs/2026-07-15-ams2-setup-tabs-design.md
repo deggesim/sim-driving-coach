@@ -8,7 +8,7 @@
 I setup AMS2 vengono decodificati dagli screenshot via Claude Vision (`setup:decodeSetup` in `main.ts`) in una `SetupData` con `params: SetupParam[]` (`{ category, parameter, value }`). Oggi:
 
 - Il prompt Vision assegna una `category` **libera**, non standardizzata.
-- La fase _verify_ di `Ams2SetupPicker` mostra una tabella piatta a 3 colonne (Categoria | Parametro | Valore).
+- La fase *verify* di `Ams2SetupPicker` mostra una tabella piatta a 3 colonne (Categoria | Parametro | Valore).
 - `SetupDetailModal` per AMS2 cade nel ramo `else` e usa **`R3eSetupTabs`** (categorie R3E ≠ AMS2 → raggruppamento errato).
 
 Obiettivo: mostrare i setup AMS2 in **3 tab che rispecchiano le schermate di gioco**, ciascuno suddiviso in sezioni, sia nel dettaglio (storico/riuso) sia nell'anteprima subito dopo il decode.
@@ -28,21 +28,21 @@ Obiettivo: mostrare i setup AMS2 in **3 tab che rispecchiano le schermate di gio
 
 ## Struttura tab → sezioni
 
-Tab (etichette in inglese, _come gli screenshot_), sezioni (in italiano):
+Tab (etichette in inglese, *come gli screenshot*), sezioni (in italiano):
 
-| Tab                      | Sezione (categoria)        | Rendering                             |
-| ------------------------ | -------------------------- | ------------------------------------- |
-| **Tyres/Brakes/Chassis** | `Gomme` (per-angolo)       | griglia 4-ruote, header "Gomme"       |
-|                          | `Freni`                    | tabella piatta                        |
-|                          | `Chassis`                  | tabella piatta                        |
-|                          | `Altro` (fallback)         | tabella piatta (solo se presente)     |
-| **Suspension**           | `Sospensioni` (per-angolo) | griglia 4-ruote, header "Sospensioni" |
-|                          | `Anteriore`                | tabella piatta                        |
-|                          | `Posteriore`               | tabella piatta                        |
-|                          | `Sospensioni attive`       | tabella piatta                        |
-| **Drivetrain**           | `Motore/Elettronica`       | tabella piatta                        |
-|                          | `Rapporti del cambio`      | tabella piatta                        |
-|                          | `Differenziale`            | tabella piatta                        |
+| Tab | Sezione (categoria) | Rendering |
+|---|---|---|
+| **Tyres/Brakes/Chassis** | `Gomme` (per-angolo) | griglia 4-ruote, header "Gomme" |
+| | `Freni` | tabella piatta |
+| | `Chassis` | tabella piatta |
+| | `Altro` (fallback) | tabella piatta (solo se presente) |
+| **Suspension** | `Sospensioni` (per-angolo) | griglia 4-ruote, header "Sospensioni" |
+| | `Anteriore` | tabella piatta |
+| | `Posteriore` | tabella piatta |
+| | `Sospensioni attive` | tabella piatta |
+| **Drivetrain** | `Motore/Elettronica` | tabella piatta |
+| | `Rapporti del cambio` | tabella piatta |
+| | `Differenziale` | tabella piatta |
 
 - Un tab viene renderizzato solo se ha almeno un parametro; idem per ogni sezione (come `AceSetupTabs`).
 - Le sezioni per-angolo (`Gomme`, `Sospensioni`) usano la griglia 4-ruote: le ruote FL/FR/RL/RR sono già visibili nella griglia, quindi l'header di sezione è "Gomme"/"Sospensioni".
@@ -99,7 +99,7 @@ Estraggo da `AceSetupTabs.tsx`, invariati:
 ### 4. Wiring
 
 - `SetupDetailModal.tsx`: aggiungo il ramo `game === "ams2" → <Ams2SetupTabs params={row.setup.params} />` (oggi cade su `R3eSetupTabs`). Resta: `ace → AceSetupTabs`, altrimenti `R3eSetupTabs`.
-- `Ams2SetupPicker.tsx` (fase _verify_): sostituisco la tabella piatta (`decodedSetup.params` → `<table>`) con `<Ams2SetupTabs params={decodedSetup.params} />`.
+- `Ams2SetupPicker.tsx` (fase *verify*): sostituisco la tabella piatta (`decodedSetup.params` → `<table>`) con `<Ams2SetupTabs params={decodedSetup.params} />`.
 
 ### 5. CSS
 
@@ -108,14 +108,12 @@ Riuso delle classi `setup-*` esistenti (`setup-nav-tabs`, `setup-tab-body`, `set
 ## Retrocompatibilità
 
 I setup AMS2 già salvati hanno categorie libere. Alla visualizzazione:
-
 - Le categorie che coincidono per caso con il vocabolario (`Freni`, `Sospensioni`, `Gomme`, `Differenziale`, …) finiscono nella sezione giusta.
 - Tutte le altre confluiscono in **"Altro"** (primo tab). Nessun crash, nessuna perdita di dati. Ri-decodificando il setup si ottiene la ripartizione completa.
 
 ## Testing
 
 Self-check runnable (stile assert, senza framework) sulla logica pura:
-
 - `sectionForCategory(category)` → sezione attesa per categorie note; categoria ignota → "Altro".
 - `tabForSection(section)` → tab atteso.
 - Rilevamento ruota: `getWheelKey("Pressione FL") === "FL"`, `getWheelKey("Barra antirollio") === null`.
@@ -125,11 +123,11 @@ Self-check runnable (stile assert, senza framework) sulla logica pura:
 
 ## File toccati
 
-| File                                           | Azione                                                             |
-| ---------------------------------------------- | ------------------------------------------------------------------ |
-| `src/main/main.ts`                             | Prompt Vision: vocabolario categorie fisso + regola suffisso ruota |
-| `src/renderer/components/SetupTabsCommon.tsx`  | **nuovo** — primitive condivise estratte da AceSetupTabs           |
-| `src/renderer/components/AceSetupTabs.tsx`     | Importa le primitive da SetupTabsCommon (comportamento invariato)  |
-| `src/renderer/components/Ams2SetupTabs.tsx`    | **nuovo** — vista a 3 tab AMS2                                     |
-| `src/renderer/components/SetupDetailModal.tsx` | Ramo `ams2 → Ams2SetupTabs`                                        |
-| `src/renderer/components/Ams2SetupPicker.tsx`  | Fase verify: tabella piatta → Ams2SetupTabs                        |
+| File | Azione |
+|---|---|
+| `src/main/main.ts` | Prompt Vision: vocabolario categorie fisso + regola suffisso ruota |
+| `src/renderer/components/SetupTabsCommon.tsx` | **nuovo** — primitive condivise estratte da AceSetupTabs |
+| `src/renderer/components/AceSetupTabs.tsx` | Importa le primitive da SetupTabsCommon (comportamento invariato) |
+| `src/renderer/components/Ams2SetupTabs.tsx` | **nuovo** — vista a 3 tab AMS2 |
+| `src/renderer/components/SetupDetailModal.tsx` | Ramo `ams2 → Ams2SetupTabs` |
+| `src/renderer/components/Ams2SetupPicker.tsx` | Fase verify: tabella piatta → Ams2SetupTabs |

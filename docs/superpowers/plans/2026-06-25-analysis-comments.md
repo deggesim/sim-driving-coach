@@ -33,11 +33,9 @@ npm run lint        # eslint .
 ## File Structure
 
 **Shared**
-
 - `src/shared/types.ts` (mod) — `AnalysisComment`, campo `comments` su `SessionAnalysisRow`, `sessionCommentAnalysis` su `ElectronAPI`.
 
 **Main**
-
 - `src/main/db/db.ts` (mod) — 2 migrazioni `ALTER TABLE … ADD COLUMN comments_json TEXT`.
 - `src/main/db/setup-row.ts` (mod) — `parseAnalysisComments(json): AnalysisComment[]`.
 - `src/main/coach/prompt-builder.ts` (mod) — `COMMENT_SYSTEM_PROMPT`, `buildCommentPrompt`, estensione `buildSessionPrompt`.
@@ -46,11 +44,9 @@ npm run lint        # eslint .
 - `src/main/pdf-generator.ts` (mod) — render commenti nel PDF.
 
 **Preload**
-
 - `src/preload/index.ts` (mod) — espone `sessionCommentAnalysis`.
 
 **Renderer**
-
 - `src/renderer/lib/audio.ts` (new) — `pickMimeType`, `convertToWav` (estratti da `useVoiceCoach`).
 - `src/renderer/hooks/useVoiceCoach.ts` (mod) — importa da `lib/audio`.
 - `src/renderer/store/sessionStore.ts` (mod) — metodo `commentAnalysis`.
@@ -64,13 +60,11 @@ npm run lint        # eslint .
 ### Task 1: Tipi condivisi + fixup literal
 
 **Files:**
-
 - Modify: `src/shared/types.ts` (blocco `SessionAnalysisRow` ~233-240; `ElectronAPI` dopo `sessionDeleteAnalysis` ~479-482)
 - Modify: `src/renderer/mocks/mockData.ts` (literal `ANALYSIS_R3E` ~46-48 e `ANALYSIS_ACE` ~89-91)
 - Modify: `src/main/coach/session-coach.ts` (literal di ritorno di `analyzeSession` ~223-230)
 
 **Interfaces:**
-
 - Produces:
   - `type AnalysisComment = { comment: string; response: string; created_at: string }`
   - `SessionAnalysisRow.comments: AnalysisComment[]`
@@ -103,11 +97,11 @@ export type SessionAnalysisRow = {
 In `src/shared/types.ts`, subito dopo il blocco `sessionDeleteAnalysis: (...) => Promise<void>;`:
 
 ```ts
-sessionCommentAnalysis: (params: {
-  id: number;
-  game: GameSource;
-  comment: string;
-}) => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
+  sessionCommentAnalysis: (params: {
+    id: number;
+    game: GameSource;
+    comment: string;
+  }) => Promise<{ ok: boolean; reason?: string; analysis?: SessionAnalysisRow }>;
 ```
 
 - [ ] **Step 3: Aggiorna i literal mock**
@@ -124,15 +118,15 @@ In `src/renderer/mocks/mockData.ts`, aggiungi `comments: [],` dopo `created_at` 
 In `src/main/coach/session-coach.ts`, nel literal `const analysis: SessionAnalysisRow = { … }` di `analyzeSession`, aggiungi `comments: [],` dopo `created_at: createdAt,`:
 
 ```ts
-const analysis: SessionAnalysisRow = {
-  id: Number(result.lastInsertRowid),
-  session_id: sessionId,
-  version: nextVersion,
-  template_v3: fullText,
-  section5_summary: section5,
-  created_at: createdAt,
-  comments: [],
-};
+      const analysis: SessionAnalysisRow = {
+        id: Number(result.lastInsertRowid),
+        session_id: sessionId,
+        version: nextVersion,
+        template_v3: fullText,
+        section5_summary: section5,
+        created_at: createdAt,
+        comments: [],
+      };
 ```
 
 - [ ] **Step 5: Typecheck**
@@ -152,12 +146,10 @@ git commit -m "feat(types): add AnalysisComment and comments field to analysis r
 ### Task 2: Migrazione DB + parser commenti
 
 **Files:**
-
 - Modify: `src/main/db/db.ts` (array `migrations` in `migrateSchema` ~224-229)
 - Modify: `src/main/db/setup-row.ts` (import ~6; nuova export in fondo)
 
 **Interfaces:**
-
 - Consumes: `AnalysisComment` (Task 1)
 - Produces: `parseAnalysisComments(json: string | null | undefined): AnalysisComment[]`
 
@@ -214,11 +206,9 @@ git commit -m "feat(db): add comments_json column and parseAnalysisComments help
 ### Task 3: Prompt builder per i commenti
 
 **Files:**
-
 - Modify: `src/main/coach/prompt-builder.ts` (import tipi ~10-18; nuova export; sezione "Analisi precedenti" ~365-381)
 
 **Interfaces:**
-
 - Consumes: `AnalysisComment` (Task 1)
 - Produces:
   - `COMMENT_SYSTEM_PROMPT: string`
@@ -295,34 +285,34 @@ export const buildCommentPrompt = (input: CommentPromptInput): string => {
 In `buildSessionPrompt`, nel blocco `if (priorAnalyses.length > 0)`, dentro il `for (const a of priorAnalyses)`, **prima** del `parts.push("")` finale del loop, aggiungi:
 
 ```ts
-if (a.comments && a.comments.length > 0) {
-  parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
-  for (const c of a.comments) {
-    parts.push(`- Pilota: ${c.comment}`);
-    parts.push(`  Integrazione: ${c.response}`);
-  }
-}
+      if (a.comments && a.comments.length > 0) {
+        parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
+        for (const c of a.comments) {
+          parts.push(`- Pilota: ${c.comment}`);
+          parts.push(`  Integrazione: ${c.response}`);
+        }
+      }
 ```
 
 Il loop risultante:
 
 ```ts
-for (const a of priorAnalyses) {
-  parts.push(`### Analisi #${a.version} (${a.created_at})`);
-  if (a.section5_summary) {
-    parts.push(`Sintesi: ${a.section5_summary}`);
-  } else {
-    parts.push(a.template_v3.slice(0, 500));
-  }
-  if (a.comments && a.comments.length > 0) {
-    parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
-    for (const c of a.comments) {
-      parts.push(`- Pilota: ${c.comment}`);
-      parts.push(`  Integrazione: ${c.response}`);
+    for (const a of priorAnalyses) {
+      parts.push(`### Analisi #${a.version} (${a.created_at})`);
+      if (a.section5_summary) {
+        parts.push(`Sintesi: ${a.section5_summary}`);
+      } else {
+        parts.push(a.template_v3.slice(0, 500));
+      }
+      if (a.comments && a.comments.length > 0) {
+        parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
+        for (const c of a.comments) {
+          parts.push(`- Pilota: ${c.comment}`);
+          parts.push(`  Integrazione: ${c.response}`);
+        }
+      }
+      parts.push("");
     }
-  }
-  parts.push("");
-}
 ```
 
 - [ ] **Step 4: Typecheck + lint**
@@ -342,11 +332,9 @@ git commit -m "feat(coach): add comment prompt and surface comments in session p
 ### Task 4: `commentAnalysis` nel SessionCoachEngine
 
 **Files:**
-
 - Modify: `src/main/coach/session-coach.ts` (import ~11-20; type `SessionCoachEngine` ~67-77; load `priorAnalyses` ~159-163; nuovo metodo nel return)
 
 **Interfaces:**
-
 - Consumes: `buildCommentPrompt`, `COMMENT_SYSTEM_PROMPT` (Task 3); `parseAnalysisComments` (Task 2); `AnalysisComment` (Task 1)
 - Produces: `SessionCoachEngine.commentAnalysis(analysisId: number, game: GameSource, comment: string, resolved?: { carName?: string; trackName?: string }) => Promise<SessionAnalysisRow | null>`
 
@@ -361,11 +349,7 @@ import {
   buildCommentPrompt,
   buildSessionPrompt,
 } from "./prompt-builder.js";
-import {
-  parseAnalysisComments,
-  parseSetupRow,
-  tableFor,
-} from "../db/setup-row.js";
+import { parseAnalysisComments, parseSetupRow, tableFor } from "../db/setup-row.js";
 import type {
   Alert,
   AnalysisComment,
@@ -382,28 +366,28 @@ import type {
 In `analyzeSession`, sostituisci il caricamento di `priorAnalyses`:
 
 ```ts
-const priorAnalysesRaw = db
-  .prepare(
-    `SELECT * FROM ${analysesTable} WHERE session_id = ? ORDER BY version ASC`,
-  )
-  .all(sessionId) as Array<{
-  id: number;
-  session_id: number;
-  version: number;
-  template_v3: string;
-  section5_summary: string | null;
-  created_at: string;
-  comments_json: string | null;
-}>;
-const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
-  id: r.id,
-  session_id: r.session_id,
-  version: r.version,
-  template_v3: r.template_v3,
-  section5_summary: r.section5_summary,
-  created_at: r.created_at,
-  comments: parseAnalysisComments(r.comments_json),
-}));
+      const priorAnalysesRaw = db
+        .prepare(
+          `SELECT * FROM ${analysesTable} WHERE session_id = ? ORDER BY version ASC`,
+        )
+        .all(sessionId) as Array<{
+        id: number;
+        session_id: number;
+        version: number;
+        template_v3: string;
+        section5_summary: string | null;
+        created_at: string;
+        comments_json: string | null;
+      }>;
+      const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
+        id: r.id,
+        session_id: r.session_id,
+        version: r.version,
+        template_v3: r.template_v3,
+        section5_summary: r.section5_summary,
+        created_at: r.created_at,
+        comments: parseAnalysisComments(r.comments_json),
+      }));
 ```
 
 - [ ] **Step 3: Dichiara `commentAnalysis` sul type `SessionCoachEngine`**
@@ -411,12 +395,12 @@ const priorAnalyses: SessionAnalysisRow[] = priorAnalysesRaw.map((r) => ({
 In `export type SessionCoachEngine = { … }`, dopo `analyzeSession: (...)`:
 
 ```ts
-commentAnalysis: (
-  analysisId: number,
-  game: GameSource,
-  comment: string,
-  resolved?: { carName?: string; trackName?: string },
-) => Promise<SessionAnalysisRow | null>;
+  commentAnalysis: (
+    analysisId: number,
+    game: GameSource,
+    comment: string,
+    resolved?: { carName?: string; trackName?: string },
+  ) => Promise<SessionAnalysisRow | null>;
 ```
 
 - [ ] **Step 4: Implementa `commentAnalysis` nel return**
@@ -509,11 +493,9 @@ git commit -m "feat(coach): add commentAnalysis method to session coach engine"
 ### Task 5: IPC `session:commentAnalysis` + mapping in `loadSessionDetail`
 
 **Files:**
-
 - Modify: `src/main/main.ts` (import setup-row ~66; `loadSessionDetail` analyses ~536-541; nuovo handler vicino a `session:deleteAnalysis` ~1282-1289)
 
 **Interfaces:**
-
 - Consumes: `sessionCoach.commentAnalysis` (Task 4); `parseAnalysisComments` (Task 2)
 - Produces: canale IPC `"session:commentAnalysis"` → `{ ok, reason?, analysis? }`
 
@@ -530,30 +512,30 @@ import { parseAnalysisComments, parseSetupRow } from "./db/setup-row.js";
 Sostituisci il caricamento `analyses` dentro `loadSessionDetail`:
 
 ```ts
-const analysesRaw = db
-  .prepare(
-    `SELECT * FROM ${t("session_analyses", game)} WHERE session_id = ? ORDER BY version ASC`,
-  )
-  .all(sessionId) as Array<{
-  id: number;
-  session_id: number;
-  version: number;
-  template_v3: string;
-  section5_summary: string | null;
-  created_at: string;
-  comments_json: string | null;
-}>;
-const analyses: SessionAnalysisRow[] = analysesRaw.map((r) => ({
-  id: r.id,
-  session_id: r.session_id,
-  version: r.version,
-  template_v3: r.template_v3,
-  section5_summary: r.section5_summary,
-  created_at: r.created_at,
-  comments: parseAnalysisComments(r.comments_json),
-}));
+    const analysesRaw = db
+      .prepare(
+        `SELECT * FROM ${t("session_analyses", game)} WHERE session_id = ? ORDER BY version ASC`,
+      )
+      .all(sessionId) as Array<{
+      id: number;
+      session_id: number;
+      version: number;
+      template_v3: string;
+      section5_summary: string | null;
+      created_at: string;
+      comments_json: string | null;
+    }>;
+    const analyses: SessionAnalysisRow[] = analysesRaw.map((r) => ({
+      id: r.id,
+      session_id: r.session_id,
+      version: r.version,
+      template_v3: r.template_v3,
+      section5_summary: r.section5_summary,
+      created_at: r.created_at,
+      comments: parseAnalysisComments(r.comments_json),
+    }));
 
-return { session, laps, setups, analyses };
+    return { session, laps, setups, analyses };
 ```
 
 - [ ] **Step 3: Aggiungi l'handler IPC**
@@ -561,46 +543,48 @@ return { session, laps, setups, analyses };
 In `src/main/main.ts`, subito dopo l'handler `ipcMain.handle("session:deleteAnalysis", …)`:
 
 ```ts
-ipcMain.handle(
-  "session:commentAnalysis",
-  async (
-    _event,
-    { id, game, comment }: { id: number; game: GameSource; comment: string },
-  ) => {
-    const text = (comment ?? "").trim();
-    if (!text) return { ok: false, reason: "Commento vuoto." };
+  ipcMain.handle(
+    "session:commentAnalysis",
+    async (
+      _event,
+      { id, game, comment }: { id: number; game: GameSource; comment: string },
+    ) => {
+      const text = (comment ?? "").trim();
+      if (!text) return { ok: false, reason: "Commento vuoto." };
 
-    const apiKey = getAnthropicApiKey();
-    if (!apiKey) {
-      return { ok: false, reason: "API Key Anthropic non configurata." };
-    }
-    sessionCoach.updateApiKey(apiKey);
-    sessionCoach.updateCornerNames(buildCornerMap());
+      const apiKey = getAnthropicApiKey();
+      if (!apiKey) {
+        return { ok: false, reason: "API Key Anthropic non configurata." };
+      }
+      sessionCoach.updateApiKey(apiKey);
+      sessionCoach.updateCornerNames(buildCornerMap());
 
-    const sRow = db
-      .prepare(
-        `SELECT s.car AS car, s.track AS track, s.layout AS layout
+      const sRow = db
+        .prepare(
+          `SELECT s.car AS car, s.track AS track, s.layout AS layout
              FROM ${t("session_analyses", game)} a
              JOIN ${t("sessions", game)} s ON s.id = a.session_id
             WHERE a.id = ?`,
-      )
-      .get(id) as { car: string; track: string; layout: string } | undefined;
-    const resolved = sRow
-      ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
-      : undefined;
+        )
+        .get(id) as
+        | { car: string; track: string; layout: string }
+        | undefined;
+      const resolved = sRow
+        ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
+        : undefined;
 
-    const analysis = await sessionCoach.commentAnalysis(
-      id,
-      game,
-      text,
-      resolved,
-    );
-    if (!analysis) {
-      return { ok: false, reason: "Impossibile generare l'integrazione." };
-    }
-    return { ok: true, analysis };
-  },
-);
+      const analysis = await sessionCoach.commentAnalysis(
+        id,
+        game,
+        text,
+        resolved,
+      );
+      if (!analysis) {
+        return { ok: false, reason: "Impossibile generare l'integrazione." };
+      }
+      return { ok: true, analysis };
+    },
+  );
 ```
 
 - [ ] **Step 4: Typecheck**
@@ -620,11 +604,9 @@ git commit -m "feat(ipc): add session:commentAnalysis handler and map comments i
 ### Task 6: Espone `sessionCommentAnalysis` nel preload
 
 **Files:**
-
 - Modify: `src/preload/index.ts` (vicino a `sessionDeleteAnalysis` ~110-111)
 
 **Interfaces:**
-
 - Consumes: canale `"session:commentAnalysis"` (Task 5)
 - Produces: `electronAPI.sessionCommentAnalysis`
 
@@ -654,12 +636,10 @@ git commit -m "feat(preload): expose sessionCommentAnalysis"
 ### Task 7: Estrai utility audio condivise
 
 **Files:**
-
 - Create: `src/renderer/lib/audio.ts`
 - Modify: `src/renderer/hooks/useVoiceCoach.ts` (rimuovi `pickMimeType` ~118-128 e `convertToWav` ~137-188; importa da `lib/audio`)
 
 **Interfaces:**
-
 - Produces: `pickMimeType(): string`, `convertToWav(blob: Blob): Promise<ArrayBuffer>`
 
 - [ ] **Step 1: Crea `src/renderer/lib/audio.ts`**
@@ -743,7 +723,6 @@ export const convertToWav = async (blob: Blob): Promise<ArrayBuffer> => {
 - [ ] **Step 2: Rimuovi i duplicati da `useVoiceCoach.ts` e importa**
 
 In `src/renderer/hooks/useVoiceCoach.ts`:
-
 1. Cancella la funzione `pickMimeType` (def. locale) e l'intera funzione `convertToWav` (def. locale) con i loro commenti.
 2. Aggiungi in testa, dopo gli import React esistenti:
 
@@ -770,11 +749,9 @@ git commit -m "refactor(renderer): extract shared audio helpers to lib/audio"
 ### Task 8: Metodo `commentAnalysis` nello store
 
 **Files:**
-
 - Modify: `src/renderer/store/sessionStore.ts` (type `State` dopo `deleteAnalysis` ~38; implementazione dopo `deleteAnalysis` ~139-147)
 
 **Interfaces:**
-
 - Consumes: `electronAPI.sessionCommentAnalysis` (Task 6)
 - Produces: `useSessionStore().commentAnalysis(id: number, comment: string) => Promise<void>`
 
@@ -783,7 +760,7 @@ git commit -m "refactor(renderer): extract shared audio helpers to lib/audio"
 In `src/renderer/store/sessionStore.ts`, nel type `State`, dopo `deleteAnalysis: (id: number) => Promise<void>;`:
 
 ```ts
-commentAnalysis: (id: number, comment: string) => Promise<void>;
+  commentAnalysis: (id: number, comment: string) => Promise<void>;
 ```
 
 - [ ] **Step 2: Implementa il metodo**
@@ -827,11 +804,9 @@ git commit -m "feat(store): add commentAnalysis to sessionStore"
 ### Task 9: Componente `AnalysisCommentControls`
 
 **Files:**
-
 - Create: `src/renderer/components/AnalysisCommentControls.tsx`
 
 **Interfaces:**
-
 - Consumes: `useSessionStore().commentAnalysis` (Task 8); `useSettingsStore` (`azureSpeechKey`, `azureRegion`); `convertToWav`, `pickMimeType` (Task 7); `electronAPI.sttTranscribe`
 - Produces: `default export AnalysisCommentControls` con props `{ analysisId: number }`
 
@@ -1032,12 +1007,10 @@ git commit -m "feat(ui): add AnalysisCommentControls (text + voice comment)"
 ### Task 10: Integra i controlli e renderizza i commenti in `AnalysisList`
 
 **Files:**
-
 - Modify: `src/renderer/components/AnalysisList.tsx` (header component ~26-69; map ~168-186)
 - Modify: `src/renderer/styles/global.css` (in coda alla sezione Accordion ~177)
 
 **Interfaces:**
-
 - Consumes: `AnalysisCommentControls` (Task 9); `SessionAnalysisRow.comments` (Task 1)
 
 - [ ] **Step 1: Importa il componente**
@@ -1107,13 +1080,13 @@ const AnalysisAccordionHeader = ({
 Nel render, aggiorna l'uso di `<AnalysisAccordionHeader … />` aggiungendo `analysisId={a.id}`:
 
 ```tsx
-<AnalysisAccordionHeader
-  eventKey={`v${a.version}`}
-  analysisId={a.id}
-  version={a.version}
-  createdAt={a.created_at}
-  onDelete={(e) => handleDeleteClick(e, a.id, a.version)}
-/>
+            <AnalysisAccordionHeader
+              eventKey={`v${a.version}`}
+              analysisId={a.id}
+              version={a.version}
+              createdAt={a.created_at}
+              onDelete={(e) => handleDeleteClick(e, a.id, a.version)}
+            />
 ```
 
 - [ ] **Step 4: Renderizza i commenti sotto il corpo dell'analisi**
@@ -1121,30 +1094,30 @@ Nel render, aggiorna l'uso di `<AnalysisAccordionHeader … />` aggiungendo `ana
 Nella `Accordion.Body` dell'item analisi, dopo il `<div className="deb-content" … />`, aggiungi:
 
 ```tsx
-<Accordion.Body className="overflow-y-auto">
-  <div
-    className="deb-content"
-    // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-    dangerouslySetInnerHTML={{
-      __html: renderedById.get(a.id) ?? "",
-    }}
-  />
-  {a.comments.length > 0 && (
-    <div className="analysis-comments">
-      {a.comments.map((c) => (
-        <div key={c.created_at} className="analysis-comment">
-          <div className="analysis-comment-label">Commento</div>
-          <div className="analysis-comment-text">{c.comment}</div>
-          <div
-            className="analysis-comment-response deb-content"
-            // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
-            dangerouslySetInnerHTML={{ __html: renderMd(c.response) }}
-          />
-        </div>
-      ))}
-    </div>
-  )}
-</Accordion.Body>
+            <Accordion.Body className="overflow-y-auto">
+              <div
+                className="deb-content"
+                // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                dangerouslySetInnerHTML={{
+                  __html: renderedById.get(a.id) ?? "",
+                }}
+              />
+              {a.comments.length > 0 && (
+                <div className="analysis-comments">
+                  {a.comments.map((c) => (
+                    <div key={c.created_at} className="analysis-comment">
+                      <div className="analysis-comment-label">Commento</div>
+                      <div className="analysis-comment-text">{c.comment}</div>
+                      <div
+                        className="analysis-comment-response deb-content"
+                        // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
+                        dangerouslySetInnerHTML={{ __html: renderMd(c.response) }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Accordion.Body>
 ```
 
 - [ ] **Step 5: Aggiungi lo stile dark del commento**
@@ -1196,11 +1169,9 @@ git commit -m "feat(ui): mount comment controls and render comments in AnalysisL
 ### Task 11: Commenti nel PDF
 
 **Files:**
-
 - Modify: `src/main/pdf-generator.ts` (import ~11; `analysesHtml` ~92-98; `<style>` ~102-119)
 
 **Interfaces:**
-
 - Consumes: `SessionAnalysisRow.comments` (Task 1)
 
 - [ ] **Step 1: Importa il tipo**
@@ -1220,28 +1191,28 @@ import type {
 Sostituisci la definizione di `analysesHtml`:
 
 ```ts
-const commentsHtml = (a: SessionAnalysisRow): string =>
-  a.comments.length === 0
-    ? ""
-    : a.comments
-        .map(
-          (c) => `
+  const commentsHtml = (a: SessionAnalysisRow): string =>
+    a.comments.length === 0
+      ? ""
+      : a.comments
+          .map(
+            (c) => `
         <div class="comment-box">
           <div class="comment-label">Commento pilota</div>
           <div class="comment-text">${escapeHtml(c.comment)}</div>
           <div class="comment-response">${postProcess(marked.parse(c.response, { async: false }) as string)}</div>
         </div>`,
-        )
-        .join("");
+          )
+          .join("");
 
-const analysesHtml = analyses
-  .map(
-    (a) => `
+  const analysesHtml = analyses
+    .map(
+      (a) => `
         <h2>Analisi #${a.version} <span class="muted">(${new Date(a.created_at).toLocaleString("it-IT")})</span></h2>
         <div class="analysis-body">${postProcess(marked.parse(a.template_v3, { async: false }) as string)}</div>
         ${commentsHtml(a)}`,
-  )
-  .join("");
+    )
+    .join("");
 ```
 
 - [ ] **Step 3: Aggiungi lo stile PDF**
@@ -1249,30 +1220,10 @@ const analysesHtml = analyses
 Nel blocco `<style>` di `buildSessionHtml`, prima di `.footer`:
 
 ```css
-.comment-box {
-  background: #f4f7fb;
-  border: 1px solid #d0d9e6;
-  border-left: 3px solid #0a3d62;
-  border-radius: 4px;
-  padding: 8px 10px;
-  margin: 8px 0;
-}
-.comment-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  color: #5a6b80;
-  margin-bottom: 3px;
-}
-.comment-text {
-  font-style: italic;
-  color: #333;
-  margin-bottom: 6px;
-  white-space: pre-wrap;
-}
-.comment-response {
-  font-size: 11px;
-  line-height: 1.5;
-}
+  .comment-box { background: #f4f7fb; border: 1px solid #d0d9e6; border-left: 3px solid #0a3d62; border-radius: 4px; padding: 8px 10px; margin: 8px 0; }
+  .comment-label { font-size: 9px; text-transform: uppercase; color: #5a6b80; margin-bottom: 3px; }
+  .comment-text { font-style: italic; color: #333; margin-bottom: 6px; white-space: pre-wrap; }
+  .comment-response { font-size: 11px; line-height: 1.5; }
 ```
 
 - [ ] **Step 4: Typecheck**
@@ -1339,7 +1290,6 @@ Expected: la nuova analisi riflette il commento precedente.
 ## Self-Review
 
 **Spec coverage:**
-
 - Due pulsanti accanto a Elimina (commento/microfono) → Task 9 + Task 10. ✓
 - Modale con textarea, invio alla conferma → Task 9. ✓
 - Commento vocale, invio a fine input → Task 9. ✓

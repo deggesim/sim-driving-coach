@@ -21,7 +21,6 @@
 **Input:** `{ id: number, game: GameSource }`
 
 **Logica:**
-
 1. Conta i giri che referenziano il setup:
    ```sql
    SELECT COUNT(*) AS cnt FROM laps_<game> WHERE setup_id = ?
@@ -32,7 +31,6 @@
 ### Preload (`src/preload/index.ts`)
 
 Aggiunta di:
-
 ```ts
 sessionDeleteSetup: (params: { id: number; game: string }) =>
   ipcRenderer.invoke("session:deleteSetup", params),
@@ -74,7 +72,6 @@ Cambiare il testo del bottone da `"Carica setup"` a `"Gestione setup"`.
 ### `SetupSelectionModal.tsx`
 
 **Stato locale aggiunto:**
-
 ```ts
 type DeleteState =
   | { phase: "idle" }
@@ -93,7 +90,6 @@ const [deleteState, setDeleteState] = useState<DeleteState>({ phase: "idle" });
 - Stato `error` (sulla riga corrispondente): mostra testo rosso sotto la riga: `"Impossibile eliminare: {lapCount} giri usano questo setup"`, con solo bottone `[Annulla]`.
 
 **Interazione con la riga:**
-
 - Il click sulla riga (che apre `SetupDetailModal`) è gestito sulla cella del nome/data, non sull'intera riga `<tr>`, così l'icona cestino non propaga.
 - Quando `deleteState.phase !== "idle"` per una riga, il click sulla riga per aprire il dettaglio è disabilitato per quella riga.
 
@@ -110,11 +106,11 @@ const [deleteState, setDeleteState] = useState<DeleteState>({ phase: "idle" });
 
 ## File modificati
 
-| File                                              | Tipo modifica                                       |
-| ------------------------------------------------- | --------------------------------------------------- |
-| `src/main/main.ts`                                | Nuovo handler `session:deleteSetup`                 |
-| `src/preload/index.ts`                            | Nuovo metodo `sessionDeleteSetup`                   |
-| `src/shared/types.ts`                             | Aggiunta firma in `ElectronAPI` + metodo in `State` |
-| `src/renderer/store/sessionStore.ts`              | Nuovo metodo `deleteSetup`                          |
-| `src/renderer/components/SetupSelectionModal.tsx` | Cestino + stati confirm/error per riga              |
-| `src/renderer/components/AnalysisHeader.tsx`      | Label bottone                                       |
+| File | Tipo modifica |
+|------|---------------|
+| `src/main/main.ts` | Nuovo handler `session:deleteSetup` |
+| `src/preload/index.ts` | Nuovo metodo `sessionDeleteSetup` |
+| `src/shared/types.ts` | Aggiunta firma in `ElectronAPI` + metodo in `State` |
+| `src/renderer/store/sessionStore.ts` | Nuovo metodo `deleteSetup` |
+| `src/renderer/components/SetupSelectionModal.tsx` | Cestino + stati confirm/error per riga |
+| `src/renderer/components/AnalysisHeader.tsx` | Label bottone |

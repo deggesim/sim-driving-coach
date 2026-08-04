@@ -27,12 +27,10 @@
 Move the reusable grid/table primitives out of `AceSetupTabs.tsx` into a shared module so `Ams2SetupTabs` can reuse them. Pure move — no behavior change for ACE.
 
 **Files:**
-
 - Create: `src/renderer/components/SetupTabsCommon.tsx`
 - Modify: `src/renderer/components/AceSetupTabs.tsx`
 
 **Interfaces:**
-
 - Produces (from `SetupTabsCommon`):
   - `WHEEL_KEYS: readonly ["FL","FR","RL","RR"]`, `type WheelKey`
   - `WHEEL_LABELS: Record<WheelKey, string>`
@@ -163,12 +161,10 @@ git commit -m "refactor(setup-tabs): extract shared 4-corner grid primitives"
 The pure, React-free mapping from `category` → section → tab. This is the only non-trivial logic, so it gets a runnable assert.
 
 **Files:**
-
 - Create: `src/renderer/components/ams2-setup-sections.ts`
 - Test (scratch, not committed): `$SCRATCH/check-ams2-sections.mjs`
 
 **Interfaces:**
-
 - Produces:
   - `AMS2_TABS: readonly ["Tyres/Brakes/Chassis","Suspension","Drivetrain"]`, `type Ams2Tab`
   - `type Ams2Section` (the 11 fixed section strings incl. `"Altro"`)
@@ -219,8 +215,7 @@ assert.equal(
 );
 
 // grid sections are real sections
-for (const s of GRID_SECTIONS)
-  assert.ok(seen.has(s), `grid section ${s} missing`);
+for (const s of GRID_SECTIONS) assert.ok(seen.has(s), `grid section ${s} missing`);
 
 console.log("ams2-setup-sections self-check OK");
 ```
@@ -231,7 +226,6 @@ console.log("ams2-setup-sections self-check OK");
 SCRATCH="/c/Users/simon/AppData/Local/Temp/claude/D--Progetti-sim-driving-coach/766a28f3-c4ee-4b55-bb68-1e94f3ec6cd3/scratchpad"
 node "$SCRATCH/check-ams2-sections.mjs"
 ```
-
 Expected: FAIL — `Cannot find module '.../ams2-setup-sections.js'`.
 
 - [ ] **Step 3: Write `ams2-setup-sections.ts`**
@@ -303,7 +297,6 @@ npx tsc --ignoreConfig --module NodeNext --moduleResolution NodeNext --target ES
   --strict --outDir "$SCRATCH" src/renderer/components/ams2-setup-sections.ts
 node "$SCRATCH/check-ams2-sections.mjs"
 ```
-
 Expected: `ams2-setup-sections self-check OK`.
 
 - [ ] **Step 5: Project typecheck + lint**
@@ -325,11 +318,9 @@ git commit -m "feat(ams2-setup): fixed category→tab/section mapping"
 Renders the 3 tabs and their sections from `SetupParam[]`.
 
 **Files:**
-
 - Create: `src/renderer/components/Ams2SetupTabs.tsx`
 
 **Interfaces:**
-
 - Consumes: `ParamTable`, `FourCornerGrid` (Task 1); `AMS2_TABS`, `TAB_SECTIONS`, `GRID_SECTIONS`, `sectionForCategory`, `Ams2Tab`, `Ams2Section` (Task 2); `SetupParam` (`src/shared/types`).
 - Produces: `export default Ams2SetupTabs` — props `{ params: SetupParam[] }`.
 
@@ -430,12 +421,10 @@ git commit -m "feat(ams2-setup): 3-tab setup view component"
 ### Task 4: Wire the component into the two display surfaces
 
 **Files:**
-
 - Modify: `src/renderer/components/SetupDetailModal.tsx`
 - Modify: `src/renderer/components/Ams2SetupPicker.tsx`
 
 **Interfaces:**
-
 - Consumes: `Ams2SetupTabs` default export (Task 3).
 
 - [ ] **Step 1: `SetupDetailModal.tsx` — add the AMS2 branch**
@@ -483,13 +472,11 @@ import Ams2SetupTabs from "./Ams2SetupTabs";
 Replace the params block (the `{decodedSetup.params.length > 0 && ( ... <table className="setup-table"> ... )}` region) with:
 
 ```tsx
-{
-  decodedSetup.params.length > 0 && (
-    <div className="picker-params">
-      <Ams2SetupTabs params={decodedSetup.params} />
-    </div>
-  );
-}
+            {decodedSetup.params.length > 0 && (
+              <div className="picker-params">
+                <Ams2SetupTabs params={decodedSetup.params} />
+              </div>
+            )}
 ```
 
 - [ ] **Step 3: Typecheck + lint**
@@ -511,7 +498,6 @@ git commit -m "feat(ams2-setup): render 3-tab view in detail modal and picker ve
 Make the decode emit the fixed category vocabulary and wheel-suffixed per-corner params, so new decodes populate the tabs correctly.
 
 **Files:**
-
 - Modify: `src/main/main.ts` (the `systemPrompt` inside `ipcMain.handle("setup:decodeSetup", ...)`)
 
 - [ ] **Step 1: Update the prompt**
@@ -557,7 +543,6 @@ git commit -m "feat(ams2-setup): constrain Vision decode to fixed category vocab
 - [ ] **Step 4: Manual integration verification (no automated harness for Vision / renderer)**
 
 With `npm run dev`, AMS2 running, an Anthropic API key configured, and AMS2 setup screenshots captured (F12):
-
 1. Open a session for AMS2 → "Carica setup" → `Ams2SetupPicker` → select the setup screenshots → "Decodifica setup".
 2. In the **verify** phase, confirm the 3 tabs render (Tyres/Brakes/Chassis, Suspension, Drivetrain) with the expected sections; per-corner values appear in the 4-corner grid (Gomme / Sospensioni).
 3. Save the setup, reopen it via `SetupDetailModal` (session detail / setup history) → confirm the same 3-tab view.
@@ -570,7 +555,6 @@ Expected: categories are all within the fixed vocabulary; per-corner params carr
 ## Self-Review
 
 **Spec coverage:**
-
 - 3 tabs + fixed sections → Task 2 (`AMS2_TABS`, `TAB_SECTIONS`) + Task 3 (render). ✓
 - Fixed category vocabulary from decode → Task 5. ✓
 - Per-corner grid via wheel suffix → Task 1 (`FourCornerGrid`/`getWheelKey`) + Task 5 (suffix rule) + Task 2 (`GRID_SECTIONS`). ✓

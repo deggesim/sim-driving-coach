@@ -1,0 +1,7 @@
+# Shared (`src/shared/`)
+
+Loaded when working under `src/shared/`. The full IPC channel table lives in the `ipc-channels` skill.
+
+- **types.ts** — All shared types: `GameSource`, `Alert`, `AlertType`, `AlertPriority`, `Deviation`, `DeviationType`, `GameFrame`, `CompactFrame` (with ACE-only optional fields + world-space `wx`/`wy`/`wz` for track map), `ZoneData` (with ACE-only optional fields), `TrackMapGeometry`, `TrackMapBounds`, `TrackMapRow`, `LapRecord`, `GameStatus`, `SessionRow` (with `ended_at`, `car_class_name`, resolved name fields), `LapRow` (with `setup_id`, `zones_json`), `SessionSetupRow`, `SessionAnalysisRow`, `SessionDetail`, `SessionStartResult`, `SessionListParams`, `SessionListResult`, `SetupData`, `SetupParam`, `R3EFrame`, `CornerEntry`, `CornerNamesMap`, `AzureVoice`, `ElectronAPI`
+- **format.ts** — `formatLapTime(seconds)` (M:SS.mmm), `stripMarkdown(text)`, and `preprocessTTSText(text)` — the Italian number-to-words expansion for TTS (metri, tempi giro, delta in secondi/decimi/centesimi, plus a trailing dot→comma pass for any decimal no unit rule claimed: the it-IT voice reads `55.020` as a thousands group). Lives here, not in `main/tts/`, because **both** TTS paths need it: `synthesizeAzure` in main, and the Web Speech fallback in the renderer (`TTSManager`, `useVoiceCoach`). Covered by `format.selfcheck.ts`
+- **alert-types.ts** — Alert type constants, BRAKE_TEMP thresholds, ANTI_SPAM constants, CALIBRATION_LAPS, POLL_INTERVAL_MS, BASELINE_EMA_ALPHA, DEVIATION_THRESHOLDS

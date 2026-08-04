@@ -11,6 +11,7 @@
 import { faMicrophone } from "@fortawesome/free-solid-svg-icons/faMicrophone";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Card, Spinner } from "react-bootstrap";
+import { stripMarkdown } from "../../shared/format";
 import type { VoiceCoachState } from "../hooks/useVoiceCoach";
 
 type VoiceCoachOverlayProps = {
@@ -67,7 +68,7 @@ const VoiceCoachOverlay = ({
                 </p>
               )}
               <div className="text-light">
-                <p className="mb-0">{answer}</p>
+                <p className="mb-0">{stripMarkdown(answer)}</p>
                 <span className="voice-cursor">|</span>
               </div>
             </>

@@ -491,7 +491,7 @@ const setupPipeline = (): void => {
     db,
     apiKey: getAnthropicApiKey(),
     model: getAnthropicModel(),
-    onChunk: (data) => pushToRenderer("session:analysisChunk", data),
+    onStart: (data) => pushToRenderer("session:analysisStart", data),
     onDone: (data) => pushToRenderer("session:analysisDone", data),
     onError: (message) => pushAppError(message),
   });
@@ -502,7 +502,7 @@ const setupPipeline = (): void => {
     const apiKey = getConfig("anthropicApiKey");
     if (!apiKey) return null;
     if (!voiceCoach) {
-      voiceCoach = createVoiceCoachEngine(db, apiKey, getAnthropicModel());
+      voiceCoach = createVoiceCoachEngine(apiKey, getAnthropicModel());
     }
     return voiceCoach;
   };
@@ -564,8 +564,9 @@ const setupPipeline = (): void => {
       id: number;
       session_id: number;
       version: number;
-      template_v3: string;
-      section5_summary: string | null;
+      synthesis: string;
+      summary: string | null;
+      detail: string | null;
       created_at: string;
       comments_json: string | null;
     }>;
@@ -573,8 +574,9 @@ const setupPipeline = (): void => {
       id: r.id,
       session_id: r.session_id,
       version: r.version,
-      template_v3: r.template_v3,
-      section5_summary: r.section5_summary,
+      synthesis: r.synthesis,
+      detail: r.detail,
+      summary: r.summary,
       created_at: r.created_at,
       comments: parseAnalysisComments(r.comments_json),
     }));
@@ -1056,13 +1058,10 @@ const setupPipeline = (): void => {
       }
       lastDeviations = deviations;
 
-      // Update voice coach context (full session view refreshed on demand)
+      // Live per-lap slice of the voice context. Setups and analyses are pushed
+      // separately, right before a query, from the active session's detail.
       const zonesJson = JSON.stringify(lapWithNames.zones);
       voiceCoach?.updateContext({
-        game: activeGame,
-        car: lapWithNames.car,
-        track: lapWithNames.track,
-        layout: lapWithNames.layout,
         carName: lapWithNames.carName,
         trackName: lapWithNames.trackName,
         layoutName: lapWithNames.layoutName,
@@ -1252,20 +1251,15 @@ const setupPipeline = (): void => {
       sessionCoach.updateApiKey(apiKey);
       sessionCoach.updateCornerNames(buildCornerMap());
 
-      // Resolve names and read persisted flags from DB
+      // Names only: leaderboard_mode/fixed_setup are read off the same session
+      // row inside loadSessionBundle, so both analysis levels and both callers
+      // of analyzeSession (this one and the voice path) agree by construction.
       const sRow = db
         .prepare(
-          `SELECT car, track, layout, leaderboard_mode, fixed_setup FROM ${t("sessions", game)} WHERE id = ?`,
+          `SELECT car, track, layout FROM ${t("sessions", game)} WHERE id = ?`,
         )
         .get(sessionId) as
-        | {
-            car: string;
-            track: string;
-            layout: string;
-            leaderboard_mode: number;
-            fixed_setup: number;
-          }
-        | undefined;
+        { car: string; track: string; layout: string } | undefined;
       const resolved = sRow
         ? resolveNames(game, sRow.car, sRow.track, sRow.layout)
         : undefined;
@@ -1280,16 +1274,68 @@ const setupPipeline = (): void => {
 
       const alertsForSession =
         sessionId === currentSessionId ? [...sessionAlerts] : undefined;
-      const flags = {
-        leaderboardMode: sRow ? sRow.leaderboard_mode !== 0 : true,
-        fixedSetup: sRow ? sRow.fixed_setup !== 0 : true,
-      };
 
       analyzingInProgress.add(analyzeKey);
       sessionCoach
-        .analyzeSession(sessionId, game, resolved, alertsForSession, flags)
+        .analyzeSession(sessionId, game, resolved, alertsForSession)
         .catch((err) => console.error("[SessionCoach] error:", err))
         .finally(() => analyzingInProgress.delete(analyzeKey));
+
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle(
+    "session:expandAnalysis",
+    async (_event, params: { analysisId: number; game?: GameSource }) => {
+      const game = params.game ?? currentSessionGame;
+      if (!params.analysisId) {
+        return { ok: false, reason: "Nessuna analisi selezionata." };
+      }
+      const apiKey = getAnthropicApiKey();
+      if (!apiKey) {
+        return { ok: false, reason: "API Key Anthropic non configurata." };
+      }
+      sessionCoach.updateApiKey(apiKey);
+      sessionCoach.updateCornerNames(buildCornerMap());
+
+      // session_id comes along for free here and decides the alerts below.
+      const sRow = db
+        .prepare(
+          `SELECT s.id AS session_id, s.car, s.track, s.layout FROM ${t("sessions", game)} s
+           JOIN ${t("session_analyses", game)} a ON a.session_id = s.id
+           WHERE a.id = ?`,
+        )
+        .get(params.analysisId) as
+        | { session_id: number; car: string; track: string; layout: string }
+        | undefined;
+      if (!sRow) return { ok: false, reason: "Analisi non trovata." };
+      const resolved = resolveNames(game, sRow.car, sRow.track, sRow.layout);
+
+      // Same rule as session:analyze: sessionAlerts is in-memory only, so it
+      // describes the current session and nothing else.
+      const alertsForAnalysis =
+        sRow.session_id === currentSessionId ? [...sessionAlerts] : undefined;
+
+      // Resolve the Level-2 model live: anthropicModelDetail override, else base.
+      const detailModel =
+        getConfig("anthropicModelDetail") || getAnthropicModel();
+
+      const expandKey = `expand:${params.analysisId}:${game}`;
+      if (analyzingInProgress.has(expandKey)) {
+        return { ok: false, reason: "Approfondimento già in corso." };
+      }
+      analyzingInProgress.add(expandKey);
+      sessionCoach
+        .expandAnalysis(
+          params.analysisId,
+          game,
+          resolved,
+          alertsForAnalysis,
+          detailModel,
+        )
+        .catch((err) => console.error("[SessionCoach] expand error:", err))
+        .finally(() => analyzingInProgress.delete(expandKey));
 
       return { ok: true };
     },
@@ -1889,8 +1935,8 @@ const setupPipeline = (): void => {
         resolved,
         [...sessionAlerts],
       );
-      if (analysis?.section5_summary) {
-        await speakText(analysis.section5_summary);
+      if (analysis?.summary) {
+        await speakText(analysis.summary);
       } else {
         await speakText("Analisi completata.");
       }
@@ -1904,16 +1950,19 @@ const setupPipeline = (): void => {
       return;
     }
     coach.updateContext({ cornerMap: buildCornerMap() });
-    // Extend context with full session view (setups + analyses)
-    if (currentSessionId) {
-      const detail = loadSessionDetail(currentSessionId, currentSessionGame);
-      if (detail) {
-        coach.updateContext({
-          laps: detail.laps,
-          // voice-coach reads analyses/setups from extended context (set via same updateContext)
-        });
-      }
-    }
+    // Full session view, resolved by id+game rather than re-derived from car and
+    // track: this is the only place that knows WHICH session is active, and a
+    // reopened one is not necessarily the most recently started for that car.
+    // Cleared when no session is open, otherwise the previous one's setups and
+    // analyses would keep answering questions about a session that ended.
+    const detail = currentSessionId
+      ? loadSessionDetail(currentSessionId, currentSessionGame)
+      : null;
+    coach.updateContext({
+      laps: detail?.laps ?? [],
+      setups: detail?.setups ?? [],
+      analyses: detail?.analyses ?? [],
+    });
 
     let fullAnswer =
       "Si è verificato un errore durante l'elaborazione della domanda.";

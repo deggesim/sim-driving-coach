@@ -6,7 +6,10 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist"]),
+  // Build outputs. Compiled .js carries the sources' inline eslint-disable
+  // comments for TS-only rules, which then error as "rule not found" — so
+  // linting them fails the run. Kept in sync with .gitignore.
+  globalIgnores(["dist", "out", "release", ".selfcheck-out"]),
   {
     files: ["**/*.{ts,tsx}"],
 

@@ -4,55 +4,54 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Electron + React app serving as a **real-time voice coach** for sim racing. Supports three simulators: **RaceRoom Racing Experience (R3E)**, **Assetto Corsa EVO (ACE)**, and **Automobilista 2 (AMS2, pCARS2 engine)**. Reads shared memory on Windows, analyzes driving technique, and produces Italian voice alerts during laps. On demand (per session), calls Claude API for a full debriefing in Template v3 format.
+Electron + React app serving as a **real-time voice coach** for sim racing. Supports three simulators: **RaceRoom Racing Experience (R3E)**, **Assetto Corsa EVO (ACE)**, and **Automobilista 2 (AMS2, pCARS2 engine)**. Reads shared memory on Windows, analyzes driving technique, and produces Italian voice alerts during laps. On demand (per session), calls Claude API for a two-tier debriefing: a short synthesis first, a deep-dive only if the user asks for it.
 
 **Language**: All voice output and UI text in Italian. Engineer tone, always include numeric data.
 **Code language**: TypeScript strict mode for all source code. Use `.ts` for main/shared modules and `.tsx` for React components.
+**Code generation**: Ponytail mode active (lazy style) — shortest working code, reuse before abstraction, no speculative features. See Development Tips for details.
 
 ## Commands
 
-```bash
-# Install & rebuild native modules for Electron
-npm install
-npm run rebuild:native
+See `package.json` scripts. The non-obvious parts:
 
-# Dev mode with HMR (electron-vite — starts main + preload + renderer concurrently)
-npm run dev
+- `npm run rebuild:native` is **required after every `npm install`** — `better-sqlite3` must be compiled against Electron's Node version. `koffi` (shared memory FFI) does **not** need rebuilding.
+- `npm run selfcheck` runs the assert-based self-checks (struct offsets, prompt builder, session stats, voice summary) — no sim needed.
+- If TypeScript errors appear in `npm run dev`, stop and run `npm run typecheck` for the full list before restarting.
+- `npm run build:electron` is the only script that produces a distributable; `npm run build` is the Vite bundle alone.
 
-# Preview a production build (electron-vite preview)
-npm start
+## Development Tips
 
-# Type-check without emitting (run before committing)
-npm run typecheck
+### Common Gotchas
 
-# Lint
-npm run lint
+- **Native rebuild forgotten**: After `npm install`, always run `npm run rebuild:native`. Without it, `better-sqlite3` won't load and the app crashes on session start.
+- **TypeScript errors on commit**: Run `npm run typecheck` before committing. Commit hooks may catch errors that passed type-check but break the build.
+- **Struct offset mismatches**: If the reader logs zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Run `npm run selfcheck` to validate the offset arithmetic. There is **no standalone reader harness**: start `npm run dev` with the sim running and read the `[R3E]`/`[ACE]`/`[AMS2]` console lines.
+- **Multi-line commit messages in PowerShell**: `git commit -m @'…'@` with a here-string fails in this environment (`Remove-Item on system path '/' is blocked`). Write the message to a temp file and use `git commit -F <path>` instead.
+- **Prettier is wired up** (`prettier` devDep + `.prettierrc` with defaults): the whole repo is formatted and `npm run format:check` passes clean. Run `npm run format` freely — do **not** hand-match style. `.prettierignore` excludes `out/ dist/ release/ docs/ .claude/ CLAUDE.md`, `r3e-data.json` and `src/main/db/r3e-corners.ts` (vendored/generated).
+- **Session start probes fail ("not-live", "no-data")**: The reader started but `awaitReaderReady(~3s)` timed out. Ensure the sim is running AND emitting live frames (not paused menu). Frame-recency check requires fresh SHM updates.
+- **Mock history mode leaks into production**: Check `settingsStore` `mockHistoryMode` is **always false** before building. Sessions with negative IDs are test data only.
+- **Edits are auto-checked**: a `PostToolUse` hook in `.claude/settings.local.json` runs `.claude/scripts/style-check.mjs` after every Write/Edit — style only, it does **not** run ESLint (that used to be there and cost ~15s per edit; it now runs at commit time, see below). The style check flags `function`/`class` keywords, FontAwesome wildcard imports, and `process.env` in `src/renderer/` — main and preload are Node and **must** use `process.env`. Its messages cite "CODE_STYLE.md", which does not exist in the repo; the rules live in this file and `.claude/rules/project.md`.
+- **ESLint runs at commit time**: husky + lint-staged gate every commit (`.husky/pre-commit` → `npx lint-staged`, config in `.lintstagedrc.mjs`). Staging any `.ts`/`.tsx` file triggers the **full-project** `npm run lint` (~25s) and a non-zero exit aborts the commit; a commit touching no TS at all skips it entirely (~4s). lint-staged is used purely as a filter — the arrow function returning a command string is what stops it appending staged filenames. Full-project is deliberate: `parserOptions.projectService` rebuilds the whole TS program anyway, so per-file linting saves ~10s of a 25s run and adds edge cases. Installed via devDependencies + `"prepare": "husky"`, so a fresh clone inherits the hook on `npm install`. Bypass in an emergency with `git commit --no-verify`.
+- **Adding a self-check**: name it `*.selfcheck.ts` anywhere under `src/` and `scripts/run-selfchecks.mjs` picks it up automatically (it globs `.selfcheck-out/**`). Assert at import time — a throw exits non-zero. `.selfcheck-out` is wiped before each `tsc` run, so deleting a self-check does not leave a ghost compiled copy behind. Current: `ams2-struct`, `format`, `prompt-builder`, `session-stats`, `voice-summary`.
 
-# Format all files (Prettier) / verify formatting without writing
-npm run format
-npm run format:check
+### Code Style Notes
 
-# Production build
-npm run build
-
-# Full distributable build (electron-builder)
-npm run build:electron
-```
-
-Post-install native rebuild is required because `better-sqlite3` needs compilation against Electron's Node version. `koffi` (shared memory FFI) does **not** need rebuilding.
-
-**Note**: `npm run dev` uses electron-vite, which compiles main, preload, and renderer in parallel with HMR. If TypeScript errors occur in main, run `npm run typecheck` to diagnose before starting.
-
-**Formatting**: Prettier runs with default settings — `.prettierrc` is `{}` on purpose, do not add overrides (`endOfLine` included: `.gitattributes` pins the repo to `eol=lf`, which is what keeps `format:check` green on Windows with `core.autocrlf=true`). Generated/vendored files are listed in `.prettierignore`.
-
-**`npm audit` gotcha**: production dependencies are clean (`npm audit --omit=dev` → 0). The ~16 dev-only findings all come from `brace-expansion` 1.x/2.x under `electron-builder` (`@electron/asar` → `glob@7` → `minimatch@3`), which has no patch for those majors. **Do not run `npm audit fix --force`** — it downgrades `electron-builder` to 22.x — and do not override `brace-expansion` globally to 5.x: 5.x exports `expand` as a named CJS export while `minimatch` 3/5/9 require it as a callable default, so the packaging build breaks. Only the `minimatch@>=10` override in `package.json` is safe. Waits on upstream dropping `glob@7`.
+- Code generation follows **Ponytail mode** (lazy style): prefer stdlib over abstractions, reuse existing patterns before writing new ones, no boilerplate.
+- All voice/UI text is in **Italian** (eng tone, numeric data always included).
+- **Bootstrap dark theme only** — override Bootstrap components with `--bg`, `--text`, etc. CSS variables in `global.css`.
 
 ## Architecture
 
 ```
-Active game is picked by the user at session start (GamePickerModal, 3 radios);
-that game's reader is started + probed, runs for the session, and is stopped on
-close. Full contract: "Multi-game" under Key Design Decisions.
+Active game is chosen by the user at session start (GamePickerModal, 3 radios).
+Readers poll SHM ON DEMAND, one at a time: nothing runs while idle. On session
+start / reopen the picked game's reader is started and probed (awaitReaderReady:
+wait for live frames + car/track, ~3s timeout); it keeps running for the session
+and is stopped on close (stopAllReaders → back to zero SHM reads). Connection
+state is frame-recency based (a game is "live" only if it emitted a frame in the
+last ~2.5s, so a closed sim whose SHM survives drops off instead of lingering).
+`activeGame` = the picked game during a session; while idle it holds the last
+picked game (no reader emitting → no live mirroring). No auto-priority selection.
               |
               v
    R3EReader, AceReader, or Ams2Reader (EventEmitter, one active at a time)
@@ -71,10 +70,18 @@ close. Full contract: "Multi-game" under Key Design Decisions.
                              → track_maps table      |
                                                 [User clicks "Esegui analisi"]
                                                      |
-                                          SessionCoachEngine → Claude API → Template v3
-                                                     |                         |
-                                              session_analyses_*         PdfGenerator
+                                       SessionCoachEngine → Claude API → Livello 1
+                                                     |             (Analisi sintetica +
+                                                     |              Azioni suggerite)
+                                              session_analyses_*
                                               (versioned, multiple)
+                                                     |
+                                     [User clicks "Mostra analisi approfondita"]
+                                                     |
+                                     expandAnalysis → Claude API → Livello 2
+                                                     |         (Analisi approfondita,
+                                                     |          written to `detail`)
+                                                PdfGenerator (renders both levels)
 
 Gamepad button held (or keyboard shortcut via InputManager)
     → MediaRecorder (getUserMedia)
@@ -85,208 +92,26 @@ Gamepad button held (or keyboard shortcut via InputManager)
     → VoiceCoachOverlay + Azure TTS playback
 ```
 
-### Main process (`src/main/`)
+### Per-layer file catalogue
 
-- **main.ts** — Electron entry point; wires every IPC handler and owns the three readers (`R3EReader`/`AceReader`/`Ams2Reader`), started and stopped on demand (contract: Multi-game in Key Design Decisions). Reader plumbing that lives only here: `awaitReaderReady(game, ~3s)` (start reader → wait for live frames + car/track, else `not-live`/`no-data` error) called by the async `startSession`/`session:reopen`; `stopAllReaders` on `closeSession` (stop reader + clear car/track globals); `readerRunning` tracking the single active reader, kept in sync by `startReader`/`stopReader`; `isLive(game)` (frame within `LIVE_STALE_MS`) plus a `liveTicker` that re-pushes status so a closed sim drops off the badges
-- **preload** (`src/preload/index.ts`) — Context bridge exposing `window.electronAPI` to renderer. Compiled as CJS by electron-vite (required by `sandbox: true`)
-- **game-adapter.ts** — Projects R3EFrame → GameFrame (unified 7-field struct: lapDistance, tcActive, absActive, brakeTemps FL/FR/RL/RR). ACE and AMS2 readers emit GameFrame natively
-- **input-manager.ts** — Registers global keyboard shortcuts via Electron `globalShortcut`. Fires `onInputTrigger` push event to renderer when the configured key is pressed. Non-Windows stub returns no-ops
-- **lap-recorder.ts** — Attaches to reader, aggregates frames into 50m zones with driving metrics, handles 2-lap calibration phase
-- **zone-tracker.ts** — Stateful tracker for current 50m zone during a lap (feeds RuleEngine real-time checks)
+The per-file descriptions live in directory-scoped memory files, loaded only when
+working under that directory:
 
-#### `r3e/`
-
-- **r3e-struct.ts** — R3E shared memory struct layout (v14.0+, 1324 bytes), Pack=4 alignment, auto-computed offsets, read helpers
-- **r3e-reader.ts** — Opens `$R3E` via `koffi` + kernel32.dll, polls at 16ms, emits `frame`, `lapComplete`, `connected/disconnected`. Auto-enters mock mode on non-Windows
-- **r3e-data-loader.ts** — Loads `r3e-data.json` from the R3E Steam install; resolves numeric IDs → display names for car, track, and layout. Used in prompts and UI; DB always stores numeric IDs for R3E
-
-#### `ace/`
-
-- **ace-reader.ts** — Opens three ACE SHM pages (PhysicsEvo 800B, GraphicsEvo 3940B, StaticEvo 256B) via koffi at 16ms. Emits GameFrame + CompactFrame (with ACE-only fields: rpm, gLat, gLon, tyre pressures, slip ratios, suspension travel). Car/track/layout are readable strings from SHM (e.g. `"ks_porsche_718_gt4"`, `"monza"`). Lap completion detected via `totalLapCount` increment. Mock fallback on non-Windows. **SHM spec:** https://docs.google.com/document/d/1WzqMLkW2o_C0LGcvdMRelAV31ZIifux0CSHD9k6ddz0/edit?tab=t.0
-- **ace-struct.ts** — Struct definitions for all three ACE SHM pages with read helpers
-- **ace-setup-reader.ts** — Decodes binary protobuf `.carsetup` files from `{aceSetupsPath}\{car}\{track}\` — config key `aceSetupsPath`, falling back to `D:\Salvataggi\ACE\Car Setups` (`ACE_SETUPS_DEFAULT` in `main.ts`). Extracts setup params (steering ratio, brake bias, ARBs, dampers, geometry, electronics, aero, fuel, compound). Returns `SetupData` with Italian-labelled params. **Spec:** `ace_carsetup_spec.md` (local, reverse-engineered)
-
-#### `ams2/`
-
-- **ams2-reader.ts** — Opens the single SHM page `$pcars2$` via `koffi`, polls at 16ms. Reads `mSequenceNumber` before and after copying the buffer to detect torn reads (atomic snapshot); frozen sequence number for ~2s while playing → disconnect. Emits GameFrame natively + `lapComplete` (via `mLapsCompleted` increment). Car/track/layout are readable strings from SHM. Mock fallback on non-Windows
-- **ams2-struct.ts** — pCARS2 `SharedMemory` struct layout (`SHARED_MEMORY_VERSION = 14`), Pack=4 alignment, offsets derived from `SharedMemory.h`. Validated by the runnable `ams2-struct.selfcheck.ts` (see Struct Offset Debugging below for the working run command)
-
-#### `coach/`
-
-- **adaptive-baseline.ts** — EMA (alpha=0.3) baseline per zone, detects deviations (LATE_BRAKE, SLOW_THROTTLE, TRAIL_BRAKING, COASTING, BRAKE_THROTTLE_OVERLAP), persists to SQLite. Game-aware (R3E/ACE/AMS2) — queries the per-game table (`baseline_r3e`/`baseline_ace`/`baseline_ams2`, resolved via a `_${game}` suffix, not a `game` column)
-- **rule-engine.ts** — AlertDispatcher (priority queue, P1>P2>P3, dedup per zone/type/lap, 4s silence window) + RuleEngine (frame-level P1/P2, post-lap P3)
-- **session-coach.ts** — On-demand session analysis engine (`createSessionCoachEngine`). Loads all laps + setups + prior analyses for a session, builds session-level prompt, streams Claude response, persists versioned `SessionAnalysisRow` to `session_analyses_*`. Multiple analyses per session supported (incremental version counter). Extracts section [5] (max 3 sentences) for TTS.
-- **prompt-builder.ts** — Builds Claude prompt from session data + laps + setups + deviations + corner names for Template v3 output. Exports `buildSessionPrompt` and `SESSION_SYSTEM_PROMPT`
-- **track-map-builder.ts** — Derives a 2D SVG path of the circuit from a lap's world-space frames (wx/wz). Down-samples to ~100ms intervals, filters outliers, returns `TrackMapGeometry` (svgPath + bounds). Called after lap completion; result persisted to `track_maps` table
-- **voice-coach.ts** — Handles free-form voice queries; builds session context from SQLite (laps, zones, deviations, corner names), streams Claude response in Italian (max 3-4 sentences, radio tone)
-
-#### `tts/`
-
-- **azure-tts.ts** — Azure Cognitive Services TTS REST wrapper (axios). Endpoints: voices list + synthesis + STT transcription. Includes Italian number-to-words preprocessing. Falls back gracefully if Azure is not configured
-
-#### `db/`
-
-- **db.ts** — `better-sqlite3` wrapper. Schema has separate tables for each game (see Database Schema below). Exposes `seedCornersFromLap()` (auto-generates "Curva N" corner names from braking zones), `getTrackMap()` / `saveTrackMap()` (track-map geometry cache)
-- **r3e-corners.ts** — Auto-generated corner seed data for R3E tracks (sourced from sealhud). Do not edit manually. Used by `db.ts` to seed `corner_names`
-- **setup-row.ts** — Shared DB helpers: `tableFor(game, base)` resolves game-specific table names; `parseSetupRow()` deserializes `setup_json`. Used by `main.ts`, `session-coach.ts`, `voice-coach.ts`
-
-#### `pdf-generator.ts`
-
-- Generates session analysis PDFs via Electron's `printToPDF` + HTML/CSS rendering. Accepts session + analyses + setups data
-
-### Renderer (`src/renderer/`)
-
-#### `components/`
-
-- **TitleBar.tsx** — Custom frameless title bar with app icon, tab switcher (current session / session list / settings), TTS mute toggle, and window controls (minimize/maximize/close). Drag region for frameless mode
-- **SessionPanel.tsx** — The single session panel, live and historical. Takes `mode: "live" | "historical"` plus `onSessionClosed` / `onBack` / `onReopened` callbacks. Manages session lifecycle (start/end/reopen), setup loading, on-demand analysis trigger. Composed of `AnalysisHeader` + `LapsTable` + `AnalysisList` + `GamePickerModal` + the game-specific setup pickers. There is no separate `SessionDetail.tsx` — historical detail is this component with `mode="historical"`
-- **RealtimeAnalysis.tsx** — Thin wrapper for the live tab ("Analisi in tempo reale"): calls `sessionStore.loadCurrent()` on mount and renders `<SessionPanel mode="live" />`
-- **AnalysisHeader.tsx** — Session header bar with car/track/status badge and action buttons: [Nuova sessione] [Chiudi sessione] [Carica setup] [Esegui analisi] [Esporta PDF] [Indietro], plus two `Form.Check` switches — "Leaderboard" and "Setup fisso" — persisted via `sessionUpdateFlags`. Reads from `sessionStore`. Game badge via `GameBadge`
-- **GamePickerModal.tsx** — Modal shown on "Nuova sessione": 3 radios (R3E/ACE/AMS2) to declare the running sim. Reads live connection state from `ipcStore` status (frame-recency), preselects the single live sim, and calls `sessionStart(game)` on confirm (Confirm disabled when the selected sim is not live)
-- **GameBadge.tsx** — Shared game-identity badge (`GameSource` → label + colour class). Used in `AnalysisHeader`, `SessionHistory`, `GamePickerModal`, `StatusBar`. Colours in `global.css`: R3E red, ACE azure (light text), AMS2 yellow (dark text)
-- **AnalysisList.tsx** — Accordion of all `SessionAnalysisRow` versions for the current session. Shows a streaming placeholder (with Spinner) while an analysis is in progress. Renders Template v3 markdown via `marked`, the `comments` thread of each analysis, and an `AnalysisCommentControls` per version
-- **AnalysisCommentControls.tsx** — Per-analysis follow-up question, typed or dictated (MediaRecorder → `convertToWav` → Azure STT, auto-stop after 8s). Sends it via `sessionStore.commentAnalysis(id, comment)`; the answer is appended to that analysis's `comments`
-- **LapsTable.tsx** — Bootstrap dark Table listing laps for the current session (lap#, time, sectors, valid flag, setup badge, timestamp). Reads from `sessionStore`. Setup badge shows "#N" index linked to session setups. Row click opens `LapTelemetryCharts`
-- **LapTelemetryCharts.tsx** — Modal/panel with Recharts line charts (brake, throttle, speed vs. lap distance) and a SVG track-map overlay for a selected lap. Fetches frame data via `lapGetFrames` IPC and track geometry via `trackMapGet` IPC
-- **SessionHistory.tsx** — Paginated list of all past sessions (R3E + ACE + AMS2). Columns: Sim, Auto (with class), Circuito, Giri, Best lap, Data, Stato. Filters: game/car/track (Sim filter includes "Automobilista 2"). Sort: date asc/desc. Bulk delete with confirmation modal. Row click → `SessionPanel mode="historical"` inline (back button returns to list). Loads all sessions client-side (up to 500), then filters/paginates in-memory
-- **TTSManager.tsx** — Headless component, Web Speech API (it-IT), priority queue, P1 interrupts. Used for real-time lap alerts when Azure TTS is not enabled
-- **StatusBar.tsx** — Connection status, car/track/layout (resolved names), calibration state, last alert
-- **SettingsPanel.tsx** — All user settings: API key, Anthropic model selector (populated live from the Models API via `anthropicListModels` on mount; a saved model missing from the list is flagged obsolete with a warning `Alert` and kept selectable), assistant name, Azure TTS/STT config, voice selection, keyboard shortcut capture, ACE setups path (`aceSetupsPath`), mock mode toggle. No active-game selector here — the game is chosen per-session at session start via `GamePickerModal`, not in settings
-- **VoiceCoachOverlay.tsx** — Fixed overlay showing voice interaction state: idle (hidden), listening (pulsing mic), processing (spinner + transcript), speaking (streaming answer)
-- **R3eSetupPicker.tsx** — R3E only. Modal to paste the JSON exported by RaceRoom (CTRL+C in the setup screen). Parses JSON into categorised `SetupParam[]` (Italian labels), previews via `R3eSetupTabs`, then saves as `SetupData`
-- **R3eSetupTabs.tsx** — Tabbed display of R3E `SetupParam[]` grouped by category (Freni, Gomme, Sospensioni, etc.). Used inside `R3eSetupPicker` and `SetupDetailModal`
-- **AceSetupTabs.tsx** — Tabbed display of ACE `SetupParam[]` grouped by category (Pneumatici, Elettronica, Carburante e Strategia, Sospensioni, Ammortizzatori, Aerodinamica) with per-wheel value breakdowns. Used inside `AceSetupPicker` and `SetupDetailModal`
-- **Ams2SetupTabs.tsx** — Tabbed display of AMS2 `SetupParam[]` in 3 fixed tabs (Tyres/Brakes/Chassis, Suspension, Drivetrain). Tabs with no parameters are hidden. Section→tab mapping lives in `ams2-setup-sections.ts`
-- **ams2-setup-sections.ts** — AMS2 tab/section lookup tables (`AMS2_TABS`, `SECTION_TO_TAB`, `TAB_SECTIONS`, `GRID_SECTIONS`, `sectionForCategory`). Plain `.ts`, no JSX
-- **SetupTabsCommon.tsx** — Shared primitives for the three `*SetupTabs` components: `WHEEL_KEYS` / `WHEEL_LABELS`, `getWheelKey`, `stripWheelSuffix`, plus the `ParamTable` and `FourCornerGrid` renderers
-- **SetupSelectionModal.tsx** — Modal for loading a setup. Offers two tabs: (1) browse setup history for the current car/track (`sessionGetSetupHistory` IPC → reuse via `sessionReuseSetup`); (2) open the game-specific picker (`R3eSetupPicker` or `AceSetupPicker`). Shows `SetupDetailModal` for preview
-- **SetupDetailModal.tsx** — Read-only modal showing all parameters of a `SessionSetupRow` via `R3eSetupTabs`. Optionally shows a "Usa" button to reuse the setup
-- **AceSetupPicker.tsx** — ACE only. Modal to browse the `aceSetupsPath` folder via 3-step flow: car dropdown → track dropdown → .carsetup file list. IPC calls: `aceListSetupCars`, `aceListSetupTracks`, `aceListSetupFiles`, `aceReadSetup`. Shows a validation badge when the selected car/track doesn't match `expectedCar`/`expectedTrack`
-- **Ams2SetupPicker.tsx** — AMS2 only. Modal to browse Steam screenshots for the AMS2 setup screen (IPC `setup:listScreenshots`), select one or more, then decode via Claude Vision (IPC `setup:decodeSetup`). Flags screenshots already used by a prior setup; shows a validation badge when the detected car doesn't match `expectedCar`
-
-#### `hooks/`
-
-- **useIPC.ts** — Subscribes to push channels (`onFrame`, `onLapComplete`, `onStatus`, `onInputTrigger`, voice channels) and writes to `ipcStore`. Also exposes `useConfig()` (configGet/configSet)
-- **useVoiceCoach.ts** — Integrates keyboard shortcut (via `onInputTrigger`), MediaRecorder (audio capture), Azure STT via IPC, voice query streaming, and Azure/Web Speech TTS playback. State machine: idle → listening → processing → speaking
-- **useSetupPicker.ts** — Manages setup selection UI state (open/close, selected game-specific picker, reuse flow)
-- **useFlash.ts** — Returns a boolean that briefly becomes `true` when triggered (used for visual flash animation on new lap)
-
-#### `lib/`
-
-- **audio.ts** — `pickMimeType()` (first MediaRecorder-supported type) and `convertToWav()` (decode + PCM 16-bit mono re-encode) for the audio Azure STT accepts. Used by `AnalysisCommentControls` and `useVoiceCoach`
-
-#### `loaders/`
-
-- **settingsLoader.ts** — Module-level Promise (`settingsLoaderPromise`) that bulk-loads all config keys from SQLite via IPC at startup and writes them to `settingsStore` in a single `initFromConfig()` call. Stable reference — safe for React 19's `use()` hook to avoid re-suspension
-
-#### `store/`
-
-- **ipcStore.ts** — Zustand store for real-time IPC push state (frame, lastAlert, lastLap, status)
-- **sessionStore.ts** — Zustand store for the active or selected session. Subscribes to `session:*` push channels via `subscribeSessionIPC()` (called once from `App.tsx`). State: `{ mode, session, laps, setups, analyses, streaming, loading, error }`. Methods: `loadCurrent()`, `loadById(id, game)`, `setDetail()`, `reset()`, `commentAnalysis(id, comment)`. Internal `_apply*` handlers for each push event
-- **settingsStore.ts** — Zustand store for all user settings: `apiKey`, `anthropicModel`, `assistantName`, `gamepadButton` (config key: `gamepadTriggerButton`), `ttsEnabled`, `azureTtsEnabled`, `azureSpeechKey`, `azureRegion`, `azureVoiceName`, `mockHistoryMode`, `telemetryLogEnabled`, `keyboardVoiceKey`, `aceSetupsPath`. No `activeGame` field — the game is picked per-session at session start (`GamePickerModal`), not persisted
-
-#### `mocks/`
-
-- **mockData.ts** — Static mock data for `mockHistoryMode`. Exports `MOCK_SESSIONS` (three `SessionRow` entries: R3E BMW M4 GT3 at Nürburgring, ACE Porsche 718 GT4 at Monza, AMS2 Formula Ultimate Gen2 at Interlagos — 3 laps each) and `MOCK_DETAILS` (keyed by negative session id, each with laps + analyses)
-
-### Shared (`src/shared/`)
-
-- **types.ts** — All shared types: `GameSource`, `Alert`, `AlertType`, `AlertPriority`, `Deviation`, `DeviationType`, `GameFrame`, `CompactFrame` (with ACE-only optional fields + world-space `wx`/`wy`/`wz` for track map), `ZoneData` (with ACE-only optional fields), `TrackMapGeometry`, `TrackMapBounds`, `TrackMapRow`, `LapRecord`, `GameStatus`, `SessionRow` (with `ended_at`, `car_class_name`, resolved name fields), `LapRow` (with `setup_id`, `zones_json`), `SessionSetupRow`, `SessionAnalysisRow`, `SessionDetail`, `SessionStartResult`, `SessionListParams`, `SessionListResult`, `SetupData`, `SetupParam`, `R3EFrame`, `CornerEntry`, `CornerNamesMap`, `AzureVoice`, `ElectronAPI`
-- **format.ts** — `formatLapTime(seconds)` utility (M:SS.mmm)
-- **alert-types.ts** — Alert type constants, BRAKE_TEMP thresholds, ANTI_SPAM constants, CALIBRATION_LAPS, POLL_INTERVAL_MS, BASELINE_EMA_ALPHA, DEVIATION_THRESHOLDS
+- `src/main/CLAUDE.md` — main process, incl. `r3e/` `ace/` `ams2/` `coach/` `tts/` `db/` and `pdf-generator.ts`
+- `src/renderer/CLAUDE.md` — `components/` `hooks/` `lib/` `loaders/` `store/` `mocks/`
+- `src/shared/CLAUDE.md` — `types.ts` `format.ts` `alert-types.ts`
 
 ## Database Schema
 
-```sql
--- R3E tables (numeric ids)
-sessions_r3e         (id PK, car, track, layout, session_type, started_at, ended_at, best_lap, lap_count,
-                      leaderboard_mode, fixed_setup)          -- last two added by migrateSchema
-session_setups_r3e   (id PK, session_id FK→sessions_r3e, loaded_at, setup_json, setup_screenshots)
-laps_r3e             (id PK, session_id FK→sessions_r3e, setup_id FK→session_setups_r3e,
-                      lap_number, lap_time, sector1/2/3, valid, zones_json, frames_blob, recorded_at)
-session_analyses_r3e (id PK, session_id FK→sessions_r3e, version, template_v3, section5_summary,
-                      created_at, comments_json)              -- UNIQUE(session_id, version)
-                                                              -- comments_json added by migrateSchema
+Full SQL table reference: invoke the **`db-schema`** skill. Summary: one table set per
+game (suffix `_r3e` / `_ace` / `_ams2`, never a shared table with a `game` column);
+R3E stores numeric car/track/layout IDs, ACE and AMS2 store strings. Resolve table
+names with `tableFor(game, base)` in `src/main/db/setup-row.ts`.
 
--- ACE tables (same structure, string ids)
-sessions_ace / session_setups_ace / laps_ace / session_analyses_ace
+## IPC Channels
 
--- AMS2 tables (same structure, string ids — mirrors ACE)
-sessions_ams2 / session_setups_ams2 / laps_ams2 / session_analyses_ams2
-
--- Per-game baseline / corner-name / track-map tables: one table set per game
--- (suffix _r3e / _ace / _ams2, NOT a shared table with a `game` column).
--- R3E uses INTEGER car/track/layout; ACE and AMS2 use TEXT.
-baseline_<game>           (car, track, layout, zone_id, data JSON, updated_at) -- PK: car+track+layout+zone_id
-baseline_tc_zones_<game>  (car, track, layout, zone_id)
-baseline_abs_zones_<game> (car, track, layout, zone_id)
-corner_names_<game>       (track, layout, dist_min PK, dist_max, name)
-track_maps_<game>         (track, layout PK, geometry JSON, created_at)
-
--- Shared table
-app_config           (key PK, value)
-```
-
-R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `"ks_porsche_718_gt4"` for ACE; `"Interlagos"`, `"Formula Ultimate Gen2"` for AMS2).
-
-`zones_json` on laps stores the serialized `ZoneData[]` for each completed lap (used for baseline and prompt building).
-
-`frames_blob` on laps stores gzip-compressed `CompactFrame[]` (used for telemetry charts and track-map generation on demand).
-
-`session_setups_*` is separate from laps — one session can have multiple setups loaded over time. Each lap row has a `setup_id` FK pointing to which setup was active when the lap was recorded.
-
-`session_analyses_*` supports multiple versioned analyses per session (triggered on demand by the user). `comments_json` holds the follow-up Q&A thread rendered by `AnalysisList`.
-
-**Adding a column**: never edit the `CREATE TABLE` block for an existing table — a shipped DB already exists and `CREATE TABLE IF NOT EXISTS` silently skips it. Append an `ALTER TABLE … ADD COLUMN` to the `migrations` array in `migrateSchema()` (`db.ts`); it runs every startup and swallows the "duplicate column" error, so it is idempotent. `leaderboard_mode` / `fixed_setup` on `sessions_*` and `comments_json` on `session_analyses_*` arrived this way, which is why they are absent from the `CREATE TABLE` statements.
-
-## IPC Channels (`ElectronAPI` in `src/shared/types.ts`)
-
-| Direction | Method / Channel                                                           | Notes                                                                                                |
-| --------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Push      | `onFrame`                                                                  | Main → Renderer, `R3EFrame`                                                                          |
-| Push      | `onLapComplete`                                                            | Main → Renderer, `LapRecord`                                                                         |
-| Push      | `onStatus`                                                                 | Main → Renderer, `GameStatus`                                                                        |
-| Push      | `onAppError`                                                               | Main → Renderer, `app:error` — surfaced main-process error                                           |
-| Push      | `onInputTrigger`                                                           | Keyboard shortcut fired (from `InputManager`)                                                        |
-| Push      | `onVoiceChunk / onVoiceDone / onVoiceAudio`                                | Voice coach streaming                                                                                |
-| Push      | `onSessionStarted`                                                         | `SessionRow`                                                                                         |
-| Push      | `onSessionClosed`                                                          | `{ id, game }`                                                                                       |
-| Push      | `onSessionLapAdded`                                                        | `{ sessionId, game, lap: LapRow }`                                                                   |
-| Push      | `onSessionSetupLoaded`                                                     | `{ sessionId, game, setup: SessionSetupRow }`                                                        |
-| Push      | `onSessionAnalysisChunk`                                                   | `{ sessionId, version, token }` — streaming                                                          |
-| Push      | `onSessionAnalysisDone`                                                    | `{ sessionId, analysis: SessionAnalysisRow }`                                                        |
-| Handle    | `configGet / configSet`                                                    | app_config table                                                                                     |
-| Handle    | `sessionStart`                                                             | Opens new session for the given `GameSource` → `SessionStartResult`                                  |
-| Handle    | `sessionEnd`                                                               | Closes active session                                                                                |
-| Handle    | `sessionUpdateFlags`                                                       | Sets `leaderboard_mode` / `fixed_setup` on a session (defaults to the active one)                    |
-| Handle    | `sessionReopen`                                                            | Reopens a closed session as active → `SessionStartResult`                                            |
-| Handle    | `sessionAnalyze`                                                           | Triggers `SessionCoachEngine` on-demand                                                              |
-| Handle    | `sessionLoadSetup`                                                         | Saves setup to `session_setups_*`, links to active session                                           |
-| Handle    | `sessionGetSetupHistory`                                                   | Past setups for car/track/layout → `SessionSetupRow[]`                                               |
-| Handle    | `sessionReuseSetup`                                                        | Copies an existing setup to the active session                                                       |
-| Handle    | `sessionList`                                                              | Paginated session list → `SessionListResult`                                                         |
-| Handle    | `sessionGetCurrent`                                                        | Current session + laps + setups + analyses → `SessionDetail`                                         |
-| Handle    | `sessionGetDetail`                                                         | Historical session by id+game → `SessionDetail`                                                      |
-| Handle    | `sessionExportPdf`                                                         | Generates PDF → file path                                                                            |
-| Handle    | `sessionDelete`                                                            | Delete single session `{ id, game }`                                                                 |
-| Handle    | `sessionDeleteAll`                                                         | Bulk delete `[{ id, game }]` (transaction)                                                           |
-| Handle    | `sessionDeleteAnalysis`                                                    | Delete a single `SessionAnalysisRow` by id                                                           |
-| Handle    | `sessionDeleteSetup`                                                       | Delete a single `SessionSetupRow` `{ id, game }`                                                     |
-| Handle    | `lapDelete`                                                                | Delete a single lap row `{ id, game }`                                                               |
-| Handle    | `lapGetFrames`                                                             | Decompress `frames_blob` → `CompactFrame[]` for a lap                                                |
-| Handle    | `lapAssignSetup`                                                           | Reassign (or clear) the `setup_id` on a lap row                                                      |
-| Handle    | `trackMapGet`                                                              | Retrieve cached `TrackMapGeometry` for game/car/track/layout                                         |
-| Handle    | `voiceQuery`                                                               | Streaming voice response via `VoiceCoach`                                                            |
-| Handle    | `sttTranscribe`                                                            | Azure STT → transcribed string                                                                       |
-| Handle    | `ttsGetVoices / ttsSynthesize / ttsTest`                                   | Azure TTS                                                                                            |
-| Handle    | `anthropicListModels`                                                      | Live Claude model list (`GET /v1/models`) for the analysis model selector; `[]` on missing key/error |
-| Handle    | `sessionCommentAnalysis`                                                   | Follow-up question on an analysis → answer appended to its `comments`                                |
-| Handle    | `telemetryLogGetDir`                                                       | Returns the path of the telemetry log directory                                                      |
-| Handle    | `aceListSetupCars / aceListSetupTracks / aceListSetupFiles / aceReadSetup` | ACE file-based setup                                                                                 |
-| Handle    | `listScreenshots`                                                          | `setup:listScreenshots` — AMS2 Steam screenshot list (appid `1066890`)                               |
-| Handle    | `decodeSetup`                                                              | `setup:decodeSetup` — AMS2 screenshots → Claude Vision → `SetupData`                                 |
-| Handle    | `readerReset`                                                              | `reader:reset` — restart the reader for a `GameSource`                                               |
-| One-way   | `windowClose / windowMinimize / windowMaximize`                            | Frameless window                                                                                     |
+Full channel table (`ElectronAPI` in `src/shared/types.ts`): invoke the
+**`ipc-channels`** skill.
 
 ## Key Design Decisions (Do Not Change)
 
@@ -298,17 +123,20 @@ R3E stores numeric IDs; ACE and AMS2 store string identifiers (e.g. `"monza"`, `
 - **Setup loading ACE**: `.carsetup` binary files browsed via car→track→file dropdown flow in `AceSetupPicker` → protobuf decode (no Claude Vision). Validation badge warns when selected car/track doesn't match the reference
 - **Setup loading AMS2**: User selects one or more setup-screen screenshots (Steam screenshot folder, auto-detected steamid, appid `1066890`) via `Ams2SetupPicker` → sent to Claude Vision (`claude-sonnet-5`) for OCR/decode into `SetupData`. Distinct from both R3E (JSON paste) and ACE (binary file decode) — this is the only game whose setup import uses Claude Vision
 - **Session lifecycle**: Explicit start/end managed by the user. Laps accumulate in the active session. Setup loads are stored as `session_setups_*` rows and linked to subsequent laps via `setup_id`. Analysis is triggered on demand ("Esegui analisi"), not automatically per-lap
-- **Analysis model**: Session-level, on-demand, versioned. `SessionCoachEngine` reads all laps + setups + prior analyses for the session and produces a new `SessionAnalysisRow`. Multiple analyses per session supported. Section [5] (max 3 sentences) is extracted for TTS playback
-- **Corner names**: R3E is the only game with seed data — `R3E_CORNERS` from `db/r3e-corners.ts`, bulk-inserted into `corner_names_r3e` once (skipped if the table is already populated). ACE and AMS2 have no seed data: `seedCornersFromLap()` auto-generates "Curva N" names from the first lap's braking zones. Corner names are used in prompts and alerts
+- **Analysis model**: Session-level, on-demand, versioned, and **two-tier**. `SessionCoachEngine` reads all laps + setups + prior analyses for the session and produces a new `SessionAnalysisRow`. Multiple analyses per session supported. The `<sintesi-vocale>` block (max 3 sentences) is extracted into `summary` for TTS playback and stripped from the displayed text
+- **Two-tier analysis**: "Esegui analisi" produces **Level 1 only** — `## Analisi sintetica` + `### Azioni suggerite`, non-streaming (`messages.create`, `max_tokens: 2000`), rendered in one shot when complete with the spinner held until then. `## Analisi approfondita` (subsections `### Analisi telemetria`, `### Problemi identificati`, `### Setup attuale vs proposto`) is **Level 2**, fired separately by `session:expandAnalysis`, also non-streaming (`messages.create`, `max_tokens: 32000`), written into the same row's `detail` column. The Level-2 call **must** go through `client.withOptions({ timeout })`: without a client-level timeout the SDK derives one from `max_tokens` and throws "Streaming is required for operations that may take longer than 10 minutes" for any `max_tokens > 21333`, before any HTTP call (a per-request `timeout` does not suppress the guard). Neither level streams: `session:analysisStart` only tells the renderer which version is in flight so it can hold a spinner. The two levels are **additive** — the deep-dive does not repeat "Azioni suggerite", so anything rendering an analysis (UI, PDF) must show synthesis *and* detail, never detail instead of synthesis
+- **Analysis heading hierarchy**: `## Analisi sintetica` and `## Analisi approfondita` are the ONLY root (`##`) sections; everything else nests below (`###` subsections, `####` for anything deeper). `.deb-content` in `global.css` styles h2/h3/h4+ differently, and `nestHeadings()` shifts injected analyses by a fixed amount — a prompt that promotes a subsection back to `##` breaks both. Asserted in `prompt-builder.selfcheck.ts`
+- **Precomputed stats**: exact numbers (lap deltas, convergence, alert counts, aid durations) are computed in TypeScript by `session-stats.ts` and passed to Claude in a "## Dati Calcolati" block, which both system prompts tell it to cite verbatim. Do not move these computations back into the prompt — they were the source of the wrong-arithmetic class of bug this design removes
+- **Corner names**: Seeded from `src/main/db/r3e-corners.ts` for known tracks. For unknown tracks, `seedCornersFromLap()` auto-generates "Curva N" names from braking zones on the first lap. Corner names are used in prompts and alerts
 - **Polling**: 16ms (`setTimeout`, not `setInterval`), reconnect every 2s if sim not running. Readers poll only while running — started on demand for a session, stopped on close (see Multi-game above)
 - **Alerts during lap**: Audio only, alert-driven (no continuous delta). Only fire when there's a problem
 - **Alert priorities**: P1 (safety, immediate, interrupts), P2 (TC/ABS anomaly, immediate, queued), P3 (technique, post-corner, max 1 per zone per lap)
 - **Anti-spam**: Max 1 alert per (zone × type) per lap, 4s silence window, no P3 within 3s of zone entry
 - **Adaptive thresholds**: Auto-calibrate over first 2 laps (skip if baseline exists in DB)
-- **Coach model**: `claude-haiku-4-5-20251001` for both session analysis and voice queries. Model overridable via `anthropicModel` config key (applies to both engines)
+- **Coach model**: `claude-haiku-4-5-20251001` for Level-1 analysis, comments, and voice queries. Overridable via the `anthropicModel` config key (applies to both engines). The **Level-2 deep-dive** has its own optional override, `anthropicModelDetail` — empty string means "use `anthropicModel`"; set it to a stronger model (e.g. `claude-opus-5`) when the deep-dive quality matters more than its cost. **No prompt caching on either level** (a `cache_control` breakpoint on the Level-2 `system` block was tried and removed): the only reusable prefix is the `buildSessionContext` both levels share, and caching *that* means moving the per-level format rules out of the two system prompts into a trailing user block — see the comment in `expandAnalysis` before re-adding it
 - **Zones**: 50m segments along track distance
 - **Brake temp window**: ideal 550°C ±137.5°C (413-688°C). Skip if value is -1 (unavailable)
-- **Session flags (R3E only)**: the "Leaderboard" and "Setup fisso" switches in `AnalysisHeader` persist to `leaderboard_mode` / `fixed_setup` (both **default 1 = on**) and are injected into the analysis prompt by `prompt-builder.ts` — but only when `session.game === "r3e"`, so they are inert for ACE/AMS2. Leaderboard ⇒ tyre temps/pressures are pinned at 85 °C and brake temps may be meaningless, do not flag them as issues. Setup fisso ⇒ only brake bias and brake pressure are adjustable, so sections [3]/[4] must omit or explicitly flag every other setup recommendation
+- **Qualification/Leaderboard**: Tire temps fixed at 85°C — do not flag as issue
 - **Delete**: Single (`sessionDelete`) and bulk (`sessionDeleteAll`) session deletion. Cascade deletes laps, setups, and analyses. Individual analyses can also be deleted via `sessionDeleteAnalysis`
 - **Window**: 1200×800, no frame, contextIsolation: true, nodeIntegration: false
 - **Platform**: Windows only (R3E, ACE, and AMS2 are all Windows-only)
@@ -331,20 +159,21 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 - **Agente** — sottoagente da spawnare per quel sottocompito specifico (`|` = alternativa, scegliere uno)
 - Gli agenti sono sempre sequenziali rispetto alle skill. Il parallelismo tra agenti si attiva solo con `superpowers:dispatching-parallel-agents` quando i sottocompiti sono davvero indipendenti.
 
-| Task                                    | Skill (nell'ordine)                                                                                                                                                        | Agente (uno, in base al bisogno)                                                                                                          |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Nuova feature **semplice**              | `feature-dev:feature-dev` (implementazione guidata)                                                                                                                        | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
-| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` (o `executing-plans`) → `superpowers:verification-before-completion` | agenti di superpowers (es. `Explore` in parallelo via `superpowers:dispatching-parallel-agents`)                                          |
-| Bug fix                                 | `superpowers:systematic-debugging`                                                                                                                                         | `voltagent-qa-sec:debugger` (crash/eccezioni) \| `voltagent-qa-sec:error-detective` (correlazione errori tra moduli)                      |
-| Code review                             | `superpowers:requesting-code-review`                                                                                                                                       | `feature-dev:code-reviewer`                                                                                                               |
-| Refactoring TypeScript / tipi avanzati  | `typescript-advanced-types`                                                                                                                                                | `voltagent-lang:typescript-pro`                                                                                                           |
-| Componente React / hook / store Zustand | `react-vite-best-practices`                                                                                                                                                | `voltagent-lang:react-specialist`                                                                                                         |
-| Electron (IPC, sicurezza, packaging)    | `electron-best-practices`                                                                                                                                                  | `voltagent-core-dev:electron-pro`                                                                                                         |
-| SQLite / query / schema                 | `sqlite-database-expert`                                                                                                                                                   | `voltagent-data-ai:database-optimizer`                                                                                                    |
-| Claude API / Anthropic SDK              | `claude-api`                                                                                                                                                               | `voltagent-data-ai:ai-engineer`                                                                                                           |
-| Fine branch / PR / commit               | `superpowers:finishing-a-development-branch`                                                                                                                               | —                                                                                                                                         |
-| Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                                                                                                  | due o più agenti `Explore` simultanei (es. analisi R3E e ACE in parallelo)                                                                |
-| Verifica prima di completare            | `superpowers:verification-before-completion`                                                                                                                               | —                                                                                                                                         |
+| Task                                    | Skill (nell'ordine)                                                                                 | Agente (uno, in base al bisogno)                                                                                                          |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Nuova feature **semplice**              | `feature-dev:feature-dev` (implementazione guidata)                                                 | `feature-dev:code-architect` se serve progettare nuovi layer/file \| `feature-dev:code-explorer` se serve esplorare il codebase esistente |
+| Nuova feature **complessa**             | `superpowers:brainstorming` → `superpowers:writing-plans` → `superpowers:subagent-driven-development` → `superpowers:verification-before-completion` | agenti in parallelo via `superpowers:dispatching-parallel-agents` (es. 2+ `Explore` per R3E/ACE/AMS2 analysis) |
+| Bug fix                                 | `superpowers:systematic-debugging`                                                                  | `Explore` (narrow search for error pattern) \| `general-purpose` (if correlation across modules needed)                                  |
+| Code review                             | `superpowers:requesting-code-review` o `code-review:code-review`                                   | `feature-dev:code-reviewer`                                                                                                               |
+| Refactoring TypeScript / tipi avanzati  | `simplify` (per semplificare codice) \| `code-simplifier` (per refactoring locale)                 | `code-simplifier` agent oppure handle inline                                                                                              |
+| Componente React / hook                 | `react-vite-best-practices` (prima di implementare)                                                 | `general-purpose` (con react-vite-best-practices skill menzionata nel prompt)                                                              |
+| Store Zustand                           | Nessuna skill: `react-vite-best-practices` copre build/code-splitting Vite, non lo state management. Seguire i pattern in `sessionStore.ts` | `general-purpose` (con il contesto di `src/renderer/CLAUDE.md`, sezione `store/`)                              |
+| Electron (IPC, sicurezza, packaging)    | Menzionare `claude-api` se tocca Claude/Anthropic SDK; altrimenti modifiche IPC/main process       | `general-purpose` (con contesto CLAUDE.md)                                                                                                |
+| SQLite / query / schema                 | `db-schema` (skill: schema SQLite completo)                              | `general-purpose` (con la skill `db-schema` nel prompt)                                                                                                |
+| Claude API / Anthropic SDK              | `claude-api` (SEMPRE, per model IDs, pricing, params, streaming, tool-use, token-counting)         | `general-purpose` (contesto skill fornito da `claude-api`)                                                                                |
+| Fine branch / PR / commit               | `superpowers:finishing-a-development-branch`                                                        | —                                                                                                                                         |
+| Sottocompiti indipendenti in parallelo  | `superpowers:dispatching-parallel-agents`                                                           | due o più `Explore` o `general-purpose` agents simultanei (es. R3E struct audit + ACE setup reader in parallelo)                          |
+| Verifica prima di completare            | `superpowers:verification-before-completion`                                                        | —                                                                                                                                         |
 
 **Soglia semplice vs complessa**: una feature è **semplice** se soddisfa _tutte_ queste condizioni — tocca un solo dominio (solo React, o solo IPC, o solo SQLite…), non introduce nuovi layer/file architetturali (solo modifiche a file esistenti o un singolo file nuovo), il design è già chiaro senza brainstorming, e l'implementazione è stimabile in ≤ ~3 step. Se anche solo una condizione non regge (multi-dominio, nuovi layer/astrazioni, design da concordare, o > ~3 step) è **complessa** → percorso `superpowers` completo.
 
@@ -354,9 +183,5 @@ Prima di iniziare qualsiasi task di sviluppo, invocare la skill corrispondente t
 
 ## Struct Offset Debugging
 
-If telemetry reads all zeros or -1: struct offset mismatch. There is no standalone reader harness — diagnose with `npm run dev` and the main-process console: ACE logs `[AceReader] StaticEvo - smVersion="…" track="…"` on connect, AMS2 logs `[AMS2] connected: mVersion=14 …`. R3E logs nothing on connect (only `[R3EReader] lapComplete - …` per lap), so read its live values off the StatusBar. Then check:
-
-1. `VersionMajor` at offset 0 must be `3` (updated to v3.x for R3E)
-2. If version OK but other fields wrong: `PlayerData` inline size differs from installed R3E version. Compare with `R3E.cs` from SecondMonitor connectors
-3. For ACE: verify `AC_LIVE = 2` in PhysicsEvo status field; if 0, ACE is not running
-4. For AMS2: the `[AMS2] connected: ...` log line must show `mVersion=14`. If `mVersion` is wrong or speed/lapDistance/car/track are zero or garbage, the offsets in `ams2-struct.ts` (`OFF`/`PART`) don't match the installed AMS2 version — compare against `SharedMemory.h` (likely a `PARTICIPANT_SIZE` or struct-padding change), update the offsets, then re-run `ams2-struct.selfcheck.ts` (see its header comment for the working compile-and-run command; `npx ts-node --esm` is broken in this environment)
+Reader emitting zeros, -1, or garbage? Invoke the **`struct-offset-debugging`** skill
+for the per-game runbook (R3E `VersionMajor`, ACE `AC_LIVE`, AMS2 `mVersion=14`).

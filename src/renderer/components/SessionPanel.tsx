@@ -25,7 +25,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
   const status = useIPCStore((s) => s.status);
   const session = useSessionStore((s) => s.session);
   const analyses = useSessionStore((s) => s.analyses);
-  const streaming = useSessionStore((s) => s.streaming);
+  const working = useSessionStore((s) => s.working);
   const { flash, setFlash, showFlash } = useFlash();
   const {
     showPicker,
@@ -52,8 +52,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
     session?.track ??
     (mode === "live" ? status?.track : undefined) ??
     "";
-  const streamingVersion =
-    streaming?.sessionId === session?.id ? streaming : null;
+  const workingVersion = working?.sessionId === session?.id ? working : null;
   const sessionActive = !!session && !session.ended_at;
   const isLive = mode === "live";
 
@@ -174,13 +173,10 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
 
         <div className="flex-grow-1 d-flex flex-column overflow-hidden mt-3 session-analyses-section">
           <h6 className="text-uppercase flex-shrink-0">Analisi</h6>
-          {analyses.length === 0 && !streamingVersion && (
+          {analyses.length === 0 && !workingVersion && (
             <p>Nessuna analisi ancora generata.</p>
           )}
-          <AnalysisList
-            streamingVersion={streamingVersion}
-            startClosed={!isLive}
-          />
+          <AnalysisList workingVersion={workingVersion} startClosed={!isLive} />
         </div>
       </div>
 

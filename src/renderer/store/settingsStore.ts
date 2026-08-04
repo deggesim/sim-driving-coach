@@ -11,6 +11,7 @@ type SettingsStore = {
   assistantName: string;
   gamepadButton: number | null;
   anthropicModel: string;
+  anthropicModelDetail: string; // Level-2 override; "" = use anthropicModel
   keyboardVoiceKey: string | null;
 
   // TTS
@@ -39,6 +40,7 @@ type SettingsStore = {
   setAssistantName: (v: string) => void;
   setGamepadButton: (v: number | null) => void;
   setAnthropicModel: (v: string) => void;
+  setAnthropicModelDetail: (v: string) => void;
   setKeyboardVoiceKey: (v: string | null) => void;
   setTtsEnabled: (v: boolean) => void;
   setAzureTtsEnabled: (v: boolean) => void;
@@ -65,6 +67,7 @@ type SettingsStore = {
     assistantName: string | null;
     gamepadButton: string | null;
     anthropicModel: string | null;
+    anthropicModelDetail: string | null;
     telemetryLogEnabled: string | null;
     keyboardVoiceKey: string | null;
     aceSetupsPath: string | null;
@@ -76,6 +79,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   assistantName: "Aria",
   gamepadButton: null,
   anthropicModel: "claude-haiku-4-5-20251001",
+  anthropicModelDetail: "",
   keyboardVoiceKey: null,
   ttsEnabled: true,
   azureTtsEnabled: false,
@@ -93,6 +97,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   setAssistantName: (assistantName) => set({ assistantName }),
   setGamepadButton: (gamepadButton) => set({ gamepadButton }),
   setAnthropicModel: (anthropicModel) => set({ anthropicModel }),
+  setAnthropicModelDetail: (anthropicModelDetail) =>
+    set({ anthropicModelDetail }),
   setKeyboardVoiceKey: (keyboardVoiceKey) => set({ keyboardVoiceKey }),
   setTtsEnabled: (ttsEnabled) => set({ ttsEnabled }),
   setAzureTtsEnabled: (azureTtsEnabled) => set({ azureTtsEnabled }),
@@ -126,6 +132,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       gamepadButton: values.gamepadButton ? Number(values.gamepadButton) : null,
       ...(values.anthropicModel
         ? { anthropicModel: values.anthropicModel }
+        : {}),
+      ...(values.anthropicModelDetail
+        ? { anthropicModelDetail: values.anthropicModelDetail }
         : {}),
       ...(values.telemetryLogEnabled
         ? { telemetryLogEnabled: values.telemetryLogEnabled === "true" }

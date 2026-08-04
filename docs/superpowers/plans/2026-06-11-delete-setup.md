@@ -12,14 +12,14 @@
 
 ## File modificati
 
-| File                                              | Tipo                                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `src/main/main.ts`                                | Modifica — aggiunge handler `session:deleteSetup`                                          |
-| `src/preload/index.ts`                            | Modifica — espone `sessionDeleteSetup`                                                     |
-| `src/shared/types.ts`                             | Modifica — aggiunge firma `sessionDeleteSetup` in `ElectronAPI` e `deleteSetup` in `State` |
-| `src/renderer/store/sessionStore.ts`              | Modifica — aggiunge metodo `deleteSetup`                                                   |
-| `src/renderer/components/AnalysisHeader.tsx`      | Modifica — rinomina label bottone                                                          |
-| `src/renderer/components/SetupSelectionModal.tsx` | Modifica — aggiunge UI delete per riga                                                     |
+| File | Tipo |
+|------|------|
+| `src/main/main.ts` | Modifica — aggiunge handler `session:deleteSetup` |
+| `src/preload/index.ts` | Modifica — espone `sessionDeleteSetup` |
+| `src/shared/types.ts` | Modifica — aggiunge firma `sessionDeleteSetup` in `ElectronAPI` e `deleteSetup` in `State` |
+| `src/renderer/store/sessionStore.ts` | Modifica — aggiunge metodo `deleteSetup` |
+| `src/renderer/components/AnalysisHeader.tsx` | Modifica — rinomina label bottone |
+| `src/renderer/components/SetupSelectionModal.tsx` | Modifica — aggiunge UI delete per riga |
 
 ---
 
@@ -43,9 +43,9 @@
       if (lapCountRow.cnt > 0) {
         return { ok: false, lapCount: lapCountRow.cnt };
       }
-      db.prepare(`DELETE FROM ${t("session_setups", game)} WHERE id = ?`).run(
-        id,
-      );
+      db.prepare(
+        `DELETE FROM ${t("session_setups", game)} WHERE id = ?`,
+      ).run(id);
       return { ok: true };
     },
   );
@@ -83,17 +83,19 @@
 - [ ] **Step 1: Aggiungere firma `sessionDeleteSetup` in `ElectronAPI` dopo `sessionDeleteAnalysis` (riga ~482)**
 
   Inserire dopo:
-
   ```ts
-  sessionDeleteAnalysis: (params: { id: number; game: GameSource }) =>
-    Promise<void>;
+  sessionDeleteAnalysis: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<void>;
   ```
 
   Aggiungere:
-
   ```ts
-  sessionDeleteSetup: (params: { id: number; game: GameSource }) =>
-    Promise<{ ok: true } | { ok: false; lapCount: number }>;
+  sessionDeleteSetup: (params: {
+    id: number;
+    game: GameSource;
+  }) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
   ```
 
 - [ ] **Step 2: Typecheck**
@@ -113,16 +115,15 @@
 - [ ] **Step 1: Aggiungere `deleteSetup` al tipo `State` (dopo `deleteAnalysis`)**
 
   Nel blocco `type State = { ... }`, dopo:
-
   ```ts
   deleteAnalysis: (id: number) => Promise<void>;
   ```
-
   Aggiungere:
-
   ```ts
-  deleteSetup: (id: number, game: GameSource) =>
-    Promise<{ ok: true } | { ok: false; lapCount: number }>;
+  deleteSetup: (
+    id: number,
+    game: GameSource,
+  ) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
   ```
 
 - [ ] **Step 2: Implementare il metodo nello store (dopo `deleteAnalysis`)**
@@ -156,13 +157,10 @@
 - [ ] **Step 1: Cambiare il testo del bottone setup (riga ~152)**
 
   Trovare:
-
   ```tsx
   <FontAwesomeIcon icon={faGear} className="me-1" /> Carica setup
   ```
-
   Sostituire con:
-
   ```tsx
   <FontAwesomeIcon icon={faGear} className="me-1" /> Gestione setup
   ```
@@ -184,35 +182,24 @@
 - [ ] **Step 1: Aggiornare gli import**
 
   Sostituire la riga degli import React:
-
   ```ts
   import { useEffect, useMemo, useState } from "react";
   ```
-
   Con:
-
   ```ts
   import { Fragment, useEffect, useMemo, useState } from "react";
   ```
 
   Sostituire la riga degli import FontAwesome icons:
-
   ```ts
   import { faCheck, faFileCode } from "@fortawesome/free-solid-svg-icons";
   ```
-
   Con:
-
   ```ts
-  import {
-    faCheck,
-    faFileCode,
-    faTrash,
-  } from "@fortawesome/free-solid-svg-icons";
+  import { faCheck, faFileCode, faTrash } from "@fortawesome/free-solid-svg-icons";
   ```
 
   Aggiungere dopo l'import di `GameSource, SessionSetupRow`:
-
   ```ts
   import { useSessionStore } from "../store/sessionStore";
   ```
@@ -232,9 +219,7 @@
   All'interno di `SetupSelectionModal`, dopo `const [selectedId, setSelectedId] = useState<number | null>(null);`, aggiungere:
 
   ```ts
-  const [deleteState, setDeleteState] = useState<DeleteState>({
-    phase: "idle",
-  });
+  const [deleteState, setDeleteState] = useState<DeleteState>({ phase: "idle" });
   const deleteSetup = useSessionStore((s) => s.deleteSetup);
   ```
 
@@ -271,13 +256,10 @@
 - [ ] **Step 5: Aggiornare il titolo del modale**
 
   Trovare:
-
   ```tsx
   <Modal.Title style={{ fontSize: 16 }}>Carica setup</Modal.Title>
   ```
-
   Sostituire con:
-
   ```tsx
   <Modal.Title style={{ fontSize: 16 }}>Gestione setup</Modal.Title>
   ```
@@ -285,7 +267,6 @@
 - [ ] **Step 6: Aggiornare l'header della tabella aggiungendo colonna azioni**
 
   Trovare:
-
   ```tsx
   <thead>
     <tr>
@@ -294,9 +275,7 @@
     </tr>
   </thead>
   ```
-
   Sostituire con:
-
   ```tsx
   <thead>
     <tr>
@@ -335,7 +314,11 @@
             <td>
               {displayName}
               {row.setup.carVerified && (
-                <Badge bg="success" className="ms-2" style={{ fontSize: 10 }}>
+                <Badge
+                  bg="success"
+                  className="ms-2"
+                  style={{ fontSize: 10 }}
+                >
                   <FontAwesomeIcon icon={faCheck} className="me-1" />
                   verificato
                 </Badge>

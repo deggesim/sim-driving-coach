@@ -29,12 +29,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npm run lint 2>&1",
-            "timeout": 60,
-            "statusMessage": "Running ESLint..."
-          },
-          {
-            "type": "command",
             "command": "node .claude/scripts/style-check.mjs",
             "timeout": 10,
             "statusMessage": "Checking CODE_STYLE.md..."

@@ -12,26 +12,25 @@
 
 ## File Map
 
-| Azione     | File                      |
-| ---------- | ------------------------- |
-| Creare     | `electron.vite.config.ts` |
-| Creare     | `src/preload/index.ts`    |
-| Creare     | `tsconfig.web.json`       |
-| Modificare | `package.json`            |
-| Modificare | `tsconfig.json`           |
-| Modificare | `tsconfig.node.json`      |
-| Modificare | `src/main/main.ts`        |
-| Modificare | `electron-builder.yml`    |
-| Modificare | `.gitignore`              |
-| Eliminare  | `vite.config.ts`          |
-| Eliminare  | `src/main/preload.cts`    |
+| Azione | File |
+|--------|------|
+| Creare | `electron.vite.config.ts` |
+| Creare | `src/preload/index.ts` |
+| Creare | `tsconfig.web.json` |
+| Modificare | `package.json` |
+| Modificare | `tsconfig.json` |
+| Modificare | `tsconfig.node.json` |
+| Modificare | `src/main/main.ts` |
+| Modificare | `electron-builder.yml` |
+| Modificare | `.gitignore` |
+| Eliminare | `vite.config.ts` |
+| Eliminare | `src/main/preload.cts` |
 
 ---
 
 ## Task 1: Aggiungere `out/` al `.gitignore`
 
 **Files:**
-
 - Modify: `.gitignore`
 
 - [ ] **Step 1: Aggiungere la riga `out/` al .gitignore**
@@ -64,7 +63,6 @@ git commit -m "chore: add out/ to .gitignore for electron-vite output"
 ## Task 2: Installare e disinstallare dipendenze
 
 **Files:**
-
 - Modify: `package.json` (automatico via npm)
 
 - [ ] **Step 1: Installare le nuove dipendenze**
@@ -100,7 +98,6 @@ git commit -m "chore: install electron-vite and @electron-toolkit, remove concur
 ## Task 3: Creare `electron.vite.config.ts` e rimuovere `vite.config.ts`
 
 **Files:**
-
 - Create: `electron.vite.config.ts`
 - Delete: `vite.config.ts`
 
@@ -109,41 +106,40 @@ git commit -m "chore: install electron-vite and @electron-toolkit, remove concur
 Creare il file nella root del progetto con il seguente contenuto:
 
 ```ts
-import { defineConfig } from "electron-vite";
-import react from "@vitejs/plugin-react";
-import { resolve } from "path";
+import { defineConfig } from 'electron-vite'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 
 export default defineConfig({
   main: {
     build: {
       rollupOptions: {
         // Chiave "main" → output: out/main/main.js (allineato con "main" in package.json)
-        input: { main: resolve(__dirname, "src/main/main.ts") },
-      },
+        input: { main: resolve(__dirname, 'src/main/main.ts') }
+      }
     },
     resolve: {
-      alias: { "@shared": resolve(__dirname, "src/shared") },
-    },
+      alias: { '@shared': resolve(__dirname, 'src/shared') }
+    }
   },
   preload: {
     build: {
       rollupOptions: {
-        input: { index: resolve(__dirname, "src/preload/index.ts") },
-      },
-    },
+        input: { index: resolve(__dirname, 'src/preload/index.ts') }
+      }
+    }
   },
   renderer: {
-    root: "src/renderer",
+    root: 'src/renderer',
     plugins: [react()],
     resolve: {
-      alias: { "@shared": resolve(__dirname, "src/shared") },
-    },
-  },
-});
+      alias: { '@shared': resolve(__dirname, 'src/shared') }
+    }
+  }
+})
 ```
 
 Note sul config:
-
 - `build.externalizeDeps: true` è il default in electron-vite v5 — `better-sqlite3` e `koffi` restano external senza config esplicita.
 - Il preload non importa da `@shared`, quindi non ha bisogno dell'alias.
 - Gli `outDir` di default di electron-vite v5 sono già `out/main`, `out/preload`, `out/renderer`.
@@ -166,7 +162,6 @@ git commit -m "build: add electron.vite.config.ts, remove vite.config.ts"
 ## Task 4: Spostare il preload in `src/preload/index.ts`
 
 **Files:**
-
 - Create: `src/preload/index.ts`
 - Delete: `src/main/preload.cts`
 
@@ -186,27 +181,23 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("electronAPI", {
   // Main → Renderer (push channels)
   onFrame: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:frame", listener);
     return () => ipcRenderer.removeListener("session:frame", listener);
   },
   onLapComplete: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("lapComplete", listener);
     return () => ipcRenderer.removeListener("lapComplete", listener);
   },
   onStatus: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("status", listener);
     return () => ipcRenderer.removeListener("status", listener);
   },
 
   onAppError: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("app:error", listener);
     return () => ipcRenderer.removeListener("app:error", listener);
   },
@@ -218,57 +209,48 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   onVoiceChunk: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("coach:voiceChunk", listener);
     return () => ipcRenderer.removeListener("coach:voiceChunk", listener);
   },
   onVoiceDone: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("coach:voiceDone", listener);
     return () => ipcRenderer.removeListener("coach:voiceDone", listener);
   },
   onVoiceAudio: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("coach:voiceAudio", listener);
     return () => ipcRenderer.removeListener("coach:voiceAudio", listener);
   },
 
   onSessionStarted: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:started", listener);
     return () => ipcRenderer.removeListener("session:started", listener);
   },
   onSessionClosed: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:closed", listener);
     return () => ipcRenderer.removeListener("session:closed", listener);
   },
   onSessionLapAdded: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:lapAdded", listener);
     return () => ipcRenderer.removeListener("session:lapAdded", listener);
   },
   onSessionSetupLoaded: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:setupLoaded", listener);
     return () => ipcRenderer.removeListener("session:setupLoaded", listener);
   },
   onSessionAnalysisChunk: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:analysisChunk", listener);
     return () => ipcRenderer.removeListener("session:analysisChunk", listener);
   },
   onSessionAnalysisDone: (callback: (data: unknown) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
-      callback(data);
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) => callback(data);
     ipcRenderer.on("session:analysisDone", listener);
     return () => ipcRenderer.removeListener("session:analysisDone", listener);
   },
@@ -279,17 +261,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   sessionStart: () => ipcRenderer.invoke("session:start"),
   sessionEnd: () => ipcRenderer.invoke("session:end"),
-  sessionAnalyze: (params?: {
-    sessionId?: number;
-    game?: string;
-    leaderboardMode?: boolean;
-    fixedSetup?: boolean;
-  }) => ipcRenderer.invoke("session:analyze", params ?? {}),
-  sessionLoadSetup: (params: {
-    setup: unknown;
-    sessionId?: number;
-    game?: string;
-  }) => ipcRenderer.invoke("session:loadSetup", params),
+  sessionAnalyze: (params?: { sessionId?: number; game?: string; leaderboardMode?: boolean; fixedSetup?: boolean }) =>
+    ipcRenderer.invoke("session:analyze", params ?? {}),
+  sessionLoadSetup: (params: { setup: unknown; sessionId?: number; game?: string }) =>
+    ipcRenderer.invoke("session:loadSetup", params),
   sessionList: (params: unknown) => ipcRenderer.invoke("session:list", params),
   sessionGetCurrent: () => ipcRenderer.invoke("session:getCurrent"),
   sessionGetDetail: (params: { id: number; game: string }) =>
@@ -302,12 +277,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("session:deleteAll", items),
   sessionReopen: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("session:reopen", params),
-  sessionGetSetupHistory: (params: {
-    car: string;
-    track: string;
-    layout: string;
-    game: string;
-  }) => ipcRenderer.invoke("session:getSetupHistory", params),
+  sessionGetSetupHistory: (params: { car: string; track: string; layout: string; game: string }) =>
+    ipcRenderer.invoke("session:getSetupHistory", params),
   sessionReuseSetup: (params: { setupId: number }) =>
     ipcRenderer.invoke("session:reuseSetup", params),
   sessionDeleteAnalysis: (params: { id: number; game: string }) =>
@@ -315,11 +286,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   lapGetFrames: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("lap:getFrames", params),
-  lapAssignSetup: (params: {
-    lapId: number;
-    setupId: number | null;
-    game: string;
-  }) => ipcRenderer.invoke("lap:assignSetup", params),
+  lapAssignSetup: (params: { lapId: number; setupId: number | null; game: string }) =>
+    ipcRenderer.invoke("lap:assignSetup", params),
   lapDelete: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("lap:delete", params),
 
@@ -329,10 +297,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   voiceQuery: (question: string) =>
     ipcRenderer.invoke("coach:voiceQuery", question),
 
-  sttTranscribe: (
-    audioBuffer: ArrayBuffer,
-    mimeType?: string,
-  ): Promise<string> =>
+  sttTranscribe: (audioBuffer: ArrayBuffer, mimeType?: string): Promise<string> =>
     ipcRenderer.invoke("stt:transcribe", audioBuffer, mimeType),
 
   ttsGetVoices: () => ipcRenderer.invoke("tts:getVoices"),
@@ -377,7 +342,6 @@ git commit -m "refactor: move preload from src/main/preload.cts to src/preload/i
 ## Task 5: Aggiornare la struttura tsconfig
 
 **Files:**
-
 - Modify: `tsconfig.json`
 - Modify: `tsconfig.node.json`
 - Create: `tsconfig.web.json`
@@ -461,7 +425,6 @@ git commit -m "build: restructure tsconfig for electron-vite (node + web split)"
 ## Task 6: Aggiornare `package.json`
 
 **Files:**
-
 - Modify: `package.json`
 
 - [ ] **Step 1: Aggiornare il campo `main` e gli script**
@@ -498,7 +461,6 @@ git commit -m "build: update package.json scripts and main field for electron-vi
 ## Task 7: Aggiornare `src/main/main.ts`
 
 **Files:**
-
 - Modify: `src/main/main.ts`
 
 Quattro modifiche puntuali. Applicarle nell'ordine indicato.
@@ -604,7 +566,6 @@ git commit -m "refactor(main): use is.dev and ELECTRON_RENDERER_URL from electro
 ## Task 8: Aggiornare `electron-builder.yml`
 
 **Files:**
-
 - Modify: `electron-builder.yml`
 
 - [ ] **Step 1: Sostituire le directory `dist/` con `out/` nella sezione `files`**
@@ -632,7 +593,6 @@ files:
 ```
 
 Note:
-
 - `dist/shared/**/*` viene rimosso: electron-vite bundle il codice shared direttamente in `out/main/main.js`
 - `out/preload/**/*` è una riga nuova (prima il preload era in `dist/main/`)
 - La sezione `asarUnpack` rimane invariata (riguarda solo i `.node` nativi in `node_modules/`)
@@ -677,7 +637,6 @@ Risultato atteso: nessun errore TypeScript.
 - [ ] **Step 4: In caso di errori di tipo**
 
 Errori comuni e soluzioni:
-
 - `Cannot find name 'ELECTRON_RENDERER_URL'` — verificare che `tsconfig.node.json` includa `"types": ["electron-vite/node"]`
 - `Module '@electron-toolkit/utils' not found` — eseguire `npm install` per assicurarsi che le dipendenze siano installate
 - `Property 'is' does not exist` — verificare che l'import sia `import { is } from "@electron-toolkit/utils"`
@@ -702,7 +661,6 @@ npm run dev
 ```
 
 Risultato atteso:
-
 - Il terminale mostra `electron-vite dev` con output dei tre bundle (main, preload, renderer)
 - La finestra Electron si apre con il renderer caricato (`http://localhost:5173` o porta assegnata da electron-vite)
 - DevTools aperte automaticamente
@@ -729,15 +687,15 @@ git commit -m "chore: electron-vite migration complete"
 
 ## Riepilogo
 
-| Task | Scope                                                                |
-| ---- | -------------------------------------------------------------------- |
-| 1    | .gitignore: aggiungere `out/`                                        |
-| 2    | npm: install electron-vite + toolkit, uninstall concurrently/wait-on |
-| 3    | electron.vite.config.ts: crea; vite.config.ts: elimina               |
-| 4    | src/preload/index.ts: crea; src/main/preload.cts: elimina            |
-| 5    | tsconfig.json, tsconfig.node.json, tsconfig.web.json                 |
-| 6    | package.json: script + main field                                    |
-| 7    | src/main/main.ts: is.dev + preload path + CSP + window load          |
-| 8    | electron-builder.yml: dist/ → out/                                   |
-| 9    | Verifica build + typecheck                                           |
-| 10   | Verifica dev mode + hot-reload                                       |
+| Task | Scope |
+|------|-------|
+| 1 | .gitignore: aggiungere `out/` |
+| 2 | npm: install electron-vite + toolkit, uninstall concurrently/wait-on |
+| 3 | electron.vite.config.ts: crea; vite.config.ts: elimina |
+| 4 | src/preload/index.ts: crea; src/main/preload.cts: elimina |
+| 5 | tsconfig.json, tsconfig.node.json, tsconfig.web.json |
+| 6 | package.json: script + main field |
+| 7 | src/main/main.ts: is.dev + preload path + CSP + window load |
+| 8 | electron-builder.yml: dist/ → out/ |
+| 9 | Verifica build + typecheck |
+| 10 | Verifica dev mode + hot-reload |

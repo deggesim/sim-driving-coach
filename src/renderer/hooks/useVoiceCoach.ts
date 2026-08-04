@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { convertToWav, pickMimeType } from "../lib/audio";
+import { preprocessTTSText } from "../../shared/format";
 
 export type VoiceCoachState = "idle" | "listening" | "processing" | "speaking";
 
@@ -268,7 +269,11 @@ export const useVoiceCoach = ({
 
       // If Azure TTS is NOT enabled, speak via Web Speech API
       if (!azureTtsEnabled) {
-        const utterance = new SpeechSynthesisUtterance(fullAnswer);
+        // Azure preprocesses in the main process; the Web Speech fallback must do
+        // it here, else numbers and distances are read as raw digit groups.
+        const utterance = new SpeechSynthesisUtterance(
+          preprocessTTSText(fullAnswer),
+        );
         utterance.lang = "it-IT";
         utterance.rate = 0.9;
         const voices = window.speechSynthesis.getVoices();

@@ -4,6 +4,7 @@
  */
 
 import { create } from "zustand";
+import { useIPCStore } from "./ipcStore";
 import type {
   GameSource,
   LapRow,
@@ -15,11 +16,9 @@ import type {
 
 export type ViewMode = "live" | "historical";
 
-type Streaming = {
-  sessionId: number;
-  version: number;
-  text: string;
-} | null;
+/** The analysis version currently being worked on (either level). No text: neither
+ *  level streams, so this only drives the spinner. */
+type Working = { sessionId: number; version: number } | null;
 
 type State = {
   mode: ViewMode;
@@ -27,7 +26,7 @@ type State = {
   laps: LapRow[];
   setups: SessionSetupRow[];
   analyses: SessionAnalysisRow[];
-  streaming: Streaming;
+  working: Working;
   loading: boolean;
   error: string | null;
 
@@ -37,6 +36,9 @@ type State = {
   setDetail: (detail: SessionDetail | null, mode: ViewMode) => void;
   deleteAnalysis: (id: number) => Promise<void>;
   commentAnalysis: (id: number, comment: string) => Promise<void>;
+  // Fires the Level-2 deep-dive. Resolves as soon as main accepts the request:
+  // the text arrives through the analysisStart/analysisDone push channels.
+  expandAnalysis: (id: number) => Promise<void>;
   deleteSetup: (
     id: number,
     game: GameSource,
@@ -53,14 +55,14 @@ type State = {
     game: GameSource;
     setup: SessionSetupRow;
   }) => void;
-  _applyAnalysisChunk: (payload: {
+  _applyAnalysisStart: (payload: {
     sessionId: number;
     version: number;
-    token: string;
   }) => void;
+  // analysis === null: the attempt failed, just release the spinner.
   _applyAnalysisDone: (payload: {
     sessionId: number;
-    analysis: SessionAnalysisRow;
+    analysis: SessionAnalysisRow | null;
   }) => void;
   _applySessionStarted: (session: SessionRow) => void;
   _applySessionClosed: (payload: { id: number; game: GameSource }) => void;
@@ -72,7 +74,7 @@ export const useSessionStore = create<State>((set, get) => ({
   laps: [],
   setups: [],
   analyses: [],
-  streaming: null,
+  working: null,
   loading: false,
   error: null,
 
@@ -84,7 +86,7 @@ export const useSessionStore = create<State>((set, get) => ({
         setups: [],
         analyses: [],
         mode,
-        streaming: null,
+        working: null,
       });
       return;
     }
@@ -94,7 +96,7 @@ export const useSessionStore = create<State>((set, get) => ({
       setups: detail.setups,
       analyses: detail.analyses,
       mode,
-      streaming: null,
+      working: null,
     });
   },
 
@@ -133,7 +135,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: [],
       setups: [],
       analyses: [],
-      streaming: null,
+      working: null,
       error: null,
     }),
 
@@ -165,6 +167,25 @@ export const useSessionStore = create<State>((set, get) => ({
     } else {
       set({
         error: res.reason ?? "Errore durante l'integrazione del commento.",
+      });
+    }
+  },
+
+  expandAnalysis: async (id) => {
+    const s = get();
+    if (!s.session) return;
+    // Optimistic: the spinner must replace the button on click, not one IPC
+    // round-trip + prompt build later. analysisStart then confirms the same key.
+    const version = s.analyses.find((a) => a.id === id)?.version;
+    if (version != null) set({ working: { sessionId: s.session.id, version } });
+    const res = await window.electronAPI.sessionExpandAnalysis({
+      analysisId: id,
+      game: s.session.game,
+    });
+    if (!res.ok) {
+      set({
+        working: null,
+        error: res.reason ?? "Errore durante l'approfondimento.",
       });
     }
   },
@@ -213,29 +234,29 @@ export const useSessionStore = create<State>((set, get) => ({
     set({ setups: [...s.setups, setup] });
   },
 
-  _applyAnalysisChunk: ({ sessionId, version, token }) => {
-    const s = get();
-    if (!s.session || s.session.id !== sessionId) return;
-    const current = s.streaming;
-    if (
-      !current ||
-      current.sessionId !== sessionId ||
-      current.version !== version
-    ) {
-      set({ streaming: { sessionId, version, text: token } });
-    } else {
-      set({ streaming: { ...current, text: current.text + token } });
-    }
+  _applyAnalysisStart: ({ sessionId, version }) => {
+    if (get().session?.id !== sessionId) return;
+    set({ working: { sessionId, version } });
   },
 
   _applyAnalysisDone: ({ sessionId, analysis }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
+    if (!analysis) {
+      set({ working: null });
+      return;
+    }
     // Replace or append analysis
     const others = s.analyses.filter((a) => a.version !== analysis.version);
+    // Level 1 only: same length ⇒ nothing was filtered out ⇒ this version is new.
+    // A Level-2 expand replaces an existing version and carries the same
+    // `summary`, which was already spoken when Level 1 landed.
+    if (others.length === s.analyses.length && analysis.summary) {
+      useIPCStore.getState().setAnnounce(analysis.summary);
+    }
     set({
       analyses: [...others, analysis].sort((a, b) => a.version - b.version),
-      streaming: null,
+      working: null,
     });
   },
 
@@ -250,7 +271,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: isSameSession ? current.laps : [],
       setups: isSameSession ? current.setups : [],
       analyses: isSameSession ? current.analyses : [],
-      streaming: null,
+      working: null,
       error: null,
     });
   },
@@ -293,14 +314,12 @@ export const subscribeSessionIPC = (): void => {
       d as { sessionId: number; game: GameSource; setup: SessionSetupRow },
     ),
   );
-  window.electronAPI.onSessionAnalysisChunk((d) =>
-    store()._applyAnalysisChunk(
-      d as { sessionId: number; version: number; token: string },
-    ),
+  window.electronAPI.onSessionAnalysisStart((d) =>
+    store()._applyAnalysisStart(d as { sessionId: number; version: number }),
   );
   window.electronAPI.onSessionAnalysisDone((d) =>
     store()._applyAnalysisDone(
-      d as { sessionId: number; analysis: SessionAnalysisRow },
+      d as { sessionId: number; analysis: SessionAnalysisRow | null },
     ),
   );
 };

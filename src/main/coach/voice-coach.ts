@@ -1,35 +1,32 @@
 /**
  * VoiceCoach - handles free-form voice questions about the current driving session.
  *
- * Builds session context from SQLite (all laps, all setups, all prior analyses),
- * then streams Claude response in Italian.
+ * Does NOT query the DB: the caller owns the session identity and pushes laps,
+ * setups and analyses in via updateContext. It used to re-derive the session
+ * itself with a car+track lookup, which picked the most recently started session
+ * instead of the active one - so a reopened session got another session's data.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import type Database from "better-sqlite3";
-import { parseSetupRow, tableFor } from "../db/setup-row.js";
 import type {
   Alert,
   Deviation,
-  GameSource,
   LapRow,
   SessionAnalysisRow,
   SessionSetupRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import { nestHeadings } from "./prompt-builder.js";
 
 const VOICE_SYSTEM_PROMPT = `Sei un coach di guida esperto che risponde a domande specifiche di un pilota durante una sessione di guida.
 Rispondi SEMPRE in italiano, in modo conciso e diretto. Massimo 3-4 frasi.
 Il pilota sta guidando in questo momento - sii pratico, usa dati numerici, cita le curve per nome quando disponibile.
 Non ripetere la domanda. Non usare elenchi puntati. Rispondi come se stessi parlando al pilota in diretta radio.
+La risposta viene letta da un sintetizzatore vocale: scrivi SOLO testo semplice, nessuna formattazione markdown (mai **grassetto**, *corsivo*, \`codice\`, titoli con # o elenchi con -).
 Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo di 1:16.322" oppure "il tempo di 58.322s"). Non usare mai l'articolo apostrofato davanti al numero (mai "l'1:16").
 Unità di misura OBBLIGATORIE per il TTS: scrivi SEMPRE l'unità accanto al numero. Distanze: "XXXm" (mai solo "XXX"). Delta tempi: "X secondi" oppure "X s" (mai solo "X" o "~X"). Esempio corretto: "frenata ritardata di 24m", "puoi guadagnare circa 0.2 secondi". Il TTS legge "m" come "metri" e "s" come "secondi".`;
 
 type SessionContext = {
-  game: GameSource;
-  car: string;
-  track: string;
-  layout: string;
   carName: string;
   trackName: string;
   layoutName: string;
@@ -142,11 +139,23 @@ const buildVoiceContext = (ctx: SessionContext): string => {
   }
 
   if (ctx.analyses.length > 0) {
+    // Same rule as the written prompts: the most recent analysis goes in whole,
+    // because the concrete setup proposals live in `detail` and no 3-sentence
+    // voice summary can carry them. Driver comments always go in - they are
+    // corrections, so ignoring them means repeating advice already rejected.
+    const latestVersion = ctx.analyses.at(-1)?.version;
     parts.push(`\n## Analisi precedenti della sessione`);
     for (const a of ctx.analyses) {
       parts.push(`### Analisi #${a.version} (${a.created_at})`);
-      if (a.section5_summary) parts.push(a.section5_summary);
-      else parts.push(a.template_v3.slice(0, 600));
+      if (a.version === latestVersion) {
+        parts.push(nestHeadings(a.synthesis, 2));
+        if (a.detail) parts.push(nestHeadings(a.detail, 2));
+      } else if (a.summary) parts.push(a.summary);
+      else parts.push(a.synthesis.slice(0, 600));
+      for (const c of a.comments) {
+        parts.push(`- Pilota: ${c.comment}`);
+        parts.push(`  Integrazione: ${c.response}`);
+      }
     }
   }
 
@@ -161,19 +170,12 @@ export type VoiceCoachEngine = {
   updateContext: (ctx: Partial<SessionContext>) => void;
 };
 
-const t = (base: string, game: GameSource): string => tableFor(game, base);
-
 export const createVoiceCoachEngine = (
-  db: Database.Database,
   apiKey: string,
   model: string = "claude-haiku-4-5-20251001",
 ): VoiceCoachEngine => {
   const client = new Anthropic({ apiKey });
   const currentContext: SessionContext = {
-    game: "r3e",
-    car: "",
-    track: "",
-    layout: "",
     carName: "Sconosciuta",
     trackName: "Sconosciuto",
     layoutName: "",
@@ -186,55 +188,8 @@ export const createVoiceCoachEngine = (
     alerts: [],
   };
 
-  /**
-   * Refresh setups + analyses for the current open session (if any).
-   * Laps are expected to be provided via updateContext from main.ts.
-   */
-  const refreshSession = (): void => {
-    if (!currentContext.car || !currentContext.track) return;
-    try {
-      // Find the most recent open session for the current car/track
-      const sessionRow = db
-        .prepare(
-          `SELECT id FROM ${t("sessions", currentContext.game)}
-           WHERE car = ? AND track = ?
-           ORDER BY started_at DESC LIMIT 1`,
-        )
-        .get(currentContext.car, currentContext.track) as
-        { id: number } | undefined;
-      if (!sessionRow) return;
-
-      const setupsRaw = db
-        .prepare(
-          `SELECT * FROM ${t("session_setups", currentContext.game)}
-           WHERE session_id = ? ORDER BY loaded_at ASC, id ASC`,
-        )
-        .all(sessionRow.id) as Array<{
-        id: number;
-        session_id: number;
-        loaded_at: string;
-        setup_json: string;
-        setup_screenshots: string | null;
-      }>;
-      currentContext.setups = setupsRaw.map(parseSetupRow);
-
-      currentContext.analyses = db
-        .prepare(
-          `SELECT * FROM ${t("session_analyses", currentContext.game)}
-           WHERE session_id = ? ORDER BY version ASC`,
-        )
-        .all(sessionRow.id) as SessionAnalysisRow[];
-    } catch {
-      // DB not ready or table missing
-    }
-  };
-
   return {
     updateContext: (ctx) => {
-      if (ctx.game !== undefined) currentContext.game = ctx.game;
-      if (ctx.car !== undefined) currentContext.car = ctx.car;
-      if (ctx.track !== undefined) currentContext.track = ctx.track;
-      if (ctx.layout !== undefined) currentContext.layout = ctx.layout;
       if (ctx.carName !== undefined) currentContext.carName = ctx.carName;
       if (ctx.trackName !== undefined) currentContext.trackName = ctx.trackName;
       if (ctx.layoutName !== undefined)
@@ -251,7 +206,6 @@ export const createVoiceCoachEngine = (
     },
 
     handleVoiceQuery: async (question, onChunk) => {
-      refreshSession();
       const contextText = buildVoiceContext(currentContext);
       const userMessage = `${contextText}\n\n---\n\n## Domanda del pilota\n${question}`;
 
