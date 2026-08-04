@@ -187,7 +187,8 @@ normale, quindi dopo il saluto funzionano sia le domande sia i comandi.
 
 Verifica manuale (richiede simulatore + microfono, non automatizzabile):
 richiamo per nome con riascolto, apertura sessione dettando il gioco, apertura
-senza gioco con un solo simulatore live.
+senza gioco (l'app chiede sempre, vedi requisito 2 ritirato) e risposta alla
+domanda sul gioco.
 
 ## Fuori scope
 

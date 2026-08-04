@@ -676,9 +676,9 @@ Expected: la sessione si apre su quel simulatore e la conferma vocale ne dice il
 - [ ] **Step 6: Apertura senza nominare il gioco**
 
 Con un solo simulatore avviato, di' "apri una sessione".
-Expected: si apre quello, senza domande.
+Expected: **l'app chiede comunque** "Quale gioco? …" — requisito 2 ritirato in implementazione (i reader girano su richiesta, quindi a sessione chiusa nessun gioco risulta live e non c'è niente da rilevare). Rispondi col nome del simulatore avviato: la sessione si apre su quello.
 
-- [ ] **Step 7: Apertura senza gioco e senza sim live**
+- [ ] **Step 7: Risposta non riconosciuta alla domanda sul gioco**
 
 Chiudi tutti i simulatori e di' "apri una sessione".
 Expected: "Quale gioco? Raceroom, Assetto Corsa Evo o Automobilista 2." seguito dal beep e dal microfono riaperto. Rispondi "raceroom": arriva il messaggio di simulatore non connesso (non un errore silenzioso). Ripeti e rispondi qualcosa senza nome di gioco: "Non ho capito quale gioco…" e nessun secondo ascolto.
@@ -690,4 +690,4 @@ Expected: comportamento identico a prima di questo lavoro.
 
 - [ ] **Step 9: Riporta l'esito**
 
-Annota quali step sono passati e quali no. Un fallimento negli step 2, 6 o 7 va diagnosticato prima di considerare il lavoro completo: sono i tre comportamenti nuovi che i selfcheck non coprono.
+Annota quali step sono passati e quali no. Un fallimento negli step 2, 5, 6 o 7 va diagnosticato prima di considerare il lavoro completo: sono i comportamenti nuovi che i selfcheck non coprono (riascolto dopo il saluto, gioco dettato, domanda sul gioco e risposta ad essa).
