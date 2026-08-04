@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "start": "electron-vite preview",
     "lint": "eslint .",
-    "selfcheck": "tsc -p tsconfig.selfcheck.json && node scripts/run-selfchecks.mjs",
+    "selfcheck": "node -e \"require('node:fs').rmSync('.selfcheck-out',{recursive:true,force:true})\" && tsc -p tsconfig.selfcheck.json && node scripts/run-selfchecks.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3",

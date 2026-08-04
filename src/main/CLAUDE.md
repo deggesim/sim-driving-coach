@@ -39,7 +39,7 @@ Loaded when working under `src/main/`. Architecture-wide decisions live in the r
 
 ## `tts/`
 
-- **azure-tts.ts** — Azure Cognitive Services TTS REST wrapper (axios). Endpoints: voices list + synthesis + STT transcription. Includes Italian number-to-words preprocessing. Falls back gracefully if Azure is not configured
+- **azure-tts.ts** — Azure Cognitive Services TTS REST wrapper (axios). Endpoints: voices list + synthesis + STT transcription. Applies `preprocessTTSText` from `shared/format.ts` (Italian number-to-words) before SSML escaping — the expansion itself lives in shared because the renderer's Web Speech fallback needs it too. Falls back gracefully if Azure is not configured
 
 ## `db/`
 

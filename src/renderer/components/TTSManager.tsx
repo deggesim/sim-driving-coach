@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useIPCStore } from "../store/ipcStore";
+import { preprocessTTSText } from "../../shared/format";
 
 type TTSManagerProps = {
   enabled?: boolean;
@@ -84,7 +85,11 @@ const TTSManager = ({
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(item.text);
+    // The Azure path preprocesses in the main process (synthesizeAzure); here the
+    // renderer does it, else the it-IT voice reads "55.020" as a thousands group.
+    const utterance = new SpeechSynthesisUtterance(
+      preprocessTTSText(item.text),
+    );
     utterance.lang = "it-IT";
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
