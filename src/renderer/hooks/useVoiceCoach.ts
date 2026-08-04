@@ -134,8 +134,12 @@ export const useVoiceCoach = ({
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
+  // Set by handleDone when main asks for a follow-up; consumed before re-arming
+  // the mic so a reply can never trigger an endless listen loop.
+  const listenAgainRef = useRef(false);
 
   const resetToIdle = useCallback(() => {
+    listenAgainRef.current = false;
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {
       setState("idle");
@@ -248,6 +252,23 @@ export const useVoiceCoach = ({
       });
   }, [enabled]);
 
+  /**
+   * End of playback: either re-arm the mic for a follow-up or go back to idle.
+   * stateRef is written by hand because the useEffect that mirrors `state` into
+   * it has not run yet at this point, and triggerListening bails out unless the
+   * ref already reads "idle".
+   */
+  const finishSpeaking = useCallback(() => {
+    if (!listenAgainRef.current) {
+      resetToIdle();
+      return;
+    }
+    listenAgainRef.current = false;
+    setState("idle");
+    stateRef.current = "idle";
+    triggerListening();
+  }, [resetToIdle, triggerListening]);
+
   // Subscribe to voice coach push channels
   useEffect(() => {
     if (!enabled) return;
@@ -262,7 +283,11 @@ export const useVoiceCoach = ({
     };
 
     const handleDone = (data: unknown) => {
-      const { answer: fullAnswer } = data as { answer: string };
+      const { answer: fullAnswer, listenAgain } = data as {
+        answer: string;
+        listenAgain?: boolean;
+      };
+      listenAgainRef.current = listenAgain === true;
       accum = fullAnswer;
       setAnswer(fullAnswer);
       setState("speaking");
@@ -279,7 +304,7 @@ export const useVoiceCoach = ({
         const voices = window.speechSynthesis.getVoices();
         const itVoice = voices.find((v) => v.lang.startsWith("it"));
         if (itVoice) utterance.voice = itVoice;
-        utterance.onend = resetToIdle;
+        utterance.onend = finishSpeaking;
         utterance.onerror = resetToIdle;
         window.speechSynthesis.speak(utterance);
       }
@@ -302,7 +327,7 @@ export const useVoiceCoach = ({
         source.onended = () => {
           ctx.close();
           audioCtxRef.current = null;
-          resetToIdle();
+          finishSpeaking();
         };
       } catch (err) {
         console.error("[VoiceCoach] Audio playback error:", err);
@@ -321,7 +346,7 @@ export const useVoiceCoach = ({
       unsubDone();
       unsubAudio();
     };
-  }, [enabled, azureTtsEnabled, resetToIdle]);
+  }, [enabled, azureTtsEnabled, resetToIdle, finishSpeaking]);
 
   // Global input trigger from main process - handles keyboard shortcut.
   useEffect(() => {

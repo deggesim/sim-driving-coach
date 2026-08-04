@@ -423,7 +423,11 @@ export type ElectronAPI = {
   onStatus: (callback: (data: GameStatus) => void) => () => void;
   onInputTrigger: (callback: () => void) => () => void;
   onVoiceChunk: (callback: (data: { token: string }) => void) => () => void;
-  onVoiceDone: (callback: (data: { answer: string }) => void) => () => void;
+  // listenAgain: the main process is waiting for a follow-up (answer to "quale
+  // gioco?", or a question after a wake call) - the renderer re-arms the mic.
+  onVoiceDone: (
+    callback: (data: { answer: string; listenAgain?: boolean }) => void,
+  ) => () => void;
   onVoiceAudio: (callback: (data: unknown) => void) => () => void;
   onAppError: (callback: (data: { message: string }) => void) => () => void;
 

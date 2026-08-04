@@ -33,7 +33,7 @@ Loaded when working under `src/renderer/`. Library/theme rules live in `.claude/
 ## `hooks/`
 
 - **useIPC.ts** — Subscribes to push channels (`onFrame`, `onLapComplete`, `onStatus`, `onInputTrigger`, voice channels) and writes to `ipcStore`. Also exposes `useConfig()` (configGet/configSet)
-- **useVoiceCoach.ts** — Integrates keyboard shortcut (via `onInputTrigger`), MediaRecorder (audio capture), Azure STT via IPC, voice query streaming, and Azure/Web Speech TTS playback. State machine: idle → listening → processing → speaking. Its Web Speech fallback runs `preprocessTTSText` on the answer, same rule as `TTSManager`
+- **useVoiceCoach.ts** — Integrates keyboard shortcut (via `onInputTrigger`), MediaRecorder (audio capture), Azure STT via IPC, voice query streaming, and Azure/Web Speech TTS playback. State machine: idle → listening → processing → speaking. Its Web Speech fallback runs `preprocessTTSText` on the answer, same rule as `TTSManager`. Quando `coach:voiceDone` arriva con `listenAgain: true` (domanda "quale gioco?" o risposta al richiamo per nome), alla fine della riproduzione riapre il microfono da sé invece di tornare in idle: il flag viene consumato prima di riarmare, e un errore di riproduzione lo azzera senza riascoltare.
 - **useSetupPicker.ts** — Manages setup selection UI state (open/close, selected game-specific picker, reuse flow)
 - **useFlash.ts** — Returns a boolean that briefly becomes `true` when triggered (used for visual flash animation on new lap)
 
