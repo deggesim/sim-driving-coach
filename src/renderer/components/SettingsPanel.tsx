@@ -15,6 +15,7 @@ import { useConfig } from "../hooks/useIPC";
 import { useIPCStore } from "../store/ipcStore";
 import { useSettingsStore } from "../store/settingsStore";
 import type { AzureVoice, AnthropicModelInfo } from "../../shared/types";
+import { assistantIntro } from "../../shared/format";
 
 const AZURE_REGIONS = [
   { value: "australiacentral", label: "Australia Central" },
@@ -652,9 +653,8 @@ const SettingsPanel = () => {
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
                   Selezionando una voce viene riprodotta un&apos;anteprima:
-                  &quot;Ciao, sono {assistantName} e oggi sono il tuo insegnante
-                  virtuale&quot;. Richiede una sottoscrizione Azure Cognitive
-                  Services.
+                  &quot;{assistantIntro(assistantName)}&quot; Richiede una
+                  sottoscrizione Azure Cognitive Services.
                 </Form.Text>
               </Col>
             </Row>

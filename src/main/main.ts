@@ -32,6 +32,7 @@ import type {
   SessionStartResult,
   SetupData,
 } from "../shared/types.js";
+import { assistantIntro } from "../shared/format.js";
 import { createAceReader, type AceReader } from "./ace/ace-reader.js";
 import {
   decodeCarSetup,
@@ -1787,7 +1788,7 @@ const setupPipeline = (): void => {
     if (!key || !region)
       throw new Error("Azure Speech Key e Region non configurati");
     const assistantName = getConfig("assistantName") ?? "Aria";
-    const testPhrase = `Ciao, sono ${assistantName} e oggi sono il tuo assistente in pista.`;
+    const testPhrase = assistantIntro(assistantName);
     return synthesizeAzure(testPhrase, key, region, voiceName);
   });
 

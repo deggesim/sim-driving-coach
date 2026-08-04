@@ -12,6 +12,16 @@ export const stripMarkdown = (text: string): string =>
     .replace(/__([^_]+)__/g, "$1")
     .replace(/[*`]/g, ""); // emphasis / code marks
 
+/**
+ * The assistant's self-introduction: spoken at startup (`TTSManager`), synthesized
+ * by the Azure voice preview (`main.ts`) and quoted in Settings. One function
+ * because the three copies had already drifted ("assistente" vs "insegnante").
+ * Gender-neutral on purpose — the name is user-configurable (default "Aria"), so
+ * a concorded participle like "pronto" is wrong for half the settings.
+ */
+export const assistantIntro = (name: string): string =>
+  `Ciao, sono ${name} e oggi ti accompagno in pista.`;
+
 export const formatLapTime = (seconds: number | null): string => {
   if (!seconds || seconds <= 0 || !isFinite(seconds)) return "--:--";
   const mins = Math.floor(seconds / 60);
