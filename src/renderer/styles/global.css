@@ -257,7 +257,6 @@ body {
    Not collapsible - it sits right below the synthesis and carries its own heading. */
 .analysis-detail {
   margin-top: 12px;
-  border-top: 1px solid var(--border);
   padding-top: 8px;
 }
 /* Reason a Level-2 expand is unavailable. Deliberately not .analysis-detail-label:
