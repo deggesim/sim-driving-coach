@@ -396,13 +396,18 @@ const setupPipeline = (): void => {
   // status/lap processing; during a session it stays locked to the session game.
   let activeGame: GameSource = "r3e";
 
-  // Set when the voice command asked for a session without naming the game and
-  // more than one (or no) simulator is live: the next transcript is read as the
-  // answer. ponytail: consumed by the very next query whatever it is, so a
+  // Set when the voice command asked for a session without naming the game:
+  // the next transcript is read as the answer instead of being classified
+  // normally. ponytail: consumed by the very next query whatever it is, so a
   // different command spoken during the wait is reported as "gioco non capito"
   // and must be repeated - the alternative is falling back to the full
   // classifier when matchGame returns null.
   let pendingGame = false;
+  let pendingGameAt = 0;
+  // ponytail: the wait for "quale gioco?" expires instead of living forever - an
+  // answer that never arrives (empty STT, mic denied) must not eat an unrelated
+  // command given minutes later.
+  const PENDING_GAME_TTL_MS = 60_000;
   let greetCount = 0;
 
   // Session lifecycle state
@@ -1885,8 +1890,9 @@ const setupPipeline = (): void => {
     console.log("[VoiceCoach] question:", question);
 
     // A pending "quale gioco?" swallows the next transcript: it is an answer,
-    // not a new command.
-    if (pendingGame) {
+    // not a new command. An answer that never arrives within the TTL is
+    // treated as absent instead of eating a later, unrelated command.
+    if (pendingGame && Date.now() - pendingGameAt < PENDING_GAME_TTL_MS) {
       pendingGame = false;
       const answered = matchGame(question);
       if (!answered) {
@@ -1898,6 +1904,7 @@ const setupPipeline = (): void => {
       await openSessionByVoice(answered);
       return;
     }
+    pendingGame = false;
 
     const assistantName = getConfig("assistantName") ?? "Aria";
     const intent = classifyVoiceIntent(question, assistantName);
@@ -1909,8 +1916,9 @@ const setupPipeline = (): void => {
       // to detect. If the phrase did not name a game, ask.
       if (!intent.game) {
         pendingGame = true;
+        pendingGameAt = Date.now();
         await speakText(
-          "Quale gioco? Raceroom, Assetto Corsa Evo o Automobilista 2.",
+          "Quale gioco? RaceRoom, Assetto Corsa EVO o Automobilista 2.",
           { listenAgain: true },
         );
         return;

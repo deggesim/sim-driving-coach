@@ -128,6 +128,14 @@ export const useVoiceCoach = ({
     stateRef.current = state;
   }, [state]);
 
+  // Mirrored into a ref because callbacks already handed to the audio layer
+  // (source.onended / utterance.onend) captured the old `enabled` value: without
+  // this, muting the coach mid-answer still re-opens the microphone.
+  const enabledRef = useRef(enabled);
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
   const [transcript, setTranscript] = useState("");
   const [answer, setAnswer] = useState("");
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -149,7 +157,7 @@ export const useVoiceCoach = ({
   }, []);
 
   const triggerListening = useCallback(() => {
-    if (!enabled || stateRef.current !== "idle") return;
+    if (!enabledRef.current || stateRef.current !== "idle") return;
 
     // Cancel any ongoing TTS
     window.speechSynthesis.cancel();
@@ -250,7 +258,7 @@ export const useVoiceCoach = ({
         console.error("[VoiceCoach] Microphone access error:", err);
         setState("idle");
       });
-  }, [enabled]);
+  }, []);
 
   /**
    * End of playback: either re-arm the mic for a follow-up or go back to idle.
