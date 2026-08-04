@@ -157,7 +157,18 @@ export const useVoiceCoach = ({
   }, []);
 
   const triggerListening = useCallback(() => {
-    if (!enabledRef.current || stateRef.current !== "idle") return;
+    if (!enabledRef.current || stateRef.current !== "idle") {
+      // Silent bail-outs made an unresponsive trigger indistinguishable from a
+      // hotkey that never arrived: state stuck on "listening"/"speaking" ignores
+      // every later press.
+      console.warn(
+        `[VoiceCoach] Trigger ignored - enabled: ${enabledRef.current}, state: ${stateRef.current}`,
+      );
+      return;
+    }
+    console.log(
+      `[VoiceCoach] Trigger - visibility: ${document.visibilityState}, focus: ${document.hasFocus()}`,
+    );
 
     // Cancel any ongoing TTS
     window.speechSynthesis.cancel();

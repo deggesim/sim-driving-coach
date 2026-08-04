@@ -90,6 +90,12 @@ import {
 } from "./coach/session-coach.js";
 import { createZoneTracker } from "./zone-tracker.js";
 
+// Chromium's Native Window Occlusion (Windows) treats a window fully covered by
+// another app - the simulator running fullscreen - as hidden: it pauses the
+// renderer and defers media-capture requests, so the voice trigger opened no
+// microphone while driving. backgroundThrottling:false alone does not cover it.
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+
 let mainWindow: BrowserWindow | null = null;
 let r3eReaderInst: R3EReader | null = null;
 let aceReaderInst: AceReader | null = null;
@@ -2315,6 +2321,10 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
 
   // Global input listener - works even when the app window is not focused.
   inputManager = createInputManager(() => {
+    // Logged in main because a renderer paused by window occlusion prints
+    // nothing: this line tells a hotkey Windows never delivered apart from one
+    // that arrived and died on the way to the microphone.
+    console.log("[InputManager] Trigger fired");
     pushToRenderer("input:trigger", {});
   });
 
