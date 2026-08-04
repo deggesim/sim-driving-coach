@@ -11,7 +11,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useIPCStore } from "../store/ipcStore";
-import { preprocessTTSText } from "../../shared/format";
+import { assistantIntro, preprocessTTSText } from "../../shared/format";
 
 type TTSManagerProps = {
   enabled?: boolean;
@@ -163,7 +163,7 @@ const TTSManager = ({
     if (welcomeSpokenRef.current) return;
     welcomeSpokenRef.current = true;
 
-    const welcomeText = `Ciao, sono ${assistantName}, pronto ad aiutarti in pista`;
+    const welcomeText = assistantIntro(assistantName);
 
     const speakWelcomeWebSpeech = () => {
       const utterance = new SpeechSynthesisUtterance(welcomeText);

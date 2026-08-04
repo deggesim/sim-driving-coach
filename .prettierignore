@@ -13,3 +13,6 @@ docs/
 # Claude files
 .claude/
 CLAUDE.md
+
+# Subagent-driven-development scratch (git-ignored, tool-generated)
+.superpowers/

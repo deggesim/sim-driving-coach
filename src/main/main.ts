@@ -32,6 +32,12 @@ import type {
   SessionStartResult,
   SetupData,
 } from "../shared/types.js";
+import { assistantIntro } from "../shared/format.js";
+import {
+  classifyVoiceIntent,
+  matchGame,
+  nextGreeting,
+} from "./coach/voice-intent.js";
 import { createAceReader, type AceReader } from "./ace/ace-reader.js";
 import {
   decodeCarSetup,
@@ -389,6 +395,20 @@ const setupPipeline = (): void => {
   // idle it mirrors whichever sim is currently emitting frames, for correct
   // status/lap processing; during a session it stays locked to the session game.
   let activeGame: GameSource = "r3e";
+
+  // Set when the voice command asked for a session without naming the game:
+  // the next transcript is read as the answer instead of being classified
+  // normally. ponytail: consumed by the very next query whatever it is, so a
+  // different command spoken during the wait is reported as "gioco non capito"
+  // and must be repeated - the alternative is falling back to the full
+  // classifier when matchGame returns null.
+  let pendingGame = false;
+  let pendingGameAt = 0;
+  // ponytail: the wait for "quale gioco?" expires instead of living forever - an
+  // answer that never arrives (empty STT, mic denied) must not eat an unrelated
+  // command given minutes later.
+  const PENDING_GAME_TTL_MS = 60_000;
+  let greetCount = 0;
 
   // Session lifecycle state
   let currentSessionId: number | null = null;
@@ -1787,7 +1807,7 @@ const setupPipeline = (): void => {
     if (!key || !region)
       throw new Error("Azure Speech Key e Region non configurati");
     const assistantName = getConfig("assistantName") ?? "Aria";
-    const testPhrase = `Ciao, sono ${assistantName} e oggi sono il tuo assistente in pista.`;
+    const testPhrase = assistantIntro(assistantName);
     return synthesizeAzure(testPhrase, key, region, voiceName);
   });
 
@@ -1826,36 +1846,14 @@ const setupPipeline = (): void => {
   // Voice query IPC - classifies intent, routes to session commands or freeform
   // ──────────────────────────────────────────────
 
-  const classifyVoiceIntent = (
-    q: string,
-  ): "newSession" | "closeSession" | "analyze" | "freeform" => {
-    const s = q.toLowerCase();
-    const hasSession = /\bsession/.test(s);
-    if (
-      hasSession &&
-      /\b(nuova|apri|inizia|inizio|avvia|avvio|comincia|crea|start|apre|partenza|parti)\b/.test(
-        s,
-      )
-    )
-      return "newSession";
-    if (
-      hasSession &&
-      /\b(chiudi|termina|fine|ferma|concludi|stop|finisci|chiude)\b/.test(s)
-    )
-      return "closeSession";
-    if (
-      /\b(analizza|analisi|valuta|valutazione|esegui\s+analisi)\b[\s\S]*\b(sessione|giri|ultimi\s+giri)\b/.test(
-        s,
-      ) ||
-      /\banalizza\s+gli\s+ultimi\s+giri\b/.test(s) ||
-      /\b(analizza|analisi|valuta|valutazione|esegui\s+analisi)\b/.test(s)
-    )
-      return "analyze";
-    return "freeform";
-  };
-
-  const speakText = async (text: string): Promise<void> => {
-    pushToRenderer("coach:voiceDone", { answer: text });
+  const speakText = async (
+    text: string,
+    opts?: { listenAgain?: boolean },
+  ): Promise<void> => {
+    pushToRenderer("coach:voiceDone", {
+      answer: text,
+      listenAgain: opts?.listenAgain === true,
+    });
     if (getConfig("azureTtsEnabled") !== "true") return;
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
@@ -1870,36 +1868,71 @@ const setupPipeline = (): void => {
     }
   };
 
-  ipcMain.handle("coach:voiceQuery", async (_event, question: string) => {
-    console.log("[VoiceCoach] question:", question);
-    const intent = classifyVoiceIntent(question);
-    console.log("[VoiceCoach] intent:", intent);
-
-    if (intent === "newSession") {
-      // No picker over voice: retry the last known game (activeGame). Readers are
-      // idle until now, so startSession starts it on demand and validates it is
-      // actually live; if the user is on a different sim, use the UI picker.
-      const res = await startSession(activeGame);
-      if (res.ok) {
-        const names = resolveNames(
-          activeGame,
-          currentCar,
-          currentTrack,
-          currentLayout,
-        );
-        const car = names.carName || "auto sconosciuta";
-        const track = names.trackName || "circuito sconosciuto";
-        const layout =
-          names.layoutName && names.layoutName !== track
-            ? `, ${names.layoutName}`
-            : "";
-        await speakText(`Sessione aperta. ${car} - ${track}${layout}.`);
-      } else {
-        await speakText(`Impossibile aprire la sessione. ${res.reason}`);
-      }
+  const openSessionByVoice = async (game: GameSource): Promise<void> => {
+    const res = await startSession(game);
+    if (!res.ok) {
+      await speakText(`Impossibile aprire la sessione. ${res.reason}`);
       return;
     }
-    if (intent === "closeSession") {
+    const names = resolveNames(game, currentCar, currentTrack, currentLayout);
+    const car = names.carName || "auto sconosciuta";
+    const track = names.trackName || "circuito sconosciuto";
+    const layout =
+      names.layoutName && names.layoutName !== track
+        ? `, ${names.layoutName}`
+        : "";
+    await speakText(
+      `Sessione aperta su ${gameLabel(game)}. ${car} - ${track}${layout}.`,
+    );
+  };
+
+  ipcMain.handle("coach:voiceQuery", async (_event, question: string) => {
+    console.log("[VoiceCoach] question:", question);
+
+    // A pending "quale gioco?" swallows the next transcript: it is an answer,
+    // not a new command. An answer that never arrives within the TTL is
+    // treated as absent instead of eating a later, unrelated command.
+    if (pendingGame && Date.now() - pendingGameAt < PENDING_GAME_TTL_MS) {
+      pendingGame = false;
+      const answered = matchGame(question);
+      if (!answered) {
+        await speakText(
+          "Non ho capito quale gioco. Ripeti il comando indicando il gioco.",
+        );
+        return;
+      }
+      await openSessionByVoice(answered);
+      return;
+    }
+    pendingGame = false;
+
+    const assistantName = getConfig("assistantName") ?? "Aria";
+    const intent = classifyVoiceIntent(question, assistantName);
+    console.log("[VoiceCoach] intent:", intent);
+
+    if (intent.kind === "newSession") {
+      // ponytail: no live-sim autodetect. Readers poll on demand, so with the
+      // session closed isLive() is false for all three games - there is nothing
+      // to detect. If the phrase did not name a game, ask.
+      if (!intent.game) {
+        pendingGame = true;
+        pendingGameAt = Date.now();
+        await speakText(
+          "Quale gioco? RaceRoom, Assetto Corsa EVO o Automobilista 2.",
+          { listenAgain: true },
+        );
+        return;
+      }
+      await openSessionByVoice(intent.game);
+      return;
+    }
+
+    if (intent.kind === "greeting") {
+      await speakText(nextGreeting(greetCount++), { listenAgain: true });
+      return;
+    }
+
+    if (intent.kind === "closeSession") {
       if (!currentSessionId) {
         await speakText("Non c'è nessuna sessione aperta.");
         return;
@@ -1908,7 +1941,7 @@ const setupPipeline = (): void => {
       await speakText("Sessione chiusa.");
       return;
     }
-    if (intent === "analyze") {
+    if (intent.kind === "analyze") {
       if (!currentSessionId) {
         await speakText("Non c'è nessuna sessione aperta da analizzare.");
         return;
@@ -1967,7 +2000,7 @@ const setupPipeline = (): void => {
     let fullAnswer =
       "Si è verificato un errore durante l'elaborazione della domanda.";
     try {
-      fullAnswer = await coach.handleVoiceQuery(question, (token) => {
+      fullAnswer = await coach.handleVoiceQuery(intent.question, (token) => {
         pushToRenderer("coach:voiceChunk", { token });
       });
     } catch (err) {
