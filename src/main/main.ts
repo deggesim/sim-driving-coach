@@ -1863,14 +1863,6 @@ const setupPipeline = (): void => {
     }
   };
 
-  const ALL_GAMES: readonly GameSource[] = ["r3e", "ace", "ams2"];
-
-  /** The only simulator currently emitting frames, or null if zero or several. */
-  const soleLiveGame = (): GameSource | null => {
-    const live = ALL_GAMES.filter(isLive);
-    return live.length === 1 ? live[0] : null;
-  };
-
   const openSessionByVoice = async (game: GameSource): Promise<void> => {
     const res = await startSession(game);
     if (!res.ok) {
@@ -1912,8 +1904,10 @@ const setupPipeline = (): void => {
     console.log("[VoiceCoach] intent:", intent);
 
     if (intent.kind === "newSession") {
-      const game = intent.game ?? soleLiveGame();
-      if (!game) {
+      // ponytail: no live-sim autodetect. Readers poll on demand, so with the
+      // session closed isLive() is false for all three games - there is nothing
+      // to detect. If the phrase did not name a game, ask.
+      if (!intent.game) {
         pendingGame = true;
         await speakText(
           "Quale gioco? Raceroom, Assetto Corsa Evo o Automobilista 2.",
@@ -1921,7 +1915,7 @@ const setupPipeline = (): void => {
         );
         return;
       }
-      await openSessionByVoice(game);
+      await openSessionByVoice(intent.game);
       return;
     }
 

@@ -28,8 +28,11 @@ Due limiti:
    riconosciute: `raceroom`, `raceroom racing experience`, `r3e`, `rre` per R3E;
    `assetto corsa evo`, `ac evo`, `ace`, `evo` per ACE; `automobilista due`,
    `ams2` per AMS2.
-2. Se il comando non indica il gioco ed esiste **esattamente un** simulatore live,
-   l'app apre quello senza chiedere.
+2. ~~Se il comando non indica il gioco ed esiste **esattamente un** simulatore
+   live, l'app apre quello senza chiedere.~~ **Ritirato in implementazione**: i
+   reader girano solo su richiesta, quindi a sessione chiusa `isLive` è falso per
+   tutti e tre i giochi e non esiste un "simulatore live" da rilevare. Senza
+   gioco nel comando l'app chiede sempre (requisito 3).
 3. Altrimenti l'app chiede a voce quale gioco e resta in ascolto per la risposta.
 4. Chiamando l'ingegnere per nome ("Ciao Robert") l'app risponde con un saluto e
    riapre il microfono, così la domanda successiva non richiede di ripremere il
@@ -98,11 +101,10 @@ In `coach:voiceQuery`, ramo `newSession`:
 1. `game` riconosciuto → `startSession(game)`. I messaggi di errore esistenti
    (`non è connesso`, `auto/circuito non rilevati`) restano validi e vengono già
    letti dal TTS.
-2. `game` assente → conta quanti dei tre giochi sono live con `isLive(g)` (già in
-   main, basata sulla freschezza dei frame). Esattamente uno → `startSession` su
-   quello.
-3. Zero o più di uno → l'app dice _«Quale gioco? Raceroom, Assetto Corsa Evo o
-   Automobilista 2»_, alza `pendingGame = true` e riapre l'ascolto.
+2. `game` assente → l'app dice _«Quale gioco? Raceroom, Assetto Corsa Evo o
+   Automobilista 2»_, alza `pendingGame = true` e riapre l'ascolto. Nessun
+   rilevamento del simulatore attivo: i reader sono avviati su richiesta, quindi a
+   sessione chiusa `isLive` non ha frame da osservare per nessuno dei tre.
 
 Con `pendingGame` attivo la query successiva passa **solo** per `matchGame`:
 riconosciuto → apre la sessione; non riconosciuto → _«Non ho capito quale
