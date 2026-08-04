@@ -17,7 +17,7 @@ description: Full IPC channel reference for this app (ElectronAPI in src/shared/
 | Push      | `onSessionLapAdded`                                                        | `{ sessionId, game, lap: LapRow }`                           |
 | Push      | `onSessionSetupLoaded`                                                     | `{ sessionId, game, setup: SessionSetupRow }`                |
 | Push      | `onSessionAnalysisStart`                                                   | `{ sessionId, version }` — a level started working (spinner) |
-| Push      | `onSessionAnalysisDone`                                                    | `{ sessionId, analysis: SessionAnalysisRow }`                |
+| Push      | `onSessionAnalysisDone`                                                    | `{ sessionId, analysis: SessionAnalysisRow, speak }` — `speak: false` on a voice-triggered analysis (the voice path speaks the summary) |
 | Push      | `onAppError`                                                               | `{ message }` — main-process error surfaced to the UI (`app:error`) |
 | Handle    | `configGet / configSet`                                                    | app_config table                                             |
 | Handle    | `sessionStart`                                                             | Opens new session for the given `GameSource` → `SessionStartResult` |

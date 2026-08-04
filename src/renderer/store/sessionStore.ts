@@ -60,9 +60,12 @@ type State = {
     version: number;
   }) => void;
   // analysis === null: the attempt failed, just release the spinner.
+  // speak === false: the analysis was requested by voice, so the voice path
+  // already speaks the summary - announcing it here would double it.
   _applyAnalysisDone: (payload: {
     sessionId: number;
     analysis: SessionAnalysisRow | null;
+    speak?: boolean;
   }) => void;
   _applySessionStarted: (session: SessionRow) => void;
   _applySessionClosed: (payload: { id: number; game: GameSource }) => void;
@@ -239,7 +242,7 @@ export const useSessionStore = create<State>((set, get) => ({
     set({ working: { sessionId, version } });
   },
 
-  _applyAnalysisDone: ({ sessionId, analysis }) => {
+  _applyAnalysisDone: ({ sessionId, analysis, speak }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
     if (!analysis) {
@@ -251,7 +254,11 @@ export const useSessionStore = create<State>((set, get) => ({
     // Level 1 only: same length ⇒ nothing was filtered out ⇒ this version is new.
     // A Level-2 expand replaces an existing version and carries the same
     // `summary`, which was already spoken when Level 1 landed.
-    if (others.length === s.analyses.length && analysis.summary) {
+    if (
+      speak !== false &&
+      others.length === s.analyses.length &&
+      analysis.summary
+    ) {
       useIPCStore.getState().setAnnounce(analysis.summary);
     }
     set({
@@ -319,7 +326,11 @@ export const subscribeSessionIPC = (): void => {
   );
   window.electronAPI.onSessionAnalysisDone((d) =>
     store()._applyAnalysisDone(
-      d as { sessionId: number; analysis: SessionAnalysisRow | null },
+      d as {
+        sessionId: number;
+        analysis: SessionAnalysisRow | null;
+        speak?: boolean;
+      },
     ),
   );
 };

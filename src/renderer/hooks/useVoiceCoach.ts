@@ -45,6 +45,13 @@ const toArrayBuffer = (data: unknown): ArrayBuffer => {
 const MAX_RECORD_MS = 5000;
 
 /**
+ * How long "speaking" may last with no audio arriving. Covers an Azure synthesis
+ * that errors out after the answer text: without it the hook stays in "speaking"
+ * forever and every later trigger is ignored until the app restarts.
+ */
+const SPEAK_GUARD_MS = 20000;
+
+/**
  * Play a short activation beep (two ascending tones) to signal mic is live.
  * Uses a throw-away AudioContext so it never interferes with TTS playback.
  */
@@ -146,7 +153,34 @@ export const useVoiceCoach = ({
   // the mic so a reply can never trigger an endless listen loop.
   const listenAgainRef = useRef(false);
 
+  // Watchdog on the "speaking" state: playback is what normally ends it, so a
+  // missing MP3 or an onended that never fires leaves the state machine wedged.
+  const speakGuardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearSpeakGuard = useCallback(() => {
+    if (speakGuardRef.current) clearTimeout(speakGuardRef.current);
+    speakGuardRef.current = null;
+  }, []);
+
+  const armSpeakGuard = useCallback(
+    (ms: number) => {
+      clearSpeakGuard();
+      speakGuardRef.current = setTimeout(() => {
+        speakGuardRef.current = null;
+        console.warn(
+          `[VoiceCoach] Playback watchdog after ${ms}ms - forcing idle`,
+        );
+        // No follow-up listen: something went wrong, do not re-open the mic.
+        listenAgainRef.current = false;
+        setState("idle");
+        stateRef.current = "idle";
+      }, ms);
+    },
+    [clearSpeakGuard],
+  );
+
   const resetToIdle = useCallback(() => {
+    clearSpeakGuard();
     listenAgainRef.current = false;
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {
@@ -154,7 +188,7 @@ export const useVoiceCoach = ({
       setTranscript("");
       setAnswer("");
     }, 3000);
-  }, []);
+  }, [clearSpeakGuard]);
 
   const triggerListening = useCallback(() => {
     if (!enabledRef.current || stateRef.current !== "idle") {
@@ -171,6 +205,7 @@ export const useVoiceCoach = ({
     );
 
     // Cancel any ongoing TTS
+    clearSpeakGuard();
     window.speechSynthesis.cancel();
     audioCtxRef.current?.close();
     audioCtxRef.current = null;
@@ -269,7 +304,7 @@ export const useVoiceCoach = ({
         console.error("[VoiceCoach] Microphone access error:", err);
         setState("idle");
       });
-  }, []);
+  }, [clearSpeakGuard]);
 
   /**
    * End of playback: either re-arm the mic for a follow-up or go back to idle.
@@ -278,6 +313,7 @@ export const useVoiceCoach = ({
    * ref already reads "idle".
    */
   const finishSpeaking = useCallback(() => {
+    clearSpeakGuard();
     if (!listenAgainRef.current) {
       resetToIdle();
       return;
@@ -286,7 +322,7 @@ export const useVoiceCoach = ({
     setState("idle");
     stateRef.current = "idle";
     triggerListening();
-  }, [resetToIdle, triggerListening]);
+  }, [clearSpeakGuard, resetToIdle, triggerListening]);
 
   // Subscribe to voice coach push channels
   useEffect(() => {
@@ -315,9 +351,8 @@ export const useVoiceCoach = ({
       if (!azureTtsEnabled) {
         // Azure preprocesses in the main process; the Web Speech fallback must do
         // it here, else numbers and distances are read as raw digit groups.
-        const utterance = new SpeechSynthesisUtterance(
-          preprocessTTSText(fullAnswer),
-        );
+        const text = preprocessTTSText(fullAnswer);
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "it-IT";
         utterance.rate = 0.9;
         const voices = window.speechSynthesis.getVoices();
@@ -326,6 +361,14 @@ export const useVoiceCoach = ({
         utterance.onend = finishSpeaking;
         utterance.onerror = resetToIdle;
         window.speechSynthesis.speak(utterance);
+        // Web Speech gives no duration up front, so the guard is estimated at
+        // 12 chars/s - slower than any it-IT voice at rate 0.9, so it can only
+        // fire on a read that never ended.
+        armSpeakGuard(text.length * 80 + 5000);
+      } else {
+        // Azure: handleAudio re-arms with the real duration once the MP3 lands.
+        // This one only covers a synthesis that never lands at all.
+        armSpeakGuard(SPEAK_GUARD_MS);
       }
     };
 
@@ -343,6 +386,9 @@ export const useVoiceCoach = ({
         source.buffer = audioBuffer;
         source.connect(ctx.destination);
         source.start(0);
+        // onended is the only thing that ends "speaking": a context suspended by
+        // the OS (device switch, sleep) would otherwise never deliver it.
+        armSpeakGuard(audioBuffer.duration * 1000 + 5000);
         source.onended = () => {
           ctx.close();
           audioCtxRef.current = null;
@@ -365,7 +411,7 @@ export const useVoiceCoach = ({
       unsubDone();
       unsubAudio();
     };
-  }, [enabled, azureTtsEnabled, resetToIdle, finishSpeaking]);
+  }, [enabled, azureTtsEnabled, resetToIdle, finishSpeaking, armSpeakGuard]);
 
   // Global input trigger from main process - handles keyboard shortcut.
   useEffect(() => {
@@ -415,6 +461,7 @@ export const useVoiceCoach = ({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close();
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      if (speakGuardRef.current) clearTimeout(speakGuardRef.current);
     };
   }, []);
 

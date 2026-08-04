@@ -513,12 +513,21 @@ const setupPipeline = (): void => {
   const getAnthropicModel = (): string =>
     getConfig("anthropicModel") ?? "claude-haiku-4-5-20251001";
 
+  // An analysis asked for by voice is already spoken by the voice pipeline
+  // (Azure MP3 via coach:voiceAudio). Without this flag the analysisDone push
+  // makes TTSManager announce the same summary too, a few ms apart: echo.
+  let voiceAnalyzing = false;
+
   const sessionCoach = createSessionCoachEngine({
     db,
     apiKey: getAnthropicApiKey(),
     model: getAnthropicModel(),
     onStart: (data) => pushToRenderer("session:analysisStart", data),
-    onDone: (data) => pushToRenderer("session:analysisDone", data),
+    onDone: (data) =>
+      pushToRenderer("session:analysisDone", {
+        ...data,
+        speak: !voiceAnalyzing,
+      }),
     onError: (message) => pushAppError(message),
   });
   const analyzingInProgress = new Set<string>();
@@ -1968,12 +1977,14 @@ const setupPipeline = (): void => {
       const resolved = sRow
         ? resolveNames(currentSessionGame, sRow.car, sRow.track, sRow.layout)
         : undefined;
-      const analysis = await sessionCoach.analyzeSession(
-        currentSessionId,
-        activeGame,
-        resolved,
-        [...sessionAlerts],
-      );
+      voiceAnalyzing = true;
+      const analysis = await sessionCoach
+        .analyzeSession(currentSessionId, activeGame, resolved, [
+          ...sessionAlerts,
+        ])
+        .finally(() => {
+          voiceAnalyzing = false;
+        });
       if (analysis?.summary) {
         await speakText(analysis.summary);
       } else {
