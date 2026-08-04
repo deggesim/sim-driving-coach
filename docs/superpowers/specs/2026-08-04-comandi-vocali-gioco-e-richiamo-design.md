@@ -116,14 +116,33 @@ sul classificatore completo quando `matchGame` torna `null`.
 
 ### 3. Richiamo per nome e riascolto automatico
 
-Intent `greeting` → l'app pronuncia una delle due frasi, a rotazione
-deterministica (contatore modulo, non `Math.random`, così il selfcheck può
-asserirla):
+Intent `greeting` → l'app pronuncia una delle frasi seguenti, a rotazione
+deterministica (contatore modulo sulla lista, non `Math.random`, così il
+selfcheck può asserirla):
 
 1. «Ciao, come posso essere utile?»
 2. «Ciao, chiedi e ti darò suggerimenti di guida.»
+3. «Sono qui, dimmi.»
+4. «Ti ascolto.»
+5. «Dimmi pure, sono in linea.»
+6. «Presente. Cosa ti serve?»
+7. «Eccomi, che problema hai?»
+8. «In ascolto. Dimmi tutto.»
+9. «Ci sono. Che ti serve?»
+10. «Eccomi. Su cosa lavoriamo?»
 
-e riapre l'ascolto. Nessuno stato pendente: la query successiva è una query
+Vincolo sulle frasi: **neutre rispetto al genere**. Il nome dell'assistente è
+configurabile e il default è "Aria", quindi nessun participio o aggettivo
+concordato (niente «pronto ad aiutarti» e simili). Sono brevi perché le legge il
+TTS mentre il pilota guida.
+
+Il vincolo vale per ogni frase che contiene `assistantName`, non solo per queste.
+La presentazione dell'assistente è stata unificata in `assistantIntro(name)`
+(`shared/format.ts`), usata da `TTSManager` (benvenuto), `main.ts` (anteprima
+voce Azure) e `SettingsPanel` (testo dell'anteprima): erano tre copie divergenti
+(«pronto ad aiutarti», «il tuo assistente», «il tuo insegnante virtuale»).
+
+Dopo il saluto l'app riapre l'ascolto. Nessuno stato pendente: la query successiva è una query
 normale, quindi dopo il saluto funzionano sia le domande sia i comandi.
 
 **Meccanismo di riascolto** (condiviso con il punto 2, unica implementazione):
