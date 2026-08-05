@@ -90,6 +90,12 @@ import {
 } from "./coach/session-coach.js";
 import { createZoneTracker } from "./zone-tracker.js";
 
+// Chromium's Native Window Occlusion (Windows) treats a window fully covered by
+// another app - the simulator running fullscreen - as hidden: it pauses the
+// renderer and defers media-capture requests, so the voice trigger opened no
+// microphone while driving. backgroundThrottling:false alone does not cover it.
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+
 let mainWindow: BrowserWindow | null = null;
 let r3eReaderInst: R3EReader | null = null;
 let aceReaderInst: AceReader | null = null;
@@ -507,12 +513,21 @@ const setupPipeline = (): void => {
   const getAnthropicModel = (): string =>
     getConfig("anthropicModel") ?? "claude-haiku-4-5-20251001";
 
+  // An analysis asked for by voice is already spoken by the voice pipeline
+  // (Azure MP3 via coach:voiceAudio). Without this flag the analysisDone push
+  // makes TTSManager announce the same summary too, a few ms apart: echo.
+  let voiceAnalyzing = false;
+
   const sessionCoach = createSessionCoachEngine({
     db,
     apiKey: getAnthropicApiKey(),
     model: getAnthropicModel(),
     onStart: (data) => pushToRenderer("session:analysisStart", data),
-    onDone: (data) => pushToRenderer("session:analysisDone", data),
+    onDone: (data) =>
+      pushToRenderer("session:analysisDone", {
+        ...data,
+        speak: !voiceAnalyzing,
+      }),
     onError: (message) => pushAppError(message),
   });
   const analyzingInProgress = new Set<string>();
@@ -1962,12 +1977,14 @@ const setupPipeline = (): void => {
       const resolved = sRow
         ? resolveNames(currentSessionGame, sRow.car, sRow.track, sRow.layout)
         : undefined;
-      const analysis = await sessionCoach.analyzeSession(
-        currentSessionId,
-        activeGame,
-        resolved,
-        [...sessionAlerts],
-      );
+      voiceAnalyzing = true;
+      const analysis = await sessionCoach
+        .analyzeSession(currentSessionId, activeGame, resolved, [
+          ...sessionAlerts,
+        ])
+        .finally(() => {
+          voiceAnalyzing = false;
+        });
       if (analysis?.summary) {
         await speakText(analysis.summary);
       } else {
@@ -2315,6 +2332,10 @@ Restituisci solo il JSON, senza testo aggiuntivo.`;
 
   // Global input listener - works even when the app window is not focused.
   inputManager = createInputManager(() => {
+    // Logged in main because a renderer paused by window occlusion prints
+    // nothing: this line tells a hotkey Windows never delivered apart from one
+    // that arrived and died on the way to the microphone.
+    console.log("[InputManager] Trigger fired");
     pushToRenderer("input:trigger", {});
   });
 
