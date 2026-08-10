@@ -1,6 +1,6 @@
 # Renderer (`src/renderer/`)
 
-Loaded when working under `src/renderer/`. Library/theme rules live in `.claude/rules/project.md`; architecture-wide decisions in the root `CLAUDE.md`.
+Loaded when working under `src/renderer/`. Library/theme rules live in `.claude/rules/renderer.md` (path-scoped, loads on the same files); architecture-wide decisions in the root `CLAUDE.md`.
 
 ## `components/`
 
