@@ -163,6 +163,9 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       >
         <div className="flex-shrink-0">
           <LapsTable
+            // Remount on session change so selection, page and filter reset:
+            // lap ids are per-game, so a new session can reuse the same ids.
+            key={`${session?.game ?? "none"}-${session?.id ?? 0}`}
             setupById={setupById}
             live={isLive}
             onPickSetup={(lap) => setPickerLapIds([lap.id])}
@@ -185,21 +188,30 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           show={showPicker}
           expectedCar={currentCar}
           expectedTrack={currentTrack}
-          onClose={() => setShowPicker(false)}
+          onClose={() => {
+            setShowPicker(false);
+            setPendingLapIds(null);
+          }}
           onConfirm={handleSetupConfirm}
         />
       ) : game === "ams2" ? (
         <Ams2SetupPicker
           show={showPicker}
           expectedCar={currentCar}
-          onClose={() => setShowPicker(false)}
+          onClose={() => {
+            setShowPicker(false);
+            setPendingLapIds(null);
+          }}
           onConfirm={handleSetupConfirm}
         />
       ) : (
         <R3eSetupPicker
           show={showPicker}
           expectedCar={currentCar}
-          onClose={() => setShowPicker(false)}
+          onClose={() => {
+            setShowPicker(false);
+            setPendingLapIds(null);
+          }}
           onConfirm={handleSetupConfirm}
         />
       )}
@@ -228,6 +240,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           track={session.track}
           layout={session.layout}
           game={session.game}
+          lapCount={pickerLapIds?.length}
           onClose={() => setPickerLapIds(null)}
           onReuseSetup={handleLapReuseSetup}
           onDuplicateSetup={(setup) => {
@@ -246,7 +259,10 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       {editorBase && (
         <SetupEditorModal
           base={editorBase}
-          onClose={() => setEditorBase(null)}
+          onClose={() => {
+            setEditorBase(null);
+            setPendingLapIds(null);
+          }}
           onConfirm={(setup) => {
             setEditorBase(null);
             void handleSetupConfirm(setup);

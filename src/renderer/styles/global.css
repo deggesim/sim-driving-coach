@@ -550,12 +550,15 @@ body {
   flex: 1;
   min-width: 0;
 }
-.setup-editor-row .form-control {
-  width: 150px;
-  flex: none;
+.setup-editor-row .form-control,
+.setup-editor-name .form-control {
   background: var(--bg2);
   color: var(--text);
   border-color: var(--border);
+}
+.setup-editor-row .form-control {
+  width: 150px;
+  flex: none;
   text-align: right;
 }
 

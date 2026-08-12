@@ -75,10 +75,12 @@ const LapsTable = ({
     : sortedLaps;
   const pageCount = Math.max(1, Math.ceil(visibleLaps.length / PAGE_SIZE));
 
-  // La selezione effettiva è l'intersezione con i giri visibili: così cambio
-  // sessione, filtro validi ed eliminazione di un giro la ripuliscono da soli,
-  // senza effetti né reset espliciti. Persiste invece al cambio pagina, che è
-  // esattamente il caso d'uso dell'assegnazione in blocco.
+  // La selezione effettiva è l'intersezione con i giri visibili: così filtro
+  // validi ed eliminazione di un giro la ripuliscono da soli, senza effetti né
+  // reset espliciti. Il cambio sessione invece non basta intercettarlo qui (gli
+  // id dei giri sono per gioco e possono coincidere): lo copre la `key` che il
+  // parent passa al componente, che lo rimonta da zero. Persiste al cambio
+  // pagina, che è esattamente il caso d'uso dell'assegnazione in blocco.
   // ponytail: O(n²) su qualche decina di giri
   const selectedIds = visibleLaps
     .filter((l) => selected.has(l.id))

@@ -12,6 +12,7 @@ const lapsLabel = (n: number): string => `${n} ${n === 1 ? "giro" : "giri"}`;
 
 export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const session = useSessionStore((s) => s.session);
+  const laps = useSessionStore((s) => s.laps);
   const setups = useSessionStore((s) => s.setups);
   const assignLapSetup = useSessionStore((s) => s.assignLapSetup);
   const setActiveSetup = useSessionStore((s) => s.setActiveSetup);
@@ -30,6 +31,11 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     return m;
   }, [setups]);
 
+  /** Solo i giri ancora presenti nella sessione corrente: la lista puo' essere
+   *  sopravvissuta a un giro eliminato o a una chiusura di sessione. */
+  const stillPresent = (ids: number[]): number[] =>
+    ids.filter((id) => laps.some((l) => l.id === id));
+
   const handleSetupConfirm = async (setup: SetupData): Promise<void> => {
     setShowPicker(false);
     if (explicit) setShowSetupSelection(false);
@@ -44,17 +50,25 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
           : { setup: named };
       const { setupId } = await window.electronAPI.sessionLoadSetup(params);
       if (pendingLapIds != null) {
+        const targets = stillPresent(pendingLapIds);
+        // Azzerata prima del loop: un errore a metà non deve lasciare in giro
+        // id che il prossimo caricamento riassegnerebbe in silenzio.
+        setPendingLapIds(null);
         // ponytail: un update per giro, sono decine non migliaia - niente IPC bulk
-        for (const lapId of pendingLapIds) await assignLapSetup(lapId, setupId);
+        for (const lapId of targets) await assignLapSetup(lapId, setupId);
         showFlash(
           "success",
-          `Setup ${named.name} caricato e assegnato a ${lapsLabel(pendingLapIds.length)}.`,
+          targets.length
+            ? `Setup ${named.name} caricato e assegnato a ${lapsLabel(targets.length)}.`
+            : `Setup caricato: ${named.name}`,
         );
-        setPendingLapIds(null);
       } else {
         showFlash("success", `Setup caricato: ${named.name}`);
       }
     } catch (err) {
+      // Anche il caricamento fallito consuma la lista: restare valorizzata
+      // significherebbe riassegnare quei giri al prossimo setup caricato.
+      setPendingLapIds(null);
       showFlash("danger", String(err));
     }
   };
@@ -99,8 +113,8 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   };
 
   const handleLapReuseSetup = async (row: SessionSetupRow): Promise<void> => {
-    const lapIds = pickerLapIds;
-    if (!lapIds?.length) return;
+    const lapIds = stillPresent(pickerLapIds ?? []);
+    if (!lapIds.length) return;
     try {
       let targetSetupId = row.id;
       // If the setup is not in the current session, copy it first so setup_id
@@ -109,10 +123,17 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
         const named: SetupData = row.setup.name
           ? row.setup
           : { ...row.setup, name: row.setup.carFound || "Setup" };
+        // activate: false — ritaggare vecchi giri non deve cambiare il setup in
+        // uso, altrimenti anche i giri successivi finirebbero su questa copia.
         const params =
           explicit && session
-            ? { setup: named, sessionId: session.id, game: session.game }
-            : { setup: named };
+            ? {
+                setup: named,
+                sessionId: session.id,
+                game: session.game,
+                activate: false,
+              }
+            : { setup: named, activate: false };
         const result = await window.electronAPI.sessionLoadSetup(params);
         targetSetupId = result.setupId;
       }

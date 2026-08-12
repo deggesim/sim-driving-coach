@@ -69,7 +69,10 @@ export const SetupEditorModal = ({ base, onClose, onConfirm }: Props) => {
       </Modal.Header>
 
       <Modal.Body className="picker-body">
-        <Form.Group className="mb-3" style={{ maxWidth: 360 }}>
+        <Form.Group
+          className="mb-3 setup-editor-name"
+          style={{ maxWidth: 360 }}
+        >
           <Form.Label className="text-muted" style={{ fontSize: 14 }}>
             Nome setup <span className="text-danger">*</span>
           </Form.Label>

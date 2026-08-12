@@ -1200,7 +1200,13 @@ const setupPipeline = (): void => {
         setup,
         sessionId: sid,
         game: g,
-      }: { setup: SetupData; sessionId?: number; game?: GameSource },
+        activate,
+      }: {
+        setup: SetupData;
+        sessionId?: number;
+        game?: GameSource;
+        activate?: boolean;
+      },
     ) => {
       const targetId = sid ?? currentSessionId;
       const targetGame = g ?? currentSessionGame;
@@ -1221,8 +1227,11 @@ const setupPipeline = (): void => {
           targetGame === "ace" ? null : JSON.stringify(setup.screenshots ?? []),
         );
       const setupId = Number(result.lastInsertRowid);
-      // Only advance currentSetupId when loading into the current live session
-      if (targetId === currentSessionId) currentSetupId = setupId;
+      // Only advance currentSetupId when loading into the current live session,
+      // and only when the caller wants this setup active (activate: false is used
+      // to re-tag old laps without hijacking the setup the next laps will use).
+      if (targetId === currentSessionId && activate !== false)
+        currentSetupId = setupId;
 
       const row: SessionSetupRow = {
         id: setupId,
@@ -1236,6 +1245,7 @@ const setupPipeline = (): void => {
         sessionId: targetId,
         game: targetGame,
         setup: row,
+        activate,
       });
       return { setupId };
     },
@@ -1618,6 +1628,11 @@ const setupPipeline = (): void => {
       db.prepare(`DELETE FROM ${t("session_setups", game)} WHERE id = ?`).run(
         id,
       );
+      // Drop the active setup if it is the one just deleted, otherwise saveLap
+      // would keep inserting a dangling setup_id and hit the FK constraint.
+      // Same-id rows exist in the other games' tables, hence the game check.
+      if (game === currentSessionGame && currentSetupId === id)
+        currentSetupId = null;
       return { ok: true };
     },
   );

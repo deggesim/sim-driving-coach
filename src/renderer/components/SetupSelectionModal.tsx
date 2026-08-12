@@ -21,6 +21,9 @@ interface Props {
   track: string;
   layout: string;
   game: GameSource;
+  /** Numero di giri a cui il setup scelto verrà assegnato; assente = flusso
+   *  normale che cambia il setup in uso. Cambia solo il titolo del modal. */
+  lapCount?: number;
   onClose: () => void;
   onReuseSetup: (row: SessionSetupRow) => void;
   onJsonPicker: () => void;
@@ -58,6 +61,7 @@ const SetupSelectionModal = ({
   track,
   layout,
   game,
+  lapCount,
   onClose,
   onReuseSetup,
   onJsonPicker,
@@ -126,7 +130,11 @@ const SetupSelectionModal = ({
         className="setup-selection-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title style={{ fontSize: 16 }}>Gestione setup</Modal.Title>
+          <Modal.Title style={{ fontSize: 16 }}>
+            {lapCount != null
+              ? `Assegna setup a ${lapCount} ${lapCount === 1 ? "giro" : "giri"}`
+              : "Gestione setup"}
+          </Modal.Title>
         </Modal.Header>
 
         <Modal.Body>

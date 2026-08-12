@@ -57,6 +57,9 @@ type State = {
     sessionId: number;
     game: GameSource;
     setup: SessionSetupRow;
+    // false: the setup was only stored (re-tagging old laps), the active one
+    // must not change.
+    activate?: boolean;
   }) => void;
   _applyAnalysisStart: (payload: {
     sessionId: number;
@@ -203,7 +206,11 @@ export const useSessionStore = create<State>((set, get) => ({
   deleteSetup: async (id, game) => {
     const res = await window.electronAPI.sessionDeleteSetup({ id, game });
     if (res.ok) {
-      set({ setups: get().setups.filter((s) => s.id !== id) });
+      const s = get();
+      set({
+        setups: s.setups.filter((x) => x.id !== id),
+        activeSetupId: s.activeSetupId === id ? null : s.activeSetupId,
+      });
     }
     return res;
   },
@@ -240,10 +247,13 @@ export const useSessionStore = create<State>((set, get) => ({
     set({ laps: [...s.laps, lap] });
   },
 
-  _applySetupLoaded: ({ sessionId, setup }) => {
+  _applySetupLoaded: ({ sessionId, setup, activate }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
-    set({ setups: [...s.setups, setup], activeSetupId: setup.id });
+    set({
+      setups: [...s.setups, setup],
+      activeSetupId: activate === false ? s.activeSetupId : setup.id,
+    });
   },
 
   _applyAnalysisStart: ({ sessionId, version }) => {
@@ -328,7 +338,12 @@ export const subscribeSessionIPC = (): void => {
   );
   window.electronAPI.onSessionSetupLoaded((d) =>
     store()._applySetupLoaded(
-      d as { sessionId: number; game: GameSource; setup: SessionSetupRow },
+      d as {
+        sessionId: number;
+        game: GameSource;
+        setup: SessionSetupRow;
+        activate?: boolean;
+      },
     ),
   );
   window.electronAPI.onSessionAnalysisStart((d) =>
