@@ -17,6 +17,8 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const [showSetupSelection, setShowSetupSelection] = useState(false);
   const [pickerLap, setPickerLap] = useState<LapRow | null>(null);
   const [pendingLapId, setPendingLapId] = useState<number | null>(null);
+  /** Setup di partenza dell'editor manuale; null = editor chiuso. */
+  const [editorBase, setEditorBase] = useState<SetupData | null>(null);
 
   const setupById = useMemo(() => {
     const m = new Map<number, SessionSetupRow>();
@@ -124,6 +126,8 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     pickerLap,
     setPickerLap,
     setPendingLapId,
+    editorBase,
+    setEditorBase,
     setupById,
     handleSetupConfirm,
     handleReuseSetup,

@@ -12,6 +12,7 @@ import AnalysisList from "./AnalysisList";
 import { GamePickerModal } from "./GamePickerModal";
 import LapsTable from "./LapsTable";
 import R3eSetupPicker from "./R3eSetupPicker";
+import { SetupEditorModal } from "./SetupEditorModal";
 import SetupSelectionModal from "./SetupSelectionModal";
 
 type Props = {
@@ -35,6 +36,8 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
     pickerLap,
     setPickerLap,
     setPendingLapId,
+    editorBase,
+    setEditorBase,
     setupById,
     handleSetupConfirm,
     handleReuseSetup,
@@ -213,6 +216,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
             setShowSetupSelection(false);
             setShowPicker(true);
           }}
+          onDuplicateSetup={setEditorBase}
         />
       )}
 
@@ -229,6 +233,22 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
             setPendingLapId(pickerLap!.id);
             setPickerLap(null);
             setShowPicker(true);
+          }}
+          onDuplicateSetup={(setup) => {
+            setPendingLapId(pickerLap!.id);
+            setPickerLap(null);
+            setEditorBase(setup);
+          }}
+        />
+      )}
+
+      {editorBase && (
+        <SetupEditorModal
+          base={editorBase}
+          onClose={() => setEditorBase(null)}
+          onConfirm={(setup) => {
+            setEditorBase(null);
+            void handleSetupConfirm(setup);
           }}
         />
       )}

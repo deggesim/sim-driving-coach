@@ -1,6 +1,6 @@
 import { Button, Modal } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCopy } from "@fortawesome/free-solid-svg-icons";
 import type { GameSource, SessionSetupRow } from "../../shared/types";
 import AceSetupTabs from "./AceSetupTabs";
 import Ams2SetupTabs from "./Ams2SetupTabs";
@@ -12,6 +12,7 @@ export type SetupDetailModalProps = {
   game?: GameSource;
   onClose: () => void;
   onUse?: () => void;
+  onDuplicate?: () => void;
 };
 
 export const SetupDetailModal = ({
@@ -20,6 +21,7 @@ export const SetupDetailModal = ({
   game,
   onClose,
   onUse,
+  onDuplicate,
 }: SetupDetailModalProps) => {
   if (setupId == null) return null;
 
@@ -53,12 +55,20 @@ export const SetupDetailModal = ({
           <p className="text-muted mb-0">Nessun parametro disponibile.</p>
         )}
       </Modal.Body>
-      {onUse && (
+      {(onUse || onDuplicate) && (
         <Modal.Footer>
-          <Button size="sm" variant="primary" onClick={onUse}>
-            <FontAwesomeIcon icon={faCheck} className="me-1" />
-            Usa questo setup
-          </Button>
+          {onDuplicate && (
+            <Button size="sm" variant="secondary" onClick={onDuplicate}>
+              <FontAwesomeIcon icon={faCopy} className="me-1" />
+              Crea setup da esistente
+            </Button>
+          )}
+          {onUse && (
+            <Button size="sm" variant="primary" onClick={onUse}>
+              <FontAwesomeIcon icon={faCheck} className="me-1" />
+              Usa questo setup
+            </Button>
+          )}
         </Modal.Footer>
       )}
     </Modal>

@@ -7,7 +7,11 @@ import {
   faFileCode,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import type { GameSource, SessionSetupRow } from "../../shared/types";
+import type {
+  GameSource,
+  SessionSetupRow,
+  SetupData,
+} from "../../shared/types";
 import { SetupDetailModal } from "./SetupDetailModal";
 import { useSessionStore } from "../store/sessionStore";
 
@@ -20,6 +24,7 @@ interface Props {
   onClose: () => void;
   onReuseSetup: (row: SessionSetupRow) => void;
   onJsonPicker: () => void;
+  onDuplicateSetup: (setup: SetupData) => void;
 }
 
 const formatDate = (iso: string): string => {
@@ -56,6 +61,7 @@ const SetupSelectionModal = ({
   onClose,
   onReuseSetup,
   onJsonPicker,
+  onDuplicateSetup,
 }: Props) => {
   const [history, setHistory] = useState<SessionSetupRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -296,6 +302,13 @@ const SetupSelectionModal = ({
           const row =
             selectedId != null ? setupById.get(selectedId) : undefined;
           if (row) onReuseSetup(row);
+          setSelectedId(null);
+          onClose();
+        }}
+        onDuplicate={() => {
+          const row =
+            selectedId != null ? setupById.get(selectedId) : undefined;
+          if (row) onDuplicateSetup(row.setup);
           setSelectedId(null);
           onClose();
         }}
