@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Modal, Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faCamera,
   faCheck,
   faFileCode,
   faTrash,
@@ -32,6 +33,13 @@ const formatDate = (iso: string): string => {
     minute: "2-digit",
   });
 };
+
+const ACQUIRE: Record<GameSource, { label: string; icon: typeof faFileCode }> =
+  {
+    r3e: { label: "Carica da JSON", icon: faFileCode },
+    ace: { label: "Seleziona file", icon: faFileCode },
+    ams2: { label: "Acquisisci screenshot", icon: faCamera },
+  };
 
 type DeleteState =
   | { phase: "idle" }
@@ -267,8 +275,8 @@ const SetupSelectionModal = ({
           )}
 
           <Button variant="secondary" onClick={onJsonPicker} className="w-100">
-            <FontAwesomeIcon icon={faFileCode} className="me-2" />
-            {game === "ace" ? "Seleziona" : "Carica da JSON"}
+            <FontAwesomeIcon icon={ACQUIRE[game].icon} className="me-2" />
+            {ACQUIRE[game].label}
           </Button>
         </Modal.Body>
 

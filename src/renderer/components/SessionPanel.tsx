@@ -81,7 +81,6 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       showFlash("danger", res.reason);
     } else {
       showFlash("success", "Sessione aperta.");
-      if (game === "r3e") setShowSetupSelection(true);
     }
   };
 
@@ -139,11 +138,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         onEnd={isLive ? handleEnd : () => {}}
         onAnalyze={handleAnalyze}
         onExportPdf={handleExportPdf}
-        onOpenPicker={
-          game === "r3e"
-            ? () => setShowSetupSelection(true)
-            : () => setShowPicker(true)
-        }
+        onOpenPicker={() => setShowSetupSelection(true)}
         onBack={!isLive ? onBack : undefined}
         onReopen={!isLive && !sessionActive ? handleReopen : undefined}
       />
