@@ -85,7 +85,12 @@ modali, e riceve `editorBase` da `useSetupPicker`.
 - Checkbox "seleziona tutti" nel `thead`, che agisce sui **giri visibili**
   (dopo il filtro validi/non validi), non solo su quelli della pagina corrente.
   Stato indeterminato quando la selezione è parziale.
-- La selezione si azzera al cambio pagina, al toggle del filtro e al cambio sessione.
+- La selezione **persiste al cambio pagina** (serve proprio ad assegnare in blocco
+  giri che stanno su pagine diverse). Non serve azzerarla su filtro/sessione/
+  eliminazione: la selezione effettiva è derivata intersecando gli id selezionati
+  con i giri visibili, quindi si ripulisce da sé.
+- La selezione si azzera quando si preme "Assegna setup", per non lasciare uno
+  stato stantio dopo l'assegnazione.
 - Il click sulla checkbox non deve espandere la riga (`stopPropagation`).
 
 ### 2.2 Pulsante "Assegna setup"
