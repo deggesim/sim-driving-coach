@@ -33,9 +33,9 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
     setShowPicker,
     showSetupSelection,
     setShowSetupSelection,
-    pickerLap,
-    setPickerLap,
-    setPendingLapId,
+    pickerLapIds,
+    setPickerLapIds,
+    setPendingLapIds,
     editorBase,
     setEditorBase,
     setupById,
@@ -165,7 +165,8 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           <LapsTable
             setupById={setupById}
             live={isLive}
-            onPickSetup={setPickerLap}
+            onPickSetup={(lap) => setPickerLapIds([lap.id])}
+            onAssignSetup={setPickerLapIds}
           />
         </div>
 
@@ -222,22 +223,22 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
 
       {session && (
         <SetupSelectionModal
-          show={pickerLap != null}
+          show={pickerLapIds != null}
           car={session.car}
           track={session.track}
           layout={session.layout}
           game={session.game}
-          onClose={() => setPickerLap(null)}
+          onClose={() => setPickerLapIds(null)}
           onReuseSetup={handleLapReuseSetup}
-          onJsonPicker={() => {
-            setPendingLapId(pickerLap!.id);
-            setPickerLap(null);
-            setShowPicker(true);
-          }}
           onDuplicateSetup={(setup) => {
-            setPendingLapId(pickerLap!.id);
-            setPickerLap(null);
+            setPendingLapIds(pickerLapIds);
+            setPickerLapIds(null);
             setEditorBase(setup);
+          }}
+          onJsonPicker={() => {
+            setPendingLapIds(pickerLapIds);
+            setPickerLapIds(null);
+            setShowPicker(true);
           }}
         />
       )}
