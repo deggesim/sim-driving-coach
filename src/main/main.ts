@@ -1537,7 +1537,8 @@ const setupPipeline = (): void => {
     "session:delete",
     (_event, { id, game }: { id: number; game: GameSource }) => {
       db.prepare(`DELETE FROM ${t("sessions", game)} WHERE id = ?`).run(id);
-      if (currentSessionId === id) {
+      // Per-game tables have independent autoincrement: an id alone is ambiguous
+      if (currentSessionId === id && game === currentSessionGame) {
         currentSessionId = null;
         currentSetupId = null;
       }
@@ -1555,7 +1556,7 @@ const setupPipeline = (): void => {
           if (game === "ace") delAce.run(id);
           else if (game === "ams2") delAms2.run(id);
           else delR3e.run(id);
-          if (currentSessionId === id) {
+          if (currentSessionId === id && game === currentSessionGame) {
             currentSessionId = null;
             currentSetupId = null;
           }
