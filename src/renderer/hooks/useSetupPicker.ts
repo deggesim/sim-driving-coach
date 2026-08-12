@@ -12,6 +12,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const session = useSessionStore((s) => s.session);
   const setups = useSessionStore((s) => s.setups);
   const assignLapSetup = useSessionStore((s) => s.assignLapSetup);
+  const setActiveSetup = useSessionStore((s) => s.setActiveSetup);
   const [showPicker, setShowPicker] = useState(false);
   const [showSetupSelection, setShowSetupSelection] = useState(false);
   const [pickerLap, setPickerLap] = useState<LapRow | null>(null);
@@ -82,6 +83,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
           targetSetupId = result.setupId;
         }
         await window.electronAPI.sessionReuseSetup({ setupId: targetSetupId });
+        setActiveSetup(targetSetupId);
         showFlash("success", "Setup attivo aggiornato.");
       }
     } catch (err) {

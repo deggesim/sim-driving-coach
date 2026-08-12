@@ -1378,7 +1378,8 @@ const setupPipeline = (): void => {
 
   ipcMain.handle("session:getCurrent", () => {
     if (!currentSessionId) return null;
-    return loadSessionDetail(currentSessionId, currentSessionGame);
+    const detail = loadSessionDetail(currentSessionId, currentSessionGame);
+    return detail && { ...detail, activeSetupId: currentSetupId };
   });
 
   ipcMain.handle(

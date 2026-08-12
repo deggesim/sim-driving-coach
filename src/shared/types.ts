@@ -253,6 +253,9 @@ export type SessionDetail = {
   laps: LapRow[];
   setups: SessionSetupRow[];
   analyses: SessionAnalysisRow[];
+  /** Setup attivo. Valorizzato solo da session:getCurrent — per una sessione
+   *  storica non esiste un "setup in uso". */
+  activeSetupId?: number | null;
 };
 
 // --- Setup decoding ---

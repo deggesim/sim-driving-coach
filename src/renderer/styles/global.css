@@ -170,6 +170,10 @@ body {
 .deb-car {
   color: var(--accent);
 }
+.deb-setup {
+  color: var(--accent);
+  font-weight: 600;
+}
 
 /* Bootstrap Accordion — dark theme overrides */
 .accordion-header.dark-header {

@@ -26,6 +26,8 @@ type State = {
   laps: LapRow[];
   setups: SessionSetupRow[];
   analyses: SessionAnalysisRow[];
+  /** Setup attivo della sessione live: quello che verrà agganciato ai prossimi giri. */
+  activeSetupId: number | null;
   working: Working;
   loading: boolean;
   error: string | null;
@@ -44,6 +46,7 @@ type State = {
     game: GameSource,
   ) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
   assignLapSetup: (lapId: number, setupId: number | null) => Promise<void>;
+  setActiveSetup: (id: number | null) => void;
   deleteLap: (lapId: number) => Promise<void>;
   _applyLapAdded: (payload: {
     sessionId: number;
@@ -77,6 +80,7 @@ export const useSessionStore = create<State>((set, get) => ({
   laps: [],
   setups: [],
   analyses: [],
+  activeSetupId: null,
   working: null,
   loading: false,
   error: null,
@@ -88,6 +92,7 @@ export const useSessionStore = create<State>((set, get) => ({
         laps: [],
         setups: [],
         analyses: [],
+        activeSetupId: null,
         mode,
         working: null,
       });
@@ -98,6 +103,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: detail.laps,
       setups: detail.setups,
       analyses: detail.analyses,
+      activeSetupId: detail.activeSetupId ?? null,
       mode,
       working: null,
     });
@@ -138,6 +144,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: [],
       setups: [],
       analyses: [],
+      activeSetupId: null,
       working: null,
       error: null,
     }),
@@ -216,6 +223,8 @@ export const useSessionStore = create<State>((set, get) => ({
     });
   },
 
+  setActiveSetup: (id) => set({ activeSetupId: id }),
+
   deleteLap: async (lapId) => {
     const s = get();
     if (!s.session) return;
@@ -234,7 +243,7 @@ export const useSessionStore = create<State>((set, get) => ({
   _applySetupLoaded: ({ sessionId, setup }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
-    set({ setups: [...s.setups, setup] });
+    set({ setups: [...s.setups, setup], activeSetupId: setup.id });
   },
 
   _applyAnalysisStart: ({ sessionId, version }) => {
@@ -278,6 +287,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: isSameSession ? current.laps : [],
       setups: isSameSession ? current.setups : [],
       analyses: isSameSession ? current.analyses : [],
+      activeSetupId: isSameSession ? current.activeSetupId : null,
       working: null,
       error: null,
     });
