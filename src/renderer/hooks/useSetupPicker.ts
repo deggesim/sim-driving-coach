@@ -22,8 +22,12 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const [pickerLapIds, setPickerLapIds] = useState<number[] | null>(null);
   /** Giri in attesa del setup che sta per essere creato dal picker/editor. */
   const [pendingLapIds, setPendingLapIds] = useState<number[] | null>(null);
-  /** Setup di partenza dell'editor manuale; null = editor chiuso. */
-  const [editorBase, setEditorBase] = useState<SetupData | null>(null);
+  /** Setup di partenza dell'editor manuale, con i nomi già in uso nello storico
+   *  da cui e' stato aperto; null = editor chiuso. */
+  const [editorBase, setEditorBase] = useState<{
+    setup: SetupData;
+    takenNames: string[];
+  } | null>(null);
 
   const setupById = useMemo(() => {
     const m = new Map<number, SessionSetupRow>();

@@ -24,10 +24,16 @@ interface Props {
   /** Numero di giri a cui il setup scelto verrà assegnato; assente = flusso
    *  normale che cambia il setup in uso. Cambia solo il titolo del modal. */
   lapCount?: number;
+  /** L'editor manuale è aperto sopra: nasconde questo modal e il dettaglio
+   *  senza perdere il setup selezionato, così annullando l'editor si torna al
+   *  dettaglio di partenza. Una sola modale a schermo per volta. */
+  suspended?: boolean;
   onClose: () => void;
   onReuseSetup: (row: SessionSetupRow) => void;
   onJsonPicker: () => void;
-  onDuplicateSetup: (setup: SetupData) => void;
+  /** `takenNames`: i nomi già presenti in questo storico, per impedire
+   *  all'editor di crearne un duplicato. */
+  onDuplicateSetup: (setup: SetupData, takenNames: string[]) => void;
 }
 
 const formatDate = (iso: string): string => {
@@ -41,6 +47,9 @@ const formatDate = (iso: string): string => {
     minute: "2-digit",
   });
 };
+
+const displayName = (row: SessionSetupRow): string =>
+  row.setup.name ?? row.setup.carFound ?? `Setup #${row.id}`;
 
 const ACQUIRE: Record<GameSource, { label: string; icon: typeof faFileCode }> =
   {
@@ -62,6 +71,7 @@ const SetupSelectionModal = ({
   layout,
   game,
   lapCount,
+  suspended,
   onClose,
   onReuseSetup,
   onJsonPicker,
@@ -75,15 +85,18 @@ const SetupSelectionModal = ({
   });
   const deleteSetup = useSessionStore((s) => s.deleteSetup);
 
-  // Reset the delete flow whenever the modal opens or closes. SessionPanel keeps
-  // this component mounted and only toggles `show`, so it never remounts and the
-  // state has to be cleared explicitly. Done during render (React's documented
-  // "adjust state when a prop changes" pattern) rather than in the effect below:
-  // an effect would render the stale phase once before clearing it.
+  // Reset the delete flow and the open detail whenever the modal opens or
+  // closes. SessionPanel keeps this component mounted and only toggles `show`,
+  // so it never remounts and the state has to be cleared explicitly — and the
+  // detail modal lives outside `show`, so nothing else would close it. Done
+  // during render (React's documented "adjust state when a prop changes"
+  // pattern) rather than in the effect below: an effect would render the stale
+  // phase once before clearing it.
   const [prevShow, setPrevShow] = useState(show);
   if (prevShow !== show) {
     setPrevShow(show);
     setDeleteState({ phase: "idle" });
+    setSelectedId(null);
   }
 
   useEffect(() => {
@@ -123,7 +136,7 @@ const SetupSelectionModal = ({
   return (
     <>
       <Modal
-        show={show}
+        show={show && !suspended}
         onHide={onClose}
         centered
         size="lg"
@@ -158,10 +171,6 @@ const SetupSelectionModal = ({
                 </thead>
                 <tbody>
                   {history.map((row) => {
-                    const displayName =
-                      row.setup.name ??
-                      row.setup.carFound ??
-                      `Setup #${row.id}`;
                     const isConfirm =
                       deleteState.phase === "confirm" &&
                       deleteState.id === row.id;
@@ -183,7 +192,7 @@ const SetupSelectionModal = ({
                           }
                         >
                           <td>
-                            {displayName}
+                            {displayName(row)}
                             {row.setup.carVerified && (
                               <Badge
                                 bg="success"
@@ -302,7 +311,7 @@ const SetupSelectionModal = ({
       </Modal>
 
       <SetupDetailModal
-        setupId={selectedId}
+        setupId={suspended ? null : selectedId}
         setupById={setupById}
         game={game}
         onClose={() => setSelectedId(null)}
@@ -316,9 +325,9 @@ const SetupSelectionModal = ({
         onDuplicate={() => {
           const row =
             selectedId != null ? setupById.get(selectedId) : undefined;
-          if (row) onDuplicateSetup(row.setup);
-          setSelectedId(null);
-          onClose();
+          // Nessuna chiusura: il parent apre l'editor e ci sospende (`suspended`),
+          // così annullando si torna a questo dettaglio. Chiude alla conferma.
+          if (row) onDuplicateSetup(row.setup, history.map(displayName));
         }}
       />
     </>

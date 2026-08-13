@@ -167,22 +167,18 @@ const LapsTable = ({
           {selectedIds.length > 0 && (
             <Button
               variant="primary"
-              className="laps-toggle-btn"
               onClick={() => {
                 onAssignSetup?.(selectedIds);
                 setSelected(new Set());
               }}
+              size="sm"
             >
               <FontAwesomeIcon icon={faGear} className="me-1" />
               Assegna setup ({selectedIds.length})
             </Button>
           )}
           {laps.length > 0 && (
-            <Button
-              variant="secondary"
-              className="laps-toggle-btn"
-              onClick={toggleHideInvalid}
-            >
+            <Button variant="secondary" onClick={toggleHideInvalid} size="sm">
               <FontAwesomeIcon
                 icon={hideInvalid ? faEye : faEyeSlash}
                 className="me-1"

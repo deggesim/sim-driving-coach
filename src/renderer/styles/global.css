@@ -537,6 +537,12 @@ body {
 /* ── Setup Editor Modal ── */
 .setup-editor-section {
   margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 20px;
+}
+.setup-editor-section .setup-subsection-title {
+  grid-column: 1 / -1;
 }
 .setup-editor-row {
   display: flex;
@@ -557,7 +563,7 @@ body {
   border-color: var(--border);
 }
 .setup-editor-row .form-control {
-  width: 150px;
+  width: 220px;
   flex: none;
   text-align: right;
 }
@@ -1065,9 +1071,7 @@ body {
 }
 
 /* ── Laps table UI ── */
-.laps-toggle-btn {
-  font-size: 12px;
-}
+
 .laps-table .col-icon {
   width: 24px;
 }

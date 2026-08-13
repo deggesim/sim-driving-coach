@@ -13,12 +13,22 @@ import type { SetupData, SetupParam } from "../../shared/types";
 
 type Props = {
   base: SetupData;
+  /** Nomi già in uso nello storico: il salvataggio li rifiuta. */
+  takenNames: string[];
   onClose: () => void;
   onConfirm: (setup: SetupData) => void;
 };
 
-export const SetupEditorModal = ({ base, onClose, onConfirm }: Props) => {
+export const SetupEditorModal = ({
+  base,
+  takenNames,
+  onClose,
+  onConfirm,
+}: Props) => {
   const [name, setName] = useState("");
+  const duplicate = takenNames.some(
+    (taken) => taken.trim().toLowerCase() === name.trim().toLowerCase(),
+  );
   const [params, setParams] = useState<SetupParam[]>(() =>
     base.params.map((p) => ({ ...p })),
   );
@@ -40,10 +50,11 @@ export const SetupEditorModal = ({ base, onClose, onConfirm }: Props) => {
   );
 
   const handleConfirm = (): void => {
-    if (!name.trim()) return;
+    if (!name.trim() || duplicate) return;
     onConfirm({
       name: name.trim(),
-      carVerified: true,
+      // Ereditato: un setup derivato da uno non verificato non lo diventa
+      carVerified: base.carVerified,
       carFound: base.carFound,
       setupText: base.setupText,
       params,
@@ -84,6 +95,11 @@ export const SetupEditorModal = ({ base, onClose, onConfirm }: Props) => {
             onChange={(e) => setName(e.target.value)}
             autoFocus
           />
+          {duplicate && (
+            <Form.Text className="text-danger">
+              Esiste già un setup con questo nome per questa auto/circuito.
+            </Form.Text>
+          )}
         </Form.Group>
 
         <div className="picker-params">
@@ -116,7 +132,7 @@ export const SetupEditorModal = ({ base, onClose, onConfirm }: Props) => {
         <Button
           variant="danger"
           size="sm"
-          disabled={!name.trim()}
+          disabled={!name.trim() || duplicate}
           onClick={handleConfirm}
         >
           <FontAwesomeIcon icon={faCheck} className="me-1" />

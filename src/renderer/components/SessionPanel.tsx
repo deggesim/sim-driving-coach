@@ -223,13 +223,16 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           track={session.track}
           layout={session.layout}
           game={session.game}
+          suspended={editorBase != null}
           onClose={() => setShowSetupSelection(false)}
           onReuseSetup={handleReuseSetup}
           onJsonPicker={() => {
             setShowSetupSelection(false);
             setShowPicker(true);
           }}
-          onDuplicateSetup={setEditorBase}
+          onDuplicateSetup={(setup, takenNames) =>
+            setEditorBase({ setup, takenNames })
+          }
         />
       )}
 
@@ -241,13 +244,14 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           layout={session.layout}
           game={session.game}
           lapCount={pickerLapIds?.length}
+          suspended={editorBase != null}
           onClose={() => setPickerLapIds(null)}
           onReuseSetup={handleLapReuseSetup}
-          onDuplicateSetup={(setup) => {
-            setPendingLapIds(pickerLapIds);
-            setPickerLapIds(null);
-            setEditorBase(setup);
-          }}
+          // Creare un setup da uno esistente non lo assegna ai giri selezionati:
+          // e' una creazione, non l'assegnazione che il modal stava servendo.
+          onDuplicateSetup={(setup, takenNames) =>
+            setEditorBase({ setup, takenNames })
+          }
           onJsonPicker={() => {
             setPendingLapIds(pickerLapIds);
             setPickerLapIds(null);
@@ -258,13 +262,15 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
 
       {editorBase && (
         <SetupEditorModal
-          base={editorBase}
-          onClose={() => {
-            setEditorBase(null);
-            setPendingLapIds(null);
-          }}
+          base={editorBase.setup}
+          takenNames={editorBase.takenNames}
+          // Annulla: chiude solo l'editor, cosi' il modal sospeso sotto torna a
+          // mostrare il dettaglio di partenza. Conferma: chiude anche quello.
+          onClose={() => setEditorBase(null)}
           onConfirm={(setup) => {
             setEditorBase(null);
+            setShowSetupSelection(false);
+            setPickerLapIds(null);
             void handleSetupConfirm(setup);
           }}
         />
