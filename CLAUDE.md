@@ -18,6 +18,7 @@ See `package.json` scripts. The non-obvious parts:
 - `npm run selfcheck` runs the assert-based self-checks (struct offsets, prompt builder, session stats, voice summary) — no sim needed.
 - If TypeScript errors appear in `npm run dev`, stop and run `npm run typecheck` for the full list before restarting.
 - `npm run build:electron` is the only script that produces a distributable; `npm run build` is the Vite bundle alone.
+- **There is no test runner** (`npm test` does not exist). The gate before any commit is `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck` — four commands, all must exit zero.
 
 ## Development Tips
 
@@ -27,6 +28,8 @@ See `package.json` scripts. The non-obvious parts:
 - **TypeScript errors on commit**: Run `npm run typecheck` before committing. Commit hooks may catch errors that passed type-check but break the build.
 - **Struct offset mismatches**: If the reader logs zeros/garbage for frame data (especially R3E version, ACE status, or AMS2 car/track), check the struct offsets in `r3e-struct.ts`, `ace-struct.ts`, or `ams2-struct.ts` against the installed game version. Run `npm run selfcheck` to validate the offset arithmetic. There is **no standalone reader harness**: start `npm run dev` with the sim running and read the `[R3E]`/`[ACE]`/`[AMS2]` console lines.
 - **Multi-line commit messages in PowerShell**: `git commit -m @'…'@` with a here-string fails in this environment (`Remove-Item on system path '/' is blocked`). Write the message to a temp file and use `git commit -F <path>` instead.
+- **Multi-line edits through the shell**: same class of trap. A large `python - <<'PY'` heredoc dies with `unexpected EOF` on a payload full of Italian apostrophes (`d'errore`, `l'auto`), and Git Bash halves the backslashes inside it — a doubled `\\b` arrives as `\b`, which a non-raw Python string then reads as a backspace control character, so a string match fails **silently**. Write the patch script to the scratchpad and run it (`python script.py`), building any backslash as `chr(92)`; `assert old in s` before every `replace`, and write the file only at the end so a wrong anchor cannot leave the tree half-patched.
+- **A union member and its handler are one change**: adding a variant to a discriminated union (`VoiceIntent`, `GameSource`, alert types) without the branch in its exhaustive consumer breaks `tsc` — `TS2339` on a field that only the *other* variant has. It cannot be split across two commits: the pre-commit gate rejects the intermediate one. Plan them as a single task.
 - **Prettier is wired up** (`prettier` devDep + `.prettierrc` with defaults): the whole repo is formatted and `npm run format:check` passes clean. Run `npm run format` freely — do **not** hand-match style. `.prettierignore` excludes `out/ dist/ release/ docs/ .claude/ CLAUDE.md`, `r3e-data.json` and `src/main/db/r3e-corners.ts` (vendored/generated).
 - **Session start probes fail ("not-live", "no-data")**: The reader started but `awaitReaderReady(~3s)` timed out. Ensure the sim is running AND emitting live frames (not paused menu). Frame-recency check requires fresh SHM updates.
 - **Mock history mode leaks into production**: Check `settingsStore` `mockHistoryMode` is **always false** before building. Sessions with negative IDs are test data only.
@@ -38,6 +41,7 @@ See `package.json` scripts. The non-obvious parts:
 
 - Code generation follows **Ponytail mode** (lazy style): prefer stdlib over abstractions, reuse existing patterns before writing new ones, no boilerplate.
 - All voice/UI text is in **Italian** (eng tone, numeric data always included).
+- **Comments**: English by default, but Italian is accepted and already used where the comment explains voice/UI copy or domain behaviour. Italian comments carry real accents — `è`, `già`, `più`, `perché` — never the ASCII stand-ins `e'`/`gia'`/`piu'`.
 - **Bootstrap dark theme only** — override Bootstrap components with `--bg`, `--text`, etc. CSS variables in `global.css`.
 
 ## Architecture
