@@ -45,6 +45,11 @@ import {
 } from "./ace/ace-setup-reader.js";
 import { createAms2Reader, type Ams2Reader } from "./ams2/ams2-reader.js";
 import {
+  decodeAms2Setup,
+  listAms2Screenshots,
+  resolveAms2ScreenshotsDir,
+} from "./ams2/ams2-setup-vision.js";
+import {
   createAdaptiveBaseline,
   type AdaptiveBaseline,
 } from "./coach/adaptive-baseline.js";
@@ -2126,36 +2131,10 @@ const setupPipeline = (): void => {
   // AMS2 setup decoding IPC (screenshot → Claude Vision → SetupData)
   // ──────────────────────────────────────────────
 
-  const AMS2_STEAM_APPID = "1066890";
-  const SETUP_VISION_MODEL = "claude-sonnet-5";
-
-  /** Auto-detect the single Steam userdata account and return the AMS2 screenshots dir. */
-  const getAms2ScreenshotsDir = async (): Promise<string | null> => {
-    const fs = await import("fs");
-    const pathMod = await import("path");
-    const steamBase = "C:\\Program Files (x86)\\Steam\\userdata";
-    try {
-      const accounts = fs.readdirSync(steamBase).filter((d) => /^\d+$/.test(d));
-      if (accounts.length === 0) return null;
-      return pathMod.join(
-        steamBase,
-        accounts[0],
-        "760",
-        "remote",
-        AMS2_STEAM_APPID,
-        "screenshots",
-      );
-    } catch {
-      return null;
-    }
-  };
-
-  ipcMain.handle("setup:listScreenshots", async () => {
-    const fs = await import("fs");
-    const pathMod = await import("path");
-    const screenshotsDir = await getAms2ScreenshotsDir();
+  ipcMain.handle("setup:listScreenshots", () => {
+    const screenshotsDir = resolveAms2ScreenshotsDir();
     if (!screenshotsDir) return [];
-    const thumbnailsDir = pathMod.join(screenshotsDir, "thumbnails");
+    const thumbnailsDir = path.join(screenshotsDir, "thumbnails");
 
     // Annotate screenshots already used by a prior AMS2 setup.
     const usedMap = new Map<
@@ -2202,136 +2181,33 @@ const setupPipeline = (): void => {
       /* table missing / not ready — no annotations */
     }
 
-    try {
-      const files = fs
-        .readdirSync(screenshotsDir)
-        .filter((f: string) => /\.(jpg|jpeg|png)$/i.test(f))
-        .sort()
-        .reverse();
-      return files.map((name: string) => {
-        const thumbPath = pathMod.join(thumbnailsDir, name);
-        const fullPath = pathMod.join(screenshotsDir, name);
-        const src = fs.existsSync(thumbPath) ? thumbPath : fullPath;
-        const thumbnailB64 = fs.readFileSync(src).toString("base64");
-        const alreadyUsed = usedMap.get(name);
-        return { name, thumbnailB64, ...(alreadyUsed ? { alreadyUsed } : {}) };
-      });
-    } catch {
-      return [];
-    }
+    return listAms2Screenshots(screenshotsDir).map(({ name }) => {
+      const thumbPath = path.join(thumbnailsDir, name);
+      const fullPath = path.join(screenshotsDir, name);
+      const src = fs.existsSync(thumbPath) ? thumbPath : fullPath;
+      const thumbnailB64 = fs.readFileSync(src).toString("base64");
+      const alreadyUsed = usedMap.get(name);
+      return { name, thumbnailB64, ...(alreadyUsed ? { alreadyUsed } : {}) };
+    });
   });
 
   ipcMain.handle(
     "setup:decodeSetup",
-    async (
+    (
       _event,
       { filenames, expectedCar }: { filenames: string[]; expectedCar: string },
     ) => {
-      const fs = await import("fs");
-      const pathMod = await import("path");
-      const screenshotsDir = await getAms2ScreenshotsDir();
+      const screenshotsDir = resolveAms2ScreenshotsDir();
       if (!screenshotsDir)
         throw new Error("Cartella screenshot AMS2 non trovata");
-
       const apiKey = getAnthropicApiKey();
       if (!apiKey) throw new Error("Anthropic API Key non configurata");
-
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const client = new Anthropic({ apiKey });
-
-      const imageContents = filenames.map((name) => {
-        // Renderer-supplied names must be bare filenames; a path component
-        // ("..", "/" or "\\") would escape the screenshots directory.
-        if (pathMod.basename(name) !== name) {
-          throw new Error(`Nome file screenshot non valido: ${name}`);
-        }
-        const fullPath = pathMod.join(screenshotsDir, name);
-        const data = fs.readFileSync(fullPath).toString("base64");
-        const mediaType: "image/png" | "image/jpeg" = /\.png$/i.test(name)
-          ? "image/png"
-          : "image/jpeg";
-        return {
-          type: "image" as const,
-          source: {
-            type: "base64" as const,
-            media_type: mediaType,
-            data,
-          },
-        };
+      return decodeAms2Setup({
+        screenshotsDir,
+        filenames,
+        expectedCar,
+        apiKey,
       });
-
-      const systemPrompt = `Sei un esperto di setup per il simulatore di guida Automobilista 2 (AMS2).
-Analizza le schermate del setup dell'auto e restituisci un JSON con questa struttura esatta:
-{
-  "carVerified": boolean,
-  "carFound": "nome auto trovato nelle schermate",
-  "setupText": "riepilogo markdown del setup",
-  "params": [
-    { "category": "categoria", "parameter": "nome parametro", "value": "valore" }
-  ]
-}
-Devi verificare se l'auto nelle schermate corrisponde a: "${expectedCar}".
-Estrai TUTTI i parametri di setup visibili.
-Per ogni parametro assegna "category" ESATTAMENTE uno di questi valori:
-- "Gomme": parametri gomma per singola ruota (pressioni, ecc.)
-- "Freni": pressione/bilanciamento freni, condotti freni
-- "Chassis": parametri telaio non per-ruota (zavorra, ripartizione pesi, sterzo)
-- "Sospensioni": parametri sospensione per singola ruota (altezza, molla, camber, convergenza, ammortizzatori bump/rebound, ecc.)
-- "Anteriore": parametri sospensione assale anteriore non per-ruota (es. barra antirollio anteriore)
-- "Posteriore": parametri sospensione assale posteriore non per-ruota (es. barra antirollio posteriore)
-- "Sospensioni attive": parametri di sospensione attiva, se presenti
-- "Motore/Elettronica": mappa motore, freno motore, boost, TC, ABS, ecc.
-- "Rapporti del cambio": rapporto finale e singole marce
-- "Differenziale": precarico, rampe power/coast, dischi, differenziale anteriore e posteriore
-Per i parametri per singola ruota (category "Gomme" e "Sospensioni") crea un parametro per ruota e aggiungi il codice ruota in fondo al nome del parametro: " FL", " FR", " RL", " RR" (es. "Pressione FL"). Non usare categorie diverse da quelle elencate.
-IMPORTANTE — precisione numerica: leggi ogni cifra di ogni valore con la massima attenzione. Gli slider e altri elementi grafici dell'UI possono apparire adiacenti ai numeri: ignorali e trascrivi solo le cifre del testo numerico visualizzato sullo schermo.
-Restituisci solo il JSON, senza testo aggiuntivo.`;
-
-      const response = await client.messages.create({
-        model: SETUP_VISION_MODEL,
-        max_tokens: 4000,
-        thinking: { type: "disabled" },
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: [
-              ...imageContents,
-              {
-                type: "text" as const,
-                text: `Analizza queste ${filenames.length} schermate del setup e restituisci il JSON.`,
-              },
-            ],
-          },
-        ],
-      });
-
-      // sonnet-5 may emit a leading thinking block; find the text block explicitly
-      // rather than assuming content[0], then guard the parse.
-      const textBlock = response.content.find((b) => b.type === "text");
-      const raw = textBlock?.type === "text" ? textBlock.text : "";
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error(
-          "Claude Vision non ha restituito un JSON di setup valido. Riprova o seleziona schermate più leggibili.",
-        );
-      }
-      let parsed;
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch {
-        throw new Error(
-          "Risposta di Claude Vision non interpretabile (JSON malformato). Riprova.",
-        );
-      }
-
-      return {
-        carVerified: parsed.carVerified ?? false,
-        carFound: parsed.carFound ?? "",
-        setupText: parsed.setupText ?? "",
-        params: parsed.params ?? [],
-        screenshots: filenames,
-      } as SetupData;
     },
   );
 
