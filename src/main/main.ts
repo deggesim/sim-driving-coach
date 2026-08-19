@@ -1197,6 +1197,57 @@ const setupPipeline = (): void => {
     closeSession("user ended");
   });
 
+  /**
+   * Unico punto di scrittura di un setup di sessione: l'handler session:loadSetup
+   * e il comando vocale "acquisisci setup" passano entrambi da qui, cosi' il push
+   * session:setupLoaded (che aggiorna la UI) non ha una seconda copia da tenere
+   * in sincronia.
+   */
+  const insertSetup = ({
+    setup,
+    sessionId,
+    game,
+    activate,
+  }: {
+    setup: SetupData;
+    sessionId: number;
+    game: GameSource;
+    activate?: boolean;
+  }): number => {
+    // Un solo timestamp per la riga su disco e per quella pushata al renderer:
+    // due new Date() distinti le facevano divergere di un millisecondo.
+    const loadedAt = new Date().toISOString();
+    const screenshots =
+      game === "ace" ? null : JSON.stringify(setup.screenshots ?? []);
+    const result = db
+      .prepare(
+        `INSERT INTO ${t("session_setups", game)} (session_id, loaded_at, setup_json, setup_screenshots)
+           VALUES (?, ?, ?, ?)`,
+      )
+      .run(sessionId, loadedAt, JSON.stringify(setup), screenshots);
+    const setupId = Number(result.lastInsertRowid);
+    // Only advance currentSetupId when loading into the current live session,
+    // and only when the caller wants this setup active (activate: false is used
+    // to re-tag old laps without hijacking the setup the next laps will use).
+    if (sessionId === currentSessionId && activate !== false)
+      currentSetupId = setupId;
+
+    const row: SessionSetupRow = {
+      id: setupId,
+      session_id: sessionId,
+      loaded_at: loadedAt,
+      setup,
+      setup_screenshots: screenshots,
+    };
+    pushToRenderer("session:setupLoaded", {
+      sessionId,
+      game,
+      setup: row,
+      activate,
+    });
+    return setupId;
+  };
+
   ipcMain.handle(
     "session:loadSetup",
     (
@@ -1214,45 +1265,19 @@ const setupPipeline = (): void => {
       },
     ) => {
       const targetId = sid ?? currentSessionId;
-      const targetGame = g ?? currentSessionGame;
       if (!targetId) {
         throw new Error(
           "Nessuna sessione attiva. Apri una sessione prima di caricare un setup.",
         );
       }
-      const result = db
-        .prepare(
-          `INSERT INTO ${t("session_setups", targetGame)} (session_id, loaded_at, setup_json, setup_screenshots)
-           VALUES (?, ?, ?, ?)`,
-        )
-        .run(
-          targetId,
-          new Date().toISOString(),
-          JSON.stringify(setup),
-          targetGame === "ace" ? null : JSON.stringify(setup.screenshots ?? []),
-        );
-      const setupId = Number(result.lastInsertRowid);
-      // Only advance currentSetupId when loading into the current live session,
-      // and only when the caller wants this setup active (activate: false is used
-      // to re-tag old laps without hijacking the setup the next laps will use).
-      if (targetId === currentSessionId && activate !== false)
-        currentSetupId = setupId;
-
-      const row: SessionSetupRow = {
-        id: setupId,
-        session_id: targetId,
-        loaded_at: new Date().toISOString(),
-        setup,
-        setup_screenshots:
-          targetGame === "ace" ? null : JSON.stringify(setup.screenshots ?? []),
+      return {
+        setupId: insertSetup({
+          setup,
+          sessionId: targetId,
+          game: g ?? currentSessionGame,
+          activate,
+        }),
       };
-      pushToRenderer("session:setupLoaded", {
-        sessionId: targetId,
-        game: targetGame,
-        setup: row,
-        activate,
-      });
-      return { setupId };
     },
   );
 
@@ -2057,26 +2082,36 @@ const setupPipeline = (): void => {
   const getAceSetupsBase = (): string =>
     getConfig("aceSetupsPath")?.trim() || ACE_SETUPS_DEFAULT;
 
+  /** Contenuto di {base}\{car}\{track}, ordinato per nome decrescente come si
+   *  aspetta AceSetupPicker. Il comando vocale riordina per modifiedAt. */
+  const listAceSetupFiles = (
+    car: string,
+    track: string,
+  ): AceSetupFileInfo[] => {
+    const dir = path.join(getAceSetupsBase(), car, track);
+    try {
+      return fs
+        .readdirSync(dir)
+        .filter((f: string) => f.endsWith(".carsetup"))
+        .sort()
+        .reverse()
+        .map((filename: string): AceSetupFileInfo => {
+          const filePath = path.join(dir, filename);
+          return {
+            filename,
+            filePath,
+            modifiedAt: fs.statSync(filePath).mtime.toISOString(),
+          };
+        });
+    } catch {
+      return [];
+    }
+  };
+
   ipcMain.handle(
     "ace:listSetupFiles",
-    (_event, { car, track }: { car: string; track: string }) => {
-      const aceSetupsBase = getAceSetupsBase();
-      const dir = path.join(aceSetupsBase, car, track);
-      try {
-        const files = fs
-          .readdirSync(dir)
-          .filter((f: string) => f.endsWith(".carsetup"))
-          .sort()
-          .reverse();
-        return files.map((filename: string): AceSetupFileInfo => {
-          const filePath = path.join(dir, filename);
-          const stat = fs.statSync(filePath);
-          return { filename, filePath, modifiedAt: stat.mtime.toISOString() };
-        });
-      } catch {
-        return [];
-      }
-    },
+    (_event, { car, track }: { car: string; track: string }) =>
+      listAceSetupFiles(car, track),
   );
 
   ipcMain.handle(
