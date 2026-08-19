@@ -8,7 +8,7 @@
  * - Setups are cumulative per session and tagged on subsequent laps.
  */
 
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, shell } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { createInputManager, type InputManager } from "./input-manager.js";
 import fs from "fs";
@@ -33,6 +33,7 @@ import type {
   SetupData,
 } from "../shared/types.js";
 import { assistantIntro } from "../shared/format.js";
+import { parseR3eSetupJson } from "../shared/r3e-setup-parse.js";
 import {
   classifyVoiceIntent,
   matchGame,
@@ -415,10 +416,15 @@ const setupPipeline = (): void => {
   // classifier when matchGame returns null.
   let pendingGame = false;
   let pendingGameAt = 0;
-  // ponytail: the wait for "quale gioco?" expires instead of living forever - an
+  /** Setup acquisito, in attesa che il pilota ne pronunci il nome. */
+  let pendingSetup: SetupData | null = null;
+  let pendingSetupAt = 0;
+  // ponytail: the wait for an answer expires instead of living forever - an
   // answer that never arrives (empty STT, mic denied) must not eat an unrelated
-  // command given minutes later.
-  const PENDING_GAME_TTL_MS = 60_000;
+  // command given minutes later. Governs both waits ("quale gioco?" and "come
+  // vuoi chiamare il setup?"), da cui il nome generico: parlare di "game" qui
+  // sarebbe una bugia.
+  const PENDING_ANSWER_TTL_MS = 60_000;
   let greetCount = 0;
 
   // Session lifecycle state
@@ -1199,7 +1205,7 @@ const setupPipeline = (): void => {
 
   /**
    * Unico punto di scrittura di un setup di sessione: l'handler session:loadSetup
-   * e il comando vocale "acquisisci setup" passano entrambi da qui, cosi' il push
+   * e il comando vocale "acquisisci setup" passano entrambi da qui, così il push
    * session:setupLoaded (che aggiorna la UI) non ha una seconda copia da tenere
    * in sincronia.
    */
@@ -1948,13 +1954,127 @@ const setupPipeline = (): void => {
     );
   };
 
+  /** Messaggio d'errore per gioco, verbatim dalla specifica: per chi guida
+   *  "clipboard vuota" e "JSON malformato" sono lo stesso problema, quindi ogni
+   *  acquirer collassa qualunque fallimento in una sola frase. */
+  const ACQUIRE_ERROR: Record<GameSource, string> = {
+    r3e: "Nessun setup presente nella clipboard.",
+    ace: "Setup non presente per la combinazione auto tracciato, o errore nella decodifica.",
+    ams2: "Nessuno screenshot da acquisire o errore nella scansione.",
+  };
+
+  /** Parole con cui il pilota rinuncia invece di dettare un nome. Senza questa
+   *  via d'uscita uno STT confuso persiste una riga session_setups_* con un nome
+   *  spazzatura, cancellabile solo dalla UI. */
+  const CANCEL_WORDS =
+    /^(annulla|annullo|lascia stare|lascia perdere|niente|no)$/i;
+
+  /** Nome dell'auto della sessione, risolto: per R3E currentCar è un id numerico. */
+  const sessionCarName = (): string =>
+    resolveNames(currentSessionGame, currentCar, currentTrack, currentLayout)
+      .carName || currentCar;
+
+  /** R3E: il JSON che RaceRoom mette in clipboard con CTRL+C. parseR3eSetupJson
+   *  fa throw su qualunque testo che non sia un setup, ed è il controllo. */
+  const acquireR3eSetup = (): SetupData => {
+    const params = parseR3eSetupJson(clipboard.readText());
+    if (params.length === 0) throw new Error("setup senza parametri attivi");
+    return {
+      carVerified: true,
+      carFound: sessionCarName(),
+      setupText: "",
+      params,
+      screenshots: [],
+    };
+  };
+
+  /** ACE: l'ultimo .carsetup per la combinazione auto/tracciato della sessione.
+   *  modifiedAt è ISO, quindi l'ordine lessicografico è già quello cronologico. */
+  const acquireAceSetup = (): SetupData => {
+    const newest = listAceSetupFiles(currentCar, currentTrack).toSorted(
+      (a, b) => b.modifiedAt.localeCompare(a.modifiedAt),
+    )[0];
+    if (!newest) throw new Error("nessun .carsetup per la combinazione");
+    const setup = decodeCarSetup(fs.readFileSync(newest.filePath), currentCar);
+    return { ...setup, name: newest.filename.replace(/\.carsetup$/i, "") };
+  };
+
+  /** AMS2: i 3 screenshot più recenti mandati a Claude Vision. */
+  const acquireAms2Setup = async (): Promise<SetupData> => {
+    const screenshotsDir = resolveAms2ScreenshotsDir();
+    if (!screenshotsDir) throw new Error("cartella screenshot non trovata");
+    const filenames = listAms2Screenshots(screenshotsDir)
+      .slice(0, 3)
+      .map((shot) => shot.name);
+    if (filenames.length === 0) throw new Error("nessuno screenshot");
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) throw new Error("API key assente");
+    return decodeAms2Setup({
+      screenshotsDir,
+      filenames,
+      expectedCar: sessionCarName(),
+      apiKey,
+    });
+  };
+
+  /** Scrive il setup e lo annuncia. Ricontrolla la sessione perché fra la
+   *  domanda sul nome e la risposta il pilota può averla chiusa. */
+  const saveAcquiredSetup = async (setup: SetupData): Promise<void> => {
+    const sessionId = currentSessionId;
+    if (!sessionId) {
+      await speakText("Non c'è nessuna sessione aperta.");
+      return;
+    }
+    insertSetup({ setup, sessionId, game: currentSessionGame, activate: true });
+    // carVerified arriva da Claude Vision solo per AMS2: quando l'auto sulle
+    // schermate non è quella della sessione il dato esiste già, tacerlo
+    // sarebbe peggio che dirlo.
+    const warn = setup.carVerified
+      ? ""
+      : ` Attenzione, l'auto rilevata è ${setup.carFound}.`;
+    await speakText(`Setup salvato con nome ${setup.name}.${warn}`);
+  };
+
+  const acquireSetupByVoice = async (): Promise<void> => {
+    if (!currentSessionId) {
+      await speakText("Non c'è nessuna sessione aperta.");
+      return;
+    }
+    const game = currentSessionGame;
+    if (game === "ams2" && !getAnthropicApiKey()) {
+      await speakText("API Key Anthropic non configurata.");
+      return;
+    }
+    let setup: SetupData;
+    try {
+      setup =
+        game === "r3e"
+          ? acquireR3eSetup()
+          : game === "ace"
+            ? acquireAceSetup()
+            : await acquireAms2Setup();
+    } catch (err) {
+      console.error("[VoiceCoach] Setup acquisition failed:", err);
+      await speakText(ACQUIRE_ERROR[game]);
+      return;
+    }
+    // ACE porta già il nome del file: niente da chiedere.
+    if (setup.name) {
+      await saveAcquiredSetup(setup);
+      return;
+    }
+    pendingSetup = setup;
+    pendingSetupAt = Date.now();
+    await speakText("Come vuoi chiamare il setup?", { listenAgain: true });
+  };
+
   ipcMain.handle("coach:voiceQuery", async (_event, question: string) => {
     console.log("[VoiceCoach] question:", question);
 
     // A pending "quale gioco?" swallows the next transcript: it is an answer,
     // not a new command. An answer that never arrives within the TTL is
     // treated as absent instead of eating a later, unrelated command.
-    if (pendingGame && Date.now() - pendingGameAt < PENDING_GAME_TTL_MS) {
+    if (pendingGame && Date.now() - pendingGameAt < PENDING_ANSWER_TTL_MS) {
       pendingGame = false;
       const answered = matchGame(question);
       if (!answered) {
@@ -1967,6 +2087,23 @@ const setupPipeline = (): void => {
       return;
     }
     pendingGame = false;
+
+    // Un "come vuoi chiamare il setup?" pendente ingoia la trascrizione
+    // successiva: è un nome, non un comando.
+    if (pendingSetup && Date.now() - pendingSetupAt < PENDING_ANSWER_TTL_MS) {
+      const setup = pendingSetup;
+      pendingSetup = null;
+      // Azure STT appende un punto a una frase isolata: senza toglierlo il setup
+      // si chiamerebbe "Qualifica Monza.".
+      const name = question.trim().replace(/[.!?]+$/, "");
+      if (!name || CANCEL_WORDS.test(name)) {
+        await speakText("Acquisizione annullata.");
+        return;
+      }
+      await saveAcquiredSetup({ ...setup, name });
+      return;
+    }
+    pendingSetup = null;
 
     const assistantName = getConfig("assistantName") ?? "Aria";
     const intent = classifyVoiceIntent(question, assistantName);
@@ -2003,6 +2140,12 @@ const setupPipeline = (): void => {
       await speakText("Sessione chiusa.");
       return;
     }
+
+    if (intent.kind === "acquireSetup") {
+      await acquireSetupByVoice();
+      return;
+    }
+
     if (intent.kind === "analyze") {
       if (!currentSessionId) {
         await speakText("Non c'è nessuna sessione aperta da analizzare.");

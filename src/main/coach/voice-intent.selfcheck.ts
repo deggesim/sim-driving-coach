@@ -137,4 +137,66 @@ assert.equal(nextGreeting(3), GREETINGS[3]);
 assert.equal(nextGreeting(10), GREETINGS[0]);
 assert.equal(nextGreeting(13), GREETINGS[3]);
 
+// ── acquireSetup: quattro trigger equivalenti ────────────────────────────────
+// Sono quattro modi di attivare la stessa funzionalità, non quattro varianti: se
+// uno solo di questi smette di combaciare, il comando sparisce senza errori.
+for (const phrase of [
+  "acquisisci setup",
+  "carica setup",
+  "preleva setup",
+  "nuovo setup",
+]) {
+  assert.deepEqual(
+    classifyVoiceIntent(phrase, NAME),
+    { kind: "acquireSetup" },
+    `trigger non riconosciuto: ${phrase}`,
+  );
+}
+
+// Con il richiamo per nome davanti, con l'articolo, e coniugati come capita
+// parlando: la frase pronunciata non è mai quella della specifica.
+assert.deepEqual(
+  classifyVoiceIntent("Ciao Robert, acquisisci il setup", NAME),
+  {
+    kind: "acquireSetup",
+  },
+);
+assert.deepEqual(classifyVoiceIntent("caricami il setup nuovo", NAME), {
+  kind: "acquireSetup",
+});
+assert.deepEqual(classifyVoiceIntent("puoi prelevare il setup?", NAME), {
+  kind: "acquireSetup",
+});
+// Azure STT scrive il prestito inglese anche staccato, imprevedibilmente.
+assert.deepEqual(classifyVoiceIntent("acquisisci il set up", NAME), {
+  kind: "acquireSetup",
+});
+
+// ── Nessuna collisione con gli intent già esistenti ──────────────────────────
+// "nuova sessione" contiene un verbo di acquisizione ma non è un setup.
+assert.equal(
+  classifyVoiceIntent("apri una nuova sessione", NAME).kind,
+  "newSession",
+);
+// I rami di sessione vengono prima: una frase che nomina entrambi apre la sessione.
+assert.equal(
+  classifyVoiceIntent("nuova sessione e carica il setup", NAME).kind,
+  "newSession",
+);
+// "valuta il nuovo setup" è una richiesta di analisi, non di acquisizione: il
+// ramo analyze precede acquireSetup proprio per questo.
+assert.equal(
+  classifyVoiceIntent("valuta il nuovo setup", NAME).kind,
+  "analyze",
+);
+// Una domanda sul setup resta una domanda.
+assert.equal(
+  classifyVoiceIntent("com'è il setup adesso?", NAME).kind,
+  "freeform",
+);
+assert.equal(
+  classifyVoiceIntent("quanto pesa il setup sul sottosterzo?", NAME).kind,
+  "freeform",
+);
+
 console.log("voice-intent.selfcheck OK");
