@@ -12,6 +12,7 @@ import AnalysisList from "./AnalysisList";
 import { GamePickerModal } from "./GamePickerModal";
 import LapsTable from "./LapsTable";
 import R3eSetupPicker from "./R3eSetupPicker";
+import { SetupEditorModal } from "./SetupEditorModal";
 import SetupSelectionModal from "./SetupSelectionModal";
 
 type Props = {
@@ -32,9 +33,11 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
     setShowPicker,
     showSetupSelection,
     setShowSetupSelection,
-    pickerLap,
-    setPickerLap,
-    setPendingLapId,
+    pickerLapIds,
+    setPickerLapIds,
+    setPendingLapIds,
+    editorBase,
+    setEditorBase,
     setupById,
     handleSetupConfirm,
     handleReuseSetup,
@@ -81,7 +84,6 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       showFlash("danger", res.reason);
     } else {
       showFlash("success", "Sessione aperta.");
-      if (game === "r3e") setShowSetupSelection(true);
     }
   };
 
@@ -139,11 +141,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         onEnd={isLive ? handleEnd : () => {}}
         onAnalyze={handleAnalyze}
         onExportPdf={handleExportPdf}
-        onOpenPicker={
-          game === "r3e"
-            ? () => setShowSetupSelection(true)
-            : () => setShowPicker(true)
-        }
+        onOpenPicker={() => setShowSetupSelection(true)}
         onBack={!isLive ? onBack : undefined}
         onReopen={!isLive && !sessionActive ? handleReopen : undefined}
       />
@@ -165,9 +163,13 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
       >
         <div className="flex-shrink-0">
           <LapsTable
+            // Remount on session change so selection, page and filter reset:
+            // lap ids are per-game, so a new session can reuse the same ids.
+            key={`${session?.game ?? "none"}-${session?.id ?? 0}`}
             setupById={setupById}
             live={isLive}
-            onPickSetup={setPickerLap}
+            onPickSetup={(lap) => setPickerLapIds([lap.id])}
+            onAssignSetup={setPickerLapIds}
           />
         </div>
 
@@ -186,21 +188,30 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           show={showPicker}
           expectedCar={currentCar}
           expectedTrack={currentTrack}
-          onClose={() => setShowPicker(false)}
+          onClose={() => {
+            setShowPicker(false);
+            setPendingLapIds(null);
+          }}
           onConfirm={handleSetupConfirm}
         />
       ) : game === "ams2" ? (
         <Ams2SetupPicker
           show={showPicker}
           expectedCar={currentCar}
-          onClose={() => setShowPicker(false)}
+          onClose={() => {
+            setShowPicker(false);
+            setPendingLapIds(null);
+          }}
           onConfirm={handleSetupConfirm}
         />
       ) : (
         <R3eSetupPicker
           show={showPicker}
           expectedCar={currentCar}
-          onClose={() => setShowPicker(false)}
+          onClose={() => {
+            setShowPicker(false);
+            setPendingLapIds(null);
+          }}
           onConfirm={handleSetupConfirm}
         />
       )}
@@ -212,28 +223,55 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           track={session.track}
           layout={session.layout}
           game={session.game}
+          suspended={editorBase != null}
           onClose={() => setShowSetupSelection(false)}
           onReuseSetup={handleReuseSetup}
           onJsonPicker={() => {
             setShowSetupSelection(false);
             setShowPicker(true);
           }}
+          onDuplicateSetup={(setup, takenNames) =>
+            setEditorBase({ setup, takenNames })
+          }
         />
       )}
 
       {session && (
         <SetupSelectionModal
-          show={pickerLap != null}
+          show={pickerLapIds != null}
           car={session.car}
           track={session.track}
           layout={session.layout}
           game={session.game}
-          onClose={() => setPickerLap(null)}
+          lapCount={pickerLapIds?.length}
+          suspended={editorBase != null}
+          onClose={() => setPickerLapIds(null)}
           onReuseSetup={handleLapReuseSetup}
+          // Creare un setup da uno esistente non lo assegna ai giri selezionati:
+          // e' una creazione, non l'assegnazione che il modal stava servendo.
+          onDuplicateSetup={(setup, takenNames) =>
+            setEditorBase({ setup, takenNames })
+          }
           onJsonPicker={() => {
-            setPendingLapId(pickerLap!.id);
-            setPickerLap(null);
+            setPendingLapIds(pickerLapIds);
+            setPickerLapIds(null);
             setShowPicker(true);
+          }}
+        />
+      )}
+
+      {editorBase && (
+        <SetupEditorModal
+          base={editorBase.setup}
+          takenNames={editorBase.takenNames}
+          // Annulla: chiude solo l'editor, cosi' il modal sospeso sotto torna a
+          // mostrare il dettaglio di partenza. Conferma: chiude anche quello.
+          onClose={() => setEditorBase(null)}
+          onConfirm={(setup) => {
+            setEditorBase(null);
+            setShowSetupSelection(false);
+            setPickerLapIds(null);
+            void handleSetupConfirm(setup);
           }}
         />
       )}

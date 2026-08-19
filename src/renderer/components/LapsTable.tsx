@@ -3,13 +3,14 @@ import {
   faChevronRight,
   faEye,
   faEyeSlash,
+  faGear,
   faPen,
   faTrash,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useEffect, useState } from "react";
-import { Badge, Button, Modal, Table } from "react-bootstrap";
+import { Badge, Button, Form, Modal, Table } from "react-bootstrap";
 import { formatLapTime } from "../../shared/format";
 import type { LapRow, SessionSetupRow } from "../../shared/types";
 import { useSessionStore } from "../store/sessionStore";
@@ -40,12 +41,14 @@ type LapsTableProps = {
   setupById: Map<number, SessionSetupRow>;
   live?: boolean;
   onPickSetup?: (lap: LapRow) => void;
+  onAssignSetup?: (lapIds: number[]) => void;
 };
 
 const LapsTable = ({
   setupById,
   live = false,
   onPickSetup,
+  onAssignSetup,
 }: LapsTableProps) => {
   const laps = useSessionStore((s) => s.laps);
   const deleteLap = useSessionStore((s) => s.deleteLap);
@@ -55,6 +58,7 @@ const LapsTable = ({
   const [page, setPage] = useState(1);
   const [hideInvalid, setHideInvalid] = useState(true);
   const [trackedLapCount, setTrackedLapCount] = useState(0);
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
 
   const parseLocalDate = (s: string) =>
     new Date(s.includes("T") ? s : s.replace(" ", "T"));
@@ -70,6 +74,32 @@ const LapsTable = ({
     ? sortedLaps.filter((l) => l.valid)
     : sortedLaps;
   const pageCount = Math.max(1, Math.ceil(visibleLaps.length / PAGE_SIZE));
+
+  // La selezione effettiva è l'intersezione con i giri visibili: così filtro
+  // validi ed eliminazione di un giro la ripuliscono da soli, senza effetti né
+  // reset espliciti. Il cambio sessione invece non basta intercettarlo qui (gli
+  // id dei giri sono per gioco e possono coincidere): lo copre la `key` che il
+  // parent passa al componente, che lo rimonta da zero. Persiste al cambio
+  // pagina, che è esattamente il caso d'uso dell'assegnazione in blocco.
+  // ponytail: O(n²) su qualche decina di giri
+  const selectedIds = visibleLaps
+    .filter((l) => selected.has(l.id))
+    .map((l) => l.id);
+  const allSelected =
+    visibleLaps.length > 0 && selectedIds.length === visibleLaps.length;
+
+  const toggleSelected = (id: number): void =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleAll = (): void =>
+    setSelected(
+      allSelected ? new Set() : new Set(visibleLaps.map((l) => l.id)),
+    );
 
   const bestLapId = laps.reduce<number | null>((best, l) => {
     if (!l.valid || l.lap_time == null) return best;
@@ -133,19 +163,30 @@ const LapsTable = ({
     <>
       <div className="d-flex justify-content-between align-items-center mb-1">
         <h6 className="text-uppercase mb-1">Giri</h6>
-        {laps.length > 0 && (
-          <Button
-            variant="secondary"
-            className="laps-toggle-btn"
-            onClick={toggleHideInvalid}
-          >
-            <FontAwesomeIcon
-              icon={hideInvalid ? faEye : faEyeSlash}
-              className="me-1"
-            />
-            {hideInvalid ? "Mostra non validi" : "Nascondi non validi"}
-          </Button>
-        )}
+        <div className="d-flex gap-2">
+          {selectedIds.length > 0 && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                onAssignSetup?.(selectedIds);
+                setSelected(new Set());
+              }}
+              size="sm"
+            >
+              <FontAwesomeIcon icon={faGear} className="me-1" />
+              Assegna setup ({selectedIds.length})
+            </Button>
+          )}
+          {laps.length > 0 && (
+            <Button variant="secondary" onClick={toggleHideInvalid} size="sm">
+              <FontAwesomeIcon
+                icon={hideInvalid ? faEye : faEyeSlash}
+                className="me-1"
+              />
+              {hideInvalid ? "Mostra non validi" : "Nascondi non validi"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <Table
@@ -156,6 +197,20 @@ const LapsTable = ({
       >
         <thead>
           <tr>
+            <th className="laps-select-cell">
+              <Form.Check.Input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el: HTMLInputElement | null) => {
+                  if (el)
+                    el.indeterminate =
+                      selectedIds.length > 0 &&
+                      selectedIds.length < visibleLaps.length;
+                }}
+                onChange={toggleAll}
+                title="Seleziona tutti i giri visibili"
+              />
+            </th>
             <th className="col-icon"></th>
             <th>#</th>
             <th>Tempo</th>
@@ -171,7 +226,7 @@ const LapsTable = ({
         <tbody>
           {laps.length === 0 && (
             <tr>
-              <td colSpan={10} className="text-center text-muted">
+              <td colSpan={11} className="text-center text-muted">
                 Nessun giro
               </td>
             </tr>
@@ -194,6 +249,17 @@ const LapsTable = ({
                     .join(" ")}
                   title={clickable ? "Mostra telemetria" : "Giro non valido"}
                 >
+                  <td
+                    className="laps-select-cell"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Form.Check.Input
+                      type="checkbox"
+                      checked={selected.has(l.id)}
+                      onChange={() => toggleSelected(l.id)}
+                      title="Seleziona giro"
+                    />
+                  </td>
                   <td className={iconCellClass}>
                     {clickable && (
                       <FontAwesomeIcon
@@ -275,7 +341,7 @@ const LapsTable = ({
                   </td>
                 </tr>
                 <tr className="lap-telemetry-row">
-                  <td colSpan={10} className="laps-td-telemetry">
+                  <td colSpan={11} className="laps-td-telemetry">
                     <div
                       className={`lap-telemetry-wrapper${expanded ? " open" : ""}`}
                       aria-hidden={!expanded}

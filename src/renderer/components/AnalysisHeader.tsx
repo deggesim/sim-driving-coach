@@ -45,6 +45,7 @@ const AnalysisHeader = ({
   const laps = useSessionStore((s) => s.laps);
   const setups = useSessionStore((s) => s.setups);
   const analyses = useSessionStore((s) => s.analyses);
+  const activeSetupId = useSessionStore((s) => s.activeSetupId);
 
   const [leaderboardMode, setLeaderboardMode] = useState(
     session?.leaderboard_mode !== 0,
@@ -62,6 +63,14 @@ const AnalysisHeader = ({
   }, [session?.id]);
 
   const isR3E = session?.game === "r3e";
+
+  // Solo in live con sessione attiva: per una sessione storica o chiusa non c'è
+  // un setup "in uso" (activeSetupId arriva solo da session:getCurrent).
+  const activeSetupName =
+    isLive && sessionActive && activeSetupId != null
+      ? (setups.find((row) => row.id === activeSetupId)?.setup.name ??
+        `#${activeSetupId}`)
+      : null;
 
   return (
     <div className="debriefing-header d-flex align-items-center gap-2 flex-wrap flex-shrink-0 p-2">
@@ -83,6 +92,14 @@ const AnalysisHeader = ({
             {session.best_lap != null &&
               ` · best ${formatLapTime(session.best_lap)}`}
           </span>
+          {activeSetupName && (
+            <>
+              <span className="text-muted">·</span>
+              <span className="text-muted">
+                setup <span className="deb-setup">{activeSetupName}</span>
+              </span>
+            </>
+          )}
         </>
       ) : (
         <span className="text-muted fst-italic">

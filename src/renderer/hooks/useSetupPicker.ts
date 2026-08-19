@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { LapRow, SessionSetupRow, SetupData } from "../../shared/types";
+import type { SessionSetupRow, SetupData } from "../../shared/types";
 import { useSessionStore } from "../store/sessionStore";
 
 type Options = {
@@ -8,20 +8,37 @@ type Options = {
   explicit?: boolean;
 };
 
+const lapsLabel = (n: number): string => `${n} ${n === 1 ? "giro" : "giri"}`;
+
 export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const session = useSessionStore((s) => s.session);
+  const laps = useSessionStore((s) => s.laps);
   const setups = useSessionStore((s) => s.setups);
   const assignLapSetup = useSessionStore((s) => s.assignLapSetup);
+  const setActiveSetup = useSessionStore((s) => s.setActiveSetup);
   const [showPicker, setShowPicker] = useState(false);
   const [showSetupSelection, setShowSetupSelection] = useState(false);
-  const [pickerLap, setPickerLap] = useState<LapRow | null>(null);
-  const [pendingLapId, setPendingLapId] = useState<number | null>(null);
+  /** Giri a cui assegnare il setup scelto dal modal; null = modal chiuso. */
+  const [pickerLapIds, setPickerLapIds] = useState<number[] | null>(null);
+  /** Giri in attesa del setup che sta per essere creato dal picker/editor. */
+  const [pendingLapIds, setPendingLapIds] = useState<number[] | null>(null);
+  /** Setup di partenza dell'editor manuale, con i nomi già in uso nello storico
+   *  da cui e' stato aperto; null = editor chiuso. */
+  const [editorBase, setEditorBase] = useState<{
+    setup: SetupData;
+    takenNames: string[];
+  } | null>(null);
 
   const setupById = useMemo(() => {
     const m = new Map<number, SessionSetupRow>();
     setups.forEach((s) => m.set(s.id, s));
     return m;
   }, [setups]);
+
+  /** Solo i giri ancora presenti nella sessione corrente: la lista puo' essere
+   *  sopravvissuta a un giro eliminato o a una chiusura di sessione. */
+  const stillPresent = (ids: number[]): number[] =>
+    ids.filter((id) => laps.some((l) => l.id === id));
 
   const handleSetupConfirm = async (setup: SetupData): Promise<void> => {
     setShowPicker(false);
@@ -36,17 +53,26 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
           ? { setup: named, sessionId: session.id, game: session.game }
           : { setup: named };
       const { setupId } = await window.electronAPI.sessionLoadSetup(params);
-      if (pendingLapId != null) {
-        await assignLapSetup(pendingLapId, setupId);
-        setPendingLapId(null);
+      if (pendingLapIds != null) {
+        const targets = stillPresent(pendingLapIds);
+        // Azzerata prima del loop: un errore a metà non deve lasciare in giro
+        // id che il prossimo caricamento riassegnerebbe in silenzio.
+        setPendingLapIds(null);
+        // ponytail: un update per giro, sono decine non migliaia - niente IPC bulk
+        for (const lapId of targets) await assignLapSetup(lapId, setupId);
         showFlash(
           "success",
-          `Setup ${named.name} caricato e assegnato al giro.`,
+          targets.length
+            ? `Setup ${named.name} caricato e assegnato a ${lapsLabel(targets.length)}.`
+            : `Setup caricato: ${named.name}`,
         );
       } else {
         showFlash("success", `Setup caricato: ${named.name}`);
       }
     } catch (err) {
+      // Anche il caricamento fallito consuma la lista: restare valorizzata
+      // significherebbe riassegnare quei giri al prossimo setup caricato.
+      setPendingLapIds(null);
       showFlash("danger", String(err));
     }
   };
@@ -82,6 +108,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
           targetSetupId = result.setupId;
         }
         await window.electronAPI.sessionReuseSetup({ setupId: targetSetupId });
+        setActiveSetup(targetSetupId);
         showFlash("success", "Setup attivo aggiornato.");
       }
     } catch (err) {
@@ -90,8 +117,8 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   };
 
   const handleLapReuseSetup = async (row: SessionSetupRow): Promise<void> => {
-    const lapId = pickerLap?.id;
-    if (lapId == null) return;
+    const lapIds = stillPresent(pickerLapIds ?? []);
+    if (!lapIds.length) return;
     try {
       let targetSetupId = row.id;
       // If the setup is not in the current session, copy it first so setup_id
@@ -100,15 +127,22 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
         const named: SetupData = row.setup.name
           ? row.setup
           : { ...row.setup, name: row.setup.carFound || "Setup" };
+        // activate: false — ritaggare vecchi giri non deve cambiare il setup in
+        // uso, altrimenti anche i giri successivi finirebbero su questa copia.
         const params =
           explicit && session
-            ? { setup: named, sessionId: session.id, game: session.game }
-            : { setup: named };
+            ? {
+                setup: named,
+                sessionId: session.id,
+                game: session.game,
+                activate: false,
+              }
+            : { setup: named, activate: false };
         const result = await window.electronAPI.sessionLoadSetup(params);
         targetSetupId = result.setupId;
       }
-      await assignLapSetup(lapId, targetSetupId);
-      showFlash("success", "Setup assegnato al giro.");
+      for (const lapId of lapIds) await assignLapSetup(lapId, targetSetupId);
+      showFlash("success", `Setup assegnato a ${lapsLabel(lapIds.length)}.`);
     } catch (err) {
       showFlash("danger", String(err));
     }
@@ -119,9 +153,11 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     setShowPicker,
     showSetupSelection,
     setShowSetupSelection,
-    pickerLap,
-    setPickerLap,
-    setPendingLapId,
+    pickerLapIds,
+    setPickerLapIds,
+    setPendingLapIds,
+    editorBase,
+    setEditorBase,
     setupById,
     handleSetupConfirm,
     handleReuseSetup,

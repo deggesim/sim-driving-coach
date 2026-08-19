@@ -26,6 +26,8 @@ type State = {
   laps: LapRow[];
   setups: SessionSetupRow[];
   analyses: SessionAnalysisRow[];
+  /** Setup attivo della sessione live: quello che verrà agganciato ai prossimi giri. */
+  activeSetupId: number | null;
   working: Working;
   loading: boolean;
   error: string | null;
@@ -44,6 +46,7 @@ type State = {
     game: GameSource,
   ) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
   assignLapSetup: (lapId: number, setupId: number | null) => Promise<void>;
+  setActiveSetup: (id: number | null) => void;
   deleteLap: (lapId: number) => Promise<void>;
   _applyLapAdded: (payload: {
     sessionId: number;
@@ -54,6 +57,9 @@ type State = {
     sessionId: number;
     game: GameSource;
     setup: SessionSetupRow;
+    // false: the setup was only stored (re-tagging old laps), the active one
+    // must not change.
+    activate?: boolean;
   }) => void;
   _applyAnalysisStart: (payload: {
     sessionId: number;
@@ -77,6 +83,7 @@ export const useSessionStore = create<State>((set, get) => ({
   laps: [],
   setups: [],
   analyses: [],
+  activeSetupId: null,
   working: null,
   loading: false,
   error: null,
@@ -88,6 +95,7 @@ export const useSessionStore = create<State>((set, get) => ({
         laps: [],
         setups: [],
         analyses: [],
+        activeSetupId: null,
         mode,
         working: null,
       });
@@ -98,6 +106,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: detail.laps,
       setups: detail.setups,
       analyses: detail.analyses,
+      activeSetupId: detail.activeSetupId ?? null,
       mode,
       working: null,
     });
@@ -138,6 +147,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: [],
       setups: [],
       analyses: [],
+      activeSetupId: null,
       working: null,
       error: null,
     }),
@@ -196,7 +206,11 @@ export const useSessionStore = create<State>((set, get) => ({
   deleteSetup: async (id, game) => {
     const res = await window.electronAPI.sessionDeleteSetup({ id, game });
     if (res.ok) {
-      set({ setups: get().setups.filter((s) => s.id !== id) });
+      const s = get();
+      set({
+        setups: s.setups.filter((x) => x.id !== id),
+        activeSetupId: s.activeSetupId === id ? null : s.activeSetupId,
+      });
     }
     return res;
   },
@@ -216,6 +230,8 @@ export const useSessionStore = create<State>((set, get) => ({
     });
   },
 
+  setActiveSetup: (id) => set({ activeSetupId: id }),
+
   deleteLap: async (lapId) => {
     const s = get();
     if (!s.session) return;
@@ -231,10 +247,13 @@ export const useSessionStore = create<State>((set, get) => ({
     set({ laps: [...s.laps, lap] });
   },
 
-  _applySetupLoaded: ({ sessionId, setup }) => {
+  _applySetupLoaded: ({ sessionId, setup, activate }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
-    set({ setups: [...s.setups, setup] });
+    set({
+      setups: [...s.setups, setup],
+      activeSetupId: activate === false ? s.activeSetupId : setup.id,
+    });
   },
 
   _applyAnalysisStart: ({ sessionId, version }) => {
@@ -278,6 +297,7 @@ export const useSessionStore = create<State>((set, get) => ({
       laps: isSameSession ? current.laps : [],
       setups: isSameSession ? current.setups : [],
       analyses: isSameSession ? current.analyses : [],
+      activeSetupId: isSameSession ? current.activeSetupId : null,
       working: null,
       error: null,
     });
@@ -318,7 +338,12 @@ export const subscribeSessionIPC = (): void => {
   );
   window.electronAPI.onSessionSetupLoaded((d) =>
     store()._applySetupLoaded(
-      d as { sessionId: number; game: GameSource; setup: SessionSetupRow },
+      d as {
+        sessionId: number;
+        game: GameSource;
+        setup: SessionSetupRow;
+        activate?: boolean;
+      },
     ),
   );
   window.electronAPI.onSessionAnalysisStart((d) =>

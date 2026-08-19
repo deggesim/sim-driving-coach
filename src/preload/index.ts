@@ -110,6 +110,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     setup: unknown;
     sessionId?: number;
     game?: string;
+    activate?: boolean;
   }) => ipcRenderer.invoke("session:loadSetup", params),
   sessionList: (params: unknown) => ipcRenderer.invoke("session:list", params),
   sessionGetCurrent: () => ipcRenderer.invoke("session:getCurrent"),

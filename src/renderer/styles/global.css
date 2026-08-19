@@ -170,6 +170,10 @@ body {
 .deb-car {
   color: var(--accent);
 }
+.deb-setup {
+  color: var(--accent);
+  font-weight: 600;
+}
 
 /* Bootstrap Accordion — dark theme overrides */
 .accordion-header.dark-header {
@@ -528,6 +532,40 @@ body {
   color: var(--yellow);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+/* ── Setup Editor Modal ── */
+.setup-editor-section {
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 20px;
+}
+.setup-editor-section .setup-subsection-title {
+  grid-column: 1 / -1;
+}
+.setup-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.setup-editor-row > span {
+  flex: 1;
+  min-width: 0;
+}
+.setup-editor-row .form-control,
+.setup-editor-name .form-control {
+  background: var(--bg2);
+  color: var(--text);
+  border-color: var(--border);
+}
+.setup-editor-row .form-control {
+  width: 220px;
+  flex: none;
+  text-align: right;
 }
 
 /* ── Delete Confirm Modal ── */
@@ -1033,9 +1071,7 @@ body {
 }
 
 /* ── Laps table UI ── */
-.laps-toggle-btn {
-  font-size: 12px;
-}
+
 .laps-table .col-icon {
   width: 24px;
 }
@@ -1089,6 +1125,15 @@ body {
 .laps-page-count {
   font-size: 12px;
   white-space: nowrap;
+}
+.laps-select-cell {
+  width: 34px;
+  text-align: center;
+  vertical-align: middle;
+}
+.laps-select-cell .form-check-input {
+  margin: 0;
+  cursor: pointer;
 }
 
 /* ── Telemetry Charts ── */

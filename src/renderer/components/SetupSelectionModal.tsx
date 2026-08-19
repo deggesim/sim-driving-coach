@@ -2,11 +2,16 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Modal, Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faCamera,
   faCheck,
   faFileCode,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import type { GameSource, SessionSetupRow } from "../../shared/types";
+import type {
+  GameSource,
+  SessionSetupRow,
+  SetupData,
+} from "../../shared/types";
 import { SetupDetailModal } from "./SetupDetailModal";
 import { useSessionStore } from "../store/sessionStore";
 
@@ -16,9 +21,19 @@ interface Props {
   track: string;
   layout: string;
   game: GameSource;
+  /** Numero di giri a cui il setup scelto verrà assegnato; assente = flusso
+   *  normale che cambia il setup in uso. Cambia solo il titolo del modal. */
+  lapCount?: number;
+  /** L'editor manuale è aperto sopra: nasconde questo modal e il dettaglio
+   *  senza perdere il setup selezionato, così annullando l'editor si torna al
+   *  dettaglio di partenza. Una sola modale a schermo per volta. */
+  suspended?: boolean;
   onClose: () => void;
   onReuseSetup: (row: SessionSetupRow) => void;
   onJsonPicker: () => void;
+  /** `takenNames`: i nomi già presenti in questo storico, per impedire
+   *  all'editor di crearne un duplicato. */
+  onDuplicateSetup: (setup: SetupData, takenNames: string[]) => void;
 }
 
 const formatDate = (iso: string): string => {
@@ -33,6 +48,16 @@ const formatDate = (iso: string): string => {
   });
 };
 
+const displayName = (row: SessionSetupRow): string =>
+  row.setup.name ?? row.setup.carFound ?? `Setup #${row.id}`;
+
+const ACQUIRE: Record<GameSource, { label: string; icon: typeof faFileCode }> =
+  {
+    r3e: { label: "Carica da JSON", icon: faFileCode },
+    ace: { label: "Seleziona file", icon: faFileCode },
+    ams2: { label: "Acquisisci screenshot", icon: faCamera },
+  };
+
 type DeleteState =
   | { phase: "idle" }
   | { phase: "confirm"; id: number }
@@ -45,9 +70,12 @@ const SetupSelectionModal = ({
   track,
   layout,
   game,
+  lapCount,
+  suspended,
   onClose,
   onReuseSetup,
   onJsonPicker,
+  onDuplicateSetup,
 }: Props) => {
   const [history, setHistory] = useState<SessionSetupRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,15 +85,18 @@ const SetupSelectionModal = ({
   });
   const deleteSetup = useSessionStore((s) => s.deleteSetup);
 
-  // Reset the delete flow whenever the modal opens or closes. SessionPanel keeps
-  // this component mounted and only toggles `show`, so it never remounts and the
-  // state has to be cleared explicitly. Done during render (React's documented
-  // "adjust state when a prop changes" pattern) rather than in the effect below:
-  // an effect would render the stale phase once before clearing it.
+  // Reset the delete flow and the open detail whenever the modal opens or
+  // closes. SessionPanel keeps this component mounted and only toggles `show`,
+  // so it never remounts and the state has to be cleared explicitly — and the
+  // detail modal lives outside `show`, so nothing else would close it. Done
+  // during render (React's documented "adjust state when a prop changes"
+  // pattern) rather than in the effect below: an effect would render the stale
+  // phase once before clearing it.
   const [prevShow, setPrevShow] = useState(show);
   if (prevShow !== show) {
     setPrevShow(show);
     setDeleteState({ phase: "idle" });
+    setSelectedId(null);
   }
 
   useEffect(() => {
@@ -105,14 +136,18 @@ const SetupSelectionModal = ({
   return (
     <>
       <Modal
-        show={show}
+        show={show && !suspended}
         onHide={onClose}
         centered
         size="lg"
         className="setup-selection-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title style={{ fontSize: 16 }}>Gestione setup</Modal.Title>
+          <Modal.Title style={{ fontSize: 16 }}>
+            {lapCount != null
+              ? `Assegna setup a ${lapCount} ${lapCount === 1 ? "giro" : "giri"}`
+              : "Gestione setup"}
+          </Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -136,10 +171,6 @@ const SetupSelectionModal = ({
                 </thead>
                 <tbody>
                   {history.map((row) => {
-                    const displayName =
-                      row.setup.name ??
-                      row.setup.carFound ??
-                      `Setup #${row.id}`;
                     const isConfirm =
                       deleteState.phase === "confirm" &&
                       deleteState.id === row.id;
@@ -161,7 +192,7 @@ const SetupSelectionModal = ({
                           }
                         >
                           <td>
-                            {displayName}
+                            {displayName(row)}
                             {row.setup.carVerified && (
                               <Badge
                                 bg="success"
@@ -267,8 +298,8 @@ const SetupSelectionModal = ({
           )}
 
           <Button variant="secondary" onClick={onJsonPicker} className="w-100">
-            <FontAwesomeIcon icon={faFileCode} className="me-2" />
-            {game === "ace" ? "Seleziona" : "Carica da JSON"}
+            <FontAwesomeIcon icon={ACQUIRE[game].icon} className="me-2" />
+            {ACQUIRE[game].label}
           </Button>
         </Modal.Body>
 
@@ -280,7 +311,7 @@ const SetupSelectionModal = ({
       </Modal>
 
       <SetupDetailModal
-        setupId={selectedId}
+        setupId={suspended ? null : selectedId}
         setupById={setupById}
         game={game}
         onClose={() => setSelectedId(null)}
@@ -290,6 +321,13 @@ const SetupSelectionModal = ({
           if (row) onReuseSetup(row);
           setSelectedId(null);
           onClose();
+        }}
+        onDuplicate={() => {
+          const row =
+            selectedId != null ? setupById.get(selectedId) : undefined;
+          // Nessuna chiusura: il parent apre l'editor e ci sospende (`suspended`),
+          // così annullando si torna a questo dettaglio. Chiude alla conferma.
+          if (row) onDuplicateSetup(row.setup, history.map(displayName));
         }}
       />
     </>

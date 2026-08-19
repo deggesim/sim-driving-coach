@@ -253,6 +253,9 @@ export type SessionDetail = {
   laps: LapRow[];
   setups: SessionSetupRow[];
   analyses: SessionAnalysisRow[];
+  /** Setup attivo. Valorizzato solo da session:getCurrent — per una sessione
+   *  storica non esiste un "setup in uso". */
+  activeSetupId?: number | null;
 };
 
 // --- Setup decoding ---
@@ -448,6 +451,8 @@ export type ElectronAPI = {
       sessionId: number;
       game: GameSource;
       setup: SessionSetupRow;
+      /** false = the setup was only stored, it is not the one in use */
+      activate?: boolean;
     }) => void,
   ) => () => void;
   onSessionAnalysisStart: (
@@ -481,6 +486,8 @@ export type ElectronAPI = {
     setup: SetupData;
     sessionId?: number;
     game?: GameSource;
+    /** false = store the setup without making it the active one (default: true) */
+    activate?: boolean;
   }) => Promise<{ setupId: number }>;
   sessionList: (params: SessionListParams) => Promise<SessionListResult>;
   sessionGetCurrent: () => Promise<SessionDetail | null>;
