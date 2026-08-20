@@ -8,7 +8,7 @@
  * - Setups are cumulative per session and tagged on subsequent laps.
  */
 
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, shell } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { createInputManager, type InputManager } from "./input-manager.js";
 import fs from "fs";
@@ -33,17 +33,24 @@ import type {
   SetupData,
 } from "../shared/types.js";
 import { assistantIntro } from "../shared/format.js";
+import { parseR3eSetupJson } from "../shared/r3e-setup-parse.js";
 import {
   classifyVoiceIntent,
   matchGame,
   nextGreeting,
 } from "./coach/voice-intent.js";
+import { normalizeSpokenName } from "./coach/spoken-name.js";
 import { createAceReader, type AceReader } from "./ace/ace-reader.js";
 import {
   decodeCarSetup,
   type AceSetupFileInfo,
 } from "./ace/ace-setup-reader.js";
 import { createAms2Reader, type Ams2Reader } from "./ams2/ams2-reader.js";
+import {
+  decodeAms2Setup,
+  listAms2Screenshots,
+  resolveAms2ScreenshotsDir,
+} from "./ams2/ams2-setup-vision.js";
 import {
   createAdaptiveBaseline,
   type AdaptiveBaseline,
@@ -410,10 +417,15 @@ const setupPipeline = (): void => {
   // classifier when matchGame returns null.
   let pendingGame = false;
   let pendingGameAt = 0;
-  // ponytail: the wait for "quale gioco?" expires instead of living forever - an
+  /** Setup acquisito, in attesa che il pilota ne pronunci il nome. */
+  let pendingSetup: SetupData | null = null;
+  let pendingSetupAt = 0;
+  // ponytail: the wait for an answer expires instead of living forever - an
   // answer that never arrives (empty STT, mic denied) must not eat an unrelated
-  // command given minutes later.
-  const PENDING_GAME_TTL_MS = 60_000;
+  // command given minutes later. Governs both waits ("quale gioco?" and "come
+  // vuoi chiamare il setup?"), da cui il nome generico: parlare di "game" qui
+  // sarebbe una bugia.
+  const PENDING_ANSWER_TTL_MS = 60_000;
   let greetCount = 0;
 
   // Session lifecycle state
@@ -1192,6 +1204,57 @@ const setupPipeline = (): void => {
     closeSession("user ended");
   });
 
+  /**
+   * Unico punto di scrittura di un setup di sessione: l'handler session:loadSetup
+   * e il comando vocale "acquisisci setup" passano entrambi da qui, così il push
+   * session:setupLoaded (che aggiorna la UI) non ha una seconda copia da tenere
+   * in sincronia.
+   */
+  const insertSetup = ({
+    setup,
+    sessionId,
+    game,
+    activate,
+  }: {
+    setup: SetupData;
+    sessionId: number;
+    game: GameSource;
+    activate?: boolean;
+  }): number => {
+    // Un solo timestamp per la riga su disco e per quella pushata al renderer:
+    // due new Date() distinti le facevano divergere di un millisecondo.
+    const loadedAt = new Date().toISOString();
+    const screenshots =
+      game === "ace" ? null : JSON.stringify(setup.screenshots ?? []);
+    const result = db
+      .prepare(
+        `INSERT INTO ${t("session_setups", game)} (session_id, loaded_at, setup_json, setup_screenshots)
+           VALUES (?, ?, ?, ?)`,
+      )
+      .run(sessionId, loadedAt, JSON.stringify(setup), screenshots);
+    const setupId = Number(result.lastInsertRowid);
+    // Only advance currentSetupId when loading into the current live session,
+    // and only when the caller wants this setup active (activate: false is used
+    // to re-tag old laps without hijacking the setup the next laps will use).
+    if (sessionId === currentSessionId && activate !== false)
+      currentSetupId = setupId;
+
+    const row: SessionSetupRow = {
+      id: setupId,
+      session_id: sessionId,
+      loaded_at: loadedAt,
+      setup,
+      setup_screenshots: screenshots,
+    };
+    pushToRenderer("session:setupLoaded", {
+      sessionId,
+      game,
+      setup: row,
+      activate,
+    });
+    return setupId;
+  };
+
   ipcMain.handle(
     "session:loadSetup",
     (
@@ -1209,45 +1272,19 @@ const setupPipeline = (): void => {
       },
     ) => {
       const targetId = sid ?? currentSessionId;
-      const targetGame = g ?? currentSessionGame;
       if (!targetId) {
         throw new Error(
           "Nessuna sessione attiva. Apri una sessione prima di caricare un setup.",
         );
       }
-      const result = db
-        .prepare(
-          `INSERT INTO ${t("session_setups", targetGame)} (session_id, loaded_at, setup_json, setup_screenshots)
-           VALUES (?, ?, ?, ?)`,
-        )
-        .run(
-          targetId,
-          new Date().toISOString(),
-          JSON.stringify(setup),
-          targetGame === "ace" ? null : JSON.stringify(setup.screenshots ?? []),
-        );
-      const setupId = Number(result.lastInsertRowid);
-      // Only advance currentSetupId when loading into the current live session,
-      // and only when the caller wants this setup active (activate: false is used
-      // to re-tag old laps without hijacking the setup the next laps will use).
-      if (targetId === currentSessionId && activate !== false)
-        currentSetupId = setupId;
-
-      const row: SessionSetupRow = {
-        id: setupId,
-        session_id: targetId,
-        loaded_at: new Date().toISOString(),
-        setup,
-        setup_screenshots:
-          targetGame === "ace" ? null : JSON.stringify(setup.screenshots ?? []),
+      return {
+        setupId: insertSetup({
+          setup,
+          sessionId: targetId,
+          game: g ?? currentSessionGame,
+          activate,
+        }),
       };
-      pushToRenderer("session:setupLoaded", {
-        sessionId: targetId,
-        game: targetGame,
-        setup: row,
-        activate,
-      });
-      return { setupId };
     },
   );
 
@@ -1918,13 +1955,127 @@ const setupPipeline = (): void => {
     );
   };
 
+  /** Messaggio d'errore per gioco, verbatim dalla specifica: per chi guida
+   *  "clipboard vuota" e "JSON malformato" sono lo stesso problema, quindi ogni
+   *  acquirer collassa qualunque fallimento in una sola frase. */
+  const ACQUIRE_ERROR: Record<GameSource, string> = {
+    r3e: "Nessun setup presente nella clipboard.",
+    ace: "Setup non presente per la combinazione auto tracciato, o errore nella decodifica.",
+    ams2: "Nessuno screenshot da acquisire o errore nella scansione.",
+  };
+
+  /** Parole con cui il pilota rinuncia invece di dettare un nome. Senza questa
+   *  via d'uscita uno STT confuso persiste una riga session_setups_* con un nome
+   *  spazzatura, cancellabile solo dalla UI. */
+  const CANCEL_WORDS =
+    /^(annulla|annullo|lascia stare|lascia perdere|niente|no)$/i;
+
+  /** Nome dell'auto della sessione, risolto: per R3E currentCar è un id numerico. */
+  const sessionCarName = (): string =>
+    resolveNames(currentSessionGame, currentCar, currentTrack, currentLayout)
+      .carName || currentCar;
+
+  /** R3E: il JSON che RaceRoom mette in clipboard con CTRL+C. parseR3eSetupJson
+   *  fa throw su qualunque testo che non sia un setup, ed è il controllo. */
+  const acquireR3eSetup = (): SetupData => {
+    const params = parseR3eSetupJson(clipboard.readText());
+    if (params.length === 0) throw new Error("setup senza parametri attivi");
+    return {
+      carVerified: true,
+      carFound: sessionCarName(),
+      setupText: "",
+      params,
+      screenshots: [],
+    };
+  };
+
+  /** ACE: l'ultimo .carsetup per la combinazione auto/tracciato della sessione.
+   *  modifiedAt è ISO, quindi l'ordine lessicografico è già quello cronologico. */
+  const acquireAceSetup = (): SetupData => {
+    const newest = listAceSetupFiles(currentCar, currentTrack).toSorted(
+      (a, b) => b.modifiedAt.localeCompare(a.modifiedAt),
+    )[0];
+    if (!newest) throw new Error("nessun .carsetup per la combinazione");
+    const setup = decodeCarSetup(fs.readFileSync(newest.filePath), currentCar);
+    return { ...setup, name: newest.filename.replace(/\.carsetup$/i, "") };
+  };
+
+  /** AMS2: i 3 screenshot più recenti mandati a Claude Vision. */
+  const acquireAms2Setup = async (): Promise<SetupData> => {
+    const screenshotsDir = resolveAms2ScreenshotsDir();
+    if (!screenshotsDir) throw new Error("cartella screenshot non trovata");
+    const filenames = listAms2Screenshots(screenshotsDir)
+      .slice(0, 3)
+      .map((shot) => shot.name);
+    if (filenames.length === 0) throw new Error("nessuno screenshot");
+    const apiKey = getAnthropicApiKey();
+    if (!apiKey) throw new Error("API key assente");
+    return decodeAms2Setup({
+      screenshotsDir,
+      filenames,
+      expectedCar: sessionCarName(),
+      apiKey,
+    });
+  };
+
+  /** Scrive il setup e lo annuncia. Ricontrolla la sessione perché fra la
+   *  domanda sul nome e la risposta il pilota può averla chiusa. */
+  const saveAcquiredSetup = async (setup: SetupData): Promise<void> => {
+    const sessionId = currentSessionId;
+    if (!sessionId) {
+      await speakText("Non c'è nessuna sessione aperta.");
+      return;
+    }
+    insertSetup({ setup, sessionId, game: currentSessionGame, activate: true });
+    // carVerified arriva da Claude Vision solo per AMS2: quando l'auto sulle
+    // schermate non è quella della sessione il dato esiste già, tacerlo
+    // sarebbe peggio che dirlo.
+    const warn = setup.carVerified
+      ? ""
+      : ` Attenzione, l'auto rilevata è ${setup.carFound}.`;
+    await speakText(`Setup salvato con nome ${setup.name}.${warn}`);
+  };
+
+  const acquireSetupByVoice = async (): Promise<void> => {
+    if (!currentSessionId) {
+      await speakText("Non c'è nessuna sessione aperta.");
+      return;
+    }
+    const game = currentSessionGame;
+    if (game === "ams2" && !getAnthropicApiKey()) {
+      await speakText("API Key Anthropic non configurata.");
+      return;
+    }
+    let setup: SetupData;
+    try {
+      setup =
+        game === "r3e"
+          ? acquireR3eSetup()
+          : game === "ace"
+            ? acquireAceSetup()
+            : await acquireAms2Setup();
+    } catch (err) {
+      console.error("[VoiceCoach] Setup acquisition failed:", err);
+      await speakText(ACQUIRE_ERROR[game]);
+      return;
+    }
+    // ACE porta già il nome del file: niente da chiedere.
+    if (setup.name) {
+      await saveAcquiredSetup(setup);
+      return;
+    }
+    pendingSetup = setup;
+    pendingSetupAt = Date.now();
+    await speakText("Come vuoi chiamare il setup?", { listenAgain: true });
+  };
+
   ipcMain.handle("coach:voiceQuery", async (_event, question: string) => {
     console.log("[VoiceCoach] question:", question);
 
     // A pending "quale gioco?" swallows the next transcript: it is an answer,
     // not a new command. An answer that never arrives within the TTL is
     // treated as absent instead of eating a later, unrelated command.
-    if (pendingGame && Date.now() - pendingGameAt < PENDING_GAME_TTL_MS) {
+    if (pendingGame && Date.now() - pendingGameAt < PENDING_ANSWER_TTL_MS) {
       pendingGame = false;
       const answered = matchGame(question);
       if (!answered) {
@@ -1937,6 +2088,23 @@ const setupPipeline = (): void => {
       return;
     }
     pendingGame = false;
+
+    // Un "come vuoi chiamare il setup?" pendente ingoia la trascrizione
+    // successiva: è un nome, non un comando.
+    if (pendingSetup && Date.now() - pendingSetupAt < PENDING_ANSWER_TTL_MS) {
+      const setup = pendingSetup;
+      pendingSetup = null;
+      // Chi detta un nome lo compita ("vu uno" -> v1) e nomina i simboli
+      // ("trattino basso" -> _): la trascrizione grezza non è mai il nome.
+      const name = normalizeSpokenName(question);
+      if (!name || CANCEL_WORDS.test(name)) {
+        await speakText("Acquisizione annullata.");
+        return;
+      }
+      await saveAcquiredSetup({ ...setup, name });
+      return;
+    }
+    pendingSetup = null;
 
     const assistantName = getConfig("assistantName") ?? "Aria";
     const intent = classifyVoiceIntent(question, assistantName);
@@ -1973,6 +2141,12 @@ const setupPipeline = (): void => {
       await speakText("Sessione chiusa.");
       return;
     }
+
+    if (intent.kind === "acquireSetup") {
+      await acquireSetupByVoice();
+      return;
+    }
+
     if (intent.kind === "analyze") {
       if (!currentSessionId) {
         await speakText("Non c'è nessuna sessione aperta da analizzare.");
@@ -2052,26 +2226,36 @@ const setupPipeline = (): void => {
   const getAceSetupsBase = (): string =>
     getConfig("aceSetupsPath")?.trim() || ACE_SETUPS_DEFAULT;
 
+  /** Contenuto di {base}\{car}\{track}, ordinato per nome decrescente come si
+   *  aspetta AceSetupPicker. Il comando vocale riordina per modifiedAt. */
+  const listAceSetupFiles = (
+    car: string,
+    track: string,
+  ): AceSetupFileInfo[] => {
+    const dir = path.join(getAceSetupsBase(), car, track);
+    try {
+      return fs
+        .readdirSync(dir)
+        .filter((f: string) => f.endsWith(".carsetup"))
+        .sort()
+        .reverse()
+        .map((filename: string): AceSetupFileInfo => {
+          const filePath = path.join(dir, filename);
+          return {
+            filename,
+            filePath,
+            modifiedAt: fs.statSync(filePath).mtime.toISOString(),
+          };
+        });
+    } catch {
+      return [];
+    }
+  };
+
   ipcMain.handle(
     "ace:listSetupFiles",
-    (_event, { car, track }: { car: string; track: string }) => {
-      const aceSetupsBase = getAceSetupsBase();
-      const dir = path.join(aceSetupsBase, car, track);
-      try {
-        const files = fs
-          .readdirSync(dir)
-          .filter((f: string) => f.endsWith(".carsetup"))
-          .sort()
-          .reverse();
-        return files.map((filename: string): AceSetupFileInfo => {
-          const filePath = path.join(dir, filename);
-          const stat = fs.statSync(filePath);
-          return { filename, filePath, modifiedAt: stat.mtime.toISOString() };
-        });
-      } catch {
-        return [];
-      }
-    },
+    (_event, { car, track }: { car: string; track: string }) =>
+      listAceSetupFiles(car, track),
   );
 
   ipcMain.handle(
@@ -2126,36 +2310,10 @@ const setupPipeline = (): void => {
   // AMS2 setup decoding IPC (screenshot → Claude Vision → SetupData)
   // ──────────────────────────────────────────────
 
-  const AMS2_STEAM_APPID = "1066890";
-  const SETUP_VISION_MODEL = "claude-sonnet-5";
-
-  /** Auto-detect the single Steam userdata account and return the AMS2 screenshots dir. */
-  const getAms2ScreenshotsDir = async (): Promise<string | null> => {
-    const fs = await import("fs");
-    const pathMod = await import("path");
-    const steamBase = "C:\\Program Files (x86)\\Steam\\userdata";
-    try {
-      const accounts = fs.readdirSync(steamBase).filter((d) => /^\d+$/.test(d));
-      if (accounts.length === 0) return null;
-      return pathMod.join(
-        steamBase,
-        accounts[0],
-        "760",
-        "remote",
-        AMS2_STEAM_APPID,
-        "screenshots",
-      );
-    } catch {
-      return null;
-    }
-  };
-
-  ipcMain.handle("setup:listScreenshots", async () => {
-    const fs = await import("fs");
-    const pathMod = await import("path");
-    const screenshotsDir = await getAms2ScreenshotsDir();
+  ipcMain.handle("setup:listScreenshots", () => {
+    const screenshotsDir = resolveAms2ScreenshotsDir();
     if (!screenshotsDir) return [];
-    const thumbnailsDir = pathMod.join(screenshotsDir, "thumbnails");
+    const thumbnailsDir = path.join(screenshotsDir, "thumbnails");
 
     // Annotate screenshots already used by a prior AMS2 setup.
     const usedMap = new Map<
@@ -2202,136 +2360,33 @@ const setupPipeline = (): void => {
       /* table missing / not ready — no annotations */
     }
 
-    try {
-      const files = fs
-        .readdirSync(screenshotsDir)
-        .filter((f: string) => /\.(jpg|jpeg|png)$/i.test(f))
-        .sort()
-        .reverse();
-      return files.map((name: string) => {
-        const thumbPath = pathMod.join(thumbnailsDir, name);
-        const fullPath = pathMod.join(screenshotsDir, name);
-        const src = fs.existsSync(thumbPath) ? thumbPath : fullPath;
-        const thumbnailB64 = fs.readFileSync(src).toString("base64");
-        const alreadyUsed = usedMap.get(name);
-        return { name, thumbnailB64, ...(alreadyUsed ? { alreadyUsed } : {}) };
-      });
-    } catch {
-      return [];
-    }
+    return listAms2Screenshots(screenshotsDir).map(({ name }) => {
+      const thumbPath = path.join(thumbnailsDir, name);
+      const fullPath = path.join(screenshotsDir, name);
+      const src = fs.existsSync(thumbPath) ? thumbPath : fullPath;
+      const thumbnailB64 = fs.readFileSync(src).toString("base64");
+      const alreadyUsed = usedMap.get(name);
+      return { name, thumbnailB64, ...(alreadyUsed ? { alreadyUsed } : {}) };
+    });
   });
 
   ipcMain.handle(
     "setup:decodeSetup",
-    async (
+    (
       _event,
       { filenames, expectedCar }: { filenames: string[]; expectedCar: string },
     ) => {
-      const fs = await import("fs");
-      const pathMod = await import("path");
-      const screenshotsDir = await getAms2ScreenshotsDir();
+      const screenshotsDir = resolveAms2ScreenshotsDir();
       if (!screenshotsDir)
         throw new Error("Cartella screenshot AMS2 non trovata");
-
       const apiKey = getAnthropicApiKey();
       if (!apiKey) throw new Error("Anthropic API Key non configurata");
-
-      const Anthropic = (await import("@anthropic-ai/sdk")).default;
-      const client = new Anthropic({ apiKey });
-
-      const imageContents = filenames.map((name) => {
-        // Renderer-supplied names must be bare filenames; a path component
-        // ("..", "/" or "\\") would escape the screenshots directory.
-        if (pathMod.basename(name) !== name) {
-          throw new Error(`Nome file screenshot non valido: ${name}`);
-        }
-        const fullPath = pathMod.join(screenshotsDir, name);
-        const data = fs.readFileSync(fullPath).toString("base64");
-        const mediaType: "image/png" | "image/jpeg" = /\.png$/i.test(name)
-          ? "image/png"
-          : "image/jpeg";
-        return {
-          type: "image" as const,
-          source: {
-            type: "base64" as const,
-            media_type: mediaType,
-            data,
-          },
-        };
+      return decodeAms2Setup({
+        screenshotsDir,
+        filenames,
+        expectedCar,
+        apiKey,
       });
-
-      const systemPrompt = `Sei un esperto di setup per il simulatore di guida Automobilista 2 (AMS2).
-Analizza le schermate del setup dell'auto e restituisci un JSON con questa struttura esatta:
-{
-  "carVerified": boolean,
-  "carFound": "nome auto trovato nelle schermate",
-  "setupText": "riepilogo markdown del setup",
-  "params": [
-    { "category": "categoria", "parameter": "nome parametro", "value": "valore" }
-  ]
-}
-Devi verificare se l'auto nelle schermate corrisponde a: "${expectedCar}".
-Estrai TUTTI i parametri di setup visibili.
-Per ogni parametro assegna "category" ESATTAMENTE uno di questi valori:
-- "Gomme": parametri gomma per singola ruota (pressioni, ecc.)
-- "Freni": pressione/bilanciamento freni, condotti freni
-- "Chassis": parametri telaio non per-ruota (zavorra, ripartizione pesi, sterzo)
-- "Sospensioni": parametri sospensione per singola ruota (altezza, molla, camber, convergenza, ammortizzatori bump/rebound, ecc.)
-- "Anteriore": parametri sospensione assale anteriore non per-ruota (es. barra antirollio anteriore)
-- "Posteriore": parametri sospensione assale posteriore non per-ruota (es. barra antirollio posteriore)
-- "Sospensioni attive": parametri di sospensione attiva, se presenti
-- "Motore/Elettronica": mappa motore, freno motore, boost, TC, ABS, ecc.
-- "Rapporti del cambio": rapporto finale e singole marce
-- "Differenziale": precarico, rampe power/coast, dischi, differenziale anteriore e posteriore
-Per i parametri per singola ruota (category "Gomme" e "Sospensioni") crea un parametro per ruota e aggiungi il codice ruota in fondo al nome del parametro: " FL", " FR", " RL", " RR" (es. "Pressione FL"). Non usare categorie diverse da quelle elencate.
-IMPORTANTE — precisione numerica: leggi ogni cifra di ogni valore con la massima attenzione. Gli slider e altri elementi grafici dell'UI possono apparire adiacenti ai numeri: ignorali e trascrivi solo le cifre del testo numerico visualizzato sullo schermo.
-Restituisci solo il JSON, senza testo aggiuntivo.`;
-
-      const response = await client.messages.create({
-        model: SETUP_VISION_MODEL,
-        max_tokens: 4000,
-        thinking: { type: "disabled" },
-        system: systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: [
-              ...imageContents,
-              {
-                type: "text" as const,
-                text: `Analizza queste ${filenames.length} schermate del setup e restituisci il JSON.`,
-              },
-            ],
-          },
-        ],
-      });
-
-      // sonnet-5 may emit a leading thinking block; find the text block explicitly
-      // rather than assuming content[0], then guard the parse.
-      const textBlock = response.content.find((b) => b.type === "text");
-      const raw = textBlock?.type === "text" ? textBlock.text : "";
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error(
-          "Claude Vision non ha restituito un JSON di setup valido. Riprova o seleziona schermate più leggibili.",
-        );
-      }
-      let parsed;
-      try {
-        parsed = JSON.parse(jsonMatch[0]);
-      } catch {
-        throw new Error(
-          "Risposta di Claude Vision non interpretabile (JSON malformato). Riprova.",
-        );
-      }
-
-      return {
-        carVerified: parsed.carVerified ?? false,
-        carFound: parsed.carFound ?? "",
-        setupText: parsed.setupText ?? "",
-        params: parsed.params ?? [],
-        screenshots: filenames,
-      } as SetupData;
     },
   );
 

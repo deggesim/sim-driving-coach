@@ -11,6 +11,7 @@ export type VoiceIntent =
   | { kind: "newSession"; game: GameSource | null }
   | { kind: "closeSession" }
   | { kind: "analyze" }
+  | { kind: "acquireSetup" }
   | { kind: "greeting" }
   | { kind: "freeform"; question: string };
 
@@ -136,6 +137,18 @@ const classifyCommand = (s: string): VoiceIntent | null => {
   // the other two redundant, so only it survives - same behaviour, less regex.
   if (/\b(analizza|analisi|valuta|valutazione|esegui analisi)\b/.test(s))
     return { kind: "analyze" };
+  // I quattro trigger della specifica ("acquisisci/carica/preleva/nuovo setup"),
+  // più le coniugazioni che capitano parlando. `set ?up` perché Azure STT scrive
+  // il prestito inglese attaccato o staccato senza una regola.
+  // Ultimo dei rami di comando di proposito: "nuova sessione" non è un setup, e
+  // "valuta il nuovo setup" nomina un setup ma chiede un'analisi.
+  if (
+    /\bset ?up\b/.test(s) &&
+    /\b(acquisisci|acquisire|acquisisce|carica|caricare|caricami|preleva|prelevare|nuovo|nuova)\b/.test(
+      s,
+    )
+  )
+    return { kind: "acquireSetup" };
   return null;
 };
 
