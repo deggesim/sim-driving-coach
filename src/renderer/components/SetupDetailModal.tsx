@@ -5,6 +5,7 @@ import type { GameSource, SessionSetupRow } from "../../shared/types";
 import AceSetupTabs from "./AceSetupTabs";
 import Ams2SetupTabs from "./Ams2SetupTabs";
 import R3eSetupTabs from "./R3eSetupTabs";
+import { SetupNameEdit } from "./SetupNameEdit";
 
 export type SetupDetailModalProps = {
   setupId: number | null;
@@ -13,6 +14,10 @@ export type SetupDetailModalProps = {
   onClose: () => void;
   onUse?: () => void;
   onDuplicate?: () => void;
+  /** Presente = il titolo diventa rinominabile. `takenNames` sono i nomi già
+   *  in uso nello storico. */
+  onRename?: (name: string) => void;
+  takenNames?: string[];
 };
 
 export const SetupDetailModal = ({
@@ -22,6 +27,8 @@ export const SetupDetailModal = ({
   onClose,
   onUse,
   onDuplicate,
+  onRename,
+  takenNames,
 }: SetupDetailModalProps) => {
   if (setupId == null) return null;
 
@@ -40,7 +47,17 @@ export const SetupDetailModal = ({
       contentClassName="setup-detail-content"
     >
       <Modal.Header closeButton>
-        <Modal.Title style={{ fontSize: 15 }}>{name}</Modal.Title>
+        <Modal.Title style={{ fontSize: 15 }}>
+          {onRename ? (
+            <SetupNameEdit
+              name={name}
+              takenNames={takenNames ?? []}
+              onRename={onRename}
+            />
+          ) : (
+            name
+          )}
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body className="setup-detail-body">
         {row.setup.params.length > 0 ? (

@@ -37,6 +37,7 @@ description: Full IPC channel reference for this app (ElectronAPI in src/shared/
 | Handle    | `sessionDeleteAll`                                                         | Bulk delete `[{ id, game }]` (transaction)                   |
 | Handle    | `sessionDeleteAnalysis`                                                    | Delete a single `SessionAnalysisRow` by id                   |
 | Handle    | `sessionDeleteSetup`                                                       | Delete a `SessionSetupRow` — **refuses** if any lap still references it, returning `{ ok: false, lapCount }` |
+| Handle    | `sessionRenameSetup`                                                       | Rinomina un `SessionSetupRow` (`json_set` su `setup_json.$.name`) — ignora un nome vuoto |
 | Handle    | `sessionUpdateFlags`                                                       | Sets `leaderboardMode` / `fixedSetup` on the session row — the flags `loadSessionBundle` then derives for both prompts |
 | Handle    | `lapGetFrames`                                                             | Decompress `frames_blob` → `CompactFrame[]` for a lap        |
 | Handle    | `lapAssignSetup`                                                           | Reassign (or clear) the `setup_id` on a lap row              |

@@ -45,6 +45,9 @@ type State = {
     id: number,
     game: GameSource,
   ) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
+  // `id` può appartenere a un'altra sessione (lo storico setup è per
+  // auto/circuito): in quel caso aggiorna solo il DB.
+  renameSetup: (id: number, game: GameSource, name: string) => Promise<void>;
   assignLapSetup: (lapId: number, setupId: number | null) => Promise<void>;
   setActiveSetup: (id: number | null) => void;
   deleteLap: (lapId: number) => Promise<void>;
@@ -213,6 +216,15 @@ export const useSessionStore = create<State>((set, get) => ({
       });
     }
     return res;
+  },
+
+  renameSetup: async (id, game, name) => {
+    await window.electronAPI.sessionRenameSetup({ id, game, name });
+    set({
+      setups: get().setups.map((row) =>
+        row.id === id ? { ...row, setup: { ...row.setup, name } } : row,
+      ),
+    });
   },
 
   assignLapSetup: async (lapId, setupId) => {

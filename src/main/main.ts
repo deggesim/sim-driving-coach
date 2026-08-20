@@ -1676,6 +1676,22 @@ const setupPipeline = (): void => {
   );
 
   ipcMain.handle(
+    "session:renameSetup",
+    (
+      _event,
+      { id, game, name }: { id: number; game: GameSource; name: string },
+    ) => {
+      const clean = name.trim();
+      // Un nome vuoto renderebbe la riga senza etichetta (`name` è "" e non
+      // nullish, quindi il fallback `carFound` non scatta).
+      if (!clean) return;
+      db.prepare(
+        `UPDATE ${t("session_setups", game)} SET setup_json = json_set(setup_json, '$.name', ?) WHERE id = ?`,
+      ).run(clean, id);
+    },
+  );
+
+  ipcMain.handle(
     "session:exportPdf",
     async (_event, { id, game }: { id: number; game: GameSource }) => {
       const { dialog } = await import("electron");

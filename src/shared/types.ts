@@ -524,6 +524,11 @@ export type ElectronAPI = {
     id: number;
     game: GameSource;
   }) => Promise<{ ok: true } | { ok: false; lapCount: number }>;
+  sessionRenameSetup: (params: {
+    id: number;
+    game: GameSource;
+    name: string;
+  }) => Promise<void>;
   sessionReopen: (params: {
     id: number;
     game: GameSource;

@@ -13,6 +13,7 @@ import type {
   SetupData,
 } from "../../shared/types";
 import { SetupDetailModal } from "./SetupDetailModal";
+import { SetupNameEdit } from "./SetupNameEdit";
 import { useSessionStore } from "../store/sessionStore";
 
 interface Props {
@@ -84,6 +85,7 @@ const SetupSelectionModal = ({
     phase: "idle",
   });
   const deleteSetup = useSessionStore((s) => s.deleteSetup);
+  const renameSetup = useSessionStore((s) => s.renameSetup);
 
   // Reset the delete flow and the open detail whenever the modal opens or
   // closes. SessionPanel keeps this component mounted and only toggles `show`,
@@ -121,6 +123,15 @@ const SetupSelectionModal = ({
     () => new Map(history.map((r) => [r.id, r])),
     [history],
   );
+
+  const handleRename = (id: number, name: string): void => {
+    void renameSetup(id, game, name);
+    setHistory((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, setup: { ...r.setup, name } } : r,
+      ),
+    );
+  };
 
   const handleDelete = async (id: number): Promise<void> => {
     setDeleteState({ phase: "working", id });
@@ -192,7 +203,11 @@ const SetupSelectionModal = ({
                           }
                         >
                           <td>
-                            {displayName(row)}
+                            <SetupNameEdit
+                              name={displayName(row)}
+                              takenNames={history.map(displayName)}
+                              onRename={(name) => handleRename(row.id, name)}
+                            />
                             {row.setup.carVerified && (
                               <Badge
                                 bg="success"
@@ -315,6 +330,10 @@ const SetupSelectionModal = ({
         setupById={setupById}
         game={game}
         onClose={() => setSelectedId(null)}
+        takenNames={history.map(displayName)}
+        onRename={(name) => {
+          if (selectedId != null) handleRename(selectedId, name);
+        }}
         onUse={() => {
           const row =
             selectedId != null ? setupById.get(selectedId) : undefined;
