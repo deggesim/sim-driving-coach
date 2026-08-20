@@ -123,4 +123,76 @@ const flat = computeSessionStats({
 assert.equal(flat.trend, "flat");
 assert.equal(flat.criticalCorners.length, 0);
 
+// --- Extended channels: peaks max'd, averages divided by contributing laps ---
+const ext = computeSessionStats({
+  laps: [
+    mkLap(1, 100, [
+      zone(8, {
+        maxGLat: 1.2,
+        avgTyrePressure: [27, 27, 26, 26],
+        avgSlipRatio: [0.02, 0.02, 0.1, 0.1],
+        avgSuspTravel: [0.03, 0.03, 0.04, 0.04],
+      }),
+    ]),
+    mkLap(2, 100, [
+      zone(8, {
+        maxGLat: 1.8,
+        avgTyrePressure: [29, 29, 28, 28],
+        avgSlipRatio: [0.04, 0.04, 0.2, 0.2],
+        avgSuspTravel: [0.05, 0.05, 0.06, 0.06],
+      }),
+    ]),
+  ],
+  bestLap: 100,
+  setups: [],
+  alerts: [alert(8, "LATE_BRAKE")],
+  cornerNames: new Map(),
+});
+
+const closeQuartet = (
+  got: [number, number, number, number] | null,
+  want: [number, number, number, number],
+  msg: string,
+): void => {
+  assert.ok(got, msg);
+  got.forEach((v, i) =>
+    assert.ok(Math.abs(v - want[i]) < 1e-9, `${msg} [${i}]: ${v}`),
+  );
+};
+
+const c8 = ext.criticalCorners[0];
+assert.equal(c8.maxGLat, 1.8, "peak G is the max across laps");
+assert.equal(c8.maxGLon, null, "a channel no lap carried stays null");
+assert.equal(c8.maxSteerAbs, 0.2);
+assert.ok(Math.abs(c8.steerDuringBrake - 0.1) < 1e-9, "steer averaged");
+closeQuartet(c8.avgTyrePressure, [28, 28, 27, 27], "pressure averaged");
+closeQuartet(c8.avgSlipRatio, [0.03, 0.03, 0.15, 0.15], "slip averaged");
+closeQuartet(c8.avgSuspTravel, [0.04, 0.04, 0.05, 0.05], "travel averaged");
+
+// AMS2 carries rpm - which is what switches lap-recorder's extended block on -
+// but no per-wheel channels, so they arrive as zeros and must not surface.
+const zeros = computeSessionStats({
+  laps: [
+    mkLap(1, 100, [
+      zone(8, {
+        avgRpm: 6500,
+        avgTyrePressure: [0, 0, 0, 0],
+        avgSlipRatio: [0, 0, 0, 0],
+        avgSuspTravel: [0, 0, 0, 0],
+      }),
+    ]),
+  ],
+  bestLap: 100,
+  setups: [],
+  alerts: [alert(8, "LATE_BRAKE")],
+  cornerNames: new Map(),
+});
+assert.equal(
+  zeros.criticalCorners[0].avgTyrePressure,
+  null,
+  "all-zero omitted",
+);
+assert.equal(zeros.criticalCorners[0].avgSlipRatio, null);
+assert.equal(zeros.criticalCorners[0].avgSuspTravel, null);
+
 console.log("session-stats.selfcheck OK");

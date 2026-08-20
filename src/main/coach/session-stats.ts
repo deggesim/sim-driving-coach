@@ -17,6 +17,40 @@ import type {
 const FRAME_MS = 16;
 const FLAT_EPS = 0.05; // seconds: |lastThird - firstThird| below this ⇒ "flat"
 
+type Quartet = [number, number, number, number];
+
+const zeroQuartet = (): Quartet => [0, 0, 0, 0];
+
+const addQuartet = (into: Quartet, vals: Quartet | undefined): void => {
+  if (!vals) return;
+  for (let i = 0; i < 4; i++) into[i] += vals[i];
+};
+
+/**
+ * Mean of a running sum, or null when no lap contributed or every value is zero.
+ * lap-recorder switches its whole extended block on from `rpm` alone and floors a
+ * missing channel to 0, so AMS2 (rpm but no per-wheel channels) yields [0,0,0,0]
+ * - and a zero that reaches the prompt reads as a measurement.
+ */
+const meanQuartet = (
+  sum: Quartet | undefined,
+  laps: number | undefined,
+): Quartet | null =>
+  !sum || !laps || sum.every((v) => v === 0)
+    ? null
+    : [sum[0] / laps, sum[1] / laps, sum[2] / laps, sum[3] / laps];
+
+/** Per-zone running sums for the fields averaged across laps. Kept beside byZone
+ * so the returned CornerStat carries no scratch state. */
+type CornerAccum = {
+  laps: number;
+  extLaps: number;
+  steerSum: number;
+  tpSum: Quartet;
+  srSum: Quartet;
+  susSum: Quartet;
+};
+
 export type LapStat = {
   lapNumber: number;
   lapTime: number;
@@ -35,12 +69,21 @@ export type CornerStat = {
   alertsByType: Record<string, number>;
   minSpeedKmh: number;
   maxBrakePct: number;
+  maxSteerAbs: number;
+  steerDuringBrake: number; // averaged over the laps carrying this zone
+  maxGLat: number | null;
+  maxGLon: number | null;
   tcEvents: number;
   tcMs: number;
   absEvents: number;
   absMs: number;
   overlapMs: number;
-  brakeTempsC: [number, number, number, number] | null;
+  brakeTempsC: Quartet | null;
+  // Averaged over the laps carrying them; null when the game does not expose
+  // them (R3E, AMS2) - never a floored zero.
+  avgTyrePressure: Quartet | null;
+  avgSlipRatio: Quartet | null;
+  avgSuspTravel: Quartet | null;
 };
 
 export type SessionStats = {
@@ -117,6 +160,7 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
 
   // Critical corners: aggregate alerts by zone, then enrich from zones_json.
   const byZone = new Map<number, CornerStat>();
+  const accums = new Map<number, CornerAccum>();
   for (const a of alerts ?? []) {
     let c = byZone.get(a.zone);
     if (!c) {
@@ -128,12 +172,19 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
         alertsByType: {},
         minSpeedKmh: Infinity,
         maxBrakePct: 0,
+        maxSteerAbs: 0,
+        steerDuringBrake: 0,
+        maxGLat: null,
+        maxGLon: null,
         tcEvents: 0,
         tcMs: 0,
         absEvents: 0,
         absMs: 0,
         overlapMs: 0,
         brakeTempsC: null,
+        avgTyrePressure: null,
+        avgSlipRatio: null,
+        avgSuspTravel: null,
       };
       byZone.set(a.zone, c);
     }
@@ -153,6 +204,34 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
       c.absMs += (z.absActiveFrames ?? 0) * FRAME_MS;
       c.overlapMs += z.overlapFrames * FRAME_MS;
       if (z.avgBrakeTempC) c.brakeTempsC = z.avgBrakeTempC;
+      c.maxSteerAbs = Math.max(c.maxSteerAbs, z.maxSteerAbs);
+      if (z.maxGLat != null) c.maxGLat = Math.max(c.maxGLat ?? 0, z.maxGLat);
+      if (z.maxGLon != null) c.maxGLon = Math.max(c.maxGLon ?? 0, z.maxGLon);
+
+      let a = accums.get(z.zone);
+      if (!a) {
+        a = {
+          laps: 0,
+          extLaps: 0,
+          steerSum: 0,
+          tpSum: zeroQuartet(),
+          srSum: zeroQuartet(),
+          susSum: zeroQuartet(),
+        };
+        accums.set(z.zone, a);
+      }
+      a.laps += 1;
+      a.steerSum += z.steerDuringBrake;
+      if (
+        z.avgTyrePressure != null ||
+        z.avgSlipRatio != null ||
+        z.avgSuspTravel != null
+      ) {
+        a.extLaps += 1;
+        addQuartet(a.tpSum, z.avgTyrePressure);
+        addQuartet(a.srSum, z.avgSlipRatio);
+        addQuartet(a.susSum, z.avgSuspTravel);
+      }
     }
   }
 
@@ -162,10 +241,17 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
   // measured zero. Upgrade path: keep it null and have buildStatsBlock omit the
   // field instead of flooring it.
   const criticalCorners = [...byZone.values()]
-    .map((c) => ({
-      ...c,
-      minSpeedKmh: Number.isFinite(c.minSpeedKmh) ? c.minSpeedKmh : 0,
-    }))
+    .map((c) => {
+      const acc = accums.get(c.zone);
+      return {
+        ...c,
+        minSpeedKmh: Number.isFinite(c.minSpeedKmh) ? c.minSpeedKmh : 0,
+        steerDuringBrake: acc?.laps ? acc.steerSum / acc.laps : 0,
+        avgTyrePressure: meanQuartet(acc?.tpSum, acc?.extLaps),
+        avgSlipRatio: meanQuartet(acc?.srSum, acc?.extLaps),
+        avgSuspTravel: meanQuartet(acc?.susSum, acc?.extLaps),
+      };
+    })
     .sort((a, b) => b.alertCount - a.alertCount);
 
   return {

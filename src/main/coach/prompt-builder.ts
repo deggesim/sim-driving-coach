@@ -73,6 +73,7 @@ Poi "Dettagli per curva" (un bullet per curva critica, con entry speed, ∆ ster
 ### Setup attuale vs proposto
 (OMETTI l'intera sottosezione se nessun setup è stato caricato.)
 Tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti. Poi proposte concrete numerate: "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro.
+Copri ogni area che i dati sostengono (freni, pressioni e temperature gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio): NON limitarti ai freni. Ogni proposta cita il dato che la sostiene.
 
 ---
 
@@ -80,6 +81,7 @@ Tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti. Poi 
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C). Se valore = -1, ignora.
 - Pressioni gomme: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI).
+- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "slip ratio" adimensionale (oltre ~0.10 = pattinamento), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
@@ -98,6 +100,9 @@ Un paragrafo condensato: diagnosi della sessione con i dati chiave (problema pi�
 Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una o due righe ciascuna:
 1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
+
+NON concentrare tutte le azioni sulla stessa area: valuta ogni leva che i dati supportano (freni, pressioni gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio) oltre alla tecnica di guida. Proponi una leva SOLO se un dato del contesto la sostiene, e cita quel dato.
+Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "slip ratio" adimensionale (oltre ~0.10 = pattinamento), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
 <sintesi-vocale>
@@ -143,6 +148,21 @@ const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
   return lines.join("\n");
 };
 
+/**
+ * Per-wheel quartet for the prompt; null when the field is absent or all-zero.
+ * lap-recorder floors a missing channel to 0 and turns the whole extended block
+ * on from `rpm` alone - AMS2 has rpm but no tyre/slip/suspension channels, so it
+ * produces [0,0,0,0], and a printed "0.0/0.0/0.0/0.0" reads as a measured zero.
+ */
+const wheelQuartet = (
+  vals: [number, number, number, number] | null | undefined,
+  scale: number,
+  digits: number,
+): string | null =>
+  !vals || vals.every((v) => v === 0)
+    ? null
+    : vals.map((v) => (v * scale).toFixed(digits)).join("/");
+
 const summarizeLapZones = (
   zones: ZoneData[],
   cornerNames: Map<number, string>,
@@ -156,6 +176,11 @@ const summarizeLapZones = (
     bits.push(`min ${z.minSpeedKmh.toFixed(0)}km/h`);
     bits.push(`freno ${(z.maxBrakePct * 100).toFixed(0)}%`);
     bits.push(`gas ${(z.avgThrottlePct * 100).toFixed(0)}%`);
+    // Steer is normalised -1..1 on all three games (same scale the trail-braking
+    // threshold in adaptive-baseline compares against).
+    bits.push(`sterzo max ${(z.maxSteerAbs * 100).toFixed(0)}%`);
+    if (z.steerDuringBrake > 0)
+      bits.push(`sterzo in frenata ${(z.steerDuringBrake * 100).toFixed(0)}%`);
     if (z.tcActivations > 0) {
       const durMs = ((z.tcActiveFrames ?? z.tcActivations) * 16).toFixed(0);
       bits.push(`TC:${z.tcActivations}ev/${durMs}ms`);
@@ -166,7 +191,21 @@ const summarizeLapZones = (
     }
     if (z.overlapFrames > 3)
       bits.push(`overlap:${(z.overlapFrames * 16).toFixed(0)}ms`);
+    if (z.maxGLat != null) bits.push(`G lat ${z.maxGLat.toFixed(2)}g`);
+    if (z.maxGLon != null) bits.push(`G lon ${z.maxGLon.toFixed(2)}g`);
     lines.push(`  - ${label} → ${bits.join(", ")}`);
+
+    // Setup-relevant per-wheel channels on their own line: four values per field
+    // would drown the driving metrics above. Absent for R3E and AMS2.
+    const extra: string[] = [];
+    const tp = wheelQuartet(z.avgTyrePressure, 1, 1);
+    if (tp) extra.push(`press. gomme ${tp} PSI`);
+    const sr = wheelQuartet(z.avgSlipRatio, 1, 3);
+    if (sr) extra.push(`slip ratio ${sr}`);
+    const sus = wheelQuartet(z.avgSuspTravel, 1000, 1);
+    if (sus) extra.push(`corsa sosp. ${sus} mm`);
+    if (extra.length > 0)
+      lines.push(`    (ANT-SX/ANT-DX/POST-SX/POST-DX) ${extra.join(" | ")}`);
   }
   return lines;
 };
@@ -215,11 +254,37 @@ export const buildStatsBlock = (stats: SessionStats): string => {
         `${c.alertCount} alert (${types})`,
         `v.min ${c.minSpeedKmh.toFixed(0)}km/h`,
         `freno ${(c.maxBrakePct * 100).toFixed(0)}%`,
+        `sterzo max ${(c.maxSteerAbs * 100).toFixed(0)}%`,
       ];
+      if (c.steerDuringBrake > 0)
+        bits.push(
+          `sterzo in frenata ${(c.steerDuringBrake * 100).toFixed(0)}%`,
+        );
       if (c.tcEvents > 0) bits.push(`TC ${c.tcEvents}ev/${c.tcMs}ms`);
       if (c.absEvents > 0) bits.push(`ABS ${c.absEvents}ev/${c.absMs}ms`);
       if (c.overlapMs > 0) bits.push(`overlap ${c.overlapMs}ms`);
+      if (c.maxGLat != null) bits.push(`G lat ${c.maxGLat.toFixed(2)}g`);
+      if (c.maxGLon != null) bits.push(`G lon ${c.maxGLon.toFixed(2)}g`);
       lines.push(`  - Zona ${c.zone} ${label}: ${bits.join(", ")}`);
+
+      // Per-wheel line, same shape as the lap zones. brakeTempsC was computed
+      // here and never printed either; a wheel with no sensor reads -1, and the
+      // "-1 means ignore" rule only exists in the Level-2 system prompt.
+      const perWheel: string[] = [];
+      if (c.brakeTempsC?.some((v) => v > 0))
+        perWheel.push(
+          `temp. freni ${c.brakeTempsC.map((v) => (v > 0 ? v.toFixed(0) : "n.d.")).join("/")} °C`,
+        );
+      const tp = wheelQuartet(c.avgTyrePressure, 1, 1);
+      if (tp) perWheel.push(`press. gomme ${tp} PSI`);
+      const sr = wheelQuartet(c.avgSlipRatio, 1, 3);
+      if (sr) perWheel.push(`slip ratio ${sr}`);
+      const sus = wheelQuartet(c.avgSuspTravel, 1000, 1);
+      if (sus) perWheel.push(`corsa sosp. ${sus} mm`);
+      if (perWheel.length > 0)
+        lines.push(
+          `    (ANT-SX/ANT-DX/POST-SX/POST-DX) ${perWheel.join(" | ")}`,
+        );
     }
   }
   lines.push("");
