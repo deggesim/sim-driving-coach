@@ -39,6 +39,7 @@ import {
   matchGame,
   nextGreeting,
 } from "./coach/voice-intent.js";
+import { normalizeSpokenName } from "./coach/spoken-name.js";
 import { createAceReader, type AceReader } from "./ace/ace-reader.js";
 import {
   decodeCarSetup,
@@ -2093,9 +2094,9 @@ const setupPipeline = (): void => {
     if (pendingSetup && Date.now() - pendingSetupAt < PENDING_ANSWER_TTL_MS) {
       const setup = pendingSetup;
       pendingSetup = null;
-      // Azure STT appende un punto a una frase isolata: senza toglierlo il setup
-      // si chiamerebbe "Qualifica Monza.".
-      const name = question.trim().replace(/[.!?]+$/, "");
+      // Chi detta un nome lo compita ("vu uno" -> v1) e nomina i simboli
+      // ("trattino basso" -> _): la trascrizione grezza non è mai il nome.
+      const name = normalizeSpokenName(question);
       if (!name || CANCEL_WORDS.test(name)) {
         await speakText("Acquisizione annullata.");
         return;
