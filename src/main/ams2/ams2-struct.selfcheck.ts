@@ -36,8 +36,18 @@ assert.equal(OFF.speed, 6848, "mSpeed offset");
 assert.equal(OFF.brake, 6860, "mBrake offset");
 assert.equal(OFF.throttle, 6864, "mThrottle offset");
 assert.equal(OFF.carFlags, 6816, "mCarFlags offset");
+assert.equal(OFF.localAcceleration, 6956, "mLocalAcceleration offset");
+assert.equal(OFF.tyreTemp, 7072, "mTyreTemp offset");
 assert.equal(OFF.brakeTempCelsius, 7184, "mBrakeTempCelsius offset");
 assert.equal(OFF.sequenceNumber, 7320, "mSequenceNumber offset");
+// SharedMemory.h declares these two AFTER mSequenceNumber, so offsets past 7320
+// are correct here, not a copy-paste slip.
+assert.equal(OFF.suspensionTravel, 7340, "mSuspensionTravel offset");
+assert.equal(OFF.airPressure, 7372, "mAirPressure offset");
+assert.ok(
+  OFF.airPressure + 4 * 4 <= AMS2_STRUCT_SIZE,
+  "per-wheel reads stay inside the mapped page",
+);
 
 // Participant arithmetic: player 0's lapDistance sits at 28 + 0*100 + 80 = 108.
 assert.equal(PART.currentLapDistance, 80, "PART.currentLapDistance");

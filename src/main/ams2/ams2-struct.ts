@@ -77,11 +77,16 @@ export const OFF = {
   steering: 6872, // float  mSteering (-1..1)
   gear: 6876, // int    mGear
   antiLockActive: 6888, // bool   mAntiLockActive
+  localAcceleration: 6956, // float[3] mLocalAcceleration (m/s^2; X=lat, Z=lon)
 
   tyreTemp: 7072, // float[4]  mTyreTemp (Celsius)
   brakeTempCelsius: 7184, // float[4]  mBrakeTempCelsius (Celsius)
 
   sequenceNumber: 7320, // uint   mSequenceNumber (odd = write in progress)
+
+  // Not a typo: SharedMemory.h declares these two AFTER mSequenceNumber.
+  suspensionTravel: 7340, // float[4]  mSuspensionTravel (metres)
+  airPressure: 7372, // float[4]  mAirPressure (PSI)
 } as const;
 
 export const participantOffset = (index: number, fieldOffset: number): number =>

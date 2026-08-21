@@ -1,10 +1,11 @@
 /**
  * ACE Shared Memory - struct offsets and type definitions.
  *
- * Three pages:
- *   Local\ACEVOPhysics   - raw physics telemetry, ~5 KB, every sim step
- *   Local\ACEVOGraphic   - HUD + session state,  ~18 KB, every rendered frame
- *   Local\ACEVOStatic    - static session metadata, ~1 KB, written once
+ * Three pages. The real names are the acevo_pmf_* constants below; the
+ * Local\ACEVO* names in the upstream doc always return handle=0.
+ *   acevo_pmf_physics   - raw physics telemetry, 800 B, every sim step
+ *   acevo_pmf_graphics  - HUD + session state, 4900 B, every rendered frame
+ *   acevo_pmf_static    - static session metadata, 208 B, written once
  *
  * API revision: 2026-04-01
  * Source: https://docs.google.com/document/d/1WzqMLkW2o_C0LGcvdMRelAV31ZIifux0CSHD9k6ddz0/edit?tab=t.0
@@ -146,6 +147,7 @@ export const PHY = {
   accG: 44, // float[3] - G-forces: [0]=lateral, [1]=vertical, [2]=longitudinal
   wheelsPressure: 88, // float[4] FL,FR,RL,RR - tyre pressures (PSI)
   wheelAngularSpeed: 104, // float[4] FL,FR,RL,RR - wheel angular speed (rad/s)
+  tyreCoreTemperature: 152, // float[4] FL,FR,RL,RR - tyre core temperature (°C)
   suspensionTravel: 184, // float[4] FL,FR,RL,RR - suspension travel (m)
   rideHeight: 268, // float[2] front,rear - aero ride height (m)
   airTemp: 288, // float - ambient air temperature (°C)

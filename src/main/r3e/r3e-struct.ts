@@ -300,7 +300,9 @@ const STRUCT_FIELDS: StructField[] = [
   { name: "WaterLeft", type: "float" },
   { name: "AbsSetting", type: "int32" },
   { name: "HeadLights", type: "int32" },
-  { name: "VehicleUnused1", type: "float" },
+  // r3e.h calls this steer_wheel_max_rotation (int32). Same 4 bytes as the
+  // float placeholder it replaces, so no downstream offset moves.
+  { name: "SteerWheelMaxRotation", type: "int32" },
 
   // ── Tires ─────────────────────────────────────────────────────────────────
   { name: "TireType", type: "int32" }, // deprecated
@@ -405,6 +407,17 @@ const readFloatArray = (buf: Buffer, name: string, count: number): number[] => {
   return Array.from({ length: count }, (_, i) => buf.readFloatLE(base + i * 4));
 };
 
+const readDoubleArray = (
+  buf: Buffer,
+  name: string,
+  count: number,
+): number[] => {
+  const base = OFFSETS[name];
+  return Array.from({ length: count }, (_, i) =>
+    buf.readDoubleLE(base + i * 8),
+  );
+};
+
 const readString = (buf: Buffer, name: string, byteLen: number): string => {
   const base = OFFSETS[name];
   const slice = buf.subarray(base, base + byteLen);
@@ -423,5 +436,6 @@ export {
   readFloat,
   readDouble,
   readFloatArray,
+  readDoubleArray,
   readString,
 };

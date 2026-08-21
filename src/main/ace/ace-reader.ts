@@ -43,6 +43,7 @@ import {
   RECONNECT_INTERVAL_MS,
 } from "../../shared/alert-types.js";
 import type { GameFrame, CompactFrame } from "../../shared/types.js";
+import { logChannels } from "../channel-log.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -391,6 +392,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const accG = readFloatArray(physBuf, PHY.accG, 3);
       const wheelsPressure = readFloatArray(physBuf, PHY.wheelsPressure, 4);
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
+      const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
       const slipRatio = readFloatArray(physBuf, PHY.slipRatio, 4);
       const tcIntensity = readFloat(physBuf, PHY.tc);
       const absIntensity = readFloat(physBuf, PHY.abs);
@@ -558,10 +560,12 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           tp: [...wheelsPressure],
           sr: [...slipRatio],
           sus: [...suspensionTravel],
+          tt: [...tyreCoreTemp],
           wx: playerWx,
           wy: playerWy,
           wz: playerWz,
         });
+        logChannels("ACE", lapFrames.at(-1));
       }
 
       // Lap crossing: npos crosses start/finish (0.85→1.0 → 0.0→0.15).

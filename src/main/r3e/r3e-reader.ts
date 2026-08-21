@@ -21,6 +21,7 @@ import {
   readFloat,
   readDouble,
   readFloatArray,
+  readDoubleArray,
   readString,
 } from "./r3e-struct.js";
 import {
@@ -28,6 +29,7 @@ import {
   RECONNECT_INTERVAL_MS,
 } from "../../shared/alert-types.js";
 import type { R3EFrame, CompactFrame } from "../../shared/types.js";
+import { logChannels } from "../channel-log.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -63,6 +65,23 @@ export type R3EReader = {
   stop: () => void;
   on: EventEmitter["on"];
 };
+
+/**
+ * Setup-relevant channels the lap recorder needs but the UI does not. Kept out
+ * of R3EFrame, which is pushed to the renderer at 62 Hz and written to the
+ * telemetry file verbatim, and split off again in poll(). The keys match
+ * CompactFrame's so the whole object spreads straight into it.
+ */
+type FrameExt = {
+  gLat: number;
+  gLon: number;
+  tp: number[];
+  sr: number[];
+  sus: number[];
+  tt: number[];
+};
+
+type ParsedFrame = R3EFrame & { ext: FrameExt };
 
 export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
   const emitter = new EventEmitter();
@@ -114,7 +133,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     reconnectTimer = setTimeout(() => tryConnect(), RECONNECT_INTERVAL_MS);
   };
 
-  const parseFrame = (buf: Buffer): R3EFrame => {
+  const parseFrame = (buf: Buffer): ParsedFrame => {
     const carSpeed = readFloat(buf, "CarSpeed") * 3.6; // m/s → km/h
     const engineRpm = readFloat(buf, "EngineRps") * (60 / (2 * Math.PI)); // rad/s → RPM
 
@@ -129,6 +148,42 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     const tireTempFR = readFloat(buf, "TireTemp_FR_Center");
     const tireTempRL = readFloat(buf, "TireTemp_RL_Center");
     const tireTempRR = readFloat(buf, "TireTemp_RR_Center");
+
+    // TirePressure is kPa with -1 = N/A (r3e.h). Converted to PSI so the `tp`
+    // channel carries one unit for all three games; a quartet with any -1 is
+    // dropped whole rather than printed as a fake 0 PSI downstream.
+    const rawPressure = readFloatArray(buf, "TirePressure", 4);
+    const tirePressure = rawPressure.some((v) => v < 0)
+      ? [0, 0, 0, 0]
+      : rawPressure.map((v) => v * 0.145038);
+
+    // Suspension deflection is metres, same scale as ACE suspensionTravel.
+    const suspDeflection = readDoubleArray(
+      buf,
+      "Player_SuspensionDeflection",
+      4,
+    );
+
+    const rawTyreTemp = [tireTempFL, tireTempFR, tireTempRL, tireTempRR];
+    const tyreTemp = rawTyreTemp.some((v) => v < 0)
+      ? [0, 0, 0, 0] // -1 = no sensor, same convention as brake temps
+      : rawTyreTemp;
+
+    // local_g_force is already in g; local axes are +X=left, +Y=up, +Z=back,
+    // so X is lateral and Z longitudinal. Zones keep max|.|, so sign is moot.
+    const gLat = readDouble(buf, "Player_LocalGforce_X");
+    const gLon = readDouble(buf, "Player_LocalGforce_Z");
+
+    // ponytail: R3E has no native slip-ratio channel - derived from wheel speed
+    // vs car speed (both m/s per r3e.h). Zeroed below 5 m/s, where the ratio is
+    // meaningless. No upgrade path: the SHM exposes nothing better.
+    const carSpeedMps = carSpeed / 3.6;
+    const slipRatio =
+      carSpeedMps > 5
+        ? readFloatArray(buf, "TireSpeed", 4).map(
+            (w) => (w - carSpeedMps) / carSpeedMps,
+          )
+        : [0, 0, 0, 0];
 
     // AidSettings: value 5 means aid is currently active
     const absActive = readInt32(buf, "AidSettings_Abs") === 5 ? 1 : 0;
@@ -200,10 +255,19 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
 
       inPitlane: readInt32(buf, "InPitlane") !== 0,
       flagsCheckered: readInt32(buf, "Flags_Checkered") !== 0,
+
+      ext: {
+        gLat,
+        gLon,
+        tp: tirePressure,
+        sr: slipRatio,
+        sus: suspDeflection,
+        tt: tyreTemp,
+      },
     };
   };
 
-  const detectBoundaries = (frame: R3EFrame): void => {
+  const detectBoundaries = (frame: R3EFrame, ext: FrameExt): void => {
     if (frame.carModelId > 0) currentCar = String(frame.carModelId);
     if (frame.trackId > 0) currentTrack = String(frame.trackId);
     if (frame.layoutId > 0) currentLayout = String(frame.layoutId);
@@ -228,10 +292,13 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
           frame.brakeTempRR,
         ],
         ts: Date.now(),
+        rpm: frame.engineRpm,
+        ...ext,
         wx: frame.posX,
         wy: frame.posY,
         wz: frame.posZ,
       });
+      logChannels("R3E", lapFrames.at(-1));
     }
 
     // Sector boundary
@@ -350,9 +417,9 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         return;
       }
 
-      const frame = parseFrame(buf);
+      const { ext, ...frame } = parseFrame(buf);
       emitter.emit("r3e:frame", frame);
-      detectBoundaries(frame);
+      detectBoundaries(frame, ext);
     } catch {
       cleanup();
       scheduleReconnect();

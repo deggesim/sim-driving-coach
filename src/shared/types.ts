@@ -78,13 +78,16 @@ export type CompactFrame = {
   tcs?: number;
   abss?: number;
   ts: number; // timestamp ms
-  // Extended fields (ACE only; undefined for R3E frames)
+  // Extended fields, decided per channel: a reader omits what its game cannot
+  // supply (AMS2 has no slip ratio) rather than sending a zero for it.
+  // Per-game coverage table: src/main/CLAUDE.md.
   rpm?: number; // engine RPM
-  gLat?: number; // lateral G-force (accG[0])
-  gLon?: number; // longitudinal G-force (accG[2])
+  gLat?: number; // lateral G-force (g)
+  gLon?: number; // longitudinal G-force (g)
   tp?: number[]; // tyre pressures PSI [FL, FR, RL, RR]
-  sr?: number[]; // slip ratios [FL, FR, RL, RR]
+  sr?: number[]; // slip ratios [FL, FR, RL, RR] (negative = locking)
   sus?: number[]; // suspension travel m [FL, FR, RL, RR]
+  tt?: number[]; // tyre temps °C [FL, FR, RL, RR]
   // World-space position (metres) - used for track-map rendering
   wx?: number;
   wy?: number;
@@ -142,13 +145,14 @@ export type ZoneData = {
   absSetting?: number;
   // Brake temps averaged over zone (°C, -1 if unavailable for this car)
   avgBrakeTempC?: [number, number, number, number]; // FL FR RL RR
-  // Extended (ACE only; present when source frames have the fields)
+  // Extended, per channel: present only when the source frames carried it
   avgRpm?: number;
   maxGLat?: number; // peak lateral G-force magnitude
   maxGLon?: number; // peak longitudinal G-force magnitude (braking)
   avgTyrePressure?: [number, number, number, number]; // PSI FL/FR/RL/RR
   avgSlipRatio?: [number, number, number, number]; // FL/FR/RL/RR
   avgSuspTravel?: [number, number, number, number]; // m FL/FR/RL/RR
+  avgTyreTempC?: [number, number, number, number]; // °C FL/FR/RL/RR
 };
 
 // --- Lap Record ---

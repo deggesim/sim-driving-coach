@@ -7,8 +7,45 @@ Loaded when working under `src/main/`. Architecture-wide decisions live in the r
 - **game-adapter.ts** — Projects R3EFrame → GameFrame (unified 7-field struct: lapDistance, tcActive, absActive, brakeTemps FL/FR/RL/RR). ACE and AMS2 readers emit GameFrame natively
 - **input-manager.ts** — Global push-to-talk key via a `WH_KEYBOARD_LL` hook (koffi → user32), **not** Electron `globalShortcut`: a `RegisterHotKey` hotkey is not delivered while a sim holds the foreground (verified with RaceRoom, fullscreen and borderless — neither main nor renderer saw the trigger). Fires `onInputTrigger` to the renderer on key-down and never consumes the event (the sim still receives the key, unlike `globalShortcut`); key repeat is ignored until key-up. Non-Windows stub returns no-ops
 - **key-combo.ts** — Pure parsing of the stored shortcut format (`event.key` + `Ctrl/Alt/Shift` prefixes joined by `+`, parsed greedily so `Ctrl++` works) and the named-key → virtual-key table (F1-F24, arrows, Space…). Single characters are left to `VkKeyScanW` because their VK is layout-dependent. Dependency-free so `key-combo.selfcheck.ts` can assert it
-- **lap-recorder.ts** — Attaches to reader, aggregates frames into 50m zones with driving metrics, handles 2-lap calibration phase
+- **lap-recorder.ts** — Attaches to reader, aggregates frames into 50m zones with driving metrics, handles 2-lap calibration phase. `aggregateZones` is exported for `lap-recorder.selfcheck.ts` and decides **per channel** whether an extended field is emitted — never one flag for the whole block
+- **channel-log.ts** — Smoke-test logging for `CompactFrame`'s extended channels
+  (`logChannels(tag, frame)`, called by the three readers). Prints "absent" and
+  "all zeros" as words rather than numbers, so a missing channel cannot be
+  confused with a wrong offset. One line per game on the first moving frame;
+  `SDC_CHANNEL_LOG=1` keeps a line coming every ~2s. `formatChannels` is pure and
+  asserted by `channel-log.selfcheck.ts`
 - **zone-tracker.ts** — Stateful tracker for current 50m zone during a lap (feeds RuleEngine real-time checks)
+
+## Per-game channel coverage
+
+`CompactFrame`'s extended channels are filled in per reader: a game that cannot
+supply one omits it, and `aggregateZones` decides presence per channel, so a
+missing channel never reaches a prompt as a zero.
+
+| Channel | R3E | ACE | AMS2 |
+| --- | --- | --- | --- |
+| `rpm` | `EngineRps` (rad/s → RPM) | `rpms` | `mRpm` |
+| `gLat` / `gLon` (g) | `Player_LocalGforce_X` / `_Z` (already g) | `accG[0]` / `accG[2]` | `mLocalAcceleration[0]` / `[2]` ÷ 9.80665 |
+| `tp` (PSI) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` |
+| `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — none: `mTyreSlipSpeed` is deprecated and `mTyreRPS` needs a tyre radius the SHM does not expose |
+| `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
+| `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |
+
+Two traps worth remembering: AMS2's `mSuspensionTravel` (7340) and `mAirPressure`
+(7372) are declared **after** `mSequenceNumber` (7320) in `SharedMemory.h`, so
+their offsets legitimately sit past it; and R3E's slip ratio is derived, not
+measured, so confirm it against the sim before trusting a value.
+
+**Smoke-testing the channels** — `channel-log.ts` is called from all three
+readers right after each `lapFrames.push`. On the first frame above 30 km/h it
+prints one `[R3E]`/`[ACE]`/`[AMS2] canali …` line, which is the coverage check:
+an unfilled channel reads `assente`, an all-zero quartet (the usual signature of
+a wrong offset) reads `zeri`, so neither can be mistaken for a measurement. For
+a continuous trace every ~2s while driving, start with
+`$env:SDC_CHANNEL_LOG=1; npm run dev`. Expected magnitudes: G 1-2, pressures
+20-30 PSI, suspension travel tens of mm, slip |0.02-0.15| — a slip ratio pinned
+at 0.000 means `TireSpeed` is not the circumferential speed assumed here, and G
+values swapped between `gLat` and `gLon` mean the axis mapping is wrong.
 
 ## `r3e/`
 
@@ -34,7 +71,7 @@ Loaded when working under `src/main/`. Architecture-wide decisions live in the r
 - **rule-engine.ts** — AlertDispatcher (priority queue, P1>P2>P3, dedup per zone/type/lap, 4s silence window) + RuleEngine (frame-level P1/P2, post-lap P3)
 - **session-coach.ts** — On-demand session analysis engine (`createSessionCoachEngine`). Exposes three entry points sharing one loader (`loadSessionBundle`: session + laps + setups + prior analyses + `leaderboardMode`/`fixedSetup`, which it derives from the session row — it is the **single source** for those two flags, no caller passes them in): `analyzeSession` (Level 1 — non-streaming `messages.create`, `max_tokens: 2000`, writes `synthesis` + `summary`), `expandAnalysis` (Level 2 — non-streaming `messages.create` too, `max_tokens: 32000`, `UPDATE … SET detail`, optional `modelOverride` = `anthropicModelDetail`), and `commentAnalysis`. Neither level streams: both fire `onStart({ sessionId, version })` once (→ `session:analysisStart`) so the renderer can hold a spinner, then deliver the whole text via `onDone`. Multiple analyses per session (incremental version counter). Extracts the `<sintesi-vocale>` block (max 3 sentences) into `summary` for TTS and strips it from the rendered text.
 - **prompt-builder.ts** — Builds the Claude prompts from session data + laps + setups + deviations + corner names + the precomputed stats block. Exports `buildSynthesisPrompt` / `SYNTHESIS_SYSTEM_PROMPT` (Level 1 — named after the `synthesis` column, deliberately **not** "summary", which in this codebase means only the `<sintesi-vocale>` TTS extract), `buildSessionPrompt` / `SESSION_SYSTEM_PROMPT` (Level 2), `buildCommentPrompt` / `COMMENT_SYSTEM_PROMPT`, plus `buildStatsBlock` and `getSignificantZones`
-- **session-stats.ts** — Computes the authoritative numeric facts in TypeScript (lap deltas, convergence, alert counts, aid durations, plus the per-corner steer/G/tyre-pressure/slip/suspension channels) and injects them as a "## Dati Calcolati" block. The system prompts instruct Claude to **cite** these numbers, never recompute them — the only figure it may estimate is the seconds/lap impact
+- **session-stats.ts** — Computes the authoritative numeric facts in TypeScript (lap deltas, convergence, alert counts, aid durations, plus the per-corner steer/G/tyre-pressure/tyre-temperature/slip/suspension channels, each averaged over the laps that actually carried it) and injects them as a "## Dati Calcolati" block. The system prompts instruct Claude to **cite** these numbers, never recompute them — the only figure it may estimate is the seconds/lap impact
 - **spoken-name.ts** — `normalizeSpokenName(text)`: la trascrizione del nome di un setup dettato a voce (R3E e AMS2 lo chiedono, ACE prende il nome del file) → il nome vero. Lettere compitate in italiano o inglese ("vu uno", "em fourteen") → caratteri minuscoli, numeri a parole → cifre, nomi di simboli ("trattino basso", "underscore", "spazio") → simboli. I nomi di lettera che sono anche parole correnti ("di", "ci", "e", "you") convertono **solo** dentro una sequenza compitata, altrimenti "setup di gara" diventerebbe "setup d gara": la propagazione da un pezzo non ambiguo è transitiva. Dependency-free come `voice-intent.ts`, asserito da `spoken-name.selfcheck.ts`
 - **track-map-builder.ts** — Derives a 2D SVG path of the circuit from a lap's world-space frames (wx/wz). Down-samples to ~100ms intervals, filters outliers, returns `TrackMapGeometry` (svgPath + bounds). Called after lap completion; result persisted to `track_maps` table
 - **voice-coach.ts** — Handles free-form voice queries; streams Claude response in Italian (max 3-4 sentences, radio tone). Does **no DB access**: `main.ts` owns the session identity and pushes laps, setups and analyses in via `updateContext` before each query (resolved by id+game, so a reopened session gets its own data). Renders the most recent analysis in full (`synthesis` + `detail` + driver comments), older ones as their `summary`
