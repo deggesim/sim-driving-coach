@@ -66,7 +66,7 @@ const countTransitions = (
   return count;
 };
 
-const aggregateZones = (
+export const aggregateZones = (
   frames: CompactFrame[],
   layoutLength: number,
 ): ZoneData[] => {
@@ -128,27 +128,39 @@ const aggregateZones = (
           steerDuringBrakeValues.length
         : 0;
 
-    // Extended fields (ACE only)
+    // Extended fields, decided per channel. One hasExtended flag keyed off `rpm`
+    // used to switch the whole block on, so AMS2 - which has rpm but not every
+    // per-wheel channel - published [0,0,0,0] quartets that read downstream as
+    // measured zeros.
     const avgArr = (vals: number[]): number =>
       vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
 
-    const rpmValues = zoneFrames
-      .map((f) => f.rpm)
-      .filter((v): v is number => v !== undefined);
-    const gLatValues = zoneFrames
-      .map((f) => f.gLat)
-      .filter((v): v is number => v !== undefined);
-    const gLonValues = zoneFrames
-      .map((f) => f.gLon)
-      .filter((v): v is number => v !== undefined);
-    const hasExtended = rpmValues.length > 0;
+    const scalars = (key: "rpm" | "gLat" | "gLon"): number[] =>
+      zoneFrames.map((f) => f[key]).filter((v): v is number => v !== undefined);
 
-    const avgByWheel = (idx: number, key: "tp" | "sr" | "sus"): number => {
-      const vals = zoneFrames
-        .map((f) => f[key]?.[idx])
-        .filter((v): v is number => v !== undefined);
-      return avgArr(vals);
+    const maxAbs = (vals: number[]): number | undefined =>
+      vals.length > 0 ? Math.max(...vals.map(Math.abs)) : undefined;
+
+    const quartet = (
+      key: "tp" | "sr" | "sus" | "tt",
+    ): [number, number, number, number] | undefined => {
+      const byWheel = [0, 1, 2, 3].map((i) =>
+        zoneFrames
+          .map((f) => f[key]?.[i])
+          .filter((v): v is number => v !== undefined),
+      );
+      return byWheel[0].length > 0
+        ? (byWheel.map(avgArr) as [number, number, number, number])
+        : undefined;
     };
+
+    const rpmValues = scalars("rpm");
+    const maxGLat = maxAbs(scalars("gLat"));
+    const maxGLon = maxAbs(scalars("gLon"));
+    const avgTyrePressure = quartet("tp");
+    const avgSlipRatio = quartet("sr");
+    const avgSuspTravel = quartet("sus");
+    const avgTyreTempC = quartet("tt");
 
     // Aid presets: constant per lap, stored once on zone 0 for use in prompt builder
     const aidPreset =
@@ -193,35 +205,13 @@ const aggregateZones = (
       throttlePickupDist,
       ...aidPreset,
       ...(avgBrakeTempC !== undefined && { avgBrakeTempC }),
-      ...(hasExtended && {
-        avgRpm: avgArr(rpmValues),
-        maxGLat:
-          gLatValues.length > 0
-            ? Math.max(...gLatValues.map(Math.abs))
-            : undefined,
-        maxGLon:
-          gLonValues.length > 0
-            ? Math.max(...gLonValues.map(Math.abs))
-            : undefined,
-        avgTyrePressure: [
-          avgByWheel(0, "tp"),
-          avgByWheel(1, "tp"),
-          avgByWheel(2, "tp"),
-          avgByWheel(3, "tp"),
-        ] as [number, number, number, number],
-        avgSlipRatio: [
-          avgByWheel(0, "sr"),
-          avgByWheel(1, "sr"),
-          avgByWheel(2, "sr"),
-          avgByWheel(3, "sr"),
-        ] as [number, number, number, number],
-        avgSuspTravel: [
-          avgByWheel(0, "sus"),
-          avgByWheel(1, "sus"),
-          avgByWheel(2, "sus"),
-          avgByWheel(3, "sus"),
-        ] as [number, number, number, number],
-      }),
+      ...(rpmValues.length > 0 && { avgRpm: avgArr(rpmValues) }),
+      ...(maxGLat !== undefined && { maxGLat }),
+      ...(maxGLon !== undefined && { maxGLon }),
+      ...(avgTyrePressure && { avgTyrePressure }),
+      ...(avgSlipRatio && { avgSlipRatio }),
+      ...(avgSuspTravel && { avgSuspTravel }),
+      ...(avgTyreTempC && { avgTyreTempC }),
     });
   }
 

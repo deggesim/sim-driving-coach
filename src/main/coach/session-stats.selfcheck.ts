@@ -132,6 +132,7 @@ const ext = computeSessionStats({
         avgTyrePressure: [27, 27, 26, 26],
         avgSlipRatio: [0.02, 0.02, 0.1, 0.1],
         avgSuspTravel: [0.03, 0.03, 0.04, 0.04],
+        avgTyreTempC: [88, 88, 84, 84],
       }),
     ]),
     mkLap(2, 100, [
@@ -140,6 +141,7 @@ const ext = computeSessionStats({
         avgTyrePressure: [29, 29, 28, 28],
         avgSlipRatio: [0.04, 0.04, 0.2, 0.2],
         avgSuspTravel: [0.05, 0.05, 0.06, 0.06],
+        avgTyreTempC: [90, 90, 86, 86],
       }),
     ]),
   ],
@@ -168,9 +170,11 @@ assert.ok(Math.abs(c8.steerDuringBrake - 0.1) < 1e-9, "steer averaged");
 closeQuartet(c8.avgTyrePressure, [28, 28, 27, 27], "pressure averaged");
 closeQuartet(c8.avgSlipRatio, [0.03, 0.03, 0.15, 0.15], "slip averaged");
 closeQuartet(c8.avgSuspTravel, [0.04, 0.04, 0.05, 0.05], "travel averaged");
+closeQuartet(c8.avgTyreTempC, [89, 89, 85, 85], "tyre temps averaged");
 
-// AMS2 carries rpm - which is what switches lap-recorder's extended block on -
-// but no per-wheel channels, so they arrive as zeros and must not surface.
+// Defense in depth: lap-recorder now omits a channel it has no frames for, but
+// a genuinely all-zero quartet (stationary car, or an older lap recorded before
+// that fix) must still not surface as a measurement.
 const zeros = computeSessionStats({
   laps: [
     mkLap(1, 100, [
@@ -194,5 +198,35 @@ assert.equal(
 );
 assert.equal(zeros.criticalCorners[0].avgSlipRatio, null);
 assert.equal(zeros.criticalCorners[0].avgSuspTravel, null);
+assert.equal(zeros.criticalCorners[0].avgTyreTempC, null);
+
+// Per-channel lap counts: a channel only one of the two laps carried is averaged
+// over that one lap, not halved by the lap that lacked it. AMS2 supplies
+// pressures without slip ratio, so a shared counter would skew both.
+const partial = computeSessionStats({
+  laps: [
+    mkLap(1, 100, [
+      zone(8, {
+        avgTyrePressure: [27, 27, 26, 26],
+        avgSlipRatio: [0.1, 0.1, 0.2, 0.2],
+      }),
+    ]),
+    mkLap(2, 100, [zone(8, { avgTyrePressure: [29, 29, 28, 28] })]),
+  ],
+  bestLap: 100,
+  setups: [],
+  alerts: [alert(8, "LATE_BRAKE")],
+  cornerNames: new Map(),
+});
+closeQuartet(
+  partial.criticalCorners[0].avgTyrePressure,
+  [28, 28, 27, 27],
+  "pressure over both laps",
+);
+closeQuartet(
+  partial.criticalCorners[0].avgSlipRatio,
+  [0.1, 0.1, 0.2, 0.2],
+  "slip over the single lap that carried it",
+);
 
 console.log("session-stats.selfcheck OK");

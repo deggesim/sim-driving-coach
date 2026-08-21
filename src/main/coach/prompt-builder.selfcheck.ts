@@ -230,6 +230,7 @@ const aceLap = buildSynthesisPrompt({
         avgTyrePressure: [27.4, 27.6, 26.8, 26.9],
         avgSlipRatio: [0.02, 0.03, 0.12, 0.11],
         avgSuspTravel: [0.031, 0.032, 0.048, 0.047],
+        avgTyreTempC: [88, 90, 85, 84],
       }),
     ]),
   ],
@@ -241,6 +242,7 @@ assert.ok(aceLap.includes("G lon 1.40g"));
 assert.ok(aceLap.includes("press. gomme 27.4/27.6/26.8/26.9 PSI"));
 assert.ok(aceLap.includes("slip ratio 0.020/0.030/0.120/0.110"));
 assert.ok(aceLap.includes("corsa sosp. 31.0/32.0/48.0/47.0 mm"));
+assert.ok(aceLap.includes("temp. gomme 88/90/85/84 °C"));
 
 // AMS2 has rpm, which is what switches lap-recorder's extended block on, but no
 // per-wheel channels: they arrive as [0,0,0,0] and must be omitted rather than
@@ -254,6 +256,7 @@ const ams2Lap = buildSynthesisPrompt({
         avgTyrePressure: [0, 0, 0, 0],
         avgSlipRatio: [0, 0, 0, 0],
         avgSuspTravel: [0, 0, 0, 0],
+        avgTyreTempC: [0, 0, 0, 0],
       }),
     ]),
   ],
@@ -265,6 +268,7 @@ assert.ok(
 );
 assert.ok(!ams2Lap.includes("slip ratio"));
 assert.ok(!ams2Lap.includes("corsa sosp."));
+assert.ok(!ams2Lap.includes("temp. gomme"));
 
 // Both levels must ask for varied levers and know what the channels mean: the
 // point of shipping them is that a proposal can be anchored to something else.
@@ -272,6 +276,7 @@ assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("NON concentrare tutte le azioni"));
 assert.ok(SESSION_SYSTEM_PROMPT.includes("NON limitarti ai freni"));
 for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT]) {
   assert.ok(p.includes("slip ratio"), "channel units documented");
+  assert.ok(p.includes("temp. gomme"), "tyre temp units documented");
   assert.ok(p.includes("ANT-SX/ANT-DX/POST-SX/POST-DX"), "wheel order");
 }
 
@@ -302,6 +307,7 @@ const statsIn = {
           number,
           number,
         ],
+        avgTyreTempC: [88, 90, 85, 84] as [number, number, number, number],
       }),
     ]),
   ],
@@ -341,5 +347,6 @@ assert.ok(calc.includes("temp. freni 612/604/n.d./n.d. °C"), "no raw -1");
 assert.ok(calc.includes("press. gomme 27.4/27.6/26.8/26.9 PSI"));
 assert.ok(calc.includes("slip ratio 0.020/0.030/0.120/0.110"));
 assert.ok(calc.includes("corsa sosp. 31.0/32.0/48.0/47.0 mm"));
+assert.ok(calc.includes("temp. gomme 88/90/85/84 °C"));
 
 console.log("prompt-builder.selfcheck OK");

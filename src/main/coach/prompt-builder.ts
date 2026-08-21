@@ -80,8 +80,8 @@ Copri ogni area che i dati sostengono (freni, pressioni e temperature gomme, sos
 ## Regole Generali
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C). Se valore = -1, ignora.
-- Pressioni gomme: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI).
-- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "slip ratio" adimensionale (oltre ~0.10 = pattinamento), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono sempre in PSI (vedi sotto).
+- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
@@ -102,7 +102,7 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
 
 NON concentrare tutte le azioni sulla stessa area: valuta ogni leva che i dati supportano (freni, pressioni gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio) oltre alla tecnica di guida. Proponi una leva SOLO se un dato del contesto la sostiene, e cita quel dato.
-Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "slip ratio" adimensionale (oltre ~0.10 = pattinamento), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
 <sintesi-vocale>
@@ -196,10 +196,13 @@ const summarizeLapZones = (
     lines.push(`  - ${label} → ${bits.join(", ")}`);
 
     // Setup-relevant per-wheel channels on their own line: four values per field
-    // would drown the driving metrics above. Absent for R3E and AMS2.
+    // would drown the driving metrics above. Which of them arrive depends on the
+    // game - see the coverage table in src/main/CLAUDE.md.
     const extra: string[] = [];
     const tp = wheelQuartet(z.avgTyrePressure, 1, 1);
     if (tp) extra.push(`press. gomme ${tp} PSI`);
+    const tt = wheelQuartet(z.avgTyreTempC, 1, 0);
+    if (tt) extra.push(`temp. gomme ${tt} °C`);
     const sr = wheelQuartet(z.avgSlipRatio, 1, 3);
     if (sr) extra.push(`slip ratio ${sr}`);
     const sus = wheelQuartet(z.avgSuspTravel, 1000, 1);
@@ -277,6 +280,8 @@ export const buildStatsBlock = (stats: SessionStats): string => {
         );
       const tp = wheelQuartet(c.avgTyrePressure, 1, 1);
       if (tp) perWheel.push(`press. gomme ${tp} PSI`);
+      const tt = wheelQuartet(c.avgTyreTempC, 1, 0);
+      if (tt) perWheel.push(`temp. gomme ${tt} °C`);
       const sr = wheelQuartet(c.avgSlipRatio, 1, 3);
       if (sr) perWheel.push(`slip ratio ${sr}`);
       const sus = wheelQuartet(c.avgSuspTravel, 1000, 1);

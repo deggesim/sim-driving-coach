@@ -21,8 +21,11 @@ import {
   RECONNECT_INTERVAL_MS,
 } from "../../shared/alert-types.js";
 import type { CompactFrame, GameFrame } from "../../shared/types.js";
+import { logChannels } from "../channel-log.js";
 
 const _require = createRequire(import.meta.url);
+
+const G = 9.80665; // m/s^2 per g
 
 type Ams2ReaderOptions = { mock?: boolean };
 
@@ -279,6 +282,11 @@ export const createAms2Reader = (
       const carFlags = readUint32(buf, OFF.carFlags);
       const antiLock = buf.readUInt8(OFF.antiLockActive) !== 0;
       const brakeTemps = readFloatArray(buf, OFF.brakeTempCelsius, 4);
+      const tyreTemps = readFloatArray(buf, OFF.tyreTemp, 4);
+      const tyrePressures = readFloatArray(buf, OFF.airPressure, 4);
+      const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
+      // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
+      const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
 
       // ── Driver aids ──
       // ponytail: AMS2 exposes NO "TC cutting now" flag. Heuristic: TCS enabled +
@@ -333,10 +341,18 @@ export const createAms2Reader = (
         bt: [...brakeTemps],
         ts: Date.now(),
         rpm,
+        gLat: localAcc[0] / G,
+        gLon: localAcc[2] / G,
+        tp: [...tyrePressures],
+        sus: [...suspTravel],
+        tt: [...tyreTemps],
+        // No `sr`: AMS2 has no slip-ratio channel and mTyreRPS needs a tyre
+        // radius the SHM does not expose. Absent beats a floored zero.
         wx: wpos[0],
         wy: wpos[1],
         wz: wpos[2],
       });
+      logChannels("AMS2", lapFrames.at(-1));
 
       // ── Lap completion: mLapsCompleted increment ──
       if (prevLapsCompleted >= 0 && lapsCompleted > prevLapsCompleted) {
