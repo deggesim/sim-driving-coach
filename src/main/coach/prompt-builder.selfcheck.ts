@@ -23,6 +23,7 @@ import {
   type SessionPromptInput,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import { decodeAlertCodes, WHEEL_ORDER } from "../../shared/alert-types.js";
 
 const session: SessionRow = {
   id: 1,
@@ -277,7 +278,8 @@ assert.ok(SESSION_SYSTEM_PROMPT.includes("NON limitarti ai freni"));
 for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT]) {
   assert.ok(p.includes("slip ratio"), "channel units documented");
   assert.ok(p.includes("temp. gomme"), "tyre temp units documented");
-  assert.ok(p.includes("ANT-SX/ANT-DX/POST-SX/POST-DX"), "wheel order");
+  assert.ok(p.includes(WHEEL_ORDER), "wheel order");
+  assert.ok(!p.includes("ANT-SX"), "no raw wheel code in the prompt");
 }
 
 // The "Dati Calcolati" block carries the same channels. It is the block both
@@ -348,5 +350,18 @@ assert.ok(calc.includes("press. gomme 27.4/27.6/26.8/26.9 PSI"));
 assert.ok(calc.includes("slip ratio 0.020/0.030/0.120/0.110"));
 assert.ok(calc.includes("corsa sosp. 31.0/32.0/48.0/47.0 mm"));
 assert.ok(calc.includes("temp. gomme 88/90/85/84 °C"));
+
+// Alert codes never reach the prompt: the analysis text is rendered, exported to
+// PDF and read aloud, and "LATE_BRAKE" is unpronounceable in an Italian sentence.
+assert.ok(calc.includes("1 alert (frenata tardiva×1)"), "alert type decoded");
+assert.ok(!calc.includes("LATE_BRAKE"), "no raw alert code in the prompt");
+
+// Safety net on the model output: prior analyses saved before this change are
+// injected verbatim into the next prompt and can be copied forward.
+assert.equal(
+  decodeAlertCodes("2 (LATE_BRAKE) su ANT-SX, TC_ANOMALY a POST-DX"),
+  "2 (frenata tardiva) su anteriore sinistra, anomalia controllo di trazione a posteriore destra",
+);
+assert.equal(decodeAlertCodes("nessun codice"), "nessun codice");
 
 console.log("prompt-builder.selfcheck OK");

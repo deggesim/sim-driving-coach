@@ -24,9 +24,9 @@ Sessione in miglioramento: dal giro 1 (1:58.456, non valido) al giro 2 (1:55.234
 ### Problemi identificati
 | Rank | Problema | Localizzazione | Alert | Impatto stimato |
 |---|---|---|---|---|
-| 1 | Staccata ritardata | @380m Einfahrt Mercedes | 2 (LATE_BRAKE) | -0.10 / -0.15 s/giro |
-| 2 | Gas ritardato in uscita | @730m Rettifilo est | 1 (SLOW_THROTTLE) | -0.08 s/giro |
-| 3 | Trail braking eccessivo | @1080m Ford Kurve | 1 (TRAIL_BRAKING) | -0.05 s/giro |
+| 1 | Staccata ritardata | @380m Einfahrt Mercedes | 2 (frenata tardiva) | -0.10 / -0.15 s/giro |
+| 2 | Gas ritardato in uscita | @730m Rettifilo est | 1 (accelerazione tardiva) | -0.08 s/giro |
+| 3 | Trail braking eccessivo | @1080m Ford Kurve | 1 (trail braking eccessivo) | -0.05 s/giro |
 
 **Pattern sistemico:** il miglioramento arriva dall'apprendimento sulle staccate, non dalla gestione termica — le temperature freno restano nella finestra 413-688°C su tutti i giri validi.`,
   summary:
@@ -54,9 +54,9 @@ Progressione netta: dal giro 1 (1:49.120, non valido) al giro 2 (1:47.456) il �
 ### Problemi identificati
 | Rank | Problema | Localizzazione | Alert | Impatto stimato |
 |---|---|---|---|---|
-| 1 | Coasting tra freno e gas | @530m Seconda variante | 3 (COASTING) | -0.11 s/giro |
-| 2 | Sovrapposizione freno/gas | @180m Prima variante | 2 (BRAKE_THROTTLE_OVERLAP) | -0.09 s/giro |
-| 3 | Staccata ritardata | @1330m Lesmo 2 | 1 (LATE_BRAKE) | -0.07 s/giro |
+| 1 | Coasting tra freno e gas | @530m Seconda variante | 3 (coasting) | -0.11 s/giro |
+| 2 | Sovrapposizione freno/gas | @180m Prima variante | 2 (sovrapposizione freno gas) | -0.09 s/giro |
+| 3 | Staccata ritardata | @1330m Lesmo 2 | 1 (frenata tardiva) | -0.07 s/giro |
 
 **Pattern sistemico:** entrambi i problemi principali sono di transizione tra i pedali, non di traiettoria — la velocità di apice è in linea col riferimento in tutte le zone tranne Lesmo 2 (-5 km/h in uscita).`,
   summary:

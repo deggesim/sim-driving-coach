@@ -17,6 +17,7 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
   parseAnalysisComments,
@@ -285,9 +286,11 @@ export const createSessionCoachEngine = (
           system: SYNTHESIS_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
-        fullText = msg.content
-          .map((b) => (b.type === "text" ? b.text : ""))
-          .join("");
+        // Decoded here, before stripVoiceTag/extractVoiceSummary: the codes must
+        // not reach the saved text nor the summary the TTS reads.
+        fullText = decodeAlertCodes(
+          msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
+        );
 
         // Surface truncation instead of silently saving a partial analysis.
         // A truncated Level 1 can also lose the <sintesi-vocale> block, which
@@ -425,9 +428,11 @@ export const createSessionCoachEngine = (
             system: SESSION_SYSTEM_PROMPT,
             messages: [{ role: "user", content: prompt }],
           });
-        fullText = finalMsg.content
-          .map((b) => (b.type === "text" ? b.text : ""))
-          .join("");
+        fullText = decodeAlertCodes(
+          finalMsg.content
+            .map((b) => (b.type === "text" ? b.text : ""))
+            .join(""),
+        );
 
         // The real cost of a deep-dive, which is the only reliable way to know
         // how close `out` runs to the 32000 cap and whether the prompt is
@@ -514,9 +519,9 @@ export const createSessionCoachEngine = (
           system: COMMENT_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
-        responseText = msg.content
-          .map((b) => (b.type === "text" ? b.text : ""))
-          .join("");
+        responseText = decodeAlertCodes(
+          msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
+        );
       } catch (err) {
         console.error("[SessionCoach] comment API error:", err);
         if (isCreditOrQuotaError(err)) {

@@ -2,6 +2,50 @@
  * Alert and telemetry tuning constants.
  */
 
+import type { AlertType } from "./types.js";
+
+/**
+ * AlertType code -> Italian label. The analysis text is rendered, exported to PDF
+ * and read aloud by the TTS: a raw code must never reach it, neither through the
+ * prompt nor through the model's output.
+ */
+export const ALERT_LABELS: Record<AlertType, string> = {
+  BRAKE_TEMP_CRITICAL: "temperatura critica dei freni",
+  TC_ANOMALY: "anomalia controllo di trazione",
+  ABS_ANOMALY: "anomalia abs",
+  LATE_BRAKE: "frenata tardiva",
+  SLOW_THROTTLE: "accelerazione tardiva",
+  TRAIL_BRAKING: "trail braking eccessivo",
+  COASTING: "coasting",
+  BRAKE_THROTTLE_OVERLAP: "sovrapposizione freno gas",
+};
+
+/**
+ * Wheel position codes used by the per-wheel prompt lines, same rule.
+ * Feminine ("ruota") also in the brake temp line: it is a position label, and a
+ * second masculine map just for the brakes is not worth its weight.
+ */
+export const WHEEL_LABELS = {
+  "ANT-SX": "anteriore sinistra",
+  "ANT-DX": "anteriore destra",
+  "POST-SX": "posteriore sinistra",
+  "POST-DX": "posteriore destra",
+} as const;
+
+/** Wheel order legend, one source for every prompt line printing a quartet. */
+export const WHEEL_ORDER = Object.values(WHEEL_LABELS).join("/");
+
+const DECODE: Record<string, string> = { ...ALERT_LABELS, ...WHEEL_LABELS };
+const CODE_RE = new RegExp(`\\b(?:${Object.keys(DECODE).join("|")})\\b`, "g");
+
+/**
+ * Safety net on the model output. The prompts no longer carry codes, but prior
+ * analyses are injected verbatim into the next prompt: a row saved before this
+ * change can still be copied forward.
+ */
+export const decodeAlertCodes = (text: string): string =>
+  text.replace(CODE_RE, (m) => DECODE[m] ?? m);
+
 /** Brake temp ideal window (Celsius) */
 export const BRAKE_TEMP = {
   ideal: 550,
