@@ -26,7 +26,7 @@ missing channel never reaches a prompt as a zero.
 | --- | --- | --- | --- |
 | `rpm` | `EngineRps` (rad/s → RPM) | `rpms` | `mRpm` |
 | `gLat` / `gLon` (g) | `Player_LocalGforce_X` / `_Z` (already g) | `accG[0]` / `accG[2]` | `mLocalAcceleration[0]` / `[2]` ÷ 9.80665 |
-| `tp` (PSI) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` |
+| `tp` (PSI) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
 | `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — none: `mTyreSlipSpeed` is deprecated and `mTyreRPS` needs a tyre radius the SHM does not expose |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |

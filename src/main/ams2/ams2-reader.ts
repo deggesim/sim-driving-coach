@@ -283,7 +283,13 @@ export const createAms2Reader = (
       const antiLock = buf.readUInt8(OFF.antiLockActive) !== 0;
       const brakeTemps = readFloatArray(buf, OFF.brakeTempCelsius, 4);
       const tyreTemps = readFloatArray(buf, OFF.tyreTemp, 4);
-      const tyrePressures = readFloatArray(buf, OFF.airPressure, 4);
+      // mAirPressure is documented as PSI in SharedMemory.h, but the raw values
+      // match the setup's cold pressure read as kPa (e.g. a 1.75 bar/175 kPa
+      // setup reads ~180 here at the start of a session), not as PSI. Converted
+      // so the `tp` channel carries one unit for all three games, like R3E.
+      const tyrePressures = readFloatArray(buf, OFF.airPressure, 4).map(
+        (v) => v * 0.145038,
+      );
       const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
       // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
       const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
