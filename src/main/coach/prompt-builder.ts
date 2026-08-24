@@ -7,9 +7,15 @@
  * Also exposes getSignificantZones (zone filtering shared with the session prompt).
  */
 
-import { BRAKE_TEMP } from "../../shared/alert-types.js";
+import {
+  ALERT_LABELS,
+  BRAKE_TEMP,
+  WHEEL_LABELS,
+  WHEEL_ORDER,
+} from "../../shared/alert-types.js";
 import type {
   Alert,
+  AlertType,
   AnalysisComment,
   Deviation,
   ZoneData,
@@ -81,7 +87,7 @@ Copri ogni area che i dati sostengono (freni, pressioni e temperature gomme, sos
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C). Se valore = -1, ignora.
 - Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono sempre in PSI (vedi sotto).
-- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
@@ -102,7 +108,7 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
 
 NON concentrare tutte le azioni sulla stessa area: valuta ogni leva che i dati supportano (freni, pressioni gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio) oltre alla tecnica di guida. Proponi una leva SOLO se un dato del contesto la sostiene, e cita quel dato.
-Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ANT-SX/ANT-DX/POST-SX/POST-DX. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
 <sintesi-vocale>
@@ -119,26 +125,25 @@ const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
       .flatMap((z) => (z.avgBrakeTempC ? [z.avgBrakeTempC[idx]] : []))
       .filter((v) => v !== UNAVAIL);
 
-  const fl = collect(0);
-  if (fl.length === 0) return null;
-  const fr = collect(1);
-  const rl = collect(2);
-  const rr = collect(3);
+  const perWheel = [collect(0), collect(1), collect(2), collect(3)];
+  if (perWheel[0].length === 0) return null;
 
   const avg = (arr: number[]) =>
     arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : UNAVAIL;
   const peak = (arr: number[]) => (arr.length > 0 ? Math.max(...arr) : UNAVAIL);
 
   const lines = [
-    `  Freni: ANT-SX ${avg(fl).toFixed(0)}°C (picco ${peak(fl).toFixed(0)}°C)` +
-      ` | ANT-DX ${avg(fr).toFixed(0)}°C (picco ${peak(fr).toFixed(0)}°C)` +
-      ` | POST-SX ${avg(rl).toFixed(0)}°C (picco ${peak(rl).toFixed(0)}°C)` +
-      ` | POST-DX ${avg(rr).toFixed(0)}°C (picco ${peak(rr).toFixed(0)}°C)`,
+    "  Freni: " +
+      Object.values(WHEEL_LABELS)
+        .map(
+          (label, i) =>
+            `${label} ${avg(perWheel[i]).toFixed(0)}°C` +
+            ` (picco ${peak(perWheel[i]).toFixed(0)}°C)`,
+        )
+        .join(" | "),
   ];
 
-  const allPeaks = [peak(fl), peak(fr), peak(rl), peak(rr)].filter(
-    (v) => v !== UNAVAIL,
-  );
+  const allPeaks = perWheel.map(peak).filter((v) => v !== UNAVAIL);
   const overheating = allPeaks.filter((t) => t > BRAKE_TEMP.max);
   if (overheating.length > 0) {
     lines.push(
@@ -208,7 +213,7 @@ const summarizeLapZones = (
     const sus = wheelQuartet(z.avgSuspTravel, 1000, 1);
     if (sus) extra.push(`corsa sosp. ${sus} mm`);
     if (extra.length > 0)
-      lines.push(`    (ANT-SX/ANT-DX/POST-SX/POST-DX) ${extra.join(" | ")}`);
+      lines.push(`    (${WHEEL_ORDER}) ${extra.join(" | ")}`);
   }
   return lines;
 };
@@ -251,7 +256,7 @@ export const buildStatsBlock = (stats: SessionStats): string => {
         ? `${c.cornerName} (@${c.dist}m)`
         : `@${c.dist}m`;
       const types = Object.entries(c.alertsByType)
-        .map(([t, n]) => `${t}×${n}`)
+        .map(([t, n]) => `${ALERT_LABELS[t as AlertType] ?? t}×${n}`)
         .join(", ");
       const bits = [
         `${c.alertCount} alert (${types})`,
@@ -287,9 +292,7 @@ export const buildStatsBlock = (stats: SessionStats): string => {
       const sus = wheelQuartet(c.avgSuspTravel, 1000, 1);
       if (sus) perWheel.push(`corsa sosp. ${sus} mm`);
       if (perWheel.length > 0)
-        lines.push(
-          `    (ANT-SX/ANT-DX/POST-SX/POST-DX) ${perWheel.join(" | ")}`,
-        );
+        lines.push(`    (${WHEEL_ORDER}) ${perWheel.join(" | ")}`);
     }
   }
   lines.push("");

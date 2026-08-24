@@ -146,7 +146,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
   .params td:first-child, .params td:nth-child(2) { width: 25%; }
 </style></head><body>
 
-<h1>Sessione ${session.id} - ${escapeHtml(session.car_name ?? session.car)}</h1>
+<h1>${gameLabel.full} - ${escapeHtml(session.car_name ?? session.car)}</h1>
 <div class="meta">
   <strong>Circuito:</strong> ${escapeHtml(session.track_name ?? session.track)} (${escapeHtml(session.layout_name ?? session.layout)}) &bull;
   <strong>Inizio:</strong> ${startedAt} &bull;
