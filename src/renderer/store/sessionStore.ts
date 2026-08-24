@@ -12,6 +12,7 @@ import type {
   SessionDetail,
   SessionRow,
   SessionSetupRow,
+  SetupData,
 } from "../../shared/types";
 
 export type ViewMode = "live" | "historical";
@@ -48,6 +49,11 @@ type State = {
   // `id` può appartenere a un'altra sessione (lo storico setup è per
   // auto/circuito): in quel caso aggiorna solo il DB.
   renameSetup: (id: number, game: GameSource, name: string) => Promise<void>;
+  updateSetup: (
+    id: number,
+    game: GameSource,
+    setup: SetupData,
+  ) => Promise<{ ok: true } | { ok: false; reason: string }>;
   assignLapSetup: (lapId: number, setupId: number | null) => Promise<void>;
   setActiveSetup: (id: number | null) => void;
   deleteLap: (lapId: number) => Promise<void>;
@@ -225,6 +231,20 @@ export const useSessionStore = create<State>((set, get) => ({
         row.id === id ? { ...row, setup: { ...row.setup, name } } : row,
       ),
     });
+  },
+
+  updateSetup: async (id, game, setup) => {
+    const res = await window.electronAPI.sessionUpdateSetup({
+      id,
+      game,
+      setup,
+    });
+    if (res.ok) {
+      set({
+        setups: get().setups.map((row) => (row.id === id ? res.row : row)),
+      });
+    }
+    return res;
   },
 
   assignLapSetup: async (lapId, setupId) => {

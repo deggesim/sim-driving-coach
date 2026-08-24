@@ -1,8 +1,11 @@
 /**
- * SetupEditorModal — crea un nuovo setup partendo da uno esistente, modificando
- * i valori a mano. I valori di SetupParam sono stringhe libere ("24.5 kPa",
- * "58/42%", "Soft"): l'editor non parsa né valida nulla, quello che scrivi è
- * quello che finisce nel setup.
+ * SetupEditorModal — modifica a mano i valori di un setup. I valori di
+ * SetupParam sono stringhe libere ("24.5 kPa", "58/42%", "Soft"): l'editor non
+ * parsa né valida nulla, quello che scrivi è quello che finisce nel setup.
+ *
+ * Due modalità: "duplicate" (default) crea un nuovo setup partendo da uno
+ * esistente; "edit" aggiorna in-place il setup di partenza (stesso id, stesso
+ * setup_id sulle lap già collegate).
  */
 
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
@@ -13,8 +16,12 @@ import type { SetupData, SetupParam } from "../../shared/types";
 
 type Props = {
   base: SetupData;
-  /** Nomi già in uso nello storico: il salvataggio li rifiuta. */
+  /** Nomi già in uso nello storico: il salvataggio li rifiuta. In modalità
+   *  "edit" il chiamante esclude il nome corrente del setup. */
   takenNames: string[];
+  /** "duplicate" (default): crea un nuovo setup. "edit": aggiorna quello di
+   *  partenza in-place. */
+  mode?: "duplicate" | "edit";
   onClose: () => void;
   onConfirm: (setup: SetupData) => void;
 };
@@ -22,10 +29,12 @@ type Props = {
 export const SetupEditorModal = ({
   base,
   takenNames,
+  mode = "duplicate",
   onClose,
   onConfirm,
 }: Props) => {
-  const [name, setName] = useState("");
+  const editing = mode === "edit";
+  const [name, setName] = useState(editing ? (base.name ?? "") : "");
   const duplicate = takenNames.some(
     (taken) => taken.trim().toLowerCase() === name.trim().toLowerCase(),
   );
@@ -58,9 +67,10 @@ export const SetupEditorModal = ({
       carFound: base.carFound,
       setupText: base.setupText,
       params,
-      // Il setup manuale non deve marcare come "già scansionati" gli screenshot
-      // del setup di origine.
-      screenshots: [],
+      // Duplicate: il setup manuale non deve marcare come "già scansionati"
+      // gli screenshot del setup di origine. Edit: sono lo stesso setup, gli
+      // screenshot restano quelli originali.
+      screenshots: editing ? base.screenshots : [],
     });
   };
 
@@ -68,7 +78,7 @@ export const SetupEditorModal = ({
     <Modal show onHide={onClose} size="xl" className="screenshot-picker-modal">
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
-          Crea setup da esistente
+          {editing ? "Modifica setup" : "Crea setup da esistente"}
           <span className="picker-subtitle">
             {" "}
             · {base.name ?? base.carFound}
@@ -136,7 +146,7 @@ export const SetupEditorModal = ({
           onClick={handleConfirm}
         >
           <FontAwesomeIcon icon={faCheck} className="me-1" />
-          Salva setup
+          {editing ? "Salva modifiche" : "Salva setup"}
         </Button>
       </Modal.Footer>
     </Modal>

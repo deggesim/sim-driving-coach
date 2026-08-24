@@ -1,6 +1,6 @@
 import { Button, Modal } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faCopy } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCopy, faPen } from "@fortawesome/free-solid-svg-icons";
 import type { GameSource, SessionSetupRow } from "../../shared/types";
 import AceSetupTabs from "./AceSetupTabs";
 import Ams2SetupTabs from "./Ams2SetupTabs";
@@ -14,6 +14,7 @@ export type SetupDetailModalProps = {
   onClose: () => void;
   onUse?: () => void;
   onDuplicate?: () => void;
+  onEdit?: () => void;
   /** Presente = il titolo diventa rinominabile. `takenNames` sono i nomi già
    *  in uso nello storico. */
   onRename?: (name: string) => void;
@@ -27,6 +28,7 @@ export const SetupDetailModal = ({
   onClose,
   onUse,
   onDuplicate,
+  onEdit,
   onRename,
   takenNames,
 }: SetupDetailModalProps) => {
@@ -72,8 +74,14 @@ export const SetupDetailModal = ({
           <p className="text-muted mb-0">Nessun parametro disponibile.</p>
         )}
       </Modal.Body>
-      {(onUse || onDuplicate) && (
+      {(onUse || onDuplicate || onEdit) && (
         <Modal.Footer>
+          {onEdit && (
+            <Button size="sm" variant="secondary" onClick={onEdit}>
+              <FontAwesomeIcon icon={faPen} className="me-1" />
+              Modifica setup
+            </Button>
+          )}
           {onDuplicate && (
             <Button size="sm" variant="secondary" onClick={onDuplicate}>
               <FontAwesomeIcon icon={faCopy} className="me-1" />

@@ -40,6 +40,7 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
     setEditorBase,
     setupById,
     handleSetupConfirm,
+    handleUpdateSetup,
     handleReuseSetup,
     handleLapReuseSetup,
   } = useSetupPicker({ showFlash, explicit: mode === "historical" });
@@ -233,6 +234,13 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           onDuplicateSetup={(setup, takenNames) =>
             setEditorBase({ setup, takenNames })
           }
+          onEditSetup={(row, takenNames) =>
+            setEditorBase({
+              setup: row.setup,
+              takenNames,
+              edit: { id: row.id, game: session.game },
+            })
+          }
         />
       )}
 
@@ -252,6 +260,13 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
           onDuplicateSetup={(setup, takenNames) =>
             setEditorBase({ setup, takenNames })
           }
+          onEditSetup={(row, takenNames) =>
+            setEditorBase({
+              setup: row.setup,
+              takenNames,
+              edit: { id: row.id, game: session.game },
+            })
+          }
           onJsonPicker={() => {
             setPendingLapIds(pickerLapIds);
             setPickerLapIds(null);
@@ -264,14 +279,17 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         <SetupEditorModal
           base={editorBase.setup}
           takenNames={editorBase.takenNames}
+          mode={editorBase.edit ? "edit" : "duplicate"}
           // Annulla: chiude solo l'editor, cosi' il modal sospeso sotto torna a
           // mostrare il dettaglio di partenza. Conferma: chiude anche quello.
           onClose={() => setEditorBase(null)}
           onConfirm={(setup) => {
+            const { edit } = editorBase;
             setEditorBase(null);
             setShowSetupSelection(false);
             setPickerLapIds(null);
-            void handleSetupConfirm(setup);
+            if (edit) void handleUpdateSetup(edit.id, edit.game, setup);
+            else void handleSetupConfirm(setup);
           }}
         />
       )}
