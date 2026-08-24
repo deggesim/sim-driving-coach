@@ -229,4 +229,60 @@ closeQuartet(
   "slip over the single lap that carried it",
 );
 
+// Ambient conditions: averaged across every zone of every lap, session-wide
+// (not per-corner - the value barely changes within a session).
+const conditions = computeSessionStats({
+  laps: [
+    mkLap(1, 100, [
+      zone(8, { avgAirTempC: 20, avgRoadTempC: 26 }),
+      zone(9, { avgAirTempC: 22 }),
+    ]),
+    mkLap(2, 100, [zone(8, { avgAirTempC: 24, avgRoadTempC: 30 })]),
+  ],
+  bestLap: 100,
+  setups: [],
+  alerts: [],
+  cornerNames: new Map(),
+});
+assert.ok(
+  Math.abs(conditions.avgAirTempC! - 22) < 1e-9,
+  "air temp averaged across all zones/laps",
+);
+assert.ok(
+  Math.abs(conditions.avgRoadTempC! - 28) < 1e-9,
+  "road temp averaged only over the zones that carried it",
+);
+assert.equal(flat.avgAirTempC, null, "no channel data ⇒ null, not 0");
+
+// Weather (AMS2 only): same session-wide averaging as temperature.
+const weather = computeSessionStats({
+  laps: [
+    mkLap(1, 100, [zone(8, { avgRainDensity: 0.2, avgWindSpeed: 4 })]),
+    mkLap(2, 100, [
+      zone(8, {
+        avgRainDensity: 0.4,
+        avgWindSpeed: 6,
+        avgCloudBrightness: 0.5,
+      }),
+    ]),
+  ],
+  bestLap: 100,
+  setups: [],
+  alerts: [],
+  cornerNames: new Map(),
+});
+assert.ok(
+  Math.abs(weather.avgRainDensity! - 0.3) < 1e-9,
+  "rain density averaged across zones/laps",
+);
+assert.ok(
+  Math.abs(weather.avgWindSpeed! - 5) < 1e-9,
+  "wind speed averaged across zones/laps",
+);
+assert.ok(
+  Math.abs(weather.avgCloudBrightness! - 0.5) < 1e-9,
+  "cloud brightness averaged only over the zone that carried it",
+);
+assert.equal(flat.avgRainDensity, null, "no weather data ⇒ null, not 0");
+
 console.log("session-stats.selfcheck OK");

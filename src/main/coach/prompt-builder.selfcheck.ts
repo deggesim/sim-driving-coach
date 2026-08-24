@@ -160,6 +160,29 @@ assert.ok(commentPrompt.includes("ARB post: 4 → 3"), "deep-dive must reach it"
 assert.ok(commentPrompt.includes("### Analisi approfondita"), "nested by 1");
 assert.ok(!/^## Analisi approfondita$/m.test(commentPrompt));
 
+// A driver comment can ask about a computed fact (e.g. temperature/weather)
+// that never made it into the rendered analysis text: the comment prompt must
+// carry the same "Dati Calcolati" block, or the model has no way to answer it.
+const commentWithStats = buildCommentPrompt({
+  analysisText: "## Analisi sintetica\nCorpo.",
+  priorComments: [],
+  comment: "Come sono le temperature ambientale e del tracciato?",
+  stats: computeSessionStats({
+    laps: [],
+    bestLap: null,
+    setups: [],
+    cornerNames: new Map(),
+  }),
+});
+assert.ok(
+  commentWithStats.includes("## Dati Calcolati"),
+  "stats block reaches the comment prompt when provided",
+);
+assert.ok(
+  !commentPrompt.includes("## Dati Calcolati"),
+  "omitted when no stats given",
+);
+
 // Heading hierarchy: "Analisi sintetica" and "Analisi approfondita" are the ONLY
 // root "##" sections, everything else nests under them. The UI and the PDF style
 // h2 differently from h3+, and nestHeadings shifts by a fixed amount, so a prompt
@@ -310,6 +333,11 @@ const statsIn = {
           number,
         ],
         avgTyreTempC: [88, 90, 85, 84] as [number, number, number, number],
+        avgAirTempC: 22,
+        avgRoadTempC: 28,
+        avgRainDensity: 0.3,
+        avgWindSpeed: 5.2,
+        avgCloudBrightness: 0.6,
       }),
     ]),
   ],
@@ -350,6 +378,12 @@ assert.ok(calc.includes("press. gomme 27.4/27.6/26.8/26.9 PSI"));
 assert.ok(calc.includes("slip ratio 0.020/0.030/0.120/0.110"));
 assert.ok(calc.includes("corsa sosp. 31.0/32.0/48.0/47.0 mm"));
 assert.ok(calc.includes("temp. gomme 88/90/85/84 °C"));
+assert.ok(
+  calc.includes(
+    "Condizioni: aria 22°C, asfalto 28°C, pioggia 30%, vento 5.2 m/s, nuvolosità 60%",
+  ),
+  "ambient conditions in the authoritative block",
+);
 
 // Alert codes never reach the prompt: the analysis text is rendered, exported to
 // PDF and read aloud, and "LATE_BRAKE" is unpronounceable in an Italian sentence.

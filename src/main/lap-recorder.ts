@@ -135,7 +135,9 @@ export const aggregateZones = (
     const avgArr = (vals: number[]): number =>
       vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
 
-    const scalars = (key: "rpm" | "gLat" | "gLon"): number[] =>
+    const scalars = (
+      key: "rpm" | "gLat" | "gLon" | "at" | "rt" | "rain" | "wind" | "cloud",
+    ): number[] =>
       zoneFrames.map((f) => f[key]).filter((v): v is number => v !== undefined);
 
     const maxAbs = (vals: number[]): number | undefined =>
@@ -157,6 +159,11 @@ export const aggregateZones = (
     const rpmValues = scalars("rpm");
     const maxGLat = maxAbs(scalars("gLat"));
     const maxGLon = maxAbs(scalars("gLon"));
+    const airTempValues = scalars("at");
+    const roadTempValues = scalars("rt");
+    const rainValues = scalars("rain");
+    const windValues = scalars("wind");
+    const cloudValues = scalars("cloud");
     const avgTyrePressure = quartet("tp");
     const avgSlipRatio = quartet("sr");
     const avgSuspTravel = quartet("sus");
@@ -212,6 +219,15 @@ export const aggregateZones = (
       ...(avgSlipRatio && { avgSlipRatio }),
       ...(avgSuspTravel && { avgSuspTravel }),
       ...(avgTyreTempC && { avgTyreTempC }),
+      ...(airTempValues.length > 0 && { avgAirTempC: avgArr(airTempValues) }),
+      ...(roadTempValues.length > 0 && {
+        avgRoadTempC: avgArr(roadTempValues),
+      }),
+      ...(rainValues.length > 0 && { avgRainDensity: avgArr(rainValues) }),
+      ...(windValues.length > 0 && { avgWindSpeed: avgArr(windValues) }),
+      ...(cloudValues.length > 0 && {
+        avgCloudBrightness: avgArr(cloudValues),
+      }),
     });
   }
 

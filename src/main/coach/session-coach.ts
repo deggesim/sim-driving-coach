@@ -498,6 +498,19 @@ export const createSessionCoachEngine = (
       if (!row) return null;
 
       const priorComments = parseAnalysisComments(row.comments_json);
+      // Same "Dati Calcolati" block the analysis itself was built from: a
+      // driver comment can ask about a computed fact (e.g. temperatura,
+      // meteo) that never made it into the rendered synthesis/detail text,
+      // which is otherwise all this prompt would have to work with.
+      const bundle = loadSessionBundle(game, row.session_id);
+      const stats = bundle
+        ? computeSessionStats({
+            laps: bundle.laps,
+            bestLap: bundle.session.best_lap,
+            setups: bundle.setups,
+            cornerNames,
+          })
+        : undefined;
       const prompt = buildCommentPrompt({
         // Both levels, not just the synthesis: the concrete setup proposals live
         // in `detail`, so a comment like "quel parametro non lo posso toccare"
@@ -509,6 +522,7 @@ export const createSessionCoachEngine = (
         comment,
         carName: resolved?.carName,
         trackName: resolved?.trackName,
+        stats,
       });
 
       let responseText: string;

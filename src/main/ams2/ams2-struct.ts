@@ -82,6 +82,18 @@ export const OFF = {
   tyreTemp: 7072, // float[4]  mTyreTemp (Celsius)
   brakeTempCelsius: 7184, // float[4]  mBrakeTempCelsius (Celsius)
 
+  // Weather block, right before mSequenceNumber (mCrashState/mAeroDamage/
+  // mEngineDamage precede it - verified by walking every field in SharedMemory.h
+  // from mVersion onward with Pack=4 and cross-checking against the 15 offsets
+  // already known-good above; every checkpoint matched exactly).
+  ambientTemp: 7292, // float  mAmbientTemperature (Celsius)
+  trackTemp: 7296, // float  mTrackTemperature (Celsius)
+  rainDensity: 7300, // float  mRainDensity (0..1)
+  windSpeed: 7304, // float  mWindSpeed (m/s)
+  windDirectionX: 7308, // float  mWindDirectionX (unit vector component)
+  windDirectionY: 7312, // float  mWindDirectionY (unit vector component)
+  cloudBrightness: 7316, // float  mCloudBrightness (0..1)
+
   sequenceNumber: 7320, // uint   mSequenceNumber (odd = write in progress)
 
   // Not a typo: SharedMemory.h declares these two AFTER mSequenceNumber.

@@ -293,6 +293,13 @@ export const createAms2Reader = (
       const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
       // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
       const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
+      const ambientTemp = readFloat(buf, OFF.ambientTemp);
+      const trackTemp = readFloat(buf, OFF.trackTemp);
+      const rainDensity = readFloat(buf, OFF.rainDensity);
+      const windSpeed = readFloat(buf, OFF.windSpeed);
+      const cloudBrightness = readFloat(buf, OFF.cloudBrightness);
+      // No windDirectionX/Y: a raw heading component isn't actionable without
+      // the track's own heading at this point, which the SHM doesn't expose.
 
       // ── Driver aids ──
       // ponytail: AMS2 exposes NO "TC cutting now" flag. Heuristic: TCS enabled +
@@ -354,6 +361,11 @@ export const createAms2Reader = (
         tt: [...tyreTemps],
         // No `sr`: AMS2 has no slip-ratio channel and mTyreRPS needs a tyre
         // radius the SHM does not expose. Absent beats a floored zero.
+        at: ambientTemp,
+        rt: trackTemp,
+        rain: rainDensity,
+        wind: windSpeed,
+        cloud: cloudBrightness,
         wx: wpos[0],
         wy: wpos[1],
         wz: wpos[2],

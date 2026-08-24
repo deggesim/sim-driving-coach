@@ -234,6 +234,26 @@ export const buildStatsBlock = (stats: SessionStats): string => {
         : ""),
   );
   lines.push(`- Setup caricati: ${stats.setupCount}`);
+  if (
+    stats.avgAirTempC != null ||
+    stats.avgRoadTempC != null ||
+    stats.avgRainDensity != null ||
+    stats.avgWindSpeed != null ||
+    stats.avgCloudBrightness != null
+  ) {
+    const bits: string[] = [];
+    if (stats.avgAirTempC != null)
+      bits.push(`aria ${stats.avgAirTempC.toFixed(0)}°C`);
+    if (stats.avgRoadTempC != null)
+      bits.push(`asfalto ${stats.avgRoadTempC.toFixed(0)}°C`);
+    if (stats.avgRainDensity != null)
+      bits.push(`pioggia ${(stats.avgRainDensity * 100).toFixed(0)}%`);
+    if (stats.avgWindSpeed != null)
+      bits.push(`vento ${stats.avgWindSpeed.toFixed(1)} m/s`);
+    if (stats.avgCloudBrightness != null)
+      bits.push(`nuvolosità ${(stats.avgCloudBrightness * 100).toFixed(0)}%`);
+    lines.push(`- Condizioni: ${bits.join(", ")}`);
+  }
   if (stats.laps.length > 0) {
     lines.push(`- Tempi giro:`);
     for (const l of stats.laps) {
@@ -556,9 +576,9 @@ export const buildSynthesisPrompt = (input: SessionPromptInput): string => {
   );
 };
 
-export const COMMENT_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Il pilota ha appena letto una tua analisi di sessione e ti lascia un commento per correggerla o chiederti un'integrazione (es. un parametro di setup non modificabile, una valutazione che ritiene errata, una richiesta di approfondimento mirato).
+export const COMMENT_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Il pilota ha appena letto una tua analisi di sessione e ti lascia un commento per correggerla o chiederti un'integrazione (es. un parametro di setup non modificabile, una valutazione che ritiene errata, una richiesta di approfondimento mirato, un dato di sessione non citato nell'analisi).
 
-Rispondi SOLO al commento, in italiano, con tono tecnico da ingegnere. Includi dati numerici quando rilevanti.
+Rispondi SOLO al commento, in italiano, con tono tecnico da ingegnere. Includi dati numerici quando rilevanti, citandoli dal blocco "## Dati Calcolati" se presente — non dichiarare un dato "non disponibile" se compare lì.
 La risposta deve essere BREVE e FOCALIZZATA (massimo 4-6 frasi): conferma o correggi la valutazione e, se serve, proponi un'alternativa concreta.
 NON riscrivere l'intera analisi. NON usare le intestazioni delle sezioni di analisi ("Analisi sintetica", "Azioni suggerite", "Analisi approfondita" e relative sottosezioni). NON produrre tabelle lunghe: al massimo poche righe markdown se indispensabili.
 Se il pilota segnala che un parametro non è modificabile, accetta la correzione e proponi una leva alternativa effettivamente disponibile.`;
@@ -569,6 +589,7 @@ export type CommentPromptInput = {
   comment: string;
   carName?: string;
   trackName?: string;
+  stats?: SessionStats;
 };
 
 export const buildCommentPrompt = (input: CommentPromptInput): string => {
@@ -577,6 +598,10 @@ export const buildCommentPrompt = (input: CommentPromptInput): string => {
   if (input.carName) parts.push(`- Auto: ${input.carName}`);
   if (input.trackName) parts.push(`- Circuito: ${input.trackName}`);
   parts.push("");
+  if (input.stats) {
+    parts.push(buildStatsBlock(input.stats));
+    parts.push("");
+  }
   parts.push(`## Analisi a cui si riferisce il commento`);
   parts.push(nestHeadings(input.analysisText, 1));
   parts.push("");

@@ -394,6 +394,8 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
       const slipRatio = readFloatArray(physBuf, PHY.slipRatio, 4);
+      const airTemp = readFloat(physBuf, PHY.airTemp);
+      const roadTemp = readFloat(physBuf, PHY.roadTemp);
       const tcIntensity = readFloat(physBuf, PHY.tc);
       const absIntensity = readFloat(physBuf, PHY.abs);
       const tcinAction = readInt32(physBuf, PHY.tcinAction);
@@ -561,6 +563,8 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           sr: [...slipRatio],
           sus: [...suspensionTravel],
           tt: [...tyreCoreTemp],
+          at: airTemp,
+          rt: roadTemp,
           wx: playerWx,
           wy: playerWy,
           wz: playerWz,

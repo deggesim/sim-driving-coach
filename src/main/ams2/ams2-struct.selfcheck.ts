@@ -39,6 +39,13 @@ assert.equal(OFF.carFlags, 6816, "mCarFlags offset");
 assert.equal(OFF.localAcceleration, 6956, "mLocalAcceleration offset");
 assert.equal(OFF.tyreTemp, 7072, "mTyreTemp offset");
 assert.equal(OFF.brakeTempCelsius, 7184, "mBrakeTempCelsius offset");
+assert.equal(OFF.ambientTemp, 7292, "mAmbientTemperature offset");
+assert.equal(OFF.trackTemp, 7296, "mTrackTemperature offset");
+assert.equal(OFF.rainDensity, 7300, "mRainDensity offset");
+assert.equal(OFF.windSpeed, 7304, "mWindSpeed offset");
+assert.equal(OFF.windDirectionX, 7308, "mWindDirectionX offset");
+assert.equal(OFF.windDirectionY, 7312, "mWindDirectionY offset");
+assert.equal(OFF.cloudBrightness, 7316, "mCloudBrightness offset");
 assert.equal(OFF.sequenceNumber, 7320, "mSequenceNumber offset");
 // SharedMemory.h declares these two AFTER mSequenceNumber, so offsets past 7320
 // are correct here, not a copy-paste slip.
@@ -66,10 +73,14 @@ assert.equal(
 const buf = Buffer.alloc(AMS2_STRUCT_SIZE);
 buf.writeUInt32LE(14, OFF.version);
 buf.writeFloatLE(72.5, OFF.speed);
+buf.writeFloatLE(21.5, OFF.ambientTemp);
+buf.writeFloatLE(31.0, OFF.trackTemp);
 buf.writeUInt32LE(6, OFF.sequenceNumber);
 buf.writeFloatLE(1234.5, participantOffset(3, PART.currentLapDistance));
 assert.equal(readUint32(buf, OFF.version), 14, "read version");
 assert.equal(readFloat(buf, OFF.speed), 72.5, "read speed");
+assert.equal(readFloat(buf, OFF.ambientTemp), 21.5, "read ambient temp");
+assert.equal(readFloat(buf, OFF.trackTemp), 31.0, "read track temp");
 assert.equal(readUint32(buf, OFF.sequenceNumber), 6, "read seq");
 assert.equal(
   readFloat(buf, participantOffset(3, PART.currentLapDistance)),

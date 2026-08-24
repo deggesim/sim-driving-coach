@@ -99,6 +99,14 @@ export type SessionStats = {
   laps: LapStat[];
   criticalCorners: CornerStat[]; // sorted desc by alertCount
   setupCount: number;
+  // Ambient conditions, averaged across every zone of every lap (ACE, AMS2 -
+  // not a per-corner channel, since it barely varies within a session).
+  avgAirTempC: number | null;
+  avgRoadTempC: number | null;
+  // Weather, AMS2 only, same session-wide averaging rationale.
+  avgRainDensity: number | null;
+  avgWindSpeed: number | null;
+  avgCloudBrightness: number | null;
 };
 
 export type ComputeStatsInput = {
@@ -198,8 +206,40 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     c.alertsByType[a.type] = (c.alertsByType[a.type] ?? 0) + 1;
   }
 
+  let airTempSum = 0;
+  let airTempCount = 0;
+  let roadTempSum = 0;
+  let roadTempCount = 0;
+  let rainSum = 0;
+  let rainCount = 0;
+  let windSum = 0;
+  let windCount = 0;
+  let cloudSum = 0;
+  let cloudCount = 0;
+
   for (const lap of laps) {
     for (const z of parseZones(lap.zones_json)) {
+      if (z.avgAirTempC != null) {
+        airTempSum += z.avgAirTempC;
+        airTempCount += 1;
+      }
+      if (z.avgRoadTempC != null) {
+        roadTempSum += z.avgRoadTempC;
+        roadTempCount += 1;
+      }
+      if (z.avgRainDensity != null) {
+        rainSum += z.avgRainDensity;
+        rainCount += 1;
+      }
+      if (z.avgWindSpeed != null) {
+        windSum += z.avgWindSpeed;
+        windCount += 1;
+      }
+      if (z.avgCloudBrightness != null) {
+        cloudSum += z.avgCloudBrightness;
+        cloudCount += 1;
+      }
+
       const c = byZone.get(z.zone);
       if (!c) continue;
       c.minSpeedKmh = Math.min(c.minSpeedKmh, z.minSpeedKmh);
@@ -263,5 +303,10 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     laps: lapStats,
     criticalCorners,
     setupCount: setups.length,
+    avgAirTempC: airTempCount > 0 ? airTempSum / airTempCount : null,
+    avgRoadTempC: roadTempCount > 0 ? roadTempSum / roadTempCount : null,
+    avgRainDensity: rainCount > 0 ? rainSum / rainCount : null,
+    avgWindSpeed: windCount > 0 ? windSum / windCount : null,
+    avgCloudBrightness: cloudCount > 0 ? cloudSum / cloudCount : null,
   };
 };

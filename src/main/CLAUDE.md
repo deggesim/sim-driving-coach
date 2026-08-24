@@ -30,6 +30,8 @@ missing channel never reaches a prompt as a zero.
 | `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — none: `mTyreSlipSpeed` is deprecated and `mTyreRPS` needs a tyre radius the SHM does not expose |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |
+| `at` / `rt` (°C) | — | `PHY.airTemp` / `PHY.roadTemp` | `mAmbientTemperature` / `mTrackTemperature` |
+| `rain` / `wind` / `cloud` | — | — | `mRainDensity` (0-1) / `mWindSpeed` (m/s) / `mCloudBrightness` (0-1). `mWindDirectionX/Y` not surfaced — a raw heading component isn't actionable without the track's own heading, which the SHM doesn't expose |
 
 Two traps worth remembering: AMS2's `mSuspensionTravel` (7340) and `mAirPressure`
 (7372) are declared **after** `mSequenceNumber` (7320) in `SharedMemory.h`, so
