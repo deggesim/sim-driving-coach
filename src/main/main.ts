@@ -1692,6 +1692,28 @@ const setupPipeline = (): void => {
   );
 
   ipcMain.handle(
+    "session:updateSetup",
+    (
+      _event,
+      { id, game, setup }: { id: number; game: GameSource; setup: SetupData },
+    ) => {
+      if (!setup.name?.trim()) {
+        return { ok: false, reason: "Nome setup obbligatorio." };
+      }
+      const screenshots =
+        game === "ace" ? null : JSON.stringify(setup.screenshots ?? []);
+      db.prepare(
+        `UPDATE ${t("session_setups", game)} SET setup_json = ?, setup_screenshots = ? WHERE id = ?`,
+      ).run(JSON.stringify(setup), screenshots, id);
+      const row = db
+        .prepare(`SELECT * FROM ${t("session_setups", game)} WHERE id = ?`)
+        .get(id) as Parameters<typeof parseSetupRow>[0] | undefined;
+      if (!row) return { ok: false, reason: "Setup non trovato." };
+      return { ok: true, row: parseSetupRow(row) };
+    },
+  );
+
+  ipcMain.handle(
     "session:exportPdf",
     async (_event, { id, game }: { id: number; game: GameSource }) => {
       const { dialog } = await import("electron");

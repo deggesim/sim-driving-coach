@@ -35,6 +35,9 @@ interface Props {
   /** `takenNames`: i nomi già presenti in questo storico, per impedire
    *  all'editor di crearne un duplicato. */
   onDuplicateSetup: (setup: SetupData, takenNames: string[]) => void;
+  /** `takenNames` esclude il nome del setup stesso, così salvare senza
+   *  rinominare non viene rifiutato come duplicato. */
+  onEditSetup: (row: SessionSetupRow, takenNames: string[]) => void;
 }
 
 const formatDate = (iso: string): string => {
@@ -77,6 +80,7 @@ const SetupSelectionModal = ({
   onReuseSetup,
   onJsonPicker,
   onDuplicateSetup,
+  onEditSetup,
 }: Props) => {
   const [history, setHistory] = useState<SessionSetupRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -347,6 +351,15 @@ const SetupSelectionModal = ({
           // Nessuna chiusura: il parent apre l'editor e ci sospende (`suspended`),
           // così annullando si torna a questo dettaglio. Chiude alla conferma.
           if (row) onDuplicateSetup(row.setup, history.map(displayName));
+        }}
+        onEdit={() => {
+          const row =
+            selectedId != null ? setupById.get(selectedId) : undefined;
+          if (row)
+            onEditSetup(
+              row,
+              history.filter((r) => r.id !== row.id).map(displayName),
+            );
         }}
       />
     </>

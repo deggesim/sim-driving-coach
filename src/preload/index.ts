@@ -145,6 +145,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("session:deleteSetup", params),
   sessionRenameSetup: (params: { id: number; game: string; name: string }) =>
     ipcRenderer.invoke("session:renameSetup", params),
+  sessionUpdateSetup: (params: { id: number; game: string; setup: unknown }) =>
+    ipcRenderer.invoke("session:updateSetup", params),
 
   lapGetFrames: (params: { id: number; game: string }) =>
     ipcRenderer.invoke("lap:getFrames", params),

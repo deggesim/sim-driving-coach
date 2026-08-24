@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import type { SessionSetupRow, SetupData } from "../../shared/types";
+import type {
+  GameSource,
+  SessionSetupRow,
+  SetupData,
+} from "../../shared/types";
 import { useSessionStore } from "../store/sessionStore";
 
 type Options = {
@@ -16,6 +20,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const setups = useSessionStore((s) => s.setups);
   const assignLapSetup = useSessionStore((s) => s.assignLapSetup);
   const setActiveSetup = useSessionStore((s) => s.setActiveSetup);
+  const updateSetup = useSessionStore((s) => s.updateSetup);
   const [showPicker, setShowPicker] = useState(false);
   const [showSetupSelection, setShowSetupSelection] = useState(false);
   /** Giri a cui assegnare il setup scelto dal modal; null = modal chiuso. */
@@ -23,10 +28,12 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   /** Giri in attesa del setup che sta per essere creato dal picker/editor. */
   const [pendingLapIds, setPendingLapIds] = useState<number[] | null>(null);
   /** Setup di partenza dell'editor manuale, con i nomi già in uso nello storico
-   *  da cui e' stato aperto; null = editor chiuso. */
+   *  da cui e' stato aperto; null = editor chiuso. `edit` presente = l'editor
+   *  aggiorna quel setup in-place invece di crearne uno nuovo. */
   const [editorBase, setEditorBase] = useState<{
     setup: SetupData;
     takenNames: string[];
+    edit?: { id: number; game: GameSource };
   } | null>(null);
 
   const setupById = useMemo(() => {
@@ -75,6 +82,16 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
       setPendingLapIds(null);
       showFlash("danger", String(err));
     }
+  };
+
+  const handleUpdateSetup = async (
+    id: number,
+    game: GameSource,
+    setup: SetupData,
+  ): Promise<void> => {
+    const res = await updateSetup(id, game, setup);
+    if (res.ok) showFlash("success", `Setup aggiornato: ${setup.name}`);
+    else showFlash("danger", res.reason);
   };
 
   const handleReuseSetup = async (row: SessionSetupRow): Promise<void> => {
@@ -160,6 +177,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     setEditorBase,
     setupById,
     handleSetupConfirm,
+    handleUpdateSetup,
     handleReuseSetup,
     handleLapReuseSetup,
   };
