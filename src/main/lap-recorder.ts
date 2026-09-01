@@ -143,11 +143,12 @@ export const aggregateZones = (
     const maxAbs = (vals: number[]): number | undefined =>
       vals.length > 0 ? Math.max(...vals.map(Math.abs)) : undefined;
 
-    const quartet = (
+    const quartetFrom = (
+      frames: CompactFrame[],
       key: "tp" | "sr" | "sus" | "tt",
     ): [number, number, number, number] | undefined => {
       const byWheel = [0, 1, 2, 3].map((i) =>
-        zoneFrames
+        frames
           .map((f) => f[key]?.[i])
           .filter((v): v is number => v !== undefined),
       );
@@ -155,6 +156,10 @@ export const aggregateZones = (
         ? (byWheel.map(avgArr) as [number, number, number, number])
         : undefined;
     };
+    const quartet = (
+      key: "tp" | "sr" | "sus" | "tt",
+    ): [number, number, number, number] | undefined =>
+      quartetFrom(zoneFrames, key);
 
     const rpmValues = scalars("rpm");
     const maxGLat = maxAbs(scalars("gLat"));
@@ -168,6 +173,10 @@ export const aggregateZones = (
     const avgSlipRatio = quartet("sr");
     const avgSuspTravel = quartet("sus");
     const avgTyreTempC = quartet("tt");
+    // Diff diagnostics: same slip-ratio channel, split by drivetrain phase.
+    const releaseFrames = zoneFrames.filter((f) => f.thr <= 0.05);
+    const avgSlipRatioThrottle = quartetFrom(throttleFrames, "sr");
+    const avgSlipRatioRelease = quartetFrom(releaseFrames, "sr");
 
     // Aid presets: constant per lap, stored once on zone 0 for use in prompt builder
     const aidPreset =
@@ -217,6 +226,8 @@ export const aggregateZones = (
       ...(maxGLon !== undefined && { maxGLon }),
       ...(avgTyrePressure && { avgTyrePressure }),
       ...(avgSlipRatio && { avgSlipRatio }),
+      ...(avgSlipRatioThrottle && { avgSlipRatioThrottle }),
+      ...(avgSlipRatioRelease && { avgSlipRatioRelease }),
       ...(avgSuspTravel && { avgSuspTravel }),
       ...(avgTyreTempC && { avgTyreTempC }),
       ...(airTempValues.length > 0 && { avgAirTempC: avgArr(airTempValues) }),

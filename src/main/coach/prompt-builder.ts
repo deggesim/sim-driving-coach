@@ -255,6 +255,39 @@ export const buildStatsBlock = (stats: SessionStats): string => {
       bits.push(`nuvolosità ${(stats.avgCloudBrightness * 100).toFixed(0)}%`);
     lines.push(`- Condizioni: ${bits.join(", ")}`);
   }
+  if (stats.suspAsymFrontMm != null || stats.suspAsymRearMm != null) {
+    const bits: string[] = [];
+    if (stats.suspAsymFrontMm != null)
+      bits.push(`anteriore ${stats.suspAsymFrontMm.toFixed(1)}mm (FL-FR)`);
+    if (stats.suspAsymRearMm != null)
+      bits.push(`posteriore ${stats.suspAsymRearMm.toFixed(1)}mm (RL-RR)`);
+    lines.push(
+      `- Asimmetria corsa sospensione (media sessione): ${bits.join(", ")} — verifica camber/altezza da terra`,
+    );
+  }
+  if (
+    stats.slipAsymFrontThrottle != null ||
+    stats.slipAsymRearThrottle != null
+  ) {
+    const bits: string[] = [];
+    if (stats.slipAsymFrontThrottle != null)
+      bits.push(`anteriore ${stats.slipAsymFrontThrottle.toFixed(3)} (FL-FR)`);
+    if (stats.slipAsymRearThrottle != null)
+      bits.push(`posteriore ${stats.slipAsymRearThrottle.toFixed(3)} (RL-RR)`);
+    lines.push(
+      `- Asimmetria slip ratio in trazione (media sessione): ${bits.join(", ")} — verifica differenziale power`,
+    );
+  }
+  if (stats.slipAsymFrontRelease != null || stats.slipAsymRearRelease != null) {
+    const bits: string[] = [];
+    if (stats.slipAsymFrontRelease != null)
+      bits.push(`anteriore ${stats.slipAsymFrontRelease.toFixed(3)} (FL-FR)`);
+    if (stats.slipAsymRearRelease != null)
+      bits.push(`posteriore ${stats.slipAsymRearRelease.toFixed(3)} (RL-RR)`);
+    lines.push(
+      `- Asimmetria slip ratio in rilascio/frenata (media sessione): ${bits.join(", ")} — verifica differenziale coast`,
+    );
+  }
   if (stats.laps.length > 0) {
     lines.push(`- Tempi giro:`);
     for (const l of stats.laps) {
