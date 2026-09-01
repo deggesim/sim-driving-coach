@@ -285,4 +285,49 @@ assert.ok(
 );
 assert.equal(flat.avgRainDensity, null, "no weather data ⇒ null, not 0");
 
+// Setup-diagnostic asymmetries: session-wide across every zone, including one
+// with no alert at all (zone 9 here never appears in `alerts`), and epsilon-
+// gated to null below the noise floor.
+const asym = computeSessionStats({
+  laps: [
+    mkLap(1, 100, [
+      zone(8, { avgSuspTravel: [0.03, 0.026, 0.04, 0.04] }), // front Δ4mm
+      zone(9, {
+        avgSlipRatioThrottle: [0.05, 0.08, 0.1, 0.1], // front Δ-0.03 in trazione
+        avgSlipRatioRelease: [0.02, 0.021, 0.06, 0.09], // rear Δ-0.03 in rilascio
+      }),
+    ]),
+  ],
+  bestLap: 100,
+  setups: [],
+  alerts: [alert(8, "LATE_BRAKE")], // zone 9 carries no alert
+  cornerNames: new Map(),
+});
+assert.ok(
+  Math.abs(asym.suspAsymFrontMm! - 4) < 1e-6,
+  "front susp asymmetry above noise floor",
+);
+assert.equal(asym.suspAsymRearMm, null, "rear travel identical ⇒ null");
+assert.ok(
+  Math.abs(asym.slipAsymFrontThrottle! - -0.03) < 1e-6,
+  "front slip asymmetry in trazione, from a zone with no alert",
+);
+assert.equal(
+  asym.slipAsymRearThrottle,
+  null,
+  "rear identical in trazione ⇒ null",
+);
+assert.equal(
+  asym.slipAsymFrontRelease,
+  null,
+  "front nearly identical in rilascio, below epsilon ⇒ null",
+);
+assert.ok(
+  Math.abs(asym.slipAsymRearRelease! - -0.03) < 1e-6,
+  "rear slip asymmetry in rilascio",
+);
+
+assert.equal(flat.suspAsymFrontMm, null, "no travel data ⇒ null, not 0");
+assert.equal(flat.slipAsymFrontThrottle, null);
+
 console.log("session-stats.selfcheck OK");

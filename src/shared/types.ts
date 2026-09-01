@@ -156,6 +156,10 @@ export type ZoneData = {
   maxGLon?: number; // peak longitudinal G-force magnitude (braking)
   avgTyrePressure?: [number, number, number, number]; // PSI FL/FR/RL/RR
   avgSlipRatio?: [number, number, number, number]; // FL/FR/RL/RR
+  // Same channel, split by drivetrain phase: throttle>5% (power diff engages)
+  // vs throttle<=5% (coast diff engages: braking + coasting combined).
+  avgSlipRatioThrottle?: [number, number, number, number]; // FL/FR/RL/RR
+  avgSlipRatioRelease?: [number, number, number, number]; // FL/FR/RL/RR
   avgSuspTravel?: [number, number, number, number]; // m FL/FR/RL/RR
   avgTyreTempC?: [number, number, number, number]; // °C FL/FR/RL/RR
   avgAirTempC?: number; // ambient air temp °C, averaged over the zone

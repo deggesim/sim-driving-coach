@@ -66,6 +66,21 @@ assert.deepEqual(withSlip[0].avgSlipRatio, [0.02, 0.02, 0.12, 0.12]);
 assert.equal(withSlip[0].avgTyrePressure, undefined);
 assert.equal(withSlip[0].avgTyreTempC, undefined);
 
+// Slip ratio split by drivetrain phase: throttle frames feed avgSlipRatioThrottle,
+// off-throttle frames (coast + brake, thr<=5%) feed avgSlipRatioRelease.
+const phased = aggregateZones(
+  [
+    frame(10, { thr: 0.8, brk: 0, sr: [0.1, 0.1, 0.3, 0.3] }),
+    frame(15, { thr: 0, brk: 0.6, sr: [0.02, 0.02, 0.05, 0.05] }),
+  ],
+  100,
+);
+phased[0].avgSlipRatio!.forEach((v, i) =>
+  assert.ok(Math.abs(v - [0.06, 0.06, 0.175, 0.175][i]) < 1e-9),
+);
+assert.deepEqual(phased[0].avgSlipRatioThrottle, [0.1, 0.1, 0.3, 0.3]);
+assert.deepEqual(phased[0].avgSlipRatioRelease, [0.02, 0.02, 0.05, 0.05]);
+
 // A reader supplying no extended channel at all leaves every field off, while
 // brake temps (not part of the extended block) still come through.
 const bare = aggregateZones([frame(10)], 100);

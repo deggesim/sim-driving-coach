@@ -16,6 +16,8 @@ import type {
 
 const FRAME_MS = 16;
 const FLAT_EPS = 0.05; // seconds: |lastThird - firstThird| below this ⇒ "flat"
+const SUS_ASYM_EPS_MM = 2; // ponytail: noise floor, tighten if real setups need finer resolution
+const SLIP_ASYM_EPS = 0.02; // ratio units, same rationale
 
 type Quartet = [number, number, number, number];
 
@@ -107,6 +109,17 @@ export type SessionStats = {
   avgRainDensity: number | null;
   avgWindSpeed: number | null;
   avgCloudBrightness: number | null;
+  // Setup-diagnostic asymmetries: session-wide (every zone, not just critical
+  // corners) and epsilon-gated to null below the noise floor. Camber, ride
+  // height and diff power/coast are static setup values with no telemetry
+  // channel of their own - these give Claude a citable number when proposing
+  // changes to those levers instead of just the raw setup value.
+  suspAsymFrontMm: number | null; // corsa sospensione media FL-FR
+  suspAsymRearMm: number | null; // RL-RR
+  slipAsymFrontThrottle: number | null; // slip ratio medio FL-FR in trazione (gas>5%)
+  slipAsymRearThrottle: number | null; // RL-RR in trazione
+  slipAsymFrontRelease: number | null; // FL-FR fuori trazione (rilascio/frenata/coasting)
+  slipAsymRearRelease: number | null; // RL-RR fuori trazione
 };
 
 export type ComputeStatsInput = {
@@ -217,8 +230,18 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
   let cloudSum = 0;
   let cloudCount = 0;
 
+  // Session-wide (every zone, unlike the per-corner accums below which only
+  // cover zones with an alert).
+  const sessionSus = zeroChannel();
+  const sessionSlipThrottle = zeroChannel();
+  const sessionSlipRelease = zeroChannel();
+
   for (const lap of laps) {
     for (const z of parseZones(lap.zones_json)) {
+      addChannel(sessionSus, z.avgSuspTravel);
+      addChannel(sessionSlipThrottle, z.avgSlipRatioThrottle);
+      addChannel(sessionSlipRelease, z.avgSlipRatioRelease);
+
       if (z.avgAirTempC != null) {
         airTempSum += z.avgAirTempC;
         airTempCount += 1;
@@ -295,6 +318,15 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     })
     .sort((a, b) => b.alertCount - a.alertCount);
 
+  const meanSus = meanChannel(sessionSus); // m, FL/FR/RL/RR
+  const meanSlipThrottle = meanChannel(sessionSlipThrottle);
+  const meanSlipRelease = meanChannel(sessionSlipRelease);
+
+  const gateMm = (delta: number): number | null =>
+    Math.abs(delta) > SUS_ASYM_EPS_MM ? delta : null;
+  const gateSlip = (delta: number): number | null =>
+    Math.abs(delta) > SLIP_ASYM_EPS ? delta : null;
+
   return {
     lapCount: laps.length,
     analyzableLapCount,
@@ -308,5 +340,19 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     avgRainDensity: rainCount > 0 ? rainSum / rainCount : null,
     avgWindSpeed: windCount > 0 ? windSum / windCount : null,
     avgCloudBrightness: cloudCount > 0 ? cloudSum / cloudCount : null,
+    suspAsymFrontMm: meanSus ? gateMm((meanSus[0] - meanSus[1]) * 1000) : null,
+    suspAsymRearMm: meanSus ? gateMm((meanSus[2] - meanSus[3]) * 1000) : null,
+    slipAsymFrontThrottle: meanSlipThrottle
+      ? gateSlip(meanSlipThrottle[0] - meanSlipThrottle[1])
+      : null,
+    slipAsymRearThrottle: meanSlipThrottle
+      ? gateSlip(meanSlipThrottle[2] - meanSlipThrottle[3])
+      : null,
+    slipAsymFrontRelease: meanSlipRelease
+      ? gateSlip(meanSlipRelease[0] - meanSlipRelease[1])
+      : null,
+    slipAsymRearRelease: meanSlipRelease
+      ? gateSlip(meanSlipRelease[2] - meanSlipRelease[3])
+      : null,
   };
 };
