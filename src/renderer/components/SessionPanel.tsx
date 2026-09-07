@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert } from "react-bootstrap";
+import { Toast, ToastContainer } from "react-bootstrap";
 import type { GameSource, SessionStartResult } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
@@ -147,16 +147,26 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         onReopen={!isLive && !sessionActive ? handleReopen : undefined}
       />
 
-      {flash && (
-        <Alert
-          variant={flash.variant}
+      <ToastContainer
+        position="top-end"
+        className="p-3"
+        style={{ position: "fixed", zIndex: 1050 }}
+      >
+        <Toast
+          show={!!flash}
           onClose={() => setFlash(null)}
-          dismissible
-          className="mb-0"
+          bg={flash?.variant}
         >
-          {flash.text}
-        </Alert>
-      )}
+          <Toast.Header
+            closeButton
+            closeVariant="white"
+            className="text-white bg-transparent border-0"
+          >
+            <strong className="me-auto">Sim Coach</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white pt-0">{flash?.text}</Toast.Body>
+        </Toast>
+      </ToastContainer>
 
       <div
         className="flex-grow-1 overflow-hidden p-3 d-flex flex-column"

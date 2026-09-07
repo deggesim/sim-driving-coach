@@ -5,7 +5,7 @@
  */
 
 import { Suspense, use, useEffect, useState } from "react";
-import { Alert, Spinner } from "react-bootstrap";
+import { Spinner, Toast, ToastContainer } from "react-bootstrap";
 import RealtimeAnalysis from "./components/RealtimeAnalysis";
 import SessionHistory from "./components/SessionHistory";
 import SettingsPanel from "./components/SettingsPanel";
@@ -87,18 +87,23 @@ const App = () => {
       {/* Title bar (frameless Electron drag area) */}
       <TitleBar tab={tab} onTabChange={setTab} />
 
-      {/* Global error alert - credit/quota errors from Azure TTS or Claude API */}
-      {appError && (
-        <Alert
-          variant="danger"
-          onClose={() => setAppError(null)}
-          dismissible
-          className="mb-0 rounded-0 border-start-0 border-end-0"
-          style={{ zIndex: 1000 }}
-        >
-          {appError}
-        </Alert>
-      )}
+      {/* Global error toast - credit/quota errors from Azure TTS or Claude API */}
+      <ToastContainer
+        position="top-end"
+        className="p-3"
+        style={{ position: "fixed", zIndex: 1050 }}
+      >
+        <Toast show={!!appError} onClose={() => setAppError(null)} bg="danger">
+          <Toast.Header
+            closeButton
+            closeVariant="white"
+            className="text-white bg-transparent border-0"
+          >
+            <strong className="me-auto">Sim Coach</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white pt-0">{appError}</Toast.Body>
+        </Toast>
+      </ToastContainer>
 
       {/* Main content */}
       <div className="main-content">
