@@ -1849,22 +1849,39 @@ const setupPipeline = (): void => {
         track,
         layout,
         game,
-      }: { car: string; track: string; layout: string; game: GameSource },
+      }: {
+        car: string;
+        track?: string;
+        layout?: string;
+        game: GameSource;
+      },
     ) => {
+      const conditions = ["s.car = ?"];
+      const params: string[] = [car];
+      if (track !== undefined) {
+        conditions.push("s.track = ?");
+        params.push(track);
+      }
+      if (layout !== undefined) {
+        conditions.push("s.layout = ?");
+        params.push(layout);
+      }
+
       const setupsRaw = db
         .prepare(
-          `SELECT ss.* FROM ${t("session_setups", game)} ss
+          `SELECT ss.*, s.track AS session_track FROM ${t("session_setups", game)} ss
            JOIN ${t("sessions", game)} s ON ss.session_id = s.id
-           WHERE s.car = ? AND s.track = ? AND s.layout = ?
+           WHERE ${conditions.join(" AND ")}
            ORDER BY ss.loaded_at DESC
            LIMIT 20`,
         )
-        .all(car, track, layout) as Array<{
+        .all(...params) as Array<{
         id: number;
         session_id: number;
         loaded_at: string;
         setup_json: string;
         setup_screenshots: string | null;
+        session_track: string;
       }>;
 
       return setupsRaw.map(parseSetupRow);

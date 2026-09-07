@@ -247,6 +247,9 @@ export type SessionSetupRow = {
   loaded_at: string;
   setup: SetupData;
   setup_screenshots: string | null;
+  /** Circuito della sessione di provenienza. Valorizzato solo dalle query
+   *  cross-circuito (import AMS2 "stessa auto, tutti i circuiti"). */
+  track?: string;
 };
 
 export type AnalysisComment = {
@@ -560,8 +563,9 @@ export type ElectronAPI = {
   }) => Promise<SessionStartResult>;
   sessionGetSetupHistory: (params: {
     car: string;
-    track: string;
-    layout: string;
+    /** Omessi = nessun filtro circuito/layout (import AMS2 cross-circuito). */
+    track?: string;
+    layout?: string;
     game: GameSource;
   }) => Promise<SessionSetupRow[]>;
   sessionReuseSetup: (params: { setupId: number }) => Promise<void>;

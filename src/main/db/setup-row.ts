@@ -16,6 +16,9 @@ type RawSetupRow = {
   loaded_at: string;
   setup_json: string;
   setup_screenshots: string | null;
+  /** Circuito della sessione di provenienza — selezionato solo dalle query
+   *  cross-circuito (import AMS2 "stessa auto, tutti i circuiti"). */
+  session_track?: string;
 };
 
 export const tableFor = (game: GameSource, base: string): string =>
@@ -42,6 +45,7 @@ export const parseSetupRow = (r: RawSetupRow): SessionSetupRow => {
     loaded_at: r.loaded_at,
     setup,
     setup_screenshots: r.setup_screenshots,
+    track: r.session_track,
   };
 };
 

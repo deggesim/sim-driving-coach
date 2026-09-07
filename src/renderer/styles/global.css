@@ -583,6 +583,26 @@ body {
   filter: invert(1) grayscale(1);
 }
 
+/* ── Setup Import Modal (rinomina obbligatoria da altro circuito) ── */
+.setup-import-modal .modal-content {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.setup-import-modal .modal-header,
+.setup-import-modal .modal-footer {
+  background: var(--bg3);
+  border-color: var(--border);
+}
+.setup-import-modal .btn-close {
+  filter: invert(1) grayscale(1);
+}
+.setup-import-modal .form-control {
+  background: var(--bg2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
 /* ── ACE Setup Picker Modal ── */
 .ace-setup-picker-modal .modal-content {
   background: var(--bg2);

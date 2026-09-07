@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Badge, Button, Modal, Spinner } from "react-bootstrap";
+import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCamera,
@@ -55,6 +55,9 @@ const formatDate = (iso: string): string => {
 const displayName = (row: SessionSetupRow): string =>
   row.setup.name ?? row.setup.carFound ?? `Setup #${row.id}`;
 
+const isSameName = (a: string, b: string): boolean =>
+  a.trim().toLowerCase() === b.trim().toLowerCase();
+
 const ACQUIRE: Record<GameSource, { label: string; icon: typeof faFileCode }> =
   {
     r3e: { label: "Carica da JSON", icon: faFileCode },
@@ -82,12 +85,25 @@ const SetupSelectionModal = ({
   onDuplicateSetup,
   onEditSetup,
 }: Props) => {
-  const [history, setHistory] = useState<SessionSetupRow[]>([]);
+  // Storico per la combinazione auto/circuito corrente — sempre caricato:
+  // serve anche a validare i nomi quando si importa da un altro circuito.
+  const [comboHistory, setComboHistory] = useState<SessionSetupRow[]>([]);
+  // AMS2 only: storico per la stessa auto su tutti i circuiti, caricato solo
+  // quando l'utente attiva il checkbox "tutti i circuiti".
+  const [crossHistory, setCrossHistory] = useState<SessionSetupRow[]>([]);
+  const [allTracks, setAllTracks] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [deleteState, setDeleteState] = useState<DeleteState>({
     phase: "idle",
   });
+  // Rinomina obbligatoria quando si importa un setup da un altro circuito
+  // (AMS2): evita conflitti di nome con lo storico della combinazione
+  // corrente. Proposta di default: il nome del setup importato.
+  const [importState, setImportState] = useState<{
+    row: SessionSetupRow;
+    name: string;
+  } | null>(null);
   const deleteSetup = useSessionStore((s) => s.deleteSetup);
   const renameSetup = useSessionStore((s) => s.renameSetup);
 
@@ -103,6 +119,8 @@ const SetupSelectionModal = ({
     setPrevShow(show);
     setDeleteState({ phase: "idle" });
     setSelectedId(null);
+    setAllTracks(false);
+    setImportState(null);
   }
 
   useEffect(() => {
@@ -117,36 +135,68 @@ const SetupSelectionModal = ({
           const key = row.setup.name ?? row.setup.carFound ?? String(row.id);
           if (!seen.has(key)) seen.set(key, row);
         }
-        setHistory(Array.from(seen.values()));
+        setComboHistory(Array.from(seen.values()));
       })
-      .catch(() => setHistory([]))
+      .catch(() => setComboHistory([]))
       .finally(() => setLoading(false));
   }, [show, car, track, layout, game]);
+
+  useEffect(() => {
+    if (!show || !car || !allTracks) return;
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
+    setLoading(true);
+    window.electronAPI
+      .sessionGetSetupHistory({ car, game })
+      .then((rows) => {
+        // Chiave per circuito+nome: a differenza dello storico della singola
+        // combinazione, nomi uguali su circuiti diversi sono legittimi (es.
+        // un "Base" per ogni pista) e non vanno accorpati.
+        const seen = new Map<string, SessionSetupRow>();
+        for (const row of rows) {
+          const key = `${row.track ?? ""}::${row.setup.name ?? row.setup.carFound ?? row.id}`;
+          if (!seen.has(key)) seen.set(key, row);
+        }
+        setCrossHistory(Array.from(seen.values()));
+      })
+      .catch(() => setCrossHistory([]))
+      .finally(() => setLoading(false));
+  }, [show, car, game, allTracks]);
+
+  const history = allTracks ? crossHistory : comboHistory;
 
   const setupById = useMemo(
     () => new Map(history.map((r) => [r.id, r])),
     [history],
   );
 
+  const updateRow = (
+    id: number,
+    fn: (row: SessionSetupRow) => SessionSetupRow,
+  ): void => {
+    setComboHistory((prev) => prev.map((r) => (r.id === id ? fn(r) : r)));
+    setCrossHistory((prev) => prev.map((r) => (r.id === id ? fn(r) : r)));
+  };
+
   const handleRename = (id: number, name: string): void => {
     void renameSetup(id, game, name);
-    setHistory((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, setup: { ...r.setup, name } } : r,
-      ),
-    );
+    updateRow(id, (r) => ({ ...r, setup: { ...r.setup, name } }));
   };
 
   const handleDelete = async (id: number): Promise<void> => {
     setDeleteState({ phase: "working", id });
     const res = await deleteSetup(id, game);
     if (res.ok) {
-      setHistory((prev) => prev.filter((r) => r.id !== id));
+      setComboHistory((prev) => prev.filter((r) => r.id !== id));
+      setCrossHistory((prev) => prev.filter((r) => r.id !== id));
       setDeleteState({ phase: "idle" });
     } else {
       setDeleteState({ phase: "error", id, lapCount: res.lapCount });
     }
   };
+
+  const importDuplicate =
+    importState != null &&
+    comboHistory.some((r) => isSameName(displayName(r), importState.name));
 
   return (
     <>
@@ -166,6 +216,16 @@ const SetupSelectionModal = ({
         </Modal.Header>
 
         <Modal.Body>
+          {game === "ams2" && (
+            <Form.Check
+              type="checkbox"
+              id="setup-history-all-tracks"
+              className="mb-2"
+              label="Cerca su tutti i circuiti (stessa auto)"
+              checked={allTracks}
+              onChange={(e) => setAllTracks(e.target.checked)}
+            />
+          )}
           {loading ? (
             <div className="text-center py-3">
               <Spinner size="sm" className="me-2" />
@@ -174,12 +234,15 @@ const SetupSelectionModal = ({
           ) : history.length > 0 ? (
             <>
               <p className="text-muted mb-2" style={{ fontSize: 14 }}>
-                Setup già caricati per questa combinazione auto/circuito:
+                {allTracks
+                  ? "Setup già caricati per questa auto (tutti i circuiti):"
+                  : "Setup già caricati per questa combinazione auto/circuito:"}
               </p>
               <table className="sh-table mb-3">
                 <thead>
                   <tr>
                     <th>Nome setup</th>
+                    {allTracks && <th style={{ width: 140 }}>Circuito</th>}
                     <th style={{ width: 160 }}>Data caricamento</th>
                     <th style={{ width: 110 }}></th>
                   </tr>
@@ -226,6 +289,9 @@ const SetupSelectionModal = ({
                               </Badge>
                             )}
                           </td>
+                          {allTracks && (
+                            <td className="text-muted">{row.track ?? "—"}</td>
+                          )}
                           <td className="text-muted">
                             {formatDate(row.loaded_at)}
                           </td>
@@ -286,7 +352,7 @@ const SetupSelectionModal = ({
                         {errorForRow != null && (
                           <tr>
                             <td
-                              colSpan={3}
+                              colSpan={allTracks ? 4 : 3}
                               className="text-danger"
                               style={{
                                 fontSize: 12,
@@ -311,8 +377,9 @@ const SetupSelectionModal = ({
             </>
           ) : (
             <p className="text-muted mb-3" style={{ fontSize: 14 }}>
-              Nessun setup precedente trovato per questa combinazione
-              auto/circuito.
+              {allTracks
+                ? "Nessun setup precedente trovato per questa auto."
+                : "Nessun setup precedente trovato per questa combinazione auto/circuito."}
             </p>
           )}
 
@@ -330,7 +397,7 @@ const SetupSelectionModal = ({
       </Modal>
 
       <SetupDetailModal
-        setupId={suspended ? null : selectedId}
+        setupId={suspended || importState ? null : selectedId}
         setupById={setupById}
         game={game}
         onClose={() => setSelectedId(null)}
@@ -341,7 +408,14 @@ const SetupSelectionModal = ({
         onUse={() => {
           const row =
             selectedId != null ? setupById.get(selectedId) : undefined;
-          if (row) onReuseSetup(row);
+          if (!row) return;
+          if (row.track != null && row.track !== track) {
+            // Importazione da un altro circuito: passa dalla rinomina
+            // obbligatoria invece di riusarlo direttamente.
+            setImportState({ row, name: displayName(row) });
+            return;
+          }
+          onReuseSetup(row);
           setSelectedId(null);
           onClose();
         }}
@@ -362,6 +436,73 @@ const SetupSelectionModal = ({
             );
         }}
       />
+
+      {importState && (
+        <Modal
+          show={!suspended}
+          onHide={() => setImportState(null)}
+          centered
+          className="setup-import-modal"
+        >
+          <Modal.Header closeButton>
+            <Modal.Title style={{ fontSize: 15 }}>
+              Importa setup da {importState.row.track ?? "altro circuito"}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p className="text-muted" style={{ fontSize: 14 }}>
+              Assegna un nome per questa combinazione auto/circuito prima di
+              usare il setup importato.
+            </p>
+            <Form.Group>
+              <Form.Label className="text-muted" style={{ fontSize: 14 }}>
+                Nome setup <span className="text-danger">*</span>
+              </Form.Label>
+              <Form.Control
+                size="sm"
+                type="text"
+                value={importState.name}
+                onChange={(e) =>
+                  setImportState((s) => s && { ...s, name: e.target.value })
+                }
+                autoFocus
+              />
+              {importDuplicate && (
+                <Form.Text className="text-danger">
+                  Esiste già un setup con questo nome per questa auto/circuito.
+                </Form.Text>
+              )}
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setImportState(null)}
+            >
+              Annulla
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!importState.name.trim() || importDuplicate}
+              onClick={() => {
+                const { row, name } = importState;
+                onReuseSetup({
+                  ...row,
+                  setup: { ...row.setup, name: name.trim() },
+                });
+                setImportState(null);
+                setSelectedId(null);
+                onClose();
+              }}
+            >
+              <FontAwesomeIcon icon={faCheck} className="me-1" />
+              Importa
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
     </>
   );
 };

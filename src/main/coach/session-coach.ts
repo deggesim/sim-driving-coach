@@ -278,11 +278,15 @@ export const createSessionCoachEngine = (
 
       let fullText: string;
       try {
-        // Two short sections plus the voice block: 2k tokens is ~3x the typical
-        // output. Non-streaming create() mirrors commentAnalysis and expandAnalysis.
+        // Two short sections plus the voice block: 2k tokens covered Haiku's
+        // typical output comfortably, but Sonnet tends to write longer prose for
+        // the same instructions and occasionally hit that cap mid-sentence.
+        // max_tokens is just a ceiling (billed by tokens actually generated),
+        // so raising it costs nothing for a model that already finishes well
+        // under it. Non-streaming create() mirrors commentAnalysis and expandAnalysis.
         const msg = await client.messages.create({
           model,
-          max_tokens: 2000,
+          max_tokens: 4000,
           system: SYNTHESIS_SYSTEM_PROMPT,
           messages: [{ role: "user", content: prompt }],
         });
