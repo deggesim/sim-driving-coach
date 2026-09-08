@@ -136,6 +136,10 @@ const SetupSelectionModal = ({
           if (!seen.has(key)) seen.set(key, row);
         }
         setComboHistory(Array.from(seen.values()));
+        // AMS2: nessuno storico per questa combinazione — cerca subito su
+        // tutti i circuiti invece di richiedere il click sul checkbox, che
+        // altrimenti nasconderebbe l'unico modo di importare un setup.
+        if (game === "ams2" && rows.length === 0) setAllTracks(true);
       })
       .catch(() => setComboHistory([]))
       .finally(() => setLoading(false));
