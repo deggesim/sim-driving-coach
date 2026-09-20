@@ -16,6 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3",
+    "fallow": "fallow",
+    "fallow:check": "fallow check",
+    "fallow:fix": "fallow fix",
     "prepare": "husky"
   },
   "dependencies": {
@@ -45,6 +48,7 @@
     "electron-vite": "^6.0.0-beta.1",
     "eslint": "^10.2.0",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "fallow": "^3.27.0",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
