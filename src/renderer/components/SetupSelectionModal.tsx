@@ -173,6 +173,19 @@ const SetupSelectionModal = ({
     [history],
   );
 
+  // Il nome è univoco per combinazione auto/circuito, non per auto: un nome
+  // duplicato su un altro circuito (visibile solo con "tutti i circuiti") non
+  // è un conflitto. `refTrack` è il circuito della riga di partenza — quello
+  // della combinazione corrente per una creazione, quello della riga stessa
+  // per una rinomina/modifica in-place.
+  const namesTakenForTrack = (
+    refTrack: string | null | undefined,
+    excludeId?: number,
+  ): string[] =>
+    history
+      .filter((r) => r.track === refTrack && r.id !== excludeId)
+      .map(displayName);
+
   const updateRow = (
     id: number,
     fn: (row: SessionSetupRow) => SessionSetupRow,
@@ -276,7 +289,7 @@ const SetupSelectionModal = ({
                           <td>
                             <SetupNameEdit
                               name={displayName(row)}
-                              takenNames={history.map(displayName)}
+                              takenNames={namesTakenForTrack(row.track, row.id)}
                               onRename={(name) => handleRename(row.id, name)}
                             />
                             {row.setup.carVerified && (
@@ -405,7 +418,11 @@ const SetupSelectionModal = ({
         setupById={setupById}
         game={game}
         onClose={() => setSelectedId(null)}
-        takenNames={history.map(displayName)}
+        takenNames={
+          selectedId != null
+            ? namesTakenForTrack(setupById.get(selectedId)?.track, selectedId)
+            : []
+        }
         onRename={(name) => {
           if (selectedId != null) handleRename(selectedId, name);
         }}
@@ -428,16 +445,14 @@ const SetupSelectionModal = ({
             selectedId != null ? setupById.get(selectedId) : undefined;
           // Nessuna chiusura: il parent apre l'editor e ci sospende (`suspended`),
           // così annullando si torna a questo dettaglio. Chiude alla conferma.
-          if (row) onDuplicateSetup(row.setup, history.map(displayName));
+          // Il nuovo setup nasce per la combinazione corrente (auto/circuito
+          // di questo modal), non per quella della riga da cui è duplicato.
+          if (row) onDuplicateSetup(row.setup, namesTakenForTrack(track));
         }}
         onEdit={() => {
           const row =
             selectedId != null ? setupById.get(selectedId) : undefined;
-          if (row)
-            onEditSetup(
-              row,
-              history.filter((r) => r.id !== row.id).map(displayName),
-            );
+          if (row) onEditSetup(row, namesTakenForTrack(row.track, row.id));
         }}
       />
 
