@@ -115,14 +115,6 @@ export type TrackMapGeometry = {
   layoutLength: number;
 };
 
-export type TrackMapRow = {
-  game: GameSource;
-  track: string;
-  layout: string;
-  geometry: TrackMapGeometry;
-  created_at: string;
-};
-
 // --- Zone aggregate (from LapRecorder) ---
 
 export type ZoneData = {
@@ -373,16 +365,6 @@ export type R3EFrame = {
   inPitlane: boolean;
   flagsCheckered: boolean;
 };
-
-// --- Corner name seed data ---
-
-export type CornerEntry = {
-  distMin: number;
-  distMax: number;
-  name: string;
-};
-
-export type CornerNamesMap = Record<string, CornerEntry[]>;
 
 // --- Azure TTS voice info ---
 

@@ -18,7 +18,7 @@ See `package.json` scripts. The non-obvious parts:
 - `npm run selfcheck` runs the assert-based self-checks (struct offsets, prompt builder, session stats, voice summary) — no sim needed.
 - If TypeScript errors appear in `npm run dev`, stop and run `npm run typecheck` for the full list before restarting.
 - `npm run build:electron` is the only script that produces a distributable; `npm run build` is the Vite bundle alone.
-- **There is no test runner** (`npm test` does not exist). The gate before any commit is `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck` — four commands, all must exit zero.
+- **There is no test runner** (`npm test` does not exist). The gate before any commit is `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck && npm run fallow:check` — five commands, all must exit zero. `fallow:check` (dead code / unused exports / unresolved imports) is also wired into the `.husky/pre-commit` hook alongside lint, gated the same way (only runs when the commit touches `.ts`/`.tsx`), see `.fallowrc.json` for project-specific suppressions (dynamic `koffi` require, Vite `public/` assets, generated `r3e-corners.ts`, etc.).
 
 ## Development Tips
 
