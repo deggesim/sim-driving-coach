@@ -1,10 +1,27 @@
 {
   // This file is JSONC: fallow reads these comments; generic JSON tools may not.
   "$schema": "./node_modules/fallow/schema.json",
+  // Three electron-vite bundles, each its own entry (see electron.vite.config.ts)
   "entry": [
-    "src/index.{ts,tsx,js,jsx}",
-    "src/main.{ts,tsx,js,jsx}"
+    "src/main/main.ts",
+    "src/preload/index.ts",
+    "src/renderer/main.tsx"
   ],
+  // Self-checks are picked up by filename glob at runtime (scripts/run-selfchecks.mjs),
+  // never statically imported — without this every one is reported as an unused file.
+  "dynamicallyLoaded": ["src/**/*.selfcheck.ts"],
+  // r3e-corners.ts is generated (see .prettierignore); r3e-data.json is vendored data.
+  // .claude/ holds skill docs, not app source — silences the hidden-dir warning.
+  "ignorePatterns": ["src/main/db/r3e-corners.ts", ".claude/**"],
+  // koffi is loaded via a dynamic require() (see r3e/ace/ams2 readers + input-manager),
+  // invisible to static import analysis.
+  "ignoreDependencies": ["koffi"],
+  // Vite's public-dir convention, not a real module specifier — resolved at build time
+  // by Vite, not by fallow's resolver.
+  "ignoreUnresolvedImports": ["/icon.png"],
+  // Most "unused" flags here are exports only used inside their own declaring file
+  // (generic type params, `declare global` blocks, per-wheel helpers) — knip parity.
+  "ignoreExportsUsedInFile": true,
   "duplicates": {
     // Hide pair-only clones; focus on widespread copy-paste
     // worth refactoring. Lower to 2 to report every duplicate pair.
@@ -17,5 +34,9 @@
     //   "**/generated/**"     // OpenAPI, Protobuf codegen
     // ]
   },
-  "rules": {}
+  "rules": {
+    // react/react-dom are devDependencies by design: bundled into the renderer by Vite,
+    // never resolved from node_modules at runtime by the packaged app.
+    "dev-dependencies-in-production": "off"
+  }
 }

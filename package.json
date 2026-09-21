@@ -17,7 +17,7 @@
     "format:check": "prettier --check .",
     "rebuild:native": "npx @electron/rebuild -f -w better-sqlite3",
     "fallow": "fallow",
-    "fallow:check": "fallow check",
+    "fallow:check": "fallow dead-code",
     "fallow:fix": "fallow fix",
     "prepare": "husky"
   },
