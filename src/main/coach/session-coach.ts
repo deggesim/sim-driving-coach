@@ -526,6 +526,7 @@ export const createSessionCoachEngine = (
         comment,
         carName: resolved?.carName,
         trackName: resolved?.trackName,
+        game,
         stats,
       });
 

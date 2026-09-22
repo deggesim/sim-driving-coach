@@ -294,6 +294,26 @@ assert.ok(!ams2Lap.includes("slip ratio"));
 assert.ok(!ams2Lap.includes("corsa sosp."));
 assert.ok(!ams2Lap.includes("temp. gomme"));
 
+// AMS2's in-game HUD shows bar, unlike R3E/ACE (PSI) - the stored `tp` channel
+// stays PSI (see src/main/CLAUDE.md), only this game's prompt display converts.
+const ams2Session: SessionRow = { ...session, game: "ams2" };
+const ams2PressureLap = buildSynthesisPrompt({
+  ...input,
+  session: ams2Session,
+  laps: [lapWith([zone({ avgTyrePressure: [27.4, 27.6, 26.8, 26.9] })])],
+  stats: computeSessionStats({
+    laps: [],
+    bestLap: ams2Session.best_lap,
+    setups: [],
+    cornerNames: new Map(),
+  }),
+});
+assert.ok(
+  ams2PressureLap.includes("press. gomme 1.89/1.90/1.85/1.85 bar"),
+  "AMS2 tyre pressure converted from PSI to bar",
+);
+assert.ok(!ams2PressureLap.includes("PSI"), "no PSI label for AMS2");
+
 // Both levels must ask for varied levers and know what the channels mean: the
 // point of shipping them is that a proposal can be anchored to something else.
 assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("NON concentrare tutte le azioni"));

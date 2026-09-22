@@ -26,12 +26,18 @@ missing channel never reaches a prompt as a zero.
 | --- | --- | --- | --- |
 | `rpm` | `EngineRps` (rad/s → RPM) | `rpms` | `mRpm` |
 | `gLat` / `gLon` (g) | `Player_LocalGforce_X` / `_Z` (already g) | `accG[0]` / `accG[2]` | `mLocalAcceleration[0]` / `[2]` ÷ 9.80665 |
-| `tp` (PSI) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
+| `tp` (PSI, stored) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
 | `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — none: `mTyreSlipSpeed` is deprecated and `mTyreRPS` needs a tyre radius the SHM does not expose |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |
 | `at` / `rt` (°C) | — | `PHY.airTemp` / `PHY.roadTemp` | `mAmbientTemperature` / `mTrackTemperature` |
 | `rain` / `wind` / `cloud` | — | — | `mRainDensity` (0-1) / `mWindSpeed` (m/s) / `mCloudBrightness` (0-1). `mWindDirectionX/Y` not surfaced — a raw heading component isn't actionable without the track's own heading, which the SHM doesn't expose |
+
+`tp` stays PSI in storage/`channel-log` for all three games so `session-stats.ts`
+never needs to know which game it is averaging. Display is a separate concern:
+`prompt-builder.ts` (`pressureUnit()`) converts it back to bar only in the text
+sent to Claude for AMS2, whose in-game UI shows bar (R3E and ACE display PSI,
+matching what's already stored) — the raw channel and the other two games are untouched.
 
 Two traps worth remembering: AMS2's `mSuspensionTravel` (7340) and `mAirPressure`
 (7372) are declared **after** `mSequenceNumber` (7320) in `SharedMemory.h`, so

@@ -18,6 +18,7 @@ import type {
   AlertType,
   AnalysisComment,
   Deviation,
+  GameSource,
   ZoneData,
   LapRow,
   SessionRow,
@@ -86,9 +87,9 @@ Copri ogni area che i dati sostengono (freni, pressioni e temperature gomme, sos
 ## Regole Generali
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C). Se valore = -1, ignora.
-- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono sempre in PSI (vedi sotto).
+- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono in PSI (bar per AMS2, vedi sotto), l'unità è sempre indicata accanto al numero.
 - Bilanciamento frenata NEI SETUP (formato "front/rear%", es. "68.00/32.00%"): il PRIMO valore è SEMPRE l'anteriore, il SECONDO è SEMPRE il posteriore. Non invertire mai l'ordine.
-- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
@@ -109,7 +110,7 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
 
 NON concentrare tutte le azioni sulla stessa area: valuta ogni leva che i dati supportano (freni, pressioni gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio) oltre alla tecnica di guida. Proponi una leva SOLO se un dato del contesto la sostiene, e cita quel dato.
-Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI, "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
 <sintesi-vocale>
@@ -169,9 +170,22 @@ const wheelQuartet = (
     ? null
     : vals.map((v) => (v * scale).toFixed(digits)).join("/");
 
+/**
+ * `tp` is stored internally as PSI for all three games (see src/main/CLAUDE.md).
+ * AMS2's own UI shows bar, unlike R3E/ACE which show PSI, so only the AMS2
+ * prompt display converts back - the stored channel and the other games are untouched.
+ */
+const pressureUnit = (
+  game: GameSource,
+): { scale: number; digits: number; label: string } =>
+  game === "ams2"
+    ? { scale: 0.0689476, digits: 2, label: "bar" }
+    : { scale: 1, digits: 1, label: "PSI" };
+
 const summarizeLapZones = (
   zones: ZoneData[],
   cornerNames: Map<number, string>,
+  game: GameSource,
 ): string[] => {
   const significant = getSignificantZones(zones, null).slice(0, 8);
   const lines: string[] = [];
@@ -205,8 +219,9 @@ const summarizeLapZones = (
     // would drown the driving metrics above. Which of them arrive depends on the
     // game - see the coverage table in src/main/CLAUDE.md.
     const extra: string[] = [];
-    const tp = wheelQuartet(z.avgTyrePressure, 1, 1);
-    if (tp) extra.push(`press. gomme ${tp} PSI`);
+    const pu = pressureUnit(game);
+    const tp = wheelQuartet(z.avgTyrePressure, pu.scale, pu.digits);
+    if (tp) extra.push(`press. gomme ${tp} ${pu.label}`);
     const tt = wheelQuartet(z.avgTyreTempC, 1, 0);
     if (tt) extra.push(`temp. gomme ${tt} °C`);
     const sr = wheelQuartet(z.avgSlipRatio, 1, 3);
@@ -223,7 +238,10 @@ const summarizeLapZones = (
  * Authoritative numeric facts block, injected verbatim into both prompts.
  * The system prompts instruct the model to cite these numbers and never recompute.
  */
-export const buildStatsBlock = (stats: SessionStats): string => {
+export const buildStatsBlock = (
+  stats: SessionStats,
+  game: GameSource = "r3e",
+): string => {
   const lines: string[] = [];
   lines.push(
     `## Dati Calcolati (autorevoli — cita questi numeri, NON ricalcolare)`,
@@ -337,8 +355,9 @@ export const buildStatsBlock = (stats: SessionStats): string => {
         perWheel.push(
           `temp. freni ${c.brakeTempsC.map((v) => (v > 0 ? v.toFixed(0) : "n.d.")).join("/")} °C`,
         );
-      const tp = wheelQuartet(c.avgTyrePressure, 1, 1);
-      if (tp) perWheel.push(`press. gomme ${tp} PSI`);
+      const pu = pressureUnit(game);
+      const tp = wheelQuartet(c.avgTyrePressure, pu.scale, pu.digits);
+      if (tp) perWheel.push(`press. gomme ${tp} ${pu.label}`);
       const tt = wheelQuartet(c.avgTyreTempC, 1, 0);
       if (tt) perWheel.push(`temp. gomme ${tt} °C`);
       const sr = wheelQuartet(c.avgSlipRatio, 1, 3);
@@ -473,7 +492,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
               );
             }
           }
-          const summary = summarizeLapZones(zones, cornerNames);
+          const summary = summarizeLapZones(zones, cornerNames, session.game);
           if (summary.length > 0) parts.push(...summary);
           const btSummary = buildBrakeTempSummaryFromZones(zones);
           if (btSummary) parts.push(btSummary);
@@ -571,7 +590,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     parts.push("");
   }
 
-  parts.push(buildStatsBlock(input.stats));
+  parts.push(buildStatsBlock(input.stats, session.game));
 
   return parts.join("\n");
 };
@@ -623,6 +642,7 @@ export type CommentPromptInput = {
   comment: string;
   carName?: string;
   trackName?: string;
+  game?: GameSource;
   stats?: SessionStats;
 };
 
@@ -633,7 +653,7 @@ export const buildCommentPrompt = (input: CommentPromptInput): string => {
   if (input.trackName) parts.push(`- Circuito: ${input.trackName}`);
   parts.push("");
   if (input.stats) {
-    parts.push(buildStatsBlock(input.stats));
+    parts.push(buildStatsBlock(input.stats, input.game));
     parts.push("");
   }
   parts.push(`## Analisi a cui si riferisce il commento`);
