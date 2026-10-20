@@ -27,10 +27,10 @@ missing channel never reaches a prompt as a zero.
 | `rpm` | `EngineRps` (rad/s → RPM) | `rpms` | `mRpm` |
 | `gLat` / `gLon` (g) | `Player_LocalGforce_X` / `_Z` (already g) | `accG[0]` / `accG[2]` | `mLocalAcceleration[0]` / `[2]` ÷ 9.80665 |
 | `tp` (PSI, stored) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
-| `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — none: `mTyreSlipSpeed` is deprecated and `mTyreRPS` needs a tyre radius the SHM does not expose |
+| `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — derived from `mTyreRPS` (rad/s) with a tyre radius estimated in pure rolling (median of 100 samples, redone on every reader start); absent until estimated |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |
-| `tti` / `ttc` / `tto` (°C) | `TireTemp_*_Left/Center/Right`, oriented via `leftRightToInnerOuter` ("left" = outer on left wheels, inner on right wheels; **assumed**, to confirm on a long corner) | `tyreTempI/M/O` @368/384/400 (**not verified** on a live sim) | Task 3 |
+| `tti` / `ttc` / `tto` (°C) | `TireTemp_*_Left/Center/Right`, oriented via `leftRightToInnerOuter` ("left" = outer on left wheels, inner on right wheels; **assumed**, to confirm on a long corner) | `tyreTempI/M/O` @368/384/400 (**not verified** on a live sim) | `mTyreTempLeft/Center/Right` @20328/20344/20360, same orientation as R3E, **not verified** |
 | `at` / `rt` (°C) | — | `PHY.airTemp` / `PHY.roadTemp` | `mAmbientTemperature` / `mTrackTemperature` |
 | `rain` / `wind` / `cloud` | — | — | `mRainDensity` (0-1) / `mWindSpeed` (m/s) / `mCloudBrightness` (0-1). `mWindDirectionX/Y` not surfaced — a raw heading component isn't actionable without the track's own heading, which the SHM doesn't expose |
 
@@ -42,7 +42,7 @@ matching what's already stored) — the raw channel and the other two games are 
 
 Two traps worth remembering: AMS2's `mSuspensionTravel` (7340) and `mAirPressure`
 (7372) are declared **after** `mSequenceNumber` (7320) in `SharedMemory.h`, so
-their offsets legitimately sit past it; and R3E's slip ratio is derived, not
+their offsets legitimately sit past it; and R3E's and AMS2's slip ratio is derived, not
 measured, so confirm it against the sim before trusting a value.
 
 **Smoke-testing the channels** — `channel-log.ts` is called from all three
@@ -70,7 +70,7 @@ values swapped between `gLat` and `gLon` mean the axis mapping is wrong.
 
 ## `ams2/`
 
-- **ams2-reader.ts** — Opens the single SHM page `$pcars2$` via `koffi`, polls at 16ms. Reads `mSequenceNumber` before and after copying the buffer to detect torn reads (atomic snapshot); frozen sequence number for ~2s while playing → disconnect. Emits GameFrame natively + `lapComplete` (via `mLapsCompleted` increment). Car/track/layout are readable strings from SHM. Mock fallback on non-Windows
+- **ams2-reader.ts** — Opens the single SHM page `$pcars2$` via `koffi`, polls at 16ms. Reads `mSequenceNumber` before and after copying the buffer to detect torn reads (atomic snapshot); frozen sequence number for ~2s while playing → disconnect. Derives `sr` via `createSlipEstimator` (`ams2-slip.ts`: radius self-calibrated in pure rolling, reset in `start`). Emits GameFrame natively + `lapComplete` (via `mLapsCompleted` increment). Car/track/layout are readable strings from SHM. Mock fallback on non-Windows
 - **ams2-setup-vision.ts** — Decodifica dei setup AMS2 dalle schermate via Claude Vision (`claude-sonnet-5`), l'unico import setup che passa da un modello. Esporta `resolveAms2ScreenshotsDir()` (auto-detect dell'account Steam → cartella screenshot, appid `1066890`), `listAms2Screenshots(dir)` (nome + `mtimeMs`, dal più recente — ordinato per `mtime` e non per nome, che è cronologico solo finché Steam timestampa i file; nessuna thumbnail, le costruisce `setup:listScreenshots`) e `decodeAms2Setup(...)`. Due chiamanti — l'handler `setup:decodeSetup` e il comando vocale "acquisisci setup" — quindi il system prompt di OCR vive qui e non in `main.ts`
 - **ams2-struct.ts** — pCARS2 `SharedMemory` struct layout (`SHARED_MEMORY_VERSION = 14`), Pack=4 alignment, offsets derived from `SharedMemory.h`. Validated by `ams2-struct.selfcheck.ts` (run via `npm run selfcheck`)
 
