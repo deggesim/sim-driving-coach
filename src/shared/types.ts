@@ -165,6 +165,25 @@ export type ZoneData = {
   avgRainDensity?: number; // rain density 0-1, averaged over the zone (AMS2 only)
   avgWindSpeed?: number; // wind speed m/s, averaged over the zone (AMS2 only)
   avgCloudBrightness?: number; // cloud brightness 0-1, averaged over the zone (AMS2 only)
+  // Setup-ladder event counts (integers, see main/ladder-counters.ts). The two
+  // brake counts are on every zone with frames; the sr-based ones only when the
+  // zone's frames carried `sr`; the corner ones only on zones where a corner
+  // starts, and only when the lap carried `gLat`.
+  hardBrakeFrames?: number; // frames with brake > 30%
+  absHardBrakeFrames?: number; // of those, frames with ABS active
+  srHardBrakeFrames?: number; // hard-brake frames that carry `sr` (denominator for the lock counts)
+  lockFramesFront?: number; // hard-brake frames with a front wheel locking
+  lockFramesRear?: number; // hard-brake frames with a rear wheel locking
+  downshifts?: number; // downshifts under braking or lifted throttle
+  nervousDownshifts?: number; // of those, a rear wheel locking within 500 ms
+  exitFrames?: number; // frames on throttle while steering (corner exit)
+  spinFramesFront?: number; // exit frames with left/right front slip asymmetry
+  spinFramesRear?: number; // exit frames with left/right rear slip asymmetry
+  cornersEntry?: number; // corners with valid entry and mid-corner phases
+  cornersEntryUnder?: number; // of those, understeer on entry
+  cornersEntryOver?: number; // of those, oversteer on entry
+  cornersExit?: number; // corners with valid exit and mid-corner phases
+  cornersExitOver?: number; // of those, oversteer on exit
 };
 
 // --- Lap Record ---

@@ -216,9 +216,9 @@ Run: il gate completo. Expected: exit 0, con `ams2-slip self-check OK` e `ams2-s
     - `hardBrakeFrames`: frame con `brk > 0.30`;
     - `absHardBrakeFrames`: di questi, quelli con `abs > 0`.
   - Solo se i frame della zona hanno `sr`:
-    - `lockFramesFront` / `lockFramesRear`: frame di frenata forte con almeno una ruota dell'asse a `sr < -0.10`;
+    - `lockFramesFront` / `lockFramesRear`: frame di frenata forte con almeno una ruota dell'asse a `sr < -0.25` (decisione utente, da tarare);
     - `downshifts`: `gear` scende, `prev.gear > 0`, `brk > 0 || thr <= 0.05`;
-    - `nervousDownshifts`: scalate che entro **500 ms** (`ts`) hanno una posteriore a `sr < -0.05`;
+    - `nervousDownshifts`: scalate che entro **500 ms** (`ts`) hanno una posteriore a `sr < -0.10` (decisione utente, da tarare);
     - `exitFrames`: `thr > 0.5 && |str| > 0.05`;
     - `spinFramesFront` / `spinFramesRear`: frame di uscita con `|sr[0]−sr[1]| > 0.15` (o `|sr[2]−sr[3]|`).
   - Solo se i frame hanno `gLat`: `cornersEntry`, `cornersEntryUnder`, `cornersEntryOver`, `cornersExit`, `cornersExitOver`.

@@ -54,7 +54,7 @@ Dati: `avgBrakeTempC` per zona (già in `ZoneData`). Media per asse sui giri giu
 Due regole, secondo se l'auto ha l'ABS attivo nei giri giudicati (ABS considerato attivo se `abss` lo indica o se `abs` scatta almeno una volta — dettaglio al builder).
 
 **Senza ABS** (slide 12-14) **(scelta, non contestata dall'utente)**:
-- Frame di frenata = `brk > 0,30`. Bloccaggio = una ruota con `sr < −0,10`.
+- Frame di frenata = `brk > 0,30`. Bloccaggio = una ruota con `sr < −0,25` **(utente, valore di partenza da tarare sul sim: la frenata al limite senza bloccaggio arriva già a −0,08…−0,15 su molti modelli di gomma)**.
 - Per asse: quota dei frame di frenata con almeno una ruota dell'asse bloccata.
 - `da correggere` se un asse blocca in > **5 %** dei frame di frenata **e** almeno il doppio dell'altro asse. Anteriore → bilanciamento verso il posteriore ("l'auto tira dritta"); posteriore → verso l'anteriore ("il posteriore scoda").
 
@@ -80,7 +80,7 @@ Inserimento più basso del centro curva di oltre il **15 %** = curva sottosterza
 Sintomo **(utente)**: in scalata il posteriore scoda. Slide 20-23: prima si apre la coast ramp, poi si riduce il freno motore.
 
 - Scalata = `gear` che scende tra due frame consecutivi con `brk > 0` o `thr ≤ 0,05`.
-- Scalata nervosa = entro **0,5 s** una ruota posteriore ha `sr < −0,05` **(scelta)**: soglia più bassa del bloccaggio del passo 2, perché il freno motore fa pattinare la ruota all'indietro senza bloccarla.
+- Scalata nervosa = entro **0,5 s** una ruota posteriore ha `sr < −0,10` **(utente, da tarare sul sim)**: soglia più bassa del bloccaggio del passo 2, perché il freno motore fa slittare la ruota all'indietro senza bloccarla.
 - `da correggere` se > **20 %** delle scalate sono nervose **(scelta, per simmetria con la soglia ABS dell'utente)** → coast ramp più aperta; se il setup attivo la mostra già al minimo, meno freno motore. In AMS2 un valore *basso* di engine braking = *più* freno motore (slide 17): la proposta deve dirlo.
 - `non valutabile`: senza `sr`; auto a trazione anteriore (le posteriori non subiscono freno motore) **(scelta)**. Come riconoscere la trazione: lasciato al builder (dal setup attivo se lo espone, altrimenti dallo slip in trazione: le ruote motrici sono quelle con slip medio in trazione nettamente maggiore).
 

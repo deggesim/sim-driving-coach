@@ -10,6 +10,7 @@
 import { EventEmitter } from "events";
 import { CALIBRATION_LAPS, ZONE_SIZE_M } from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
+import { ladderCounters } from "./ladder-counters.js";
 
 /** Minimal reader interface required by LapRecorder (duck-typed by both R3EReader and AceReader). */
 interface LapEventReader {
@@ -80,6 +81,9 @@ export const aggregateZones = (
   }
 
   const blipSet = buildBlipSet(frames);
+  const counters = ladderCounters(frames, (d) =>
+    Math.min(Math.floor(d / ZONE_SIZE_M), numZones - 1),
+  );
   const zones: ZoneData[] = [];
 
   for (let z = 0; z < numZones; z++) {
@@ -223,6 +227,7 @@ export const aggregateZones = (
       brakeEndDist,
       throttlePickupDist,
       ...aidPreset,
+      ...counters.get(z),
       ...(avgBrakeTempC !== undefined && { avgBrakeTempC }),
       ...(rpmValues.length > 0 && { avgRpm: avgArr(rpmValues) }),
       ...(maxGLat !== undefined && { maxGLat }),

@@ -100,4 +100,15 @@ assert.equal(surf[0].avgTyreTempCenterC, undefined);
 assert.equal(surf[0].avgTyreTempOuterC, undefined);
 assert.equal(bare[0].avgTyreTempInnerC, undefined);
 
+// Ladder counters: hard-brake frames are always on the zone, even at 0.
+const hard = aggregateZones(
+  [frame(10, { brk: 0.8, abs: 1 }), frame(60, { brk: 0.1 })],
+  100,
+);
+assert.equal(hard[0].hardBrakeFrames, 1);
+assert.equal(hard[0].absHardBrakeFrames, 1);
+assert.equal(hard[1].hardBrakeFrames, 0);
+assert.equal(hard[1].absHardBrakeFrames, 0);
+assert.equal(hard[0].lockFramesFront, undefined, "no sr, no lock counter");
+
 console.log("lap-recorder.selfcheck OK");
