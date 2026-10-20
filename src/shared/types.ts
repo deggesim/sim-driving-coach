@@ -88,6 +88,9 @@ export type CompactFrame = {
   sr?: number[]; // slip ratios [FL, FR, RL, RR] (negative = locking)
   sus?: number[]; // suspension travel m [FL, FR, RL, RR]
   tt?: number[]; // tyre temps °C [FL, FR, RL, RR]
+  tti?: number[]; // tyre surface temp °C, inner shoulder [FL, FR, RL, RR]
+  ttc?: number[]; // tyre surface temp °C, centre [FL, FR, RL, RR]
+  tto?: number[]; // tyre surface temp °C, outer shoulder [FL, FR, RL, RR]
   at?: number; // ambient air temperature °C (ACE, AMS2)
   rt?: number; // road/track surface temperature °C (ACE, AMS2)
   rain?: number; // rain density 0-1 (AMS2 only)
@@ -154,6 +157,9 @@ export type ZoneData = {
   avgSlipRatioRelease?: [number, number, number, number]; // FL/FR/RL/RR
   avgSuspTravel?: [number, number, number, number]; // m FL/FR/RL/RR
   avgTyreTempC?: [number, number, number, number]; // °C FL/FR/RL/RR
+  avgTyreTempInnerC?: [number, number, number, number]; // surface °C, inner shoulder FL/FR/RL/RR
+  avgTyreTempCenterC?: [number, number, number, number]; // surface °C, centre FL/FR/RL/RR
+  avgTyreTempOuterC?: [number, number, number, number]; // surface °C, outer shoulder FL/FR/RL/RR
   avgAirTempC?: number; // ambient air temp °C, averaged over the zone
   avgRoadTempC?: number; // road/track surface temp °C, averaged over the zone
   avgRainDensity?: number; // rain density 0-1, averaged over the zone (AMS2 only)

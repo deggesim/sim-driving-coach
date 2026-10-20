@@ -145,7 +145,7 @@ export const aggregateZones = (
 
     const quartetFrom = (
       frames: CompactFrame[],
-      key: "tp" | "sr" | "sus" | "tt",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
     ): [number, number, number, number] | undefined => {
       const byWheel = [0, 1, 2, 3].map((i) =>
         frames
@@ -157,7 +157,7 @@ export const aggregateZones = (
         : undefined;
     };
     const quartet = (
-      key: "tp" | "sr" | "sus" | "tt",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
     ): [number, number, number, number] | undefined =>
       quartetFrom(zoneFrames, key);
 
@@ -173,6 +173,9 @@ export const aggregateZones = (
     const avgSlipRatio = quartet("sr");
     const avgSuspTravel = quartet("sus");
     const avgTyreTempC = quartet("tt");
+    const avgTyreTempInnerC = quartet("tti");
+    const avgTyreTempCenterC = quartet("ttc");
+    const avgTyreTempOuterC = quartet("tto");
     // Diff diagnostics: same slip-ratio channel, split by drivetrain phase.
     const releaseFrames = zoneFrames.filter((f) => f.thr <= 0.05);
     const avgSlipRatioThrottle = quartetFrom(throttleFrames, "sr");
@@ -230,6 +233,9 @@ export const aggregateZones = (
       ...(avgSlipRatioRelease && { avgSlipRatioRelease }),
       ...(avgSuspTravel && { avgSuspTravel }),
       ...(avgTyreTempC && { avgTyreTempC }),
+      ...(avgTyreTempInnerC && { avgTyreTempInnerC }),
+      ...(avgTyreTempCenterC && { avgTyreTempCenterC }),
+      ...(avgTyreTempOuterC && { avgTyreTempOuterC }),
       ...(airTempValues.length > 0 && { avgAirTempC: avgArr(airTempValues) }),
       ...(roadTempValues.length > 0 && {
         avgRoadTempC: avgArr(roadTempValues),

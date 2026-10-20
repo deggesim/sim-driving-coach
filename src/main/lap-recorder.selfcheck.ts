@@ -89,4 +89,15 @@ assert.equal(bare[0].maxGLat, undefined);
 assert.equal(bare[0].avgSuspTravel, undefined);
 assert.ok(bare[0].avgBrakeTempC, "brake temps are outside the extended block");
 
+// Surface temps (inner shoulder here): averaged per wheel like `tt`, absent when
+// no frame carried the channel.
+const surf = aggregateZones(
+  [frame(10, { tti: [80, 80, 80, 80] }), frame(20, { tti: [82, 82, 82, 82] })],
+  100,
+);
+assert.deepEqual(surf[0].avgTyreTempInnerC, [81, 81, 81, 81]);
+assert.equal(surf[0].avgTyreTempCenterC, undefined);
+assert.equal(surf[0].avgTyreTempOuterC, undefined);
+assert.equal(bare[0].avgTyreTempInnerC, undefined);
+
 console.log("lap-recorder.selfcheck OK");
