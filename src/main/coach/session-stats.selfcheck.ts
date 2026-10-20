@@ -330,4 +330,20 @@ assert.ok(
 assert.equal(flat.suspAsymFrontMm, null, "no travel data ⇒ null, not 0");
 assert.equal(flat.slipAsymFrontThrottle, null);
 
+// Setup ladder: none in Leaderboard (tyres fixed at 85 °C), present otherwise.
+const ladderIn = {
+  laps: [mkLap(1, 100, [zone(8)]), mkLap(2, 100, [zone(8)])],
+  bestLap: 100,
+  setups: [],
+  cornerNames: new Map<number, string>(),
+};
+assert.equal(
+  computeSessionStats({ ...ladderIn, leaderboardMode: true }).setupLadder,
+  null,
+);
+assert.ok(
+  computeSessionStats(ladderIn).setupLadder,
+  "ladder outside Leaderboard",
+);
+
 console.log("session-stats.selfcheck OK");
