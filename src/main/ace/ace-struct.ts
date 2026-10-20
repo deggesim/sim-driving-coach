@@ -154,6 +154,10 @@ export const PHY = {
   roadTemp: 292, // float - road surface temperature (°C)
   clutch: 364, // float - clutch position 0-1
   brakeTemp: 348, // float[4] FL,FR,RL,RR
+  // Surface temps inner/middle/outer: offsets from the SHM spec, not verified on a live sim.
+  tyreTempI: 368, // float[4] FL,FR,RL,RR - inner surface temperature (°C)
+  tyreTempM: 384, // float[4] FL,FR,RL,RR - middle surface temperature (°C)
+  tyreTempO: 400, // float[4] FL,FR,RL,RR - outer surface temperature (°C)
   slipRatio: 640, // float[4] FL,FR,RL,RR - longitudinal tyre slip ratio
   slipAngle: 656, // float[4] FL,FR,RL,RR - tyre slip angle (rad)
   brakeTorque: 716, // float[4] FL,FR,RL,RR - brake torque (Nm)

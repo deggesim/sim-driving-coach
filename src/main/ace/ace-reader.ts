@@ -44,6 +44,7 @@ import {
 } from "../../shared/alert-types.js";
 import type { GameFrame, CompactFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
+import { surfaceTemps } from "../tyre-temps.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -393,6 +394,9 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const wheelsPressure = readFloatArray(physBuf, PHY.wheelsPressure, 4);
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
+      const tyreTempI = readFloatArray(physBuf, PHY.tyreTempI, 4);
+      const tyreTempM = readFloatArray(physBuf, PHY.tyreTempM, 4);
+      const tyreTempO = readFloatArray(physBuf, PHY.tyreTempO, 4);
       const slipRatio = readFloatArray(physBuf, PHY.slipRatio, 4);
       const airTemp = readFloat(physBuf, PHY.airTemp);
       const roadTemp = readFloat(physBuf, PHY.roadTemp);
@@ -563,6 +567,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           sr: [...slipRatio],
           sus: [...suspensionTravel],
           tt: [...tyreCoreTemp],
+          ...surfaceTemps(tyreTempI, tyreTempM, tyreTempO),
           at: airTemp,
           rt: roadTemp,
           wx: playerWx,

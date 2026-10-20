@@ -30,6 +30,7 @@ missing channel never reaches a prompt as a zero.
 | `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — none: `mTyreSlipSpeed` is deprecated and `mTyreRPS` needs a tyre radius the SHM does not expose |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |
+| `tti` / `ttc` / `tto` (°C) | `TireTemp_*_Left/Center/Right`, oriented via `leftRightToInnerOuter` ("left" = outer on left wheels, inner on right wheels; **assumed**, to confirm on a long corner) | `tyreTempI/M/O` @368/384/400 (**not verified** on a live sim) | Task 3 |
 | `at` / `rt` (°C) | — | `PHY.airTemp` / `PHY.roadTemp` | `mAmbientTemperature` / `mTrackTemperature` |
 | `rain` / `wind` / `cloud` | — | — | `mRainDensity` (0-1) / `mWindSpeed` (m/s) / `mCloudBrightness` (0-1). `mWindDirectionX/Y` not surfaced — a raw heading component isn't actionable without the track's own heading, which the SHM doesn't expose |
 

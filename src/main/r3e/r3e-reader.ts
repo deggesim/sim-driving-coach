@@ -30,6 +30,7 @@ import {
 } from "../../shared/alert-types.js";
 import type { R3EFrame, CompactFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
+import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -79,7 +80,7 @@ type FrameExt = {
   sr: number[];
   sus: number[];
   tt: number[];
-};
+} & Pick<CompactFrame, "tti" | "ttc" | "tto">;
 
 type ParsedFrame = R3EFrame & { ext: FrameExt };
 
@@ -148,6 +149,17 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     const tireTempFR = readFloat(buf, "TireTemp_FR_Center");
     const tireTempRL = readFloat(buf, "TireTemp_RL_Center");
     const tireTempRR = readFloat(buf, "TireTemp_RR_Center");
+
+    // Surface temps: "left"/"right" are assumed to be the sensor's physical side
+    // of the car, so inner/outer follow the wheel side. Orientation not yet
+    // confirmed on a live sim (check on a long corner).
+    const wheels = ["FL", "FR", "RL", "RR"] as const;
+    const surface = (side: "Left" | "Center" | "Right"): number[] =>
+      wheels.map((w) => readFloat(buf, `TireTemp_${w}_${side}`));
+    const [innerTemps, outerTemps] = leftRightToInnerOuter(
+      surface("Left"),
+      surface("Right"),
+    );
 
     // TirePressure is kPa with -1 = N/A (r3e.h). Converted to PSI so the `tp`
     // channel carries one unit for all three games; a quartet with any -1 is
@@ -263,6 +275,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         sr: slipRatio,
         sus: suspDeflection,
         tt: tyreTemp,
+        ...surfaceTemps(innerTemps, surface("Center"), outerTemps),
       },
     };
   };
