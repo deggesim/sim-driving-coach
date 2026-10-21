@@ -19,6 +19,7 @@ const median = (v: number[]): number =>
  */
 export const createSlipEstimator = (): {
   slip: (s: SlipSample) => number[] | undefined;
+  radius: () => number[] | undefined; // calibrated per-wheel radius (m), if any
   reset: () => void;
 } => {
   let samples: number[][] = [[], [], [], []];
@@ -51,6 +52,7 @@ export const createSlipEstimator = (): {
         (w, i) => (r[i] * Math.abs(w) - s.speedMps) / s.speedMps,
       );
     },
+    radius: () => radius,
     reset: () => {
       samples = [[], [], [], []];
       radius = undefined;

@@ -235,6 +235,35 @@ assert.deepEqual(calibTyres.pressureState, ["bassa", "alta", "ok", "ok"]);
 assert.equal(stepOf(calib, 4).status, "fix");
 assert.ok(stepOf(calib, 4).reason.includes("ANT-SX"));
 assert.ok(!stepOf(calib, 4).reason.includes("POST-SX"));
+// The reason names the axle (largest |Δ|) and only its out-of-tolerance wheels.
+assert.equal(
+  stepOf(calib, 4).reason,
+  "asse ANT: Δ ANT-SX -1.5 °C → alzare, Δ ANT-DX +1.5 °C → abbassare",
+);
+// Rear axle wins (|Δ| 3.0 vs 1.5): the front wheel that is also off is not listed.
+const rearAxle = ladder(
+  okZone({
+    avgTyreTempInnerC: [85, 87, 84, 88],
+    avgTyreTempCenterC: [86.5, 87, 87, 86],
+    avgTyreTempOuterC: [85, 87, 84, 88],
+  }),
+);
+assert.equal(
+  stepOf(rearAxle, 4).reason,
+  "asse POST: Δ POST-SX +3.0 °C → abbassare, Δ POST-DX -2.0 °C → alzare",
+);
+// Tie on |Δ| between the axles: the front.
+const axleTie = ladder(
+  okZone({
+    avgTyreTempInnerC: [85, 87, 85, 87],
+    avgTyreTempCenterC: [87, 87, 83, 87],
+    avgTyreTempOuterC: [85, 87, 85, 87],
+  }),
+);
+assert.equal(
+  stepOf(axleTie, 4).reason,
+  "asse ANT: Δ ANT-SX +2.0 °C → abbassare",
+);
 assert.deepEqual(calibTyres.hotPressurePsi, [27, 27, 26, 26]);
 assert.equal(calibTyres.judgedLaps, 2);
 assert.equal(calibTyres.driftPsi, null, "drift needs ≥ 3 judged laps");

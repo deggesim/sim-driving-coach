@@ -321,6 +321,22 @@ assert.ok(!ams2PressureLap.includes("PSI"), "no PSI label for AMS2");
 // "cover every area" wording must be gone from both levels.
 assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("PASSO CORRENTE"));
 assert.ok(SESSION_SYSTEM_PROMPT.includes("leva del passo corrente"));
+// Level 2 only: the restriction holds WHILE a current step exists (spec); with
+// every step ok / non valutabile it may propose on the other areas again.
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes(
+    "proposte numerate anche sulle altre aree, ciascuna con il dato che la sostiene",
+  ),
+  "Level 2 may propose on other areas when the ladder has no current step",
+);
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes("ogni passo ok o non valutabile"),
+  "no current step = every step ok or non valutabile",
+);
+assert.ok(
+  !SYNTHESIS_SYSTEM_PROMPT.includes("anche sulle altre aree"),
+  "Level 1 rule unchanged",
+);
 assert.ok(!SYNTHESIS_SYSTEM_PROMPT.includes("NON concentrare tutte le azioni"));
 assert.ok(!SESSION_SYSTEM_PROMPT.includes("Copri ogni area"));
 assert.ok(!SESSION_SYSTEM_PROMPT.includes("NON limitarti ai freni"));

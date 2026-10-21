@@ -96,6 +96,7 @@ export const createAms2Reader = (
   let lastSectors: [number, number, number] = [-1, -1, -1];
   let lastSeq = -1;
   const slipEstimator = createSlipEstimator();
+  let radiusLogged = false; // one smoke-test line per reader start
   let staleCount = 0;
 
   const isNullPtr = (ptr: NativePointer): boolean => {
@@ -309,6 +310,13 @@ export const createAms2Reader = (
         steering,
         gLat: localAcc[0] / G,
       });
+      const radius = slipEstimator.radius();
+      if (radius && !radiusLogged) {
+        radiusLogged = true;
+        console.log(
+          `[AMS2] raggio ruota calibrato: ${(radius.reduce((a, b) => a + b, 0) / radius.length).toFixed(2)} m, slip disponibile`,
+        );
+      }
       const ambientTemp = readFloat(buf, OFF.ambientTemp);
       const trackTemp = readFloat(buf, OFF.trackTemp);
       const rainDensity = readFloat(buf, OFF.rainDensity);
@@ -458,6 +466,7 @@ export const createAms2Reader = (
     start: () => {
       stopped = false;
       slipEstimator.reset();
+      radiusLogged = false;
       if (isMock) startMock();
       else tryConnect();
     },

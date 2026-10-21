@@ -323,12 +323,28 @@ export const computeSetupLadder = (
     const L = "pressioni";
     if (!tyres) return step(4, L, "na", noTemps);
     const { deltaC, pressureState } = tyres.summary;
-    const off = W.filter((w) => pressureState[w] !== "ok").map(
-      (w) =>
-        `${WHEELS[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "alta" ? "abbassare" : "alzare"}`,
-    );
+    const off = W.filter((w) => pressureState[w] !== "ok");
+    // The axle with the largest |Δ| among the out-of-tolerance wheels; a tie
+    // goes to the front.
+    const axleMax = (ws: number[]): number =>
+      Math.max(
+        0,
+        ...off.filter((w) => ws.includes(w)).map((w) => Math.abs(deltaC[w])),
+      );
+    const front = axleMax([0, 1]) >= axleMax([2, 3]);
+    const wheels = off.filter((w) => w < 2 === front);
     return off.length
-      ? step(4, L, "fix", `Δ ${off.join(", ")}`)
+      ? step(
+          4,
+          L,
+          "fix",
+          `asse ${front ? "ANT" : "POST"}: ${wheels
+            .map(
+              (w) =>
+                `Δ ${WHEELS[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "alta" ? "abbassare" : "alzare"}`,
+            )
+            .join(", ")}`,
+        )
       : step(4, L, "ok", `Δ entro ±${TYRE_BALANCE_TOL_C} °C su tutte le ruote`);
   })();
   const camber = ((): LadderStep => {
