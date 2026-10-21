@@ -330,17 +330,25 @@ assert.ok(
 assert.equal(flat.suspAsymFrontMm, null, "no travel data ⇒ null, not 0");
 assert.equal(flat.slipAsymFrontThrottle, null);
 
-// Setup ladder: none in Leaderboard (tyres fixed at 85 °C), present otherwise.
+// Setup ladder: always computed. In Leaderboard (tyres fixed at 85 °C) steps
+// 4-5 are na and there are no tyre lines.
 const ladderIn = {
-  laps: [mkLap(1, 100, [zone(8)]), mkLap(2, 100, [zone(8)])],
+  laps: Array.from({ length: 5 }, (_, i) => mkLap(i + 1, 100, [zone(8)])),
   bestLap: 100,
   setups: [],
   cornerNames: new Map<number, string>(),
 };
-assert.equal(
-  computeSessionStats({ ...ladderIn, leaderboardMode: true }).setupLadder,
-  null,
-);
+const lbLadder = computeSessionStats({
+  ...ladderIn,
+  leaderboardMode: true,
+}).setupLadder;
+assert.ok(lbLadder, "ladder also in Leaderboard");
+for (const step of lbLadder.steps.filter((x) => x.n === 4 || x.n === 5)) {
+  assert.equal(step.status, "na");
+  assert.equal(step.reason, "gomme fisse a 85 °C (Leaderboard)");
+}
+assert.equal(lbLadder.steps.length, 6, "steps 4 and 5 are both present");
+assert.equal(lbLadder.tyres.length, 0, "no tyre lines in Leaderboard");
 assert.ok(
   computeSessionStats(ladderIn).setupLadder,
   "ladder outside Leaderboard",

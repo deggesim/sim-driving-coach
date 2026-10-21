@@ -4,7 +4,11 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { computeSetupLadder, type SetupLadder } from "./setup-ladder.js";
+import {
+  computeSetupLadder,
+  ladderFlags,
+  type SetupLadder,
+} from "./setup-ladder.js";
 import type { LapRow, ZoneData } from "../../shared/types.js";
 
 const mkLap = (
@@ -353,6 +357,46 @@ assert.equal(stepOf(fixed, 1).status, "fix");
 assert.equal(stepOf(fixed, 1).proposable, false);
 assert.equal(fixed.current, 2);
 
+// --- leaderboardMode: tyres fixed at 85 °C, so steps 4-5 are na and no tyre lines ---
+const lbZone = okZone({
+  avgTyreTempCenterC: [95, 95, 95, 95], // would be "alta" outside Leaderboard
+  spinFramesRear: 50, // step 6 still judged
+});
+const lb = computeSetupLadder(stint(5, lbZone), new Map(), {
+  fixedSetup: false,
+  leaderboardMode: true,
+});
+assert.equal(lb.steps.length, 6, "Leaderboard keeps all six steps");
+for (const n of [4, 5]) {
+  assert.equal(stepOf(lb, n).status, "na");
+  assert.equal(stepOf(lb, n).reason, "gomme fisse a 85 °C (Leaderboard)");
+}
+assert.equal(stepOf(lb, 1).status, "ok", "steps 1-3 judged as usual");
+assert.equal(stepOf(lb, 6).status, "fix", "step 6 judged as usual");
+assert.equal(lb.current, 6);
+assert.equal(lb.tyres.length, 0, "no tyre lines in Leaderboard");
+assert.equal(
+  stepOf(ladder(lbZone), 4).status,
+  "fix",
+  "the same data outside Leaderboard is judged",
+);
+const lbFixed = computeSetupLadder(
+  stint(5, okZone({ lockFramesFront: 8 })),
+  new Map(),
+  { fixedSetup: true, leaderboardMode: true },
+);
+assert.equal(lbFixed.steps.length, 2, "Leaderboard + Fixed Setup: steps 1-2");
+assert.equal(lbFixed.current, 2);
+assert.equal(lbFixed.tyres.length, 0);
+assert.equal(
+  computeSetupLadder(stint(2, okZone()), new Map(), {
+    fixedSetup: false,
+    leaderboardMode: true,
+  }).tyres.length,
+  0,
+  "also while laps are missing",
+);
+
 // --- tyres: one per segment with ≥ 2 judged laps ---
 const twoStints = computeSetupLadder(
   [
@@ -372,5 +416,22 @@ assert.equal(twoStints.tyres.length, 2);
 assert.equal(twoStints.tyres[0].setupLabel, "Prove A");
 assert.equal(twoStints.tyres[1].setupLabel, "Gara B");
 assert.equal(twoSetups.tyres.length, 1, "a 4-lap segment has 1 judged lap");
+
+// --- ladderFlags: the DB columns default to 1 for every game, but the two
+// flags only mean something on R3E ---
+const both = { leaderboardMode: true, fixedSetup: true };
+assert.deepEqual(ladderFlags("ace", both), {
+  leaderboardMode: false,
+  fixedSetup: false,
+});
+assert.deepEqual(ladderFlags("ams2", both), {
+  leaderboardMode: false,
+  fixedSetup: false,
+});
+assert.deepEqual(ladderFlags("r3e", both), both);
+assert.deepEqual(
+  ladderFlags("r3e", { leaderboardMode: false, fixedSetup: true }),
+  { leaderboardMode: false, fixedSetup: true },
+);
 
 console.log("setup-ladder self-check OK");

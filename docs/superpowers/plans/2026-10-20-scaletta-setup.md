@@ -46,7 +46,7 @@
   - `leftRightToInnerOuter(left: number[], right: number[]): [inner: number[], outer: number[]]`: ruote sinistre (indici 0, 2) interna = right ed esterna = left; ruote destre (1, 3) interna = left ed esterna = right;
   - `surfaceTemps(inner: number[], center: number[], outer: number[]): Pick<CompactFrame, "tti" | "ttc" | "tto">`: restituisce `{}` se anche un solo valore è `<= 0` (copre R3E `-1` e lo `0` UNSET di AMS2), altrimenti i tre quartetti arrotondati a 0,1 °C.
 
-- [ ] **Step 1: scrivi i test che falliscono**
+- [x] **Step 1: scrivi i test che falliscono**
 
 `tyre-temps.selfcheck.ts`:
 ```ts
@@ -64,24 +64,24 @@ In `channel-log.selfcheck.ts`:
 - il frame "bare" contiene `sup=assente`;
 - il frame "full" con `tti:[85,80,72,74], ttc:[83,81,73,73], tto:[80,82,74,72]` contiene `sup(I-C-E)=85-83-80/80-81-82/72-73-74/74-73-72°C`.
 
-- [ ] **Step 2: verifica che falliscano**
+- [x] **Step 2: verifica che falliscano**
 
 Run: `npm run selfcheck`
 Expected: FAIL. `tsc` non trova `./tyre-temps.js` né i campi `tti/ttc/tto`.
 
-- [ ] **Step 3: implementa**
+- [x] **Step 3: implementa**
 
 - Aggiungi i tipi.
 - Crea `tyre-temps.ts` con le due funzioni.
 - In `lap-recorder.ts` estendi la chiave di `quartetFrom` a `"tti" | "ttc" | "tto"` ed emetti i tre campi `ZoneData` con lo stesso pattern di `avgTyreTempC`.
 - In `formatChannels` aggiungi, dopo `temp=…°C`, il pezzo `sup(I-C-E)=…°C`: per ogni ruota `tti-ttc-tto` con `toFixed(0)`, ruote separate da `/`, oppure `sup=assente` se manca `tti`.
 
-- [ ] **Step 4: verifica che passino**
+- [x] **Step 4: verifica che passino**
 
 Run: il gate completo.
 Expected: tutti e cinque a exit 0, `tyre-temps self-check OK` nell'output.
 
-- [ ] **Step 5: commit (dopo conferma)**: `feat(telemetry): canali temperatura superficiale interna/centro/esterna`
+- [x] **Step 5: commit (dopo conferma)**: `feat(telemetry): canali temperatura superficiale interna/centro/esterna`
 
 ---
 
@@ -94,7 +94,7 @@ Expected: tutti e cinque a exit 0, `tyre-temps self-check OK` nell'output.
 - Consumes: `leftRightToInnerOuter`, `surfaceTemps` (Task 1).
 - Produces: `PHY.tyreTempI = 368`, `PHY.tyreTempM = 384`, `PHY.tyreTempO = 400` (float[4]).
 
-- [ ] **Step 1: R3E**
+- [x] **Step 1: R3E**
 
 - Leggi `TireTemp_{FL,FR,RL,RR}_{Left,Center,Right}`: i nomi sono già mappati in `r3e-struct.ts`.
 - `const [inner, outer] = leftRightToInnerOuter(left, right)`.
@@ -102,24 +102,24 @@ Expected: tutti e cinque a exit 0, `tyre-temps self-check OK` nell'output.
 - Segui il percorso del campo `tt` per capire quale oggetto finisce nel `CompactFrame`.
 - Il commento dice che l'orientamento è **assunto** (spec, "Dati nuovi"), da confermare in curva lunga.
 
-- [ ] **Step 2: ACE**
+- [x] **Step 2: ACE**
 
 - Aggiungi i tre offset a `PHY`, con il commento "not verified on a live sim".
 - Leggi i tre `readFloatArray(physBuf, …, 4)` e spalma `...surfaceTemps(i, m, o)` nel `CompactFrame` (riga ~563).
 - `tt` resta `tyreCoreTemperature`.
 
-- [ ] **Step 3: documentazione**
+- [x] **Step 3: documentazione**
 
 In `src/main/CLAUDE.md`, sotto `tt` nella tabella "Per-game channel coverage", aggiungi la riga `tti` / `ttc` / `tto`:
 - R3E: `TireTemp_*_Left/Center/Right` orientati ("left" = esterna sulle ruote sinistre, interna sulle destre; **assunto**);
 - ACE: `tyreTempI/M/O` @368/384/400 (**non verificati**);
 - AMS2: lasciare "Task 3".
 
-- [ ] **Step 4: gate**
+- [x] **Step 4: gate**
 
 Run: il gate completo. Expected: exit 0.
 
-- [ ] **Step 5: commit (dopo conferma)**: `feat(r3e,ace): temperature superficiali interna/centro/esterna`
+- [x] **Step 5: commit (dopo conferma)**: `feat(r3e,ace): temperature superficiali interna/centro/esterna`
 
 ---
 
@@ -149,7 +149,7 @@ Comportamento di `slip`:
 - Dopo: `speedMps < 1` → `[0,0,0,0]`; altrimenti `(r·|ω| − v) / v` per ruota.
 - `// ponytail:` sul bias di circa l'1% delle motrici in rilascio (spec).
 
-- [ ] **Step 1: scrivi i test che falliscono**
+- [x] **Step 1: scrivi i test che falliscono**
 
 `ams2-slip.selfcheck.ts`:
 ```ts
@@ -173,12 +173,12 @@ In `ams2-struct.selfcheck.ts`:
 - `OFF.tyreTempCenter - OFF.tyreTempLeft === 16`, `OFF.tyreTempRight - OFF.tyreTempCenter === 16`;
 - `OFF.tyreTempRight + 16 <= AMS2_STRUCT_SIZE`.
 
-- [ ] **Step 2: verifica che falliscano**
+- [x] **Step 2: verifica che falliscano**
 
 Run: `npm run selfcheck`
 Expected: FAIL. Mancano il modulo e gli offset.
 
-- [ ] **Step 3: implementa**
+- [x] **Step 3: implementa**
 
 - Gli offset e `ams2-slip.ts`.
 - Nel reader:
@@ -189,18 +189,18 @@ Expected: FAIL. Mancano il modulo e gli offset.
   - sostituisci il commento "No `sr`…" con uno che descrive la stima.
 - Il commento ponytail sul TC euristico (~307) resta.
 
-- [ ] **Step 4: documentazione**
+- [x] **Step 4: documentazione**
 
 In `src/main/CLAUDE.md`:
 - riga `sr`, colonna AMS2: "derivato da `mTyreRPS` (rad/s) con raggio stimato in rotolamento puro (mediana di 100 campioni, rifatta a ogni avvio del reader); assente finché non stimato";
 - riga `tti/ttc/tto`, colonna AMS2: `mTyreTempLeft/Center/Right` @20328/20344/20360, stessa orientazione di R3E, **non verificati**;
 - nella frase "R3E's slip ratio is derived" aggiungi AMS2.
 
-- [ ] **Step 5: gate**
+- [x] **Step 5: gate**
 
 Run: il gate completo. Expected: exit 0, con `ams2-slip self-check OK` e `ams2-struct self-check OK`.
 
-- [ ] **Step 6: commit (dopo conferma)**: `feat(ams2): slip ratio da mTyreRPS e temperature superficiali`
+- [x] **Step 6: commit (dopo conferma)**: `feat(ams2): slip ratio da mTyreRPS e temperature superficiali`
 
 ---
 
@@ -233,7 +233,7 @@ Algoritmo delle curve (spec, passo 2), non determinato dalla firma:
 - `cornersEntry` +1 se entrata e centro valgono. Poi `kEntry < 0.85·kMid` → `cornersEntryUnder` +1; `kEntry > 1.15·kMid` → `cornersEntryOver` +1.
 - Lo stesso per l'uscita: `cornersExit` +1 se uscita e centro valgono, `kExit > 1.15·kMid` → `cornersExitOver` +1.
 
-- [ ] **Step 1: scrivi i test che falliscono**
+- [x] **Step 1: scrivi i test che falliscono**
 
 `ladder-counters.selfcheck.ts`, frame sintetici a 16 ms con `ts` crescente, `zoneOf = (d) => Math.floor(d / 50)`:
 - 10 frame `brk: 0.8`, `sr: [-0.2, -0.2, 0, 0]`, `abs: 0` in zona 0 → `hardBrakeFrames 10`, `lockFramesFront 10`, `lockFramesRear 0`, `absHardBrakeFrames 0`.
@@ -253,22 +253,22 @@ Questi conteggi sono raccolti in un'unica curva e attribuiti alla zona del primo
 
 In `lap-recorder.selfcheck.ts`: `aggregateZones` su frame di frenata forte espone `hardBrakeFrames` sulla zona.
 
-- [ ] **Step 2: verifica che falliscano**
+- [x] **Step 2: verifica che falliscano**
 
 Run: `npm run selfcheck`. Expected: FAIL, il modulo non esiste.
 
-- [ ] **Step 3: implementa `ladderCounters`**
+- [x] **Step 3: implementa `ladderCounters`**
 
 In `aggregateZones`:
 - `const counters = ladderCounters(frames, (d) => Math.min(Math.floor(d / ZONE_SIZE_M), numZones - 1))`;
 - `...counters.get(z)` in `zones.push`;
 - se la zona ha frame, emetti sempre `hardBrakeFrames` e `absHardBrakeFrames`, anche a 0.
 
-- [ ] **Step 4: gate**
+- [x] **Step 4: gate**
 
 Run: il gate completo. Expected: exit 0, con `ladder-counters self-check OK`.
 
-- [ ] **Step 5: commit (dopo conferma)**: `feat(lap-recorder): contatori per zona della scaletta setup`
+- [x] **Step 5: commit (dopo conferma)**: `feat(lap-recorder): contatori per zona della scaletta setup`
 
 ---
 
@@ -374,7 +374,7 @@ Regole, non determinate dalla firma:
 - **`fixedSetup`:** solo i passi 1 e 2, il passo 1 con `proposable: false`.
 - **`current`:** il primo passo con `status === "fix" && proposable`.
 
-- [ ] **Step 1: scrivi i test che falliscono**
+- [x] **Step 1: scrivi i test che falliscono**
 
 `setup-ladder.selfcheck.ts`, con un `mkLap` come quello di `session-stats.selfcheck.ts` e `zone()` con i campi della scaletta:
 - **Selezione dei giri:**
@@ -406,21 +406,21 @@ Regole, non determinate dalla firma:
 
 In `session-stats.selfcheck.ts`: `leaderboardMode: true` → `setupLadder === null`; senza flag → oggetto non nullo.
 
-- [ ] **Step 2: verifica che falliscano**
+- [x] **Step 2: verifica che falliscano**
 
 Run: `npm run selfcheck`. Expected: FAIL, il modulo non esiste.
 
-- [ ] **Step 3: implementa**
+- [x] **Step 3: implementa**
 
 - `computeSetupLadder`;
 - in `computeSessionStats`: `setupLadder: input.leaderboardMode ? null : computeSetupLadder(laps, setupLabelById, { fixedSetup: !!input.fixedSetup })`;
 - i campi `suspAsym*` e `slipAsym*` restano.
 
-- [ ] **Step 4: gate**
+- [x] **Step 4: gate**
 
 Run: il gate completo. Expected: exit 0, con `setup-ladder self-check OK`.
 
-- [ ] **Step 5: commit (dopo conferma)**: `feat(coach): scaletta setup calcolata in session-stats`
+- [x] **Step 5: commit (dopo conferma)**: `feat(coach): scaletta setup calcolata in session-stats`
 
 ---
 
@@ -435,7 +435,7 @@ Run: il gate completo. Expected: exit 0, con `setup-ladder self-check OK`.
 **Interfaces:**
 - Consumes: `SetupLadder`, `LadderStep`, `TyreSummary` (Task 5); `pressureUnit`, `wheelQuartet`, `WHEEL_ORDER` (già in `prompt-builder.ts`).
 
-- [ ] **Step 1: scrivi i test che falliscono**
+- [x] **Step 1: scrivi i test che falliscono**
 
 In `prompt-builder.selfcheck.ts`, `buildStatsBlock` con `setupLadder`:
 ```ts
@@ -465,11 +465,11 @@ Asserzioni:
 - `SESSION_SYSTEM_PROMPT` non contiene `Copri ogni area`;
 - le asserzioni esistenti sui titoli `##` passano invariate.
 
-- [ ] **Step 2: verifica che falliscano**
+- [x] **Step 2: verifica che falliscano**
 
 Run: `npm run selfcheck`. Expected: FAIL sulle nuove asserzioni.
 
-- [ ] **Step 3: `buildStatsBlock`**
+- [x] **Step 3: `buildStatsBlock`**
 
 Dopo le condizioni ambientali stampa la scaletta nel formato dei test:
 - una riga per passo (`  ${n} ${label}: ${STATO} — ${reason}`, con `ok` / `DA CORREGGERE` / `NON VALUTABILE`);
@@ -479,7 +479,7 @@ Dopo le condizioni ambientali stampa la scaletta nel formato dei test:
 
 Togli i suffissi `— verifica camber/altezza da terra`, `— verifica differenziale power` e `— verifica differenziale coast` dalle righe di asimmetria.
 
-- [ ] **Step 4: system prompt**
+- [x] **Step 4: system prompt**
 
 **`SYNTHESIS_SYSTEM_PROMPT`**: sostituisci il paragrafo "NON concentrare tutte le azioni…" (la riga "Canali di telemetria" resta) con:
 
@@ -498,7 +498,7 @@ Togli i suffissi `— verifica camber/altezza da terra`, `— verifica differenz
 
 > La scaletta setup mostra solo i passi 1-2; i condotti (passo 1) non sono modificabili.
 
-- [ ] **Step 5: chiamanti**
+- [x] **Step 5: chiamanti**
 
 Nelle tre chiamate a `computeSessionStats` di `session-coach.ts` passa:
 - `leaderboardMode: game === "r3e" && flags.leaderboardMode`;
@@ -510,11 +510,11 @@ Il commento sopra spiega che le due colonne valgono 1 di default per ogni gioco 
 
 Test (Review Focus 5): una funzione pura con quella condizione, ad esempio `statsFlags(game, flags)` esportata da `session-coach.ts` o messa in `setup-ladder.ts`, con un'asserzione `ace` + `{leaderboardMode: true}` → `leaderboardMode false`. Se non c'è modo di testarla senza DB, mettila in `setup-ladder.ts` e testala lì.
 
-- [ ] **Step 6: gate**
+- [x] **Step 6: gate**
 
 Run: il gate completo. Expected: exit 0.
 
-- [ ] **Step 7: commit (dopo conferma)**: `feat(coach): Livello 1 e 2 seguono la scaletta setup`
+- [x] **Step 7: commit (dopo conferma)**: `feat(coach): Livello 1 e 2 seguono la scaletta setup`
 
 ---
 

@@ -158,7 +158,7 @@ Canali semantici in `CompactFrame`, quartetti `[FL, FR, RL, RR]` in °C: `tti` (
 
 ### `SessionStats`
 
-Nuovo campo `setupLadder` (o `null` in Leaderboard), con:
+Nuovo campo `setupLadder` (sempre calcolato, anche in Leaderboard), con:
 - giri giudicati e giri mancanti;
 - per ogni passo: stato, motivo o direzione, numeri citabili;
 - passo corrente.
@@ -192,7 +192,8 @@ Una riga di sintesi più i dettagli per passo, nello stile per ruota già in uso
 - **Livello 1** (`SYNTHESIS_SYSTEM_PROMPT`): le azioni di setup riguardano **solo** il passo corrente: una leva, nel formato "Setup — X: A → B", con il numero della riga. I passi non valutabili saltati vanno nominati in una riga, con il motivo. Con meno giri del minimo, l'azione è "completa N giri". La tecnica di guida resta libera. Le righe di regola che oggi chiedono di coprire ogni area (riga ~112) e le indicazioni "verifica camber/differenziale" vicino alle asimmetrie vanno riscritte in modo da non contraddire la scaletta.
 - **Livello 2** (`SESSION_SYSTEM_PROMPT`): tabella di stato di tutti i passi. I passi dopo il corrente sono "da rivedere dopo", perché cambiano quando cambia il passo corrente. "Setup attuale vs proposto" contiene solo la leva del passo corrente, sui valori a freddo. Nessun nuovo titolo `##`: vale il vincolo di `prompt-builder.selfcheck.ts`.
 - **Setup Fisso** (oggi modificabili solo bilanciamento e pressione frenante): la scaletta mostra i passi 1-2. Il passo 1 viene stampato come informazione ma non è proponibile, perché i condotti non si toccano. Il passo 2 sì **(scelta)**.
-- **Leaderboard**: nessuna scaletta (gomme fisse a 85 °C).
+- **Leaderboard** **(scelta)**: la scaletta resta; i passi 4-5 sono non valutabili ("gomme fisse a 85 °C (Leaderboard)") e non si stampano le righe "Gomme setup", perché le temperature sono fisse e prive di significato. I passi 1, 2, 3 e 6 si giudicano come al solito. Con Leaderboard e Setup Fisso insieme (il default su R3E) vale la regola di Setup Fisso: passi 1-2.
+- **Livello 2, riga assente**: se nei Dati Calcolati c'è la riga "Scaletta setup", "Setup attuale vs proposto" è obbligatoria anche senza setup caricato (tabella dei passi sempre; tabella dei parametri e A → B solo con un setup). Senza la riga e senza setup, la sottosezione si omette; senza la riga ma con un setup, niente tabella dei passi né proposte numerate.
 - `<sintesi-vocale>`: invariata.
 
 ## Vincoli
@@ -213,7 +214,7 @@ Nomi e forma dei nuovi campi di `ZoneData` e del tipo `setupLadder`; come rileva
   - `lap-recorder`: i contatori per zona;
   - `ams2-struct`: l'offset di `mTyreRPS`;
   - stima del raggio e calcolo `sr` AMS2 su frame sintetici;
-  - `prompt-builder`: blocco presente o assente (Leaderboard), gerarchia `##` invariata;
+  - `prompt-builder`: blocco presente o assente (senza scaletta nessuna riga), gerarchia `##` invariata;
   - `channel-log`: i nuovi canali.
 - Con i sim accesi, fuori dal gate:
   - riga `canali` di ACE e AMS2 con `tti/ttc/tto` plausibili;

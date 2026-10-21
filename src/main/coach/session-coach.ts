@@ -17,6 +17,7 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import { ladderFlags } from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
@@ -252,6 +253,8 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        // Both columns default to 1 for every game: see ladderFlags.
+        ...ladderFlags(game, flags),
       });
 
       const prompt = buildSynthesisPrompt({
@@ -379,6 +382,7 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        ...ladderFlags(game, flags),
       });
 
       const prompt = buildSessionPrompt({
@@ -513,6 +517,7 @@ export const createSessionCoachEngine = (
             bestLap: bundle.session.best_lap,
             setups: bundle.setups,
             cornerNames,
+            ...ladderFlags(game, bundle.flags),
           })
         : undefined;
       const prompt = buildCommentPrompt({

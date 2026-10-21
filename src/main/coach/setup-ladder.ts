@@ -8,7 +8,7 @@
  */
 
 import { WHEEL_LABELS } from "../../shared/alert-types.js";
-import type { LapRow, ZoneData } from "../../shared/types.js";
+import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds, to tune on real sessions.
 const WARMUP_LAPS = 3; // laps 1-3 of a segment warm the tyres, judged from the 4th
@@ -152,10 +152,23 @@ const tyreSummary = (
   };
 };
 
+/**
+ * Session-row flags as the ladder wants them. Both DB columns default to 1 for
+ * every game, but Leaderboard and Fixed Setup only exist on R3E (same rule as
+ * buildSessionContext), so on ACE/AMS2 a default 1 must not switch the ladder off.
+ */
+export const ladderFlags = (
+  game: GameSource,
+  flags: { leaderboardMode: boolean; fixedSetup: boolean },
+): { leaderboardMode: boolean; fixedSetup: boolean } => ({
+  leaderboardMode: game === "r3e" && flags.leaderboardMode,
+  fixedSetup: game === "r3e" && flags.fixedSetup,
+});
+
 export const computeSetupLadder = (
   laps: LapRow[],
   setupLabelById: Map<number, string>,
-  opts: { fixedSetup: boolean },
+  opts: { fixedSetup: boolean; leaderboardMode?: boolean },
 ): SetupLadder => {
   const labelOf = (id: number | null): string | null =>
     id != null ? (setupLabelById.get(id) ?? null) : null;
@@ -191,7 +204,10 @@ export const computeSetupLadder = (
     lastJudgedLap: judged.at(-1)?.lap_number ?? null,
     judgedLaps: judged.length,
     lapsMissing,
-    tyres: analysed.flatMap((a) => (a ? [a.summary] : [])),
+    // Leaderboard: tyre temps are fixed at 85 °C, so no tyre lines either.
+    tyres: opts.leaderboardMode
+      ? []
+      : analysed.flatMap((a) => (a ? [a.summary] : [])),
   };
   if (lapsMissing > 0) return { ...base, steps: [], current: null };
 
@@ -299,8 +315,10 @@ export const computeSetupLadder = (
   })();
 
   // 4 - pressures, 5 - camber
-  const tyres = analysed.at(-1);
-  const noTemps = "mancano le temperature interna/centro/esterna";
+  const tyres = opts.leaderboardMode ? undefined : analysed.at(-1);
+  const noTemps = opts.leaderboardMode
+    ? "gomme fisse a 85 °C (Leaderboard)"
+    : "mancano le temperature interna/centro/esterna";
   const pressures = ((): LadderStep => {
     const L = "pressioni";
     if (!tyres) return step(4, L, "na", noTemps);

@@ -120,7 +120,9 @@ export type SessionStats = {
   slipAsymRearThrottle: number | null; // RL-RR in trazione
   slipAsymFrontRelease: number | null; // FL-FR fuori trazione (rilascio/frenata/coasting)
   slipAsymRearRelease: number | null; // RL-RR fuori trazione
-  setupLadder: SetupLadder | null; // null in Leaderboard (tyres fixed at 85 °C)
+  // Always computed; in Leaderboard (tyres fixed at 85 °C) steps 4-5 are "na" and
+  // there are no tyre lines. Nullable only so a prompt can be built without one.
+  setupLadder: SetupLadder | null;
 };
 
 export type ComputeStatsInput = {
@@ -348,10 +350,9 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     slipAsymRearRelease: meanSlipRelease
       ? gateSlip(meanSlipRelease[2] - meanSlipRelease[3])
       : null,
-    setupLadder: input.leaderboardMode
-      ? null
-      : computeSetupLadder(laps, setupLabelById, {
-          fixedSetup: !!input.fixedSetup,
-        }),
+    setupLadder: computeSetupLadder(laps, setupLabelById, {
+      fixedSetup: !!input.fixedSetup,
+      leaderboardMode: !!input.leaderboardMode,
+    }),
   };
 };
