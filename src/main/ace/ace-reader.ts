@@ -175,6 +175,8 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
   // True if the car was in the pit lane at any point since the last lap crossing.
   // Used to mark outlaps (and drive-through laps) as invalid regardless of ACE's own flag.
   let lapExitedPit = false;
+  // TEMP diagnostic: raw surface-temp arrays, to see why `surfaceTemps` drops them.
+  let rawTempsLogged = false;
   // Cumulative world-space distance: makes CompactFrame.d consistent with wx/wz
   // so the telemetry chart cursor and track map marker are perfectly aligned.
   let cumulativeDist = 0;
@@ -575,6 +577,12 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           wz: playerWz,
         });
         logChannels("ACE", lapFrames.at(-1));
+        if (!rawTempsLogged && speedKmh > 30) {
+          rawTempsLogged = true;
+          console.log(
+            `[ACE] DIAG raw temps I=${tyreTempI} M=${tyreTempM} O=${tyreTempO} core=${tyreCoreTemp} @${speedKmh.toFixed(0)}km/h`,
+          );
+        }
       }
 
       // Lap crossing: npos crosses start/finish (0.85→1.0 → 0.0→0.15).
