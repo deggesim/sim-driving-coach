@@ -14,6 +14,7 @@ import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
 const PLATEAU_C = 2; // |Δ mean centre temp vs previous lap| still settled
 const FALLBACK_WARMUP_LAPS = 3; // no centre temps: laps 1-3 warm the tyres, judged from the 4th
 const MIN_JUDGED_LAPS = 2;
+const READY_JUDGED_LAPS = 3; // judged laps before the stint is worth an analysis: the pressure drift needs ≥ 3
 const DUCT_FRONT_MAX_C = 700;
 const DUCT_IMBALANCE = 0.2; // |front − rear| / max(front, rear)
 const LOCK_SHARE = 0.05; // of the hard-brake frames carrying slip
@@ -438,4 +439,14 @@ export const computeSetupLadder = (
     steps,
     current: steps.find((s) => s.status === "fix" && s.proposable)?.n ?? null,
   };
+};
+
+/** Spoken at the end of a lap once the stint can be analysed, null while it cannot. */
+export const stintReadyMessage = (ladder: SetupLadder): string | null => {
+  if (ladder.judgedLaps < READY_JUDGED_LAPS) return null;
+  const current = ladder.steps.find((s) => s.n === ladder.current);
+  const verdict = current
+    ? `Primo passo da correggere: ${current.label}.`
+    : "Nessun passo da correggere.";
+  return `Stint analizzabile: ${ladder.judgedLaps} giri giudicati. ${verdict} Puoi metterti in pausa ed eseguire l'analisi.`;
 };

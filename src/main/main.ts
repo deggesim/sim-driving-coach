@@ -1041,6 +1041,21 @@ const setupPipeline = (): void => {
   recorder.attach(aceReader);
   recorder.attach(ams2Reader);
 
+  // Spoken at the end of a lap, once per setup segment, when the stint has
+  // enough settled laps to be worth an "Esegui analisi". Needs zones_json
+  // already patched in the DB (ACE saves the lap before the recorder builds them).
+  // ponytail: the key is the setup_id, so A → B → A leaves the second A silent.
+  let stintAnnouncedKey: string | null = null;
+  const announceStintReady = (): void => {
+    if (currentSessionId === null) return;
+    const key = `${currentSessionGame}:${currentSessionId}:${currentSetupId}`;
+    if (key === stintAnnouncedKey) return;
+    const text = sessionCoach.stintReady(currentSessionId, currentSessionGame);
+    if (!text) return;
+    stintAnnouncedKey = key;
+    void speakText(text);
+  };
+
   recorder.on(
     "lapRecorded",
     async (lap: LapRecord, { calibrating }: { calibrating: boolean }) => {
@@ -1093,6 +1108,7 @@ const setupPipeline = (): void => {
         } catch (err) {
           console.error("[Main] zones_json update error:", err);
         }
+        announceStintReady();
       }
 
       const deviations = baseline.ingestLap(

@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   computeSetupLadder,
   ladderFlags,
+  stintReadyMessage,
   type SetupLadder,
 } from "./setup-ladder.js";
 import type { LapRow, ZoneData } from "../../shared/types.js";
@@ -498,6 +499,23 @@ assert.equal(twoStints.tyres.length, 2);
 assert.equal(twoStints.tyres[0].setupLabel, "Prove A");
 assert.equal(twoStints.tyres[1].setupLabel, "Gara B");
 assert.equal(twoSetups.tyres.length, 1, "a 2-lap segment has 1 judged lap");
+
+// --- stintReadyMessage: spoken once the stint has ≥ 3 judged laps ---
+const readyOf = (laps: number, z: ZoneData): string | null =>
+  stintReadyMessage(
+    computeSetupLadder(stint(laps, z), new Map(), { fixedSetup: false }),
+  );
+assert.equal(readyOf(3, okZone()), null, "2 judged laps: not yet");
+assert.equal(
+  readyOf(4, okZone()),
+  "Stint analizzabile: 3 giri giudicati. Nessun passo da correggere. Puoi metterti in pausa ed eseguire l'analisi.",
+);
+assert.equal(
+  readyOf(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] })),
+  "Stint analizzabile: 4 giri giudicati. Primo passo da correggere: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
+);
+// No temperatures (fixed warm-up, 3 judged laps by lap 6) and every step na: still speaks.
+assert.ok(readyOf(6, zone())?.includes("Nessun passo da correggere"));
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
 // flags only mean something on R3E ---

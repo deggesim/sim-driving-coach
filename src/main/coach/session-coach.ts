@@ -17,7 +17,11 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
-import { ladderFlags } from "./setup-ladder.js";
+import {
+  computeSetupLadder,
+  ladderFlags,
+  stintReadyMessage,
+} from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
@@ -90,6 +94,8 @@ type SessionCoachOptions = {
 export type SessionCoachEngine = {
   updateApiKey: (apiKey: string) => void;
   updateCornerNames: (names: Map<number, string>) => void;
+  // The phrase to speak when the stint can be analysed, null while it cannot.
+  stintReady: (sessionId: number, game: GameSource) => string | null;
   analyzeSession: (
     sessionId: number,
     game: GameSource,
@@ -239,6 +245,18 @@ export const createSessionCoachEngine = (
     },
     updateCornerNames: (names) => {
       cornerNames = names;
+    },
+
+    stintReady: (sessionId, game) => {
+      const bundle = loadSessionBundle(game, sessionId);
+      if (!bundle) return null;
+      return stintReadyMessage(
+        computeSetupLadder(
+          bundle.laps,
+          new Map(),
+          ladderFlags(game, bundle.flags),
+        ),
+      );
     },
 
     analyzeSession: async (sessionId, game, resolved, alerts) => {
