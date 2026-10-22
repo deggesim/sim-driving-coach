@@ -119,8 +119,8 @@ Slide 45-54. Usa la metrica `k` per fase del passo 2.
 
 - Solo l'**ultimo segmento-setup**: i giri consecutivi finali con lo stesso `setup_id` (anche `null` vale come segmento).
 - Esclusi i giri non validi e i **primi 3 giri** del segmento: la guida legge temperature e pressioni a gomme stabilizzate, "dopo almeno 4 giri senza fermarsi" (slide 12, 25) **(scelta: si giudica dal 4° giro)**. I giri non validi contano comunque per il riscaldamento, perché le gomme le scaldano lo stesso **(scelta)**.
-- Il conteggio del riscaldamento riparte **solo al cambio di `setup_id`** **(utente)**. Niente rilevamento di soste o garage nei reader: dopo una sosta il pilota riacquisisce il setup (comando vocale "acquisisci setup"), e questo apre un nuovo segmento. Il prompt non deve accorgersi delle soste.
-- Servono almeno **2** giri giudicabili **(scelta)**. Altrimenti nessun passo è giudicato e la riga dice "completa ancora N giri con questo setup" (N = giri mancanti per arrivare a 2 giri giudicabili).
+- **Aggiornato 2026-10-22 (utente):** il riscaldamento non si conta più in giri. Un giro è giudicabile se è valido e la temperatura media del centro (4 ruote) è variata al massimo di 2 °C rispetto al giro precedente (valido o no). Niente pavimento di giri: dopo una sosta con gomme fredde i giri tornano giudicabili solo a plateau raggiunto, quindi il segmento non deve più ripartire per forza al cambio di `setup_id`. Senza temperature del centro (ACE/AMS2 non verificati) o in Leaderboard (gomme fisse a 85 °C) resta il vecchio criterio: giri 1-3 esclusi, si giudica dal 4°. I freni non entrano nel criterio: la finestra 413-688 °C escluderebbe proprio i giri che il passo 1 deve poter segnalare.
+- Servono almeno **2** giri giudicabili **(scelta)**. Altrimenti nessun passo è giudicato e la riga dice "completa ancora N giri con questo setup" (N = `max(0, 2 − giri giudicabili)`, un minimo: quanti giri servono davvero dipende dal plateau).
 
 ## Dati nuovi
 

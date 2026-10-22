@@ -1,7 +1,7 @@
 /**
  * Setup ladder (Frezza method, spec 2026-10-20-scaletta-setup): judges the six
  * setup steps in order - brake ducts, brake bias, engine braking, pressures,
- * camber, differential - on the judged laps of the last setup segment, by
+ * camber, differential - on the judged laps (tyres settled) of the last setup segment, by
  * summing the per-zone counters LapRecorder stored in zones_json. Pure: every
  * judgment and number is made here, the prompt only cites it. A field absent
  * from every judged zone means "no data" and gives "na", never a zero.
@@ -11,7 +11,8 @@ import { WHEEL_LABELS } from "../../shared/alert-types.js";
 import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds, to tune on real sessions.
-const WARMUP_LAPS = 3; // laps 1-3 of a segment warm the tyres, judged from the 4th
+const PLATEAU_C = 2; // |Δ mean centre temp vs previous lap| still settled
+const FALLBACK_WARMUP_LAPS = 3; // no centre temps: laps 1-3 warm the tyres, judged from the 4th
 const MIN_JUDGED_LAPS = 2;
 const DUCT_FRONT_MAX_C = 700;
 const DUCT_IMBALANCE = 0.2; // |front − rear| / max(front, rear)
@@ -89,6 +90,14 @@ const majority = <T>(states: T[], fallback: T): T =>
 
 type Lap = LapRow & { zones: ZoneData[] };
 type LapTyres = { delta: Quartet; d: Quartet }; // per-lap means over the zones
+
+/** Mean of the four centre temperatures over the lap's zones, null when it carries none. */
+const centreTemp = (lap: Lap): number | null => {
+  const cs = lap.zones.flatMap((z) =>
+    z.avgTyreTempCenterC ? [mean(z.avgTyreTempCenterC)] : [],
+  );
+  return cs.length ? mean(cs) : null;
+};
 
 const lapTyres = (lap: Lap): LapTyres | null => {
   const s = lap.zones.flatMap((z) => {
@@ -181,9 +190,22 @@ export const computeSetupLadder = (
     if (seg && seg[0].setup_id === l.setup_id) seg.push(lap);
     else segments.push([lap]);
   }
-  // Warm-up counts every lap, valid or not: the tyres heat up anyway.
-  const judgedOf = (seg: Lap[]): Lap[] =>
-    seg.filter((l, i) => i >= WARMUP_LAPS && l.valid);
+  // Judged = valid laps whose tyres have settled: the mean centre temperature
+  // moved ≤ PLATEAU_C from the previous lap (valid or not: the tyres heat up
+  // anyway), so a pit stop or a slow spell drops laps until they are back at
+  // temperature. Without temperatures (ACE/AMS2 unverified) or with them fixed
+  // at 85 °C (Leaderboard) the plateau says nothing: fixed warm-up instead.
+  const judgedOf = (seg: Lap[]): Lap[] => {
+    const temps = seg.map(centreTemp);
+    const noSignal = opts.leaderboardMode || temps.every((t) => t == null);
+    return seg.filter((l, i) => {
+      if (!l.valid) return false;
+      if (noSignal) return i >= FALLBACK_WARMUP_LAPS;
+      const prev = temps[i - 1];
+      const cur = temps[i];
+      return prev != null && cur != null && Math.abs(cur - prev) <= PLATEAU_C;
+    });
+  };
   const analysed = segments.map((seg) => {
     const judged = judgedOf(seg);
     return judged.length >= MIN_JUDGED_LAPS
@@ -193,11 +215,8 @@ export const computeSetupLadder = (
 
   const seg = segments.at(-1) ?? [];
   const judged = judgedOf(seg);
-  const lapsMissing =
-    judged.length < MIN_JUDGED_LAPS
-      ? Math.max(0, WARMUP_LAPS - seg.length) +
-        Math.max(0, MIN_JUDGED_LAPS - judged.length)
-      : 0;
+  // A lower bound: how many laps are still needed depends on the plateau.
+  const lapsMissing = Math.max(0, MIN_JUDGED_LAPS - judged.length);
   const base = {
     setupLabel: labelOf(seg[0]?.setup_id ?? null),
     firstJudgedLap: judged[0]?.lap_number ?? null,

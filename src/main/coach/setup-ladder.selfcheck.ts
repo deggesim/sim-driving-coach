@@ -96,16 +96,17 @@ const stepOf = (l: SetupLadder, n: number) =>
 const short = computeSetupLadder(stint(2, okZone()), new Map(), {
   fixedSetup: false,
 });
-assert.equal(short.lapsMissing, 3, "1 warm-up lap + 2 judged laps missing");
+assert.equal(short.judgedLaps, 1, "settled from the 2nd lap: no fixed floor");
+assert.equal(short.lapsMissing, 1, "1 of the 2 judged laps missing");
 assert.equal(short.steps.length, 0);
 assert.equal(short.current, null);
 
 const twoSetups = computeSetupLadder(
   [
-    ...stint(4, okZone(), { setup_id: 3 }),
+    ...stint(2, okZone(), { setup_id: 3 }),
     ...stint(5, okZone(), { setup_id: 7 }).map((l) => ({
       ...l,
-      lap_number: l.lap_number + 4,
+      lap_number: l.lap_number + 2,
     })),
   ],
   new Map([
@@ -114,9 +115,13 @@ const twoSetups = computeSetupLadder(
   ]),
   { fixedSetup: false },
 );
-assert.equal(twoSetups.judgedLaps, 2);
-assert.equal(twoSetups.firstJudgedLap, 8);
-assert.equal(twoSetups.lastJudgedLap, 9);
+assert.equal(
+  twoSetups.judgedLaps,
+  4,
+  "laps 4-7: the segment's 1st lap has no reference",
+);
+assert.equal(twoSetups.firstJudgedLap, 4);
+assert.equal(twoSetups.lastJudgedLap, 7);
 assert.equal(twoSetups.lapsMissing, 0);
 assert.equal(twoSetups.setupLabel, "Gara B");
 assert.equal(twoSetups.steps.length, 6);
@@ -133,7 +138,53 @@ const invalidFourth = computeSetupLadder(
   new Map(),
   { fixedSetup: false },
 );
-assert.equal(invalidFourth.judgedLaps, 2);
+assert.equal(
+  invalidFourth.judgedLaps,
+  4,
+  "laps 2,3,5,6: the invalid lap is skipped",
+);
+
+// The tyres decide, not the lap count: a warm-up ramp is judged only once the
+// mean centre temperature moves ≤ 2 °C per lap.
+const tempLap = (n: number, t: number, extra: Partial<LapRow> = {}): LapRow =>
+  mkLap(
+    n,
+    [
+      okZone({
+        avgTyreTempInnerC: [t + 1, t + 1, t + 1, t + 1],
+        avgTyreTempCenterC: [t, t, t, t],
+        avgTyreTempOuterC: [t - 3, t - 3, t - 3, t - 3],
+      }),
+    ],
+    extra,
+  );
+const ladderOf = (temps: number[]): SetupLadder =>
+  computeSetupLadder(
+    temps.map((t, i) => tempLap(i + 1, t)),
+    new Map(),
+    { fixedSetup: false },
+  );
+const ramp = ladderOf([60, 75, 82, 85, 86, 86]);
+assert.equal(ramp.judgedLaps, 2, "Δ 15, 7, 3 are still warming: laps 5-6 only");
+assert.equal(ramp.firstJudgedLap, 5);
+assert.equal(ramp.lapsMissing, 0);
+// A pit stop (tyres cold again) drops the laps until they are back at temperature.
+const pit = ladderOf([86, 86, 86, 86, 60, 72, 80, 85, 86]);
+assert.equal(pit.judgedLaps, 4, "laps 2-4, then 9");
+assert.equal(pit.lastJudgedLap, 9);
+assert.equal(ladderOf([60, 75, 82]).lapsMissing, 2, "nothing settled yet");
+
+// Without centre temperatures (ACE/AMS2) the fixed warm-up stays: judged from the 4th lap.
+const noTemps = computeSetupLadder(stint(5, zone()), new Map(), {
+  fixedSetup: false,
+});
+assert.equal(noTemps.firstJudgedLap, 4);
+assert.equal(noTemps.judgedLaps, 2);
+assert.equal(
+  computeSetupLadder(stint(3, zone()), new Map(), { fixedSetup: false })
+    .lapsMissing,
+  2,
+);
 
 // --- Step 1: brake ducts ---
 const hotFront = ladder(okZone({ avgBrakeTempC: [720, 720, 400, 400] }));
@@ -265,26 +316,28 @@ assert.equal(
   "asse ANT: Δ ANT-SX +2.0 °C → abbassare",
 );
 assert.deepEqual(calibTyres.hotPressurePsi, [27, 27, 26, 26]);
-assert.equal(calibTyres.judgedLaps, 2);
-assert.equal(calibTyres.driftPsi, null, "drift needs ≥ 3 judged laps");
+assert.equal(calibTyres.judgedLaps, 4);
+assert.deepEqual(calibTyres.driftPsi, [0, 0, 0, 0]);
+assert.equal(
+  computeSetupLadder(stint(3, okZone()), new Map(), { fixedSetup: false })
+    .tyres[0].driftPsi,
+  null,
+  "drift needs ≥ 3 judged laps",
+);
 
 // Majority of judged laps: alta on 1 of 2 laps is not a majority (the alta
-// lap comes first, so a non-strict majority would pick it).
+// lap comes first, so a non-strict majority would pick it). Its centre moves
+// 0.6 °C, so the plateau still judges it.
 const split = computeSetupLadder(
   [
-    ...stint(3, okZone()),
-    mkLap(4, [
-      okZone({
-        avgTyreTempInnerC: [73, 87, 87, 87],
-        avgTyreTempCenterC: [73, 86, 86, 86],
-        avgTyreTempOuterC: [70, 83, 83, 83],
-      }),
-    ]),
-    mkLap(5, [okZone()]),
+    mkLap(1, [okZone()]),
+    mkLap(2, [okZone({ avgTyreTempCenterC: [86.6, 86, 86, 86] })]),
+    mkLap(3, [okZone()]),
   ],
   new Map(),
   { fixedSetup: false },
 );
+assert.equal(split.judgedLaps, 2);
 assert.equal(stepOf(split, 4).status, "ok");
 
 // Drift: last − first judged lap, with 3 judged laps.
@@ -444,7 +497,7 @@ const twoStints = computeSetupLadder(
 assert.equal(twoStints.tyres.length, 2);
 assert.equal(twoStints.tyres[0].setupLabel, "Prove A");
 assert.equal(twoStints.tyres[1].setupLabel, "Gara B");
-assert.equal(twoSetups.tyres.length, 1, "a 4-lap segment has 1 judged lap");
+assert.equal(twoSetups.tyres.length, 1, "a 2-lap segment has 1 judged lap");
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
 // flags only mean something on R3E ---
