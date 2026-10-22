@@ -1,4 +1,4 @@
-# Scaletta setup dalla telemetria (metodo Frezza) — design
+# Sequenza setup dalla telemetria (metodo Frezza) — design
 
 Data: 2026-10-20 · Stato: approvato · Assorbe la diagnosi pressioni gomme (passo 4).
 
@@ -8,11 +8,11 @@ Fonte principale: la guida PDF di Riccardo Frezza "GUIDA FINITA COMPLETA (ASCIUT
 
 Oggi l'analisi (Livello 1 e 2) propone leve di setup "su ogni area che i dati sostengono": può suggerire campanatura e pressioni nella stessa analisi, oppure toccare le pressioni con i freni ancora sbilanciati. La guida insegna un **ordine**: ogni regolazione sposta quelle che vengono dopo (i condotti cambiano le pressioni, le pressioni cambiano le temperature su cui si legge la campanatura). Un coach che segue l'ordine fa cambiare una cosa alla volta, e ogni giro di prove serve a verificare quella sola cosa.
 
-Successo = dopo uno stint con un setup, l'analisi dice **quale passo della scaletta è il primo non a posto**, propone una sola leva di setup su quel passo citando il numero calcolato che la giustifica, e dichiara i passi saltati perché non misurabili.
+Successo = dopo uno stint con un setup, l'analisi dice **quale passo della sequenza è il primo non a posto**, propone una sola leva di setup su quel passo citando il numero calcolato che la giustifica, e dichiara i passi saltati perché non misurabili.
 
 ## Obiettivi
 
-- Calcolare in TypeScript (`session-stats.ts`) lo stato di ogni passo della scaletta e il **passo corrente**, per R3E, ACE e AMS2.
+- Calcolare in TypeScript (`session-stats.ts`) lo stato di ogni passo della sequenza e il **passo corrente**, per R3E, ACE e AMS2.
 - Stamparlo nel blocco "## Dati Calcolati", che i prompt già obbligano a citare alla lettera.
 - Livello 1: proposte di setup **solo** sul passo corrente. Livello 2: stato di tutti i passi.
 - Rendere misurabile lo slip ratio su AMS2 (oggi assente).
@@ -20,24 +20,24 @@ Successo = dopo uno stint con un setup, l'analisi dice **quale passo della scale
 
 ## Non obiettivi
 
-- Alert vocali in tempo reale sulla scaletta: serve una media su uno stint.
-- Incidenza, convergenze, molle, terze molle, bumpstop, ammortizzatori, barre, altezze, aerodinamica (slide 37-44 e 62-135): fuori dalla scaletta. Il Livello 2 può citarle solo come informazione, senza proposte, finché la scaletta ha un passo corrente **(scelta)**.
+- Alert vocali in tempo reale sulla sequenza: serve una media su uno stint.
+- Incidenza, convergenze, molle, terze molle, bumpstop, ammortizzatori, barre, altezze, aerodinamica (slide 37-44 e 62-135): fuori dalla sequenza. Il Livello 2 può citarle solo come informazione, senza proposte, finché la sequenza ha un passo corrente **(scelta)**.
 - Finestre di pressione assolute per categoria di auto (GT3 1,9-2,1 bar…): l'app non conosce la categoria.
 - Salvare su disco il raggio gomma AMS2 stimato.
-- Ricalcolare la scaletta su sessioni già registrate oltre ciò che i loro dati permettono (vedi "Non valutabile").
+- Ricalcolare la sequenza su sessioni già registrate oltre ciò che i loro dati permettono (vedi "Non valutabile").
 
 ## Anti-obiettivi (fallimento anche se "funziona")
 
 - Il modello che fa aritmetica o inventa una soglia: ogni giudizio nasce in TS, il prompt lo cita.
 - Più di una leva di setup per analisi al Livello 1.
 - Un passo saltato in silenzio: un passo non valutabile va sempre dichiarato con il motivo.
-- I consigli di tecnica di guida soppressi: restano come oggi, la scaletta governa solo il setup.
+- I consigli di tecnica di guida soppressi: restano come oggi, la sequenza governa solo il setup.
 
-## La scaletta
+## La sequenza
 
 Ordine della guida (slide 54): condotti → bilanciamento freni (provvisorio) → rampe (provvisorie) → freno motore e forza frenante → pressioni → campanatura e incidenza → rampe (definitive) → precarico. L'app la riduce a sei passi misurabili **(scelta)**: le rampe provvisorie e definitive si misurano allo stesso modo, quindi stanno in un passo solo, in fondo; l'incidenza non è separabile dalla campanatura nei dati.
 
-Ogni passo ha uno stato: `ok`, `da correggere` (con direzione e numero), `non valutabile` (con motivo). **Passo corrente** = il primo `da correggere`; i `non valutabile` si scavalcano dichiarandoli **(utente)**. Nessun `da correggere` → "scaletta completa".
+Ogni passo ha uno stato: `ok`, `da correggere` (con direzione e numero), `non valutabile` (con motivo). **Passo corrente** = il primo `da correggere`; i `non valutabile` si scavalcano dichiarandoli **(utente)**. Nessun `da correggere` → "sequenza completa".
 
 ### Passo 1 — Condotti freni
 
@@ -170,7 +170,7 @@ La forma esatta del tipo spetta al builder. Vecchi campi `slipAsym*` e `suspAsym
 Una riga di sintesi più i dettagli per passo, nello stile per ruota già in uso `(ANT-SX/ANT-DX/POST-SX/POST-DX)`, con unità da `pressureUnit(game)`. Esempio indicativo:
 
 ```
-- Scaletta setup (giri 4-9 del setup "Gara B", 6 giudicati):
+- Sequenza setup (giri 4-9 del setup "Gara B", 6 giudicati):
     1 condotti: ok (ant 612 °C, post 548 °C, sbil. 10 %)
     2 bilanciamento freni: NON VALUTABILE (manca lo slip: sessione registrata prima del calcolo AMS2)
     3 freno motore: ok (scalate nervose 2/31)
@@ -183,17 +183,17 @@ Una riga di sintesi più i dettagli per passo, nello stile per ruota già in uso
 
 - **Chi decide.** TS decide se un passo è a posto e in quale direzione correggerlo, con una leva di riserva dove la guida ne prevede una (coast ramp già al minimo → freno motore oppure precarico). Quale parametro corrisponde nel setup attivo (rampe o bias del geared LSD, nome del parametro, valore attuale) lo sceglie il modello leggendo il testo del setup. Non si aggiunge uno strato di normalizzazione dei setup per gioco: `SetupParam` resta `{category, parameter, value}`.
 - **Leva assente.** Se il setup attivo non contiene la leva del passo corrente (condotti non regolabili, differenziale fisso…), il modello lo dichiara e passa al passo `da correggere` successivo. È la stessa regola "salta dichiarando" che l'utente ha dato per i passi non valutabili. La riga dei Dati Calcolati riporta lo stato di tutti i passi, quindi il modello sa qual è il successivo.
-- **Entità.** Sempre il passo minimo: un click, per le pressioni il passo indicativo del passo 4. La scaletta è iterativa: si cambia, si girano altri 4 giri e si rilegge. Il modello scrive B = A ± un passo, partendo dal valore a freddo del setup attivo. È l'unica aritmetica che fa, ed è banale.
+- **Entità.** Sempre il passo minimo: un click, per le pressioni il passo indicativo del passo 4. La sequenza è iterativa: si cambia, si girano altri 4 giri e si rilegge. Il modello scrive B = A ± un passo, partendo dal valore a freddo del setup attivo. È l'unica aritmetica che fa, ed è banale.
 - **Pressioni, una leva.** L'asse con il |Δ| maggiore; entrambe le ruote di quell'asse, ognuna nella propria direzione, e solo quelle non-ok.
 - **Nessun setup attivo** (`setup_id` nullo): TS dà la direzione e il modello la scrive senza A → B.
 
 ### Prompt
 
-- **Livello 1** (`SYNTHESIS_SYSTEM_PROMPT`): le azioni di setup riguardano **solo** il passo corrente: una leva, nel formato "Setup — X: A → B", con il numero della riga. I passi non valutabili saltati vanno nominati in una riga, con il motivo. Con meno giri del minimo, l'azione è "completa N giri". La tecnica di guida resta libera. Le righe di regola che oggi chiedono di coprire ogni area (riga ~112) e le indicazioni "verifica camber/differenziale" vicino alle asimmetrie vanno riscritte in modo da non contraddire la scaletta.
+- **Livello 1** (`SYNTHESIS_SYSTEM_PROMPT`): le azioni di setup riguardano **solo** il passo corrente: una leva, nel formato "Setup — X: A → B", con il numero della riga. I passi non valutabili saltati vanno nominati in una riga, con il motivo. Con meno giri del minimo, l'azione è "completa N giri". La tecnica di guida resta libera. Le righe di regola che oggi chiedono di coprire ogni area (riga ~112) e le indicazioni "verifica camber/differenziale" vicino alle asimmetrie vanno riscritte in modo da non contraddire la sequenza.
 - **Livello 2** (`SESSION_SYSTEM_PROMPT`): tabella di stato di tutti i passi. I passi dopo il corrente sono "da rivedere dopo", perché cambiano quando cambia il passo corrente. "Setup attuale vs proposto" contiene solo la leva del passo corrente, sui valori a freddo. Nessun nuovo titolo `##`: vale il vincolo di `prompt-builder.selfcheck.ts`.
-- **Setup Fisso** (oggi modificabili solo bilanciamento e pressione frenante): la scaletta mostra i passi 1-2. Il passo 1 viene stampato come informazione ma non è proponibile, perché i condotti non si toccano. Il passo 2 sì **(scelta)**.
-- **Leaderboard** **(scelta)**: la scaletta resta; i passi 4-5 sono non valutabili ("gomme fisse a 85 °C (Leaderboard)") e non si stampano le righe "Gomme setup", perché le temperature sono fisse e prive di significato. I passi 1, 2, 3 e 6 si giudicano come al solito. Con Leaderboard e Setup Fisso insieme (il default su R3E) vale la regola di Setup Fisso: passi 1-2.
-- **Livello 2, riga assente**: se nei Dati Calcolati c'è la riga "Scaletta setup", "Setup attuale vs proposto" è obbligatoria anche senza setup caricato (tabella dei passi sempre; tabella dei parametri e A → B solo con un setup). Senza la riga e senza setup, la sottosezione si omette; senza la riga ma con un setup, niente tabella dei passi né proposte numerate.
+- **Setup Fisso** (oggi modificabili solo bilanciamento e pressione frenante): la sequenza mostra i passi 1-2. Il passo 1 viene stampato come informazione ma non è proponibile, perché i condotti non si toccano. Il passo 2 sì **(scelta)**.
+- **Leaderboard** **(scelta)**: la sequenza resta; i passi 4-5 sono non valutabili ("gomme fisse a 85 °C (Leaderboard)") e non si stampano le righe "Gomme setup", perché le temperature sono fisse e prive di significato. I passi 1, 2, 3 e 6 si giudicano come al solito. Con Leaderboard e Setup Fisso insieme (il default su R3E) vale la regola di Setup Fisso: passi 1-2.
+- **Livello 2, riga assente**: se nei Dati Calcolati c'è la riga "Sequenza setup", "Setup attuale vs proposto" è obbligatoria anche senza setup caricato (tabella dei passi sempre; tabella dei parametri e A → B solo con un setup). Senza la riga e senza setup, la sottosezione si omette; senza la riga ma con un setup, niente tabella dei passi né proposte numerate.
 - `<sintesi-vocale>`: invariata.
 
 ## Vincoli
@@ -214,7 +214,7 @@ Nomi e forma dei nuovi campi di `ZoneData` e del tipo `setupLadder`; come rileva
   - `lap-recorder`: i contatori per zona;
   - `ams2-struct`: l'offset di `mTyreRPS`;
   - stima del raggio e calcolo `sr` AMS2 su frame sintetici;
-  - `prompt-builder`: blocco presente o assente (senza scaletta nessuna riga), gerarchia `##` invariata;
+  - `prompt-builder`: blocco presente o assente (senza sequenza nessuna riga), gerarchia `##` invariata;
   - `channel-log`: i nuovi canali.
 - Con i sim accesi, fuori dal gate:
   - riga `canali` di ACE e AMS2 con `tti/ttc/tto` plausibili;

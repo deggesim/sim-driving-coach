@@ -79,16 +79,16 @@ Tabella markdown: Rank | Problema | Localizzazione | Alert Count | Impatto Stim.
 Poi "Dettagli per curva" (un bullet per curva critica, con entry speed, ∆ sterzata %, durate in secondi, causa meccanica) e "Pattern sistemico" (analisi trasversale: apprendimento pilota vs gestione termica vs setup).
 
 ### Setup attuale vs proposto
-Se nei Dati Calcolati c'è la riga "Scaletta setup", questa sottosezione è OBBLIGATORIA anche senza un setup caricato. Parti SEMPRE dalla tabella "Passo | Stato | Dato" con tutti i passi della riga "Scaletta setup" (se la scaletta chiede di completare dei giri, scrivi quella richiesta al posto della tabella); i passi dopo il corrente sono "da rivedere dopo", perché cambiano quando cambia il passo corrente.
-Poi, SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti e le proposte concrete numerate "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro. Finché c'è un passo corrente, le proposte numerate riguardano SOLO la leva del passo corrente, con le stesse regole della sintesi (un passo minimo, valori a freddo); le altre aree (sospensioni, ammortizzatori, barre, altezze, aerodinamica) solo come osservazioni, senza proposte. Se la scaletta NON ha un passo corrente (ogni passo ok o non valutabile, e nessuna richiesta "completa ancora N giri") puoi dare proposte numerate anche sulle altre aree, ciascuna con il dato che la sostiene; con la richiesta "completa ancora N giri" nessuna proposta numerata. Ogni proposta cita il dato che la sostiene.
+Se nei Dati Calcolati c'è la riga "Sequenza setup", questa sottosezione è OBBLIGATORIA anche senza un setup caricato. Parti SEMPRE dalla tabella "Passo | Stato | Dato" con tutti i passi della riga "Sequenza setup" (se la sequenza chiede di completare dei giri, scrivi quella richiesta al posto della tabella); i passi dopo il corrente sono "da rivedere dopo", perché cambiano quando cambia il passo corrente.
+Poi, SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti e le proposte concrete numerate "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro. Finché c'è un passo corrente, le proposte numerate riguardano SOLO la leva del passo corrente, con le stesse regole della sintesi (un passo minimo, valori a freddo); le altre aree (sospensioni, ammortizzatori, barre, altezze, aerodinamica) solo come osservazioni, senza proposte. Se la sequenza NON ha un passo corrente (ogni passo ok o non valutabile, e nessuna richiesta "completa ancora N giri") puoi dare proposte numerate anche sulle altre aree, ciascuna con il dato che la sostiene; con la richiesta "completa ancora N giri" nessuna proposta numerata. Ogni proposta cita il dato che la sostiene.
 Senza setup caricato: niente tabella dei parametri e niente valori "A → B"; per il passo corrente indica solo la direzione (come nella sintesi).
-Se la riga "Scaletta setup" manca e nessun setup è caricato, OMETTI l'intera sottosezione. Se la riga "Scaletta setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate: solo la tabella "Parametro | Valore | Valutazione" e osservazioni.
+Se la riga "Sequenza setup" manca e nessun setup è caricato, OMETTI l'intera sottosezione. Se la riga "Sequenza setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate: solo la tabella "Parametro | Valore | Valutazione" e osservazioni.
 
 ---
 
 ## Regole Generali
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
-- Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C) (informativa: il giudizio sui condotti è nella scaletta). Se valore = -1, ignora.
+- Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C) (informativa: il giudizio sui condotti è nella sequenza). Se valore = -1, ignora.
 - Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono in PSI (bar per AMS2, vedi sotto), l'unità è sempre indicata accanto al numero.
 - Bilanciamento frenata NEI SETUP (formato "front/rear%", es. "68.00/32.00%"): il PRIMO valore è SEMPRE l'anteriore, il SECONDO è SEMPRE il posteriore. Non invertire mai l'ordine.
 - Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
@@ -96,7 +96,7 @@ Se la riga "Scaletta setup" manca e nessun setup è caricato, OMETTI l'intera so
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
 
-Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Scaletta setup" e nessun setup è caricato.`;
+Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato.`;
 
 export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
 I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
@@ -111,7 +111,7 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
 
-Azioni di setup: segui la "Scaletta setup" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sul PASSO CORRENTE, nella direzione indicata dalla sua riga e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella riga del passo 4, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva del passo corrente, dillo e usa il passo DA CORREGGERE successivo. Nomina in una riga i passi NON VALUTABILI saltati, con il motivo. Se la scaletta chiede di completare dei giri, l'azione di setup è "completa ancora N giri con questo setup". Senza passo corrente, o senza riga "Scaletta setup", nessuna azione di setup. Le azioni di guida restano libere.
+Azioni di setup: segui la "Sequenza setup" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sul PASSO CORRENTE, nella direzione indicata dalla sua riga e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella riga del passo 4, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva del passo corrente, dillo e usa il passo DA CORREGGERE successivo. Nomina in una riga i passi NON VALUTABILI saltati, con il motivo. Se la sequenza chiede di completare dei giri, l'azione di setup è "completa ancora N giri con questo setup". Senza passo corrente, o senza riga "Sequenza setup", nessuna azione di setup. Le azioni di guida restano libere.
 Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
@@ -245,10 +245,10 @@ const ladderLines = (ladder: SetupLadder, game: GameSource): string[] => {
   const lines =
     ladder.lapsMissing > 0
       ? [
-          `- Scaletta setup: completa ancora ${ladder.lapsMissing} giri con ${label ? `il setup ${label}` : "questo setup"}`,
+          `- Sequenza setup: completa ancora ${ladder.lapsMissing} giri con ${label ? `il setup ${label}` : "questo setup"}`,
         ]
       : [
-          `- Scaletta setup (${label ? `setup ${label}` : "setup non caricato"}, giri ${ladder.firstJudgedLap}-${ladder.lastJudgedLap}, ${ladder.judgedLaps} giudicati):`,
+          `- Sequenza setup (${label ? `setup ${label}` : "setup non caricato"}, giri ${ladder.firstJudgedLap}-${ladder.lastJudgedLap}, ${ladder.judgedLaps} giudicati):`,
         ];
   for (const s of ladder.steps) {
     const mark =
@@ -474,12 +474,12 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   if (session.game === "r3e") {
     if (leaderboardMode) {
       parts.push(
-        `- **Modalità Leaderboard ATTIVA**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative - non diagnosticare questi valori come problemi. Nella scaletta setup i passi 4-5 (pressioni, campanatura) sono NON VALUTABILI.`,
+        `- **Modalità Leaderboard ATTIVA**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative - non diagnosticare questi valori come problemi. Nella sequenza setup i passi 4-5 (pressioni, campanatura) sono NON VALUTABILI.`,
       );
     }
     if (fixedSetup) {
       parts.push(
-        `- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. La scaletta setup mostra solo i passi 1-2; i condotti (passo 1) non sono modificabili.`,
+        `- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. La sequenza setup mostra solo i passi 1-2; i condotti (passo 1) non sono modificabili.`,
       );
     }
   }

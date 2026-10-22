@@ -500,7 +500,7 @@ const ladderBlock = (
 
 const lb = ladderBlock({});
 for (const s of [
-  `Scaletta setup (setup "Gara B", giri 4-9, 6 giudicati)`,
+  `Sequenza setup (setup "Gara B", giri 4-9, 6 giudicati)`,
   "2 bilanciamento freni: NON VALUTABILE — manca lo slip",
   "1 condotti freni: ok — ant 612 °C",
   "4 pressioni: DA CORREGGERE ← PASSO CORRENTE — Δ ANT-SX +2.1 °C → abbassare",
@@ -529,7 +529,7 @@ assert.ok(
 const missing = ladderBlock({ lapsMissing: 3, steps: [], current: null });
 assert.ok(
   missing.includes(
-    `Scaletta setup: completa ancora 3 giri con il setup "Gara B"`,
+    `Sequenza setup: completa ancora 3 giri con il setup "Gara B"`,
   ),
 );
 // Right after a setup change the earlier segments' tyre lines are the useful
@@ -543,9 +543,9 @@ const notEditable = ladderBlock({
   current: null,
 });
 assert.ok(notEditable.includes("(non modificabile con Setup Fisso)"));
-assert.ok(!ladderBlock(null).includes("Scaletta setup"), "no ladder, no row");
+assert.ok(!ladderBlock(null).includes("Sequenza setup"), "no ladder, no row");
 
-// Level 2: the ladder table is mandatory whenever the "Scaletta setup" row
+// Level 2: the ladder table is mandatory whenever the "Sequenza setup" row
 // exists, loaded setup or not; the parameter table and A → B need a setup.
 const setupSub = SESSION_SYSTEM_PROMPT.slice(
   SESSION_SYSTEM_PROMPT.indexOf("### Setup attuale vs proposto"),
@@ -557,8 +557,8 @@ for (const s of [
   `SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione"`,
   `Senza setup caricato: niente tabella dei parametri e niente valori "A → B"`,
   `indica solo la direzione`,
-  `Se la riga "Scaletta setup" manca e nessun setup è caricato, OMETTI`,
-  `Se la riga "Scaletta setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate`,
+  `Se la riga "Sequenza setup" manca e nessun setup è caricato, OMETTI`,
+  `Se la riga "Sequenza setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate`,
 ]) {
   assert.ok(setupSub.includes(s), s);
 }
@@ -568,7 +568,7 @@ assert.ok(
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    `omissibile SOLO se manca la riga "Scaletta setup" e nessun setup è caricato`,
+    `omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato`,
   ),
   "closing sentence matches the rule",
 );
@@ -591,7 +591,7 @@ const fixedCtx = buildSessionPrompt({
   fixedSetup: true,
 });
 assert.ok(
-  fixedCtx.includes("La scaletta setup mostra solo i passi 1-2"),
+  fixedCtx.includes("La sequenza setup mostra solo i passi 1-2"),
   "fixed setup wording",
 );
 
