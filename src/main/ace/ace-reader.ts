@@ -31,6 +31,7 @@ import {
   AC_LIVE,
   PHY,
   GFX,
+  GFX_TYRE,
   STA,
   readInt32,
   readFloat,
@@ -396,9 +397,11 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const wheelsPressure = readFloatArray(physBuf, PHY.wheelsPressure, 4);
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
-      const tyreTempI = readFloatArray(physBuf, PHY.tyreTempI, 4);
-      const tyreTempM = readFloatArray(physBuf, PHY.tyreTempM, 4);
-      const tyreTempO = readFloatArray(physBuf, PHY.tyreTempO, 4);
+      const gfxTyre = (off: number) =>
+        GFX_TYRE.base.map((b) => readFloat(gfxBuf, b + off));
+      const tyreTempI = gfxTyre(GFX_TYRE.tempInner);
+      const tyreTempM = gfxTyre(GFX_TYRE.tempCenter);
+      const tyreTempO = gfxTyre(GFX_TYRE.tempOuter);
       const slipRatio = readFloatArray(physBuf, PHY.slipRatio, 4);
       const airTemp = readFloat(physBuf, PHY.airTemp);
       const roadTemp = readFloat(physBuf, PHY.roadTemp);
@@ -580,7 +583,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
         if (!rawTempsLogged && speedKmh > 30) {
           rawTempsLogged = true;
           console.log(
-            `[ACE] DIAG raw temps I=${tyreTempI} M=${tyreTempM} O=${tyreTempO} core=${tyreCoreTemp} @${speedKmh.toFixed(0)}km/h`,
+            `[ACE] DIAG gfx tyre I=${tyreTempI} M=${tyreTempM} O=${tyreTempO} | carcass gfx=${gfxTyre(GFX_TYRE.tempC)} phys=${tyreCoreTemp} | press gfx=${gfxTyre(GFX_TYRE.pressure)} phys=${wheelsPressure} @${speedKmh.toFixed(0)}km/h`,
           );
         }
       }

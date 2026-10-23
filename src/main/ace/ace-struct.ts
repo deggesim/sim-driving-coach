@@ -154,10 +154,8 @@ export const PHY = {
   roadTemp: 292, // float - road surface temperature (°C)
   clutch: 364, // float - clutch position 0-1
   brakeTemp: 348, // float[4] FL,FR,RL,RR
-  // Surface temps inner/middle/outer: offsets from the SHM spec, not verified on a live sim.
-  tyreTempI: 368, // float[4] FL,FR,RL,RR - inner surface temperature (°C)
-  tyreTempM: 384, // float[4] FL,FR,RL,RR - middle surface temperature (°C)
-  tyreTempO: 400, // float[4] FL,FR,RL,RR - outer surface temperature (°C)
+  // tyreTempI/M/O (368/384/400) read all zeros on a live 0.9.1 sim (Mazda MX-5, Ferrari 296):
+  // the per-edge temps come from the Graphic page instead, see GFX_TYRE.
   slipRatio: 640, // float[4] FL,FR,RL,RR - longitudinal tyre slip ratio
   slipAngle: 656, // float[4] FL,FR,RL,RR - tyre slip angle (rad)
   brakeTorque: 716, // float[4] FL,FR,RL,RR - brake torque (Nm)
@@ -338,6 +336,20 @@ export const GFX = {
   isValidLap: 3121, // bool (uint8)
   carCoordinates: 3124, // float[60][3] - player at index 0 in singleplayer
   carIds: 3940, // uint64[60][2] - UID↔index map for car_coordinates (added 2026-04-01, unused)
+} as const;
+
+// SMEvoTyreState (256 B, Pack=4) fields we read; its base is GFX 220 + n×256 for
+// FL,FR,RL,RR. Field order from the spec: slip f, lock bool (+3 pad), pressure,
+// tyre_temperature_c, brake_temperature_c, brake_pressure, then left/center/right.
+// Left = inner edge, right = outer edge (per the spec text). The base is anchored by
+// `npos` at 1244 (= 220 + 4×256), the in-struct offsets are computed: DIAG-checked.
+export const GFX_TYRE = {
+  base: [220, 476, 732, 988],
+  pressure: 8, // float - PSI, must match PHY.wheelsPressure
+  tempC: 12, // float - carcass °C, must match PHY.tyreCoreTemperature
+  tempInner: 24, // tyre_temperature_left
+  tempCenter: 28, // tyre_temperature_center
+  tempOuter: 32, // tyre_temperature_right
 } as const;
 
 // ── SPageFileStaticEvo offsets (Pack=4) ──────────────────────────────────────

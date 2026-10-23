@@ -31,7 +31,7 @@ missing channel never reaches a prompt as a zero.
 | `sr` | derived: `(TireSpeed - CarSpeed) / CarSpeed`, zeroed below 5 m/s | `slipRatio` | — derived from `mTyreRPS` (rad/s) with a tyre radius estimated in pure rolling (median of 100 samples, redone on every reader start); absent until estimated |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `tt` (°C) | `TireTemp_*_Center` | `tyreCoreTemperature` | `mTyreTemp` |
-| `tti` / `ttc` / `tto` (°C) | `TireTemp_*_Left/Center/Right`, oriented via `leftRightToInnerOuter` ("left" = outer on left wheels, inner on right wheels; **assumed**, to confirm on a long corner) | `tyreTempI/M/O` @368/384/400 (**not verified** on a live sim) | `mTyreTempLeft/Center/Right` @20328/20344/20360, same orientation as R3E, **not verified** |
+| `tti` / `ttc` / `tto` (°C) | `TireTemp_*_Left/Center/Right`, oriented via `leftRightToInnerOuter` ("left" = outer on left wheels, inner on right wheels; **assumed**, to confirm on a long corner) | Graphic page `SMEvoTyreState` left/center/right (inner/centre/outer; base `GFX_TYRE.base`, in-struct offsets 24/28/32 computed, confirm with the `DIAG gfx tyre` line). The physics `tyreTempI/M/O` @368/384/400 read all zeros on 0.9.1, so they are not used | `mTyreTempLeft/Center/Right` @20328/20344/20360, same orientation as R3E, **not verified** |
 | `at` / `rt` (°C) | — | `PHY.airTemp` / `PHY.roadTemp` | `mAmbientTemperature` / `mTrackTemperature` |
 | `rain` / `wind` / `cloud` | — | — | `mRainDensity` (0-1) / `mWindSpeed` (m/s) / `mCloudBrightness` (0-1). `mWindDirectionX/Y` not surfaced — a raw heading component isn't actionable without the track's own heading, which the SHM doesn't expose |
 
@@ -65,7 +65,7 @@ values swapped between `gLat` and `gLon` mean the axis mapping is wrong.
 
 ## `ace/`
 
-- **ace-reader.ts** — Opens three ACE SHM pages (PhysicsEvo 800B, GraphicsEvo 3940B, StaticEvo 256B) via koffi at 16ms. Emits GameFrame + CompactFrame (with ACE-only fields: rpm, gLat, gLon, tyre pressures, slip ratios, suspension travel, inner/centre/outer surface temperatures `tyreTempI/M/O` — offsets not verified on a live sim). Car/track/layout are readable strings from SHM (e.g. `"ks_porsche_718_gt4"`, `"monza"`). Lap completion detected via `totalLapCount` increment. Mock fallback on non-Windows. **SHM spec:** https://docs.google.com/document/d/1WzqMLkW2o_C0LGcvdMRelAV31ZIifux0CSHD9k6ddz0/edit?tab=t.0
+- **ace-reader.ts** — Opens three ACE SHM pages (PhysicsEvo 800B, GraphicsEvo 3940B, StaticEvo 256B) via koffi at 16ms. Emits GameFrame + CompactFrame (with ACE-only fields: rpm, gLat, gLon, tyre pressures, slip ratios, suspension travel, inner/centre/outer surface temperatures from the Graphic page `SMEvoTyreState` — in-struct offsets computed, not yet confirmed on a live sim). Car/track/layout are readable strings from SHM (e.g. `"ks_porsche_718_gt4"`, `"monza"`). Lap completion detected via `totalLapCount` increment. Mock fallback on non-Windows. **SHM spec:** https://docs.google.com/document/d/1WzqMLkW2o_C0LGcvdMRelAV31ZIifux0CSHD9k6ddz0/edit?tab=t.0
 - **ace-struct.ts** — Struct definitions for all three ACE SHM pages with read helpers
 - **ace-setup-reader.ts** — Decodes binary protobuf `.carsetup` files from `D:\Salvataggi\ACE\Car Setups\{car}\{track}\`. Extracts setup params (steering ratio, brake bias, ARBs, dampers, geometry, electronics, aero, fuel, compound). Returns `SetupData` with Italian-labelled params. **Spec:** `ace_carsetup_spec.md` (local, reverse-engineered)
 
