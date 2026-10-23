@@ -11,7 +11,7 @@ import { WHEEL_LABELS } from "../../shared/alert-types.js";
 import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds, to tune on real sessions.
-const PLATEAU_C = 2; // |Δ mean centre temp vs previous lap| still settled
+const PLATEAU_C = 2; // |Δ mean tyre temp vs previous lap| still settled
 const FALLBACK_WARMUP_LAPS = 3; // no centre temps: laps 1-3 warm the tyres, judged from the 4th
 const MIN_JUDGED_LAPS = 2;
 const READY_JUDGED_LAPS = 3; // judged laps before the stint is worth an analysis: the pressure drift needs ≥ 3
@@ -43,7 +43,7 @@ export type TyreSummary = {
   judgedLaps: number;
   hotPressurePsi: Quartet | null;
   deltaC: Quartet; // centre − mean(shoulders), mean of per-lap values
-  innerMinusOuterC: Quartet;
+  innerMinusOuterC: Quartet | null; // null when the game's shoulder temps cannot judge camber
   pressureState: PressureState[]; // majority of judged laps
   driftPsi: Quartet | null; // last − first judged lap, only with ≥ 3 judged laps
 };
@@ -92,12 +92,17 @@ const majority = <T>(states: T[], fallback: T): T =>
 type Lap = LapRow & { zones: ZoneData[] };
 type LapTyres = { delta: Quartet; d: Quartet }; // per-lap means over the zones
 
-/** Mean of the four centre temperatures over the lap's zones, null when it carries none. */
-const centreTemp = (lap: Lap): number | null => {
-  const cs = lap.zones.flatMap((z) =>
-    z.avgTyreTempCenterC ? [mean(z.avgTyreTempCenterC)] : [],
-  );
-  return cs.length ? mean(cs) : null;
+/**
+ * Mean tyre temperature over the lap's zones, null when it carries none. Carcass
+ * first: the surface centre swings with the load (ACE: 36-125 °C inside one lap),
+ * so its lap mean never settles within PLATEAU_C. R3E's carcass is its centre.
+ */
+const settleTemp = (lap: Lap): number | null => {
+  const ts = lap.zones.flatMap((z) => {
+    const t = z.avgTyreTempC ?? z.avgTyreTempCenterC;
+    return t ? [mean(t)] : [];
+  });
+  return ts.length ? mean(ts) : null;
 };
 
 const lapTyres = (lap: Lap): LapTyres | null => {
@@ -128,6 +133,7 @@ const pressureOf = (delta: number): PressureState =>
 const tyreSummary = (
   judged: Lap[],
   setupLabel: string | null,
+  camberReadable: boolean,
 ): { summary: TyreSummary; perLap: LapTyres[] } | null => {
   const perLap = judged.map(lapTyres).filter((t) => t != null);
   if (!perLap.length) return null;
@@ -147,7 +153,9 @@ const tyreSummary = (
       judgedLaps: judged.length,
       hotPressurePsi: meanQ(press),
       deltaC: meanQ(perLap.map((t) => t.delta)) as Quartet,
-      innerMinusOuterC: meanQ(perLap.map((t) => t.d)) as Quartet,
+      innerMinusOuterC: camberReadable
+        ? (meanQ(perLap.map((t) => t.d)) as Quartet)
+        : null,
       pressureState: W.map((w) =>
         majority(
           perLap.map((t) => pressureOf(t.delta[w])),
@@ -166,19 +174,30 @@ const tyreSummary = (
  * Session-row flags as the ladder wants them. Both DB columns default to 1 for
  * every game, but Leaderboard and Fixed Setup only exist on R3E (same rule as
  * buildSessionContext), so on ACE/AMS2 a default 1 must not switch the ladder off.
+ * `camberUnreadable` is per game: ACE's inner/outer shoulder temps differ by ~1 °C
+ * even at -3° camber (also seen in MoTeC), so the camber step cannot be judged.
  */
 export const ladderFlags = (
   game: GameSource,
   flags: { leaderboardMode: boolean; fixedSetup: boolean },
-): { leaderboardMode: boolean; fixedSetup: boolean } => ({
+): {
+  leaderboardMode: boolean;
+  fixedSetup: boolean;
+  camberUnreadable: boolean;
+} => ({
   leaderboardMode: game === "r3e" && flags.leaderboardMode,
   fixedSetup: game === "r3e" && flags.fixedSetup,
+  camberUnreadable: game === "ace",
 });
 
 export const computeSetupLadder = (
   laps: LapRow[],
   setupLabelById: Map<number, string>,
-  opts: { fixedSetup: boolean; leaderboardMode?: boolean },
+  opts: {
+    fixedSetup: boolean;
+    leaderboardMode?: boolean;
+    camberUnreadable?: boolean;
+  },
 ): SetupLadder => {
   const labelOf = (id: number | null): string | null =>
     id != null ? (setupLabelById.get(id) ?? null) : null;
@@ -194,10 +213,10 @@ export const computeSetupLadder = (
   // Judged = valid laps whose tyres have settled: the mean centre temperature
   // moved ≤ PLATEAU_C from the previous lap (valid or not: the tyres heat up
   // anyway), so a pit stop or a slow spell drops laps until they are back at
-  // temperature. Without temperatures (ACE/AMS2 unverified) or with them fixed
-  // at 85 °C (Leaderboard) the plateau says nothing: fixed warm-up instead.
+  // temperature. Without temperatures or with them fixed at 85 °C (Leaderboard)
+  // the plateau says nothing: fixed warm-up instead.
   const judgedOf = (seg: Lap[]): Lap[] => {
-    const temps = seg.map(centreTemp);
+    const temps = seg.map(settleTemp);
     const noSignal = opts.leaderboardMode || temps.every((t) => t == null);
     return seg.filter((l, i) => {
       if (!l.valid) return false;
@@ -210,7 +229,7 @@ export const computeSetupLadder = (
   const analysed = segments.map((seg) => {
     const judged = judgedOf(seg);
     return judged.length >= MIN_JUDGED_LAPS
-      ? tyreSummary(judged, labelOf(seg[0].setup_id))
+      ? tyreSummary(judged, labelOf(seg[0].setup_id), !opts.camberUnreadable)
       : null;
   });
 
@@ -371,6 +390,13 @@ export const computeSetupLadder = (
     const L = "campanatura";
     if (!tyres) return step(5, L, "na", noTemps);
     const { innerMinusOuterC, pressureState } = tyres.summary;
+    if (!innerMinusOuterC)
+      return step(
+        5,
+        L,
+        "na",
+        "su ACE la differenza tra spalla interna ed esterna è troppo piccola per giudicare (anche con campanatura estrema)",
+      );
     const okWheels = W.filter((w) => pressureState[w] === "ok");
     if (!okWheels.length)
       return step(5, L, "na", "nessuna ruota con pressione a posto");

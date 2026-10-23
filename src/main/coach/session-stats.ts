@@ -133,6 +133,7 @@ export type ComputeStatsInput = {
   cornerNames: Map<number, string>;
   leaderboardMode?: boolean;
   fixedSetup?: boolean;
+  camberUnreadable?: boolean;
 };
 
 const avg = (arr: number[]): number =>
@@ -353,6 +354,7 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     setupLadder: computeSetupLadder(laps, setupLabelById, {
       fixedSetup: !!input.fixedSetup,
       leaderboardMode: !!input.leaderboardMode,
+      camberUnreadable: !!input.camberUnreadable,
     }),
   };
 };

@@ -518,20 +518,83 @@ assert.equal(
 assert.ok(readyOf(6, zone())?.includes("Nessun passo da correggere"));
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
-// flags only mean something on R3E ---
+// flags only mean something on R3E; camber is unreadable on ACE only ---
 const both = { leaderboardMode: true, fixedSetup: true };
 assert.deepEqual(ladderFlags("ace", both), {
   leaderboardMode: false,
   fixedSetup: false,
+  camberUnreadable: true,
 });
 assert.deepEqual(ladderFlags("ams2", both), {
   leaderboardMode: false,
   fixedSetup: false,
+  camberUnreadable: false,
 });
-assert.deepEqual(ladderFlags("r3e", both), both);
+assert.deepEqual(ladderFlags("r3e", both), {
+  ...both,
+  camberUnreadable: false,
+});
 assert.deepEqual(
   ladderFlags("r3e", { leaderboardMode: false, fixedSetup: true }),
-  { leaderboardMode: false, fixedSetup: true },
+  { leaderboardMode: false, fixedSetup: true, camberUnreadable: false },
 );
 
-console.log("setup-ladder self-check OK");
+// --- plateau on the carcass: ACE's centre surface temp swings with the load
+// (36-125 °C in one lap), so its lap mean never settles; the carcass does ---
+const carcassLap = (n: number, carcass: number, centre: number): LapRow =>
+  mkLap(n, [
+    okZone({
+      avgTyreTempC: [carcass, carcass, carcass, carcass],
+      avgTyreTempCenterC: [centre, centre, centre, centre],
+    }),
+  ]);
+const swingy = computeSetupLadder(
+  [
+    carcassLap(1, 60, 50),
+    carcassLap(2, 64, 62),
+    carcassLap(3, 64.5, 55),
+    carcassLap(4, 65, 66),
+  ],
+  new Map(),
+  { fixedSetup: false },
+);
+assert.equal(swingy.judgedLaps, 2, "carcass Δ 0.5 on laps 3-4, centre ignored");
+assert.equal(swingy.firstJudgedLap, 3);
+const hot = computeSetupLadder(
+  [carcassLap(1, 60, 80), carcassLap(2, 67, 80), carcassLap(3, 74, 80)],
+  new Map(),
+  { fixedSetup: false },
+);
+assert.equal(
+  hot.judgedLaps,
+  0,
+  "carcass still climbing, a flat centre does not settle it",
+);
+
+// --- camber on ACE: the step is "na", and no inner-outer figure is handed to the prompt ---
+const flatShoulders = (flags: { camberUnreadable: boolean }): SetupLadder =>
+  computeSetupLadder(
+    stint(
+      5,
+      okZone({
+        avgTyreTempInnerC: [86, 86, 86, 86],
+        avgTyreTempOuterC: [85, 85, 85, 85], // inner − outer 1 °C: below the 2 °C floor
+      }),
+    ),
+    new Map(),
+    { fixedSetup: false, ...flags },
+  );
+const aceLadder = flatShoulders({ camberUnreadable: true });
+assert.equal(stepOf(aceLadder, 5).status, "na");
+assert.ok(stepOf(aceLadder, 5).reason.includes("ACE"));
+assert.equal(aceLadder.tyres[0].innerMinusOuterC, null);
+assert.equal(
+  stepOf(aceLadder, 4).status,
+  "ok",
+  "pressures stay judged: the centre-vs-shoulders delta does not depend on orientation",
+);
+assert.equal(
+  stepOf(flatShoulders({ camberUnreadable: false }), 5).status,
+  "fix",
+  "the same flat shoulders elsewhere are judged: more negative camber",
+);
