@@ -79,7 +79,15 @@ export const OFF = {
   antiLockActive: 6888, // bool   mAntiLockActive
   localAcceleration: 6956, // float[3] mLocalAcceleration (m/s^2; X=lat, Z=lon)
 
+  // mTyreRPS is rad/s despite the header's "revolutions per second" (Reiza
+  // forum + SimHub). mTyreSlipSpeed (7056) sits between it and mTyreTemp.
+  tyreRPS: 7040, // float[4]  mTyreRPS (rad/s)
   tyreTemp: 7072, // float[4]  mTyreTemp (Celsius)
+  // Surface temps (Celsius), 16 bytes each. Computed from SharedMemory.h, NOT
+  // yet verified on a live sim.
+  tyreTempLeft: 20328, // float[4]  mTyreTempLeft
+  tyreTempCenter: 20344, // float[4]  mTyreTempCenter
+  tyreTempRight: 20360, // float[4]  mTyreTempRight
   brakeTempCelsius: 7184, // float[4]  mBrakeTempCelsius (Celsius)
 
   // Weather block, right before mSequenceNumber (mCrashState/mAeroDamage/

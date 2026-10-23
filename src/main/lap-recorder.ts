@@ -10,6 +10,7 @@
 import { EventEmitter } from "events";
 import { CALIBRATION_LAPS, ZONE_SIZE_M } from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
+import { ladderCounters } from "./ladder-counters.js";
 
 /** Minimal reader interface required by LapRecorder (duck-typed by both R3EReader and AceReader). */
 interface LapEventReader {
@@ -80,6 +81,9 @@ export const aggregateZones = (
   }
 
   const blipSet = buildBlipSet(frames);
+  const counters = ladderCounters(frames, (d) =>
+    Math.min(Math.floor(d / ZONE_SIZE_M), numZones - 1),
+  );
   const zones: ZoneData[] = [];
 
   for (let z = 0; z < numZones; z++) {
@@ -145,7 +149,7 @@ export const aggregateZones = (
 
     const quartetFrom = (
       frames: CompactFrame[],
-      key: "tp" | "sr" | "sus" | "tt",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
     ): [number, number, number, number] | undefined => {
       const byWheel = [0, 1, 2, 3].map((i) =>
         frames
@@ -157,7 +161,7 @@ export const aggregateZones = (
         : undefined;
     };
     const quartet = (
-      key: "tp" | "sr" | "sus" | "tt",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
     ): [number, number, number, number] | undefined =>
       quartetFrom(zoneFrames, key);
 
@@ -173,6 +177,9 @@ export const aggregateZones = (
     const avgSlipRatio = quartet("sr");
     const avgSuspTravel = quartet("sus");
     const avgTyreTempC = quartet("tt");
+    const avgTyreTempInnerC = quartet("tti");
+    const avgTyreTempCenterC = quartet("ttc");
+    const avgTyreTempOuterC = quartet("tto");
     // Diff diagnostics: same slip-ratio channel, split by drivetrain phase.
     const releaseFrames = zoneFrames.filter((f) => f.thr <= 0.05);
     const avgSlipRatioThrottle = quartetFrom(throttleFrames, "sr");
@@ -220,6 +227,7 @@ export const aggregateZones = (
       brakeEndDist,
       throttlePickupDist,
       ...aidPreset,
+      ...counters.get(z),
       ...(avgBrakeTempC !== undefined && { avgBrakeTempC }),
       ...(rpmValues.length > 0 && { avgRpm: avgArr(rpmValues) }),
       ...(maxGLat !== undefined && { maxGLat }),
@@ -230,6 +238,9 @@ export const aggregateZones = (
       ...(avgSlipRatioRelease && { avgSlipRatioRelease }),
       ...(avgSuspTravel && { avgSuspTravel }),
       ...(avgTyreTempC && { avgTyreTempC }),
+      ...(avgTyreTempInnerC && { avgTyreTempInnerC }),
+      ...(avgTyreTempCenterC && { avgTyreTempCenterC }),
+      ...(avgTyreTempOuterC && { avgTyreTempOuterC }),
       ...(airTempValues.length > 0 && { avgAirTempC: avgArr(airTempValues) }),
       ...(roadTempValues.length > 0 && {
         avgRoadTempC: avgArr(roadTempValues),

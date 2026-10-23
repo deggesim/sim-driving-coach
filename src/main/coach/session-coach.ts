@@ -17,6 +17,11 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import {
+  computeSetupLadder,
+  ladderFlags,
+  stintReadyMessage,
+} from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
@@ -89,6 +94,8 @@ type SessionCoachOptions = {
 export type SessionCoachEngine = {
   updateApiKey: (apiKey: string) => void;
   updateCornerNames: (names: Map<number, string>) => void;
+  // The phrase to speak when the stint can be analysed, null while it cannot.
+  stintReady: (sessionId: number, game: GameSource) => string | null;
   analyzeSession: (
     sessionId: number,
     game: GameSource,
@@ -240,6 +247,18 @@ export const createSessionCoachEngine = (
       cornerNames = names;
     },
 
+    stintReady: (sessionId, game) => {
+      const bundle = loadSessionBundle(game, sessionId);
+      if (!bundle) return null;
+      return stintReadyMessage(
+        computeSetupLadder(
+          bundle.laps,
+          new Map(),
+          ladderFlags(game, bundle.flags),
+        ),
+      );
+    },
+
     analyzeSession: async (sessionId, game, resolved, alerts) => {
       const analysesTable = tableFor(game, "session_analyses");
       const bundle = loadSessionBundle(game, sessionId);
@@ -252,6 +271,8 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        // Both columns default to 1 for every game: see ladderFlags.
+        ...ladderFlags(game, flags),
       });
 
       const prompt = buildSynthesisPrompt({
@@ -379,6 +400,7 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        ...ladderFlags(game, flags),
       });
 
       const prompt = buildSessionPrompt({
@@ -513,6 +535,7 @@ export const createSessionCoachEngine = (
             bestLap: bundle.session.best_lap,
             setups: bundle.setups,
             cornerNames,
+            ...ladderFlags(game, bundle.flags),
           })
         : undefined;
       const prompt = buildCommentPrompt({

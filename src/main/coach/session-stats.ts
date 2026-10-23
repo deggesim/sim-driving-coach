@@ -7,12 +7,12 @@
  * "Estimated impact per lap" is deliberately NOT computed (it stays a model judgment).
  */
 
-import type {
-  Alert,
-  LapRow,
-  SessionSetupRow,
-  ZoneData,
-} from "../../shared/types.js";
+import type { Alert, LapRow, SessionSetupRow } from "../../shared/types.js";
+import {
+  computeSetupLadder,
+  parseZones,
+  type SetupLadder,
+} from "./setup-ladder.js";
 
 const FRAME_MS = 16;
 const FLAT_EPS = 0.05; // seconds: |lastThird - firstThird| below this ⇒ "flat"
@@ -120,6 +120,9 @@ export type SessionStats = {
   slipAsymRearThrottle: number | null; // RL-RR in trazione
   slipAsymFrontRelease: number | null; // FL-FR fuori trazione (rilascio/frenata/coasting)
   slipAsymRearRelease: number | null; // RL-RR fuori trazione
+  // Always computed; in Leaderboard (tyres fixed at 85 °C) steps 4-5 are "na" and
+  // there are no tyre lines. Nullable only so a prompt can be built without one.
+  setupLadder: SetupLadder | null;
 };
 
 export type ComputeStatsInput = {
@@ -128,19 +131,13 @@ export type ComputeStatsInput = {
   setups: SessionSetupRow[];
   alerts?: Alert[];
   cornerNames: Map<number, string>;
+  leaderboardMode?: boolean;
+  fixedSetup?: boolean;
+  camberUnreadable?: boolean;
 };
 
 const avg = (arr: number[]): number =>
   arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-
-const parseZones = (json: string | null): ZoneData[] => {
-  if (!json) return [];
-  try {
-    return JSON.parse(json) as ZoneData[];
-  } catch {
-    return [];
-  }
-};
 
 export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
   const { laps, setups, alerts, cornerNames } = input;
@@ -354,5 +351,10 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     slipAsymRearRelease: meanSlipRelease
       ? gateSlip(meanSlipRelease[2] - meanSlipRelease[3])
       : null,
+    setupLadder: computeSetupLadder(laps, setupLabelById, {
+      fixedSetup: !!input.fixedSetup,
+      leaderboardMode: !!input.leaderboardMode,
+      camberUnreadable: !!input.camberUnreadable,
+    }),
   };
 };

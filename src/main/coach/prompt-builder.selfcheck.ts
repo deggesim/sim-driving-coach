@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import type {
   Alert,
+  GameSource,
   LapRow,
   SessionAnalysisRow,
   SessionRow,
@@ -17,12 +18,14 @@ import type {
 import {
   buildCommentPrompt,
   buildSessionPrompt,
+  buildStatsBlock,
   buildSynthesisPrompt,
   SESSION_SYSTEM_PROMPT,
   SYNTHESIS_SYSTEM_PROMPT,
   type SessionPromptInput,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import type { SetupLadder } from "./setup-ladder.js";
 import { decodeAlertCodes, WHEEL_ORDER } from "../../shared/alert-types.js";
 
 const session: SessionRow = {
@@ -314,10 +317,31 @@ assert.ok(
 );
 assert.ok(!ams2PressureLap.includes("PSI"), "no PSI label for AMS2");
 
-// Both levels must ask for varied levers and know what the channels mean: the
-// point of shipping them is that a proposal can be anchored to something else.
-assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("NON concentrare tutte le azioni"));
-assert.ok(SESSION_SYSTEM_PROMPT.includes("NON limitarti ai freni"));
+// Setup proposals follow the ladder: one lever, on the current step. The old
+// "cover every area" wording must be gone from both levels.
+assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("PASSO CORRENTE"));
+assert.ok(SESSION_SYSTEM_PROMPT.includes("leva del passo corrente"));
+// Level 2 only: the restriction holds WHILE a current step exists (spec); with
+// every step ok / non valutabile it may propose on the other areas again.
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes(
+    "proposte numerate anche sulle altre aree, ciascuna con il dato che la sostiene",
+  ),
+  "Level 2 may propose on other areas when the ladder has no current step",
+);
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes("ogni passo ok o non valutabile"),
+  "no current step = every step ok or non valutabile",
+);
+assert.ok(
+  !SYNTHESIS_SYSTEM_PROMPT.includes("anche sulle altre aree"),
+  "Level 1 rule unchanged",
+);
+assert.ok(!SYNTHESIS_SYSTEM_PROMPT.includes("NON concentrare tutte le azioni"));
+assert.ok(!SESSION_SYSTEM_PROMPT.includes("Copri ogni area"));
+assert.ok(!SESSION_SYSTEM_PROMPT.includes("NON limitarti ai freni"));
+
+// Both levels must know what the channels mean.
 for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT]) {
   assert.ok(p.includes("slip ratio"), "channel units documented");
   assert.ok(p.includes("temp. gomme"), "tyre temp units documented");
@@ -403,6 +427,172 @@ assert.ok(
     "Condizioni: aria 22°C, asfalto 28°C, pioggia 30%, vento 5.2 m/s, nuvolosità 60%",
   ),
   "ambient conditions in the authoritative block",
+);
+
+// The setup ladder block (Task 5 output) reaches the prompt as written, with the
+// current step marked and the steps after it flagged as provisional.
+const ladderFixture: SetupLadder = {
+  setupLabel: "Gara B",
+  firstJudgedLap: 4,
+  lastJudgedLap: 9,
+  judgedLaps: 6,
+  lapsMissing: 0,
+  current: 4,
+  steps: [
+    {
+      n: 1,
+      label: "condotti freni",
+      status: "ok",
+      reason: "ant 612 °C, post 548 °C, sbil. 10 %",
+      proposable: true,
+    },
+    {
+      n: 2,
+      label: "bilanciamento freni",
+      status: "na",
+      reason: "manca lo slip",
+      proposable: true,
+    },
+    {
+      n: 4,
+      label: "pressioni",
+      status: "fix",
+      reason: "Δ ANT-SX +2.1 °C → abbassare",
+      proposable: true,
+    },
+    {
+      n: 5,
+      label: "campanatura",
+      status: "ok",
+      reason: "…",
+      proposable: true,
+    },
+  ],
+  tyres: [
+    {
+      setupLabel: "Gara B",
+      judgedLaps: 6,
+      hotPressurePsi: [29.6, 29.4, 28.3, 28.1],
+      deltaC: [2.1, 1.8, 0.3, -0.2],
+      innerMinusOuterC: [5, 6, 4, 4],
+      pressureState: ["alta", "alta", "ok", "ok"],
+      driftPsi: null,
+    },
+  ],
+};
+const baseStats = computeSessionStats({
+  laps: [],
+  bestLap: null,
+  setups: [],
+  cornerNames: new Map(),
+});
+const ladderBlock = (
+  over: Partial<SetupLadder> | null,
+  game: GameSource = "ams2",
+) =>
+  buildStatsBlock(
+    {
+      ...baseStats,
+      setupLadder: over && { ...ladderFixture, ...over },
+    },
+    game,
+  );
+
+const lb = ladderBlock({});
+for (const s of [
+  `Sequenza setup (setup "Gara B", giri 4-9, 6 giudicati)`,
+  "2 bilanciamento freni: NON VALUTABILE — manca lo slip",
+  "1 condotti freni: ok — ant 612 °C",
+  "4 pressioni: DA CORREGGERE ← PASSO CORRENTE — Δ ANT-SX +2.1 °C → abbassare",
+  "5 campanatura: ok (da rivedere dopo il passo 4)",
+  `Gomme setup "Gara B" (6 giri giudicati) (${WHEEL_ORDER})`,
+  "press. a caldo 2.04/2.03/1.95/1.94 bar",
+  "stato alta/alta/ok/ok",
+  "interna-esterna 5.0/6.0/4.0/4.0 °C",
+]) {
+  assert.ok(lb.includes(s), s);
+}
+assert.ok(!lb.includes("deriva"), "null drift is omitted");
+assert.ok(
+  !lb.includes("1 condotti freni: ok (da rivedere"),
+  "steps before the current one are not provisional",
+);
+assert.ok(
+  ladderBlock({
+    tyres: [{ ...ladderFixture.tyres[0], driftPsi: [1.2, 0, 0, -0.3] }],
+  }).includes("deriva"),
+);
+assert.ok(
+  ladderBlock({}, "ace").includes("press. a caldo 29.6/29.4/28.3/28.1 PSI"),
+  "PSI outside AMS2",
+);
+const missing = ladderBlock({ lapsMissing: 3, steps: [], current: null });
+assert.ok(
+  missing.includes(
+    `Sequenza setup: completa ancora 3 giri con il setup "Gara B"`,
+  ),
+);
+// Right after a setup change the earlier segments' tyre lines are the useful
+// comparison: they are kept next to the "completa ancora" line.
+assert.ok(
+  missing.includes(`Gomme setup "Gara B" (6 giri giudicati)`),
+  "earlier tyre lines survive a short last segment",
+);
+const notEditable = ladderBlock({
+  steps: [{ ...ladderFixture.steps[0], status: "fix", proposable: false }],
+  current: null,
+});
+assert.ok(notEditable.includes("(non modificabile con Setup Fisso)"));
+assert.ok(!ladderBlock(null).includes("Sequenza setup"), "no ladder, no row");
+
+// Level 2: the ladder table is mandatory whenever the "Sequenza setup" row
+// exists, loaded setup or not; the parameter table and A → B need a setup.
+const setupSub = SESSION_SYSTEM_PROMPT.slice(
+  SESSION_SYSTEM_PROMPT.indexOf("### Setup attuale vs proposto"),
+  SESSION_SYSTEM_PROMPT.indexOf("## Regole Generali"),
+);
+for (const s of [
+  `OBBLIGATORIA anche senza un setup caricato`,
+  `tabella "Passo | Stato | Dato"`,
+  `SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione"`,
+  `Senza setup caricato: niente tabella dei parametri e niente valori "A → B"`,
+  `indica solo la direzione`,
+  `Se la riga "Sequenza setup" manca e nessun setup è caricato, OMETTI`,
+  `Se la riga "Sequenza setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate`,
+]) {
+  assert.ok(setupSub.includes(s), s);
+}
+assert.ok(
+  !setupSub.startsWith("### Setup attuale vs proposto\n(OMETTI"),
+  "the subsection is not unconditionally omittable",
+);
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes(
+    `omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato`,
+  ),
+  "closing sentence matches the rule",
+);
+
+// The asymmetry lines no longer point at a lever: the ladder owns that call.
+const asym = buildStatsBlock({
+  ...baseStats,
+  suspAsymFrontMm: 3,
+  slipAsymFrontThrottle: 0.05,
+  slipAsymFrontRelease: 0.04,
+});
+assert.ok(asym.includes("Asimmetria corsa sospensione"));
+assert.ok(!asym.includes("verifica camber"));
+assert.ok(!asym.includes("verifica differenziale"));
+
+// Fixed Setup: the ladder shows steps 1-2 only, and the context says so.
+const fixedCtx = buildSessionPrompt({
+  ...input,
+  session: { ...session, game: "r3e" },
+  fixedSetup: true,
+});
+assert.ok(
+  fixedCtx.includes("La sequenza setup mostra solo i passi 1-2"),
+  "fixed setup wording",
 );
 
 // Alert codes never reach the prompt: the analysis text is rendered, exported to
