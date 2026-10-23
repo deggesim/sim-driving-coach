@@ -341,15 +341,14 @@ export const GFX = {
 // SMEvoTyreState (256 B, Pack=4) fields we read; its base is GFX 220 + n×256 for
 // FL,FR,RL,RR. Field order from the spec: slip f, lock bool (+3 pad), pressure,
 // tyre_temperature_c, brake_temperature_c, brake_pressure, then left/center/right.
-// Left = inner edge, right = outer edge (per the spec text). The base is anchored by
-// `npos` at 1244 (= 220 + 4×256), the in-struct offsets are computed: DIAG-checked.
+// Verified live (Lotus Exige, 0.9.1): +8 pressure and +12 carcass match PHY.wheelsPressure /
+// PHY.tyreCoreTemperature to 4 decimals on all four wheels, so +24/28/32 sit right too.
+// left/right are the wheel's physical sides (not inner/outer): see leftRightToInnerOuter.
 export const GFX_TYRE = {
   base: [220, 476, 732, 988],
-  pressure: 8, // float - PSI, must match PHY.wheelsPressure
-  tempC: 12, // float - carcass °C, must match PHY.tyreCoreTemperature
-  tempInner: 24, // tyre_temperature_left
+  tempLeft: 24, // tyre_temperature_left
   tempCenter: 28, // tyre_temperature_center
-  tempOuter: 32, // tyre_temperature_right
+  tempRight: 32, // tyre_temperature_right
 } as const;
 
 // ── SPageFileStaticEvo offsets (Pack=4) ──────────────────────────────────────

@@ -45,7 +45,7 @@ import {
 } from "../../shared/alert-types.js";
 import type { GameFrame, CompactFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
-import { surfaceTemps } from "../tyre-temps.js";
+import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -176,8 +176,6 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
   // True if the car was in the pit lane at any point since the last lap crossing.
   // Used to mark outlaps (and drive-through laps) as invalid regardless of ACE's own flag.
   let lapExitedPit = false;
-  // TEMP diagnostic: raw surface-temp arrays, to see why `surfaceTemps` drops them.
-  let rawTempsLogged = false;
   // Cumulative world-space distance: makes CompactFrame.d consistent with wx/wz
   // so the telemetry chart cursor and track map marker are perfectly aligned.
   let cumulativeDist = 0;
@@ -399,9 +397,13 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
       const gfxTyre = (off: number) =>
         GFX_TYRE.base.map((b) => readFloat(gfxBuf, b + off));
-      const tyreTempI = gfxTyre(GFX_TYRE.tempInner);
+      // left/right are the wheel's physical sides, like R3E (spec says "inner-edge" but the
+      // Lotus data only makes sense that way: outer shoulder +2 °C on all four wheels).
+      const [tyreTempI, tyreTempO] = leftRightToInnerOuter(
+        gfxTyre(GFX_TYRE.tempLeft),
+        gfxTyre(GFX_TYRE.tempRight),
+      );
       const tyreTempM = gfxTyre(GFX_TYRE.tempCenter);
-      const tyreTempO = gfxTyre(GFX_TYRE.tempOuter);
       const slipRatio = readFloatArray(physBuf, PHY.slipRatio, 4);
       const airTemp = readFloat(physBuf, PHY.airTemp);
       const roadTemp = readFloat(physBuf, PHY.roadTemp);
@@ -580,12 +582,6 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           wz: playerWz,
         });
         logChannels("ACE", lapFrames.at(-1));
-        if (!rawTempsLogged && speedKmh > 30) {
-          rawTempsLogged = true;
-          console.log(
-            `[ACE] DIAG gfx tyre I=${tyreTempI} M=${tyreTempM} O=${tyreTempO} | carcass gfx=${gfxTyre(GFX_TYRE.tempC)} phys=${tyreCoreTemp} | press gfx=${gfxTyre(GFX_TYRE.pressure)} phys=${wheelsPressure} @${speedKmh.toFixed(0)}km/h`,
-          );
-        }
       }
 
       // Lap crossing: npos crosses start/finish (0.85→1.0 → 0.0→0.15).
