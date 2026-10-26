@@ -57,6 +57,7 @@ Due regole, secondo se l'auto ha l'ABS attivo nei giri giudicati (ABS considerat
 - Frame di frenata = `brk > 0,30`. Bloccaggio = una ruota con `sr < −0,25` **(utente, valore di partenza da tarare sul sim: la frenata al limite senza bloccaggio arriva già a −0,08…−0,15 su molti modelli di gomma)**.
 - Per asse: quota dei frame di frenata con almeno una ruota dell'asse bloccata.
 - `da correggere` se un asse blocca in > **5 %** dei frame di frenata **e** almeno il doppio dell'altro asse. Anteriore → bilanciamento verso il posteriore ("l'auto tira dritta"); posteriore → verso l'anteriore ("il posteriore scoda").
+- **Aggiornato 2026-10-26:** se **entrambi** gli assi bloccano oltre il 5 % senza che uno sia il doppio dell'altro, nessun bilanciamento lo risolve → `da correggere` con "ridurre la forza frenante (brake pressure), poi rifare il bilanciamento" (guida "La forza frenante"). Prima questo caso dava `ok`.
 
 **Con ABS** **(utente)**: un bilanciamento troppo in avanti allunga la frenata e fa sottosterzare in inserimento.
 - `da correggere` se **entrambi**:
@@ -77,11 +78,11 @@ Inserimento più basso del centro curva di oltre il **15 %** = curva sottosterza
 
 ### Passo 3 — Freno motore e forza frenante
 
-Sintomo **(utente)**: in scalata il posteriore scoda. Slide 20-23: prima si apre la coast ramp, poi si riduce il freno motore.
+Sintomo **(utente)**: in scalata il posteriore scoda. Slide 20-23: prima si **abbassa** (chiude) la coast ramp, poi si riduce il freno motore. **Corretto 2026-10-26:** qui c'era "si apre", contro le slide: la 22 dà "35 deg sottosterza, 36 deg sovrasterza" e la 53 "coast ramp aperto = sovrasterzo in frenata e decelerazione", quindi abbassare = chiudere.
 
 - Scalata = `gear` che scende tra due frame consecutivi con `brk > 0` o `thr ≤ 0,05`.
 - Scalata nervosa = entro **0,5 s** una ruota posteriore ha `sr < −0,10` **(utente, da tarare sul sim)**: soglia più bassa del bloccaggio del passo 2, perché il freno motore fa slittare la ruota all'indietro senza bloccarla.
-- `da correggere` se > **20 %** delle scalate sono nervose **(scelta, per simmetria con la soglia ABS dell'utente)** → coast ramp più aperta; se il setup attivo la mostra già al minimo, meno freno motore. In AMS2 un valore *basso* di engine braking = *più* freno motore (slide 17): la proposta deve dirlo.
+- `da correggere` se > **20 %** delle scalate sono nervose **(scelta, per simmetria con la soglia ABS dell'utente)** → coast ramp più chiusa (su AMS2 valore più basso); se il setup attivo la mostra già al minimo, meno freno motore. In AMS2 un valore *basso* di engine braking = *più* freno motore (slide 17): la proposta deve dirlo.
 - `non valutabile`: senza `sr`; auto a trazione anteriore (le posteriori non subiscono freno motore) **(scelta)**. Come riconoscere la trazione: lasciato al builder (dal setup attivo se lo espone, altrimenti dallo slip in trazione: le ruote motrici sono quelle con slip medio in trazione nettamente maggiore).
 
 ### Passo 4 — Pressioni
@@ -100,7 +101,7 @@ Solo sulle ruote con pressione `ok` al passo 4 **(scelta)**: con la pressione sb
 
 - `d = T_interna − T_esterna`.
 - `d < 2 °C` (comprese le tre temperature uguali, o l'interna più fredda dell'esterna) → più campanatura negativa **(scelta, dalla guida slide 33: obiettivo ~5 °C, tre uguali = allarme)**.
-- `d > 10 °C` → meno campanatura negativa **(utente)**.
+- `d > 10 °C` → meno campanatura negativa **(utente)**. **Aggiornato 2026-10-26:** sulle anteriori anche "o più incidenza (se regolabile)": con incidenza bassa le spalle interne anteriori scaldano di più (guida "L'angolo di incidenza"). Leva alternativa, non un giudizio separato: nei dati resta inseparabile dalla campanatura.
 - Per ruota, giudizio sulla maggioranza dei giri come al passo 4.
 - `non valutabile`: come al passo 4.
 
@@ -110,6 +111,7 @@ Slide 45-54. Usa la metrica `k` per fase del passo 2.
 
 - **Uscita (power ramp)** **(utente)**: il sintomo è la ruota posteriore interna che pattina senza spingere. Misura senza bisogno di sapere quale ruota sia l'interna: in uscita (`thr > 0,50`, `|str| > 0,05`), `|sr_RL − sr_RR| > 0,15` (soglia dal thread Reiza) su più del 20 % dei frame **(scelta)** → **chiudere** la power ramp (più bloccaggio). Su auto a trazione anteriore si usano le anteriori.
 - Uscita con sovrasterzo (`k` uscita > centro curva +15 %) **senza** ruota interna che pattina → **aprire** la power ramp **(scelta, dalla guida slide 50)**.
+- **Aggiornato 2026-10-26:** il precarico è la leva di riserva anche della power ramp: già chiusa del tutto → più precarico; già aperta del tutto → meno precarico (guida "Il differenziale": precarico alto = più chiusura in entrambe le fasi). Al passo 3, il ripiego "meno freno motore" aggiunge "più forza frenante per non allungare la frenata".
 - **Ingresso (coast ramp)**: sovrasterzo in ingresso (`k` inserimento > centro curva +15 %) → **chiudere** la coast ramp; se il setup attivo la mostra già al minimo, più precarico (slide 54). Il sottosterzo in ingresso appartiene al passo 2, che viene prima.
 - Geared LSD (slide 55-61, bias power/coast) al posto delle rampe quando il setup attivo lo indica: la proposta usa quel nome di parametro.
 - `non valutabile`: senza `sr` o `gLat`.

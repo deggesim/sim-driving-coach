@@ -209,9 +209,17 @@ assert.equal(noBrakeTemps.current, 2, "a na step is skipped, never current");
 const frontLock = ladder(okZone({ lockFramesFront: 8, lockFramesRear: 2 }));
 assert.equal(stepOf(frontLock, 2).status, "fix");
 assert.ok(stepOf(frontLock, 2).reason.includes("posteriore"));
+// Both axles lock, neither twice the other: brake pressure, not bias.
+const bothLock = stepOf(
+  ladder(okZone({ lockFramesFront: 8, lockFramesRear: 6 })),
+  2,
+);
+assert.equal(bothLock.status, "fix");
+assert.ok(bothLock.reason.includes("ridurre la forza frenante"));
 assert.equal(
-  stepOf(ladder(okZone({ lockFramesFront: 8, lockFramesRear: 6 })), 2).status,
+  stepOf(ladder(okZone({ lockFramesFront: 8, lockFramesRear: 5 })), 2).status,
   "ok",
+  "front over 5 %, rear at 5 %, not twice: still ok",
 );
 const rearLock = ladder(okZone({ lockFramesFront: 0, lockFramesRear: 6 }));
 assert.ok(stepOf(rearLock, 2).reason.includes("verso l'anteriore"));
@@ -260,6 +268,12 @@ assert.equal(
   stepOf(ladder(okZone({ nervousDownshifts: 3 })), 3).status,
   "fix",
   "3/10 nervous",
+);
+// Guide slides 22-23/53: oversteer on downshift = close the coast ramp, never open it.
+assert.ok(
+  stepOf(ladder(okZone({ nervousDownshifts: 3 })), 3).reason.includes(
+    "coast ramp più chiusa",
+  ),
 );
 const fwd = ladder(
   okZone({
@@ -373,6 +387,12 @@ const camberLess = ladder(
 );
 assert.equal(stepOf(camberLess, 5).status, "fix");
 assert.ok(stepOf(camberLess, 5).reason.includes("meno campanatura negativa"));
+// Caster is offered on the front wheels only: two of the four wheels.
+assert.equal(
+  stepOf(camberLess, 5).reason.split("o più incidenza").length - 1,
+  2,
+);
+assert.ok(!stepOf(camberMore, 5).reason.includes("incidenza"));
 // FL has high pressure (Δ +7.5) and d = 15: ignored, so the step is ok.
 const highIgnored = ladder(
   okZone({
@@ -396,11 +416,10 @@ assert.equal(stepOf(allHigh, 5).reason, "nessuna ruota con pressione a posto");
 const spin = ladder(okZone({ spinFramesRear: 30 }));
 assert.equal(stepOf(spin, 6).status, "fix");
 assert.ok(stepOf(spin, 6).reason.includes("chiudere la power ramp"));
-assert.ok(
-  stepOf(ladder(okZone({ cornersExitOver: 3 })), 6).reason.includes(
-    "aprire la power ramp",
-  ),
-);
+assert.ok(stepOf(spin, 6).reason.includes("più precarico"));
+const exitOver = stepOf(ladder(okZone({ cornersExitOver: 3 })), 6).reason;
+assert.ok(exitOver.includes("aprire la power ramp"));
+assert.ok(exitOver.includes("meno precarico"));
 assert.ok(
   stepOf(ladder(okZone({ cornersEntryOver: 3 })), 6).reason.includes(
     "chiudere la coast ramp",

@@ -331,6 +331,15 @@ export const computeSetupLadder = (
         "fix",
         `${data} → bilanciamento verso l'anteriore (il posteriore scoda)`,
       );
+    // Both axles lock and neither dominates: no bias fixes it (guide: "forza
+    // frenante" - lower the brake pressure, then redo the bias).
+    if (f > LOCK_SHARE && r > LOCK_SHARE)
+      return step(
+        2,
+        L,
+        "fix",
+        `${data} → bloccano entrambi gli assi: ridurre la forza frenante (brake pressure), poi rifare il bilanciamento`,
+      );
     return step(2, L, "ok", data);
   })();
 
@@ -348,7 +357,9 @@ export const computeSetupLadder = (
           3,
           L,
           "fix",
-          `${data} → coast ramp più aperta; se è già al minimo, meno freno motore (su AMS2 engine braking più alto = meno freno motore)`,
+          // Guide slides 22-23: "abbassare il coast ramp" (35 deg understeers,
+          // 36 deg oversteers) = close it; slide 53: open coast = oversteer.
+          `${data} → coast ramp più chiusa (su AMS2 valore più basso); se è già al minimo, meno freno motore (su AMS2 engine braking più alto = meno freno motore) e più forza frenante per non allungare la frenata`,
         )
       : step(3, L, "ok", data);
   })();
@@ -410,7 +421,9 @@ export const computeSetupLadder = (
       return dir === "ok"
         ? []
         : [
-            `${WHEELS[w]} ${signed(innerMinusOuterC[w])} °C → ${dir} campanatura negativa`,
+            // Guide: low caster heats the front inner shoulders, so more caster
+            // is the alternative lever there (not separable from camber in the data).
+            `${WHEELS[w]} ${signed(innerMinusOuterC[w])} °C → ${dir} campanatura negativa${dir === "meno" && w < 2 ? " o più incidenza (se regolabile)" : ""}`,
           ];
     });
     return off.length
@@ -442,10 +455,15 @@ export const computeSetupLadder = (
         6,
         L,
         "fix",
-        `${data} → chiudere la power ramp (più bloccaggio)`,
+        `${data} → chiudere la power ramp (più bloccaggio); se è già chiusa del tutto, più precarico`,
       );
     if (exitOver > exits / 2)
-      return step(6, L, "fix", `${data} → aprire la power ramp`);
+      return step(
+        6,
+        L,
+        "fix",
+        `${data} → aprire la power ramp; se è già aperta del tutto, meno precarico`,
+      );
     if (entryOver > entry / 2)
       return step(
         6,
