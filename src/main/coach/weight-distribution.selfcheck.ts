@@ -61,21 +61,33 @@ assert.ok(m.known && Math.abs(m.frontPct - 44.12) < 0.05); // 6000 / 13600
 assert.ok(m.known && Math.abs(m.aeroFrontPct! - 38.46) < 0.05); // 0.10 / 0.26
 assert.ok(m.known && m.fuelL !== null && Math.abs(m.fuelL - 35) < 1e-9);
 
-// No fuel samples -> fuelL null; no aero -> aeroFrontPct null.
-const flat = weightDistribution(
-  "ace",
-  [
-    zone(
-      sums(
-        speeds,
-        () => 6000,
-        () => 7600,
+// No fuel samples -> fuelL null.
+const aeroOf = (fSlope: number, rSlope: number) =>
+  weightDistribution(
+    "ace",
+    [
+      zone(
+        sums(
+          speeds,
+          (x) => 6000 + fSlope * x,
+          (x) => 7600 + rSlope * x,
+        ),
       ),
-    ),
-  ],
-  null,
-);
-assert.ok(flat.known && flat.fuelL === null && flat.aeroFrontPct === null);
+    ],
+    null,
+  );
+const noFuel = aeroOf(0.1, 0.16);
+assert.ok(noFuel.known && noFuel.fuelL === null);
+// Regression noise (tiny opposite-sign slopes), front lift, and <1 % aero -> null.
+for (const [f, r] of [
+  [1e-9, -1e-9],
+  [-1e-9, 1e-9],
+  [-0.05, 0.16],
+  [0.0001, 0.0001],
+] as const) {
+  const d = aeroOf(f, r);
+  assert.ok(d.known && d.aeroFrontPct === null, `aero ${f}/${r}`);
+}
 
 assert.deepEqual(
   weightDistribution("ace", [zone(sums(speeds.slice(0, 50), F, R))], null),

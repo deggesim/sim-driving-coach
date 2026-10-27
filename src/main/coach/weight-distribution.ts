@@ -4,6 +4,8 @@ import type { GameSource, LoadFitSums, ZoneData } from "../../shared/types.js";
 const MIN_LOAD_SAMPLES = 300;
 // Relative floor for the regression denominator: below it every sample sits at one speed.
 const MIN_SPREAD = 1e-9;
+// Aero load at the mean sampled v² must be this share of the static load, else the slope is noise.
+const MIN_AERO_SHARE = 0.01;
 
 export type WeightDistribution =
   | {
@@ -80,11 +82,16 @@ export const weightDistribution = (
   if (!Number.isFinite(aF + aR) || aF <= 0 || aR <= 0)
     return unknown("carico ruota non disponibile");
 
+  const aeroOk =
+    bF >= 0 &&
+    bR >= 0 &&
+    (bF + bR) * (t.sx / t.n) >= MIN_AERO_SHARE * (aF + aR);
+
   return {
     known: true,
     frontPct: (aF / (aF + aR)) * 100,
     source: "misurata",
-    aeroFrontPct: bF + bR > 0 ? (bF / (bF + bR)) * 100 : null,
+    aeroFrontPct: aeroOk ? (bF / (bF + bR)) * 100 : null,
     fuelL: t.fuelN > 0 ? t.fuelSum / t.fuelN : null,
   };
 };
