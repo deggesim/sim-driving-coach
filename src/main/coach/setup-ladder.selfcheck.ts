@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import {
   computeSetupLadder,
+  judgedLapsOfLastSegment,
   ladderFlags,
   stintReadyMessage,
   type SetupLadder,
@@ -139,6 +140,8 @@ const invalidFourth = computeSetupLadder(
   new Map(),
   { fixedSetup: false },
 );
+// The overview judges the same laps: the 1st lap of the segment has no reference.
+assert.equal(judgedLapsOfLastSegment(stint(5, okZone()), {}).length, 4);
 assert.equal(
   invalidFourth.judgedLaps,
   4,

@@ -19,7 +19,7 @@ const DUCT_FRONT_MAX_C = 700;
 const DUCT_IMBALANCE = 0.2; // |front − rear| / max(front, rear)
 const LOCK_SHARE = 0.05; // of the hard-brake frames carrying slip
 const LOCK_RATIO = 2; // one axle locks at least this many times the other
-const ABS_SHARE = 0.2; // of the hard-brake frames
+export const ABS_SHARE = 0.2; // of the hard-brake frames; the overview's rake reuses it
 const NERVOUS_SHARE = 0.2; // of the downshifts
 const TYRE_BALANCE_TOL_C = 1.25; // |centre − mean(shoulders)| still ok
 const CAMBER_MIN_C = 2; // inner − outer below this: more negative camber
@@ -190,6 +190,41 @@ export const ladderFlags = (
   camberUnreadable: game === "ace",
 });
 
+/** Segments: runs of consecutive laps with the same setup_id (null included). */
+const segmentsOf = (laps: LapRow[]): Lap[][] => {
+  const segments: Lap[][] = [];
+  for (const l of laps) {
+    const lap = { ...l, zones: parseZones(l.zones_json) };
+    const seg = segments.at(-1);
+    if (seg && seg[0].setup_id === l.setup_id) seg.push(lap);
+    else segments.push([lap]);
+  }
+  return segments;
+};
+
+// Judged = valid laps whose tyres have settled: the mean centre temperature
+// moved ≤ PLATEAU_C from the previous lap (valid or not: the tyres heat up
+// anyway), so a pit stop or a slow spell drops laps until they are back at
+// temperature. Without temperatures or with them fixed at 85 °C (Leaderboard)
+// the plateau says nothing: fixed warm-up instead.
+const judgedOf = (seg: Lap[], leaderboardMode?: boolean): Lap[] => {
+  const temps = seg.map(settleTemp);
+  const noSignal = leaderboardMode || temps.every((t) => t == null);
+  return seg.filter((l, i) => {
+    if (!l.valid) return false;
+    if (noSignal) return i >= FALLBACK_WARMUP_LAPS;
+    const prev = temps[i - 1];
+    const cur = temps[i];
+    return prev != null && cur != null && Math.abs(cur - prev) <= PLATEAU_C;
+  });
+};
+
+/** The judged laps of the last setup segment: the laps the ladder and the overview judge. */
+export const judgedLapsOfLastSegment = (
+  laps: LapRow[],
+  opts: { leaderboardMode?: boolean },
+): Lap[] => judgedOf(segmentsOf(laps).at(-1) ?? [], opts.leaderboardMode);
+
 export const computeSetupLadder = (
   laps: LapRow[],
   setupLabelById: Map<number, string>,
@@ -202,39 +237,16 @@ export const computeSetupLadder = (
   const labelOf = (id: number | null): string | null =>
     id != null ? (setupLabelById.get(id) ?? null) : null;
 
-  // Segments: runs of consecutive laps with the same setup_id (null included).
-  const segments: Lap[][] = [];
-  for (const l of laps) {
-    const lap = { ...l, zones: parseZones(l.zones_json) };
-    const seg = segments.at(-1);
-    if (seg && seg[0].setup_id === l.setup_id) seg.push(lap);
-    else segments.push([lap]);
-  }
-  // Judged = valid laps whose tyres have settled: the mean centre temperature
-  // moved ≤ PLATEAU_C from the previous lap (valid or not: the tyres heat up
-  // anyway), so a pit stop or a slow spell drops laps until they are back at
-  // temperature. Without temperatures or with them fixed at 85 °C (Leaderboard)
-  // the plateau says nothing: fixed warm-up instead.
-  const judgedOf = (seg: Lap[]): Lap[] => {
-    const temps = seg.map(settleTemp);
-    const noSignal = opts.leaderboardMode || temps.every((t) => t == null);
-    return seg.filter((l, i) => {
-      if (!l.valid) return false;
-      if (noSignal) return i >= FALLBACK_WARMUP_LAPS;
-      const prev = temps[i - 1];
-      const cur = temps[i];
-      return prev != null && cur != null && Math.abs(cur - prev) <= PLATEAU_C;
-    });
-  };
+  const segments = segmentsOf(laps);
   const analysed = segments.map((seg) => {
-    const judged = judgedOf(seg);
+    const judged = judgedOf(seg, opts.leaderboardMode);
     return judged.length >= MIN_JUDGED_LAPS
       ? tyreSummary(judged, labelOf(seg[0].setup_id), !opts.camberUnreadable)
       : null;
   });
 
   const seg = segments.at(-1) ?? [];
-  const judged = judgedOf(seg);
+  const judged = judgedOf(seg, opts.leaderboardMode);
   // A lower bound: how many laps are still needed depends on the plateau.
   const lapsMissing = Math.max(0, MIN_JUDGED_LAPS - judged.length);
   const base = {
