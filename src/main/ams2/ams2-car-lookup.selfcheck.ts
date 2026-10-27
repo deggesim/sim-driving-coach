@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { findAms2Car } from "./ams2-car-lookup.js";
+import { AMS2_CARS } from "./ams2-cars.js";
 
 assert.equal(findAms2Car("Porsche 992 GT3 R")?.frontPct, 43.8);
 assert.equal(
@@ -11,3 +12,20 @@ assert.equal(findAms2Car("Porsche 992 GT3 R ")?.weightKg, 1390);
 assert.equal(findAms2Car("Mercedes-AMG GT3")?.frontPct, 48);
 assert.equal(findAms2Car("Auto Inesistente"), null);
 assert.equal(findAms2Car(""), null);
+
+// Dataset guard
+assert.ok(AMS2_CARS.length >= 150, `only ${AMS2_CARS.length} cars`);
+assert.ok(
+  AMS2_CARS.every((c) => c.frontPct >= 30 && c.frontPct <= 70),
+  "frontPct out of range",
+);
+
+// Ambiguous (same name, different specs) -> null; identical duplicates -> a car
+assert.equal(findAms2Car("MetalMoro AJR"), null);
+assert.equal(findAms2Car("Ginetta G58")?.weightKg, 1020);
+
+// Punctuation and accent variants
+const academy = findAms2Car("Caterham Academy 270R");
+assert.ok(academy);
+assert.equal(findAms2Car("caterham academy (270r)"), academy);
+assert.equal(findAms2Car("Formula Inter MG15")?.name, "Fórmula Inter MG15");

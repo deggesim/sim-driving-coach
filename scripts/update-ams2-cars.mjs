@@ -55,6 +55,9 @@ for (const r of data) {
   const frontPct = num(get("weight_distribution").split("/")[0]);
   if (!get("name") || !Number.isFinite(weightKg) || !Number.isFinite(frontPct))
     throw new Error(`Unparseable car row: ${JSON.stringify(r.slice(0, 8))}`);
+  // Karts weigh ~155 kg, Copa Truck ~4900 kg. Range check also catches a decimal comma ("43,8") read as 438.
+  if (weightKg < 100 || weightKg > 6000 || frontPct < 30 || frontPct > 70)
+    throw new Error(`Out-of-range car row: ${JSON.stringify(r.slice(0, 8))}`);
   const tank = num(get("tank_size"));
   cars.push({
     name: get("name"),
@@ -65,6 +68,12 @@ for (const r of data) {
     tankL: Number.isFinite(tank) ? tank : null,
   });
 }
+
+// Sanity floor: a truncated or column-shifted sheet must not overwrite the table.
+if (cars.length < 150)
+  throw new Error(
+    `Only ${cars.length} cars parsed (expected ~208), not writing`,
+  );
 
 const header = `// Auto-generated from the community sheet "Cars of AMS2" (ams2cars.info) by scripts/update-ams2-cars.mjs - do not edit manually
 
