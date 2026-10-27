@@ -91,10 +91,39 @@ const area = (o: SetupOverview, n: number) =>
 const withZones = (...zones: ZoneData[]): SetupOverview =>
   computeSetupOverview({ ...base, zones });
 
-// Old session: no new fields at all → eight areas, all na, no throw.
+// A real pre-quadro zone: the ladder-era counters (corners with entry
+// understeer included), none of the chassis or speed-class families.
+const preQuadroZone: ZoneData = {
+  ...legacyZone,
+  avgBrakeTempC: [600, 600, 560, 560],
+  maxGLat: 1.5,
+  avgSlipRatioThrottle: [0.01, 0.01, 0.06, 0.06],
+  avgTyrePressure: [27, 27, 26, 26],
+  avgTyreTempInnerC: [87, 87, 87, 87],
+  avgTyreTempCenterC: [86, 86, 86, 86],
+  avgTyreTempOuterC: [83, 83, 83, 83],
+  hardBrakeFrames: 100,
+  absHardBrakeFrames: 0,
+  srHardBrakeFrames: 100,
+  lockFramesFront: 1,
+  lockFramesRear: 1,
+  downshifts: 10,
+  nervousDownshifts: 0,
+  exitFrames: 100,
+  spinFramesFront: 0,
+  spinFramesRear: 5,
+  cornersEntry: 4,
+  cornersEntryUnder: 3,
+  cornersEntryOver: 0,
+  cornersExit: 4,
+  cornersExitOver: 0,
+};
+
+// Old session: no quadro fields → eight areas, all na, no throw; the entry
+// understeer does not reach area 2 (no ride height) nor area 6's citations.
 const old = computeSetupOverview({
   ...base,
-  zones: [legacyZone],
+  zones: [preQuadroZone],
   levers: null,
   weight: { known: false, reason: "carico ruota non disponibile" },
 });
@@ -110,7 +139,17 @@ assert.ok(
 assert.ok(old.areas.every((a) => !/NaN|undefined/.test(a.reason)));
 assert.equal(old.current, null);
 assert.equal(old.afterLadder, false);
-assert.equal(old.tyreLine, null, "no temperatures");
+assert.equal(
+  area(old, 2).reason,
+  "altezza da terra non disponibile · molle non verificate",
+);
+assert.ok(!area(old, 6).reason.includes("vedi area 2"));
+assert.equal(area(old, 8).reason, "nessuna curva lenta o veloce misurata");
+assert.equal(
+  computeSetupOverview({ ...base, zones: [legacyZone] }).tyreLine,
+  null,
+  "no temperatures",
+);
 
 // Springs: 43.8 / 56.2, springs 225 all round → fix, target round(225 × 56.2 / 43.8) = 289.
 const springs = computeSetupOverview({
@@ -226,7 +265,14 @@ assert.ok(
 );
 
 // One symptom, one owner: entry understeer fixes area 2 only; area 6 cites it.
-const entryUnder = withZones(z({ cornersEntry: 4, cornersEntryUnder: 3 }));
+const entryUnder = withZones(
+  z({
+    cornersEntry: 4,
+    cornersEntryUnder: 3,
+    rideHeight: rh(),
+    bottoming: noBottoming,
+  }),
+);
 assert.equal(area(entryUnder, 2).status, "fix");
 assert.ok(area(entryUnder, 2).reason.includes("più rake"));
 assert.ok(area(entryUnder, 6).reason.includes("vedi area 2"));
@@ -239,6 +285,8 @@ const absEntry = withZones(
     cornersEntryUnder: 3,
     hardBrakeFrames: 100,
     absHardBrakeFrames: 30,
+    rideHeight: rh(),
+    bottoming: noBottoming,
   }),
 );
 assert.equal(area(absEntry, 2).status, "ok");
@@ -307,12 +355,33 @@ const osc = withZones(z({ suspOsc: { peaks: 10, oscillating: 3 } }));
 assert.equal(area(osc, 5).status, "fix");
 assert.ok(area(osc, 5).reason.includes("più slow rebound sulle quattro ruote"));
 assert.ok(area(osc, 1).reason.includes("vedi area 5"));
+// One half missing: stated, the other half still decides.
+assert.ok(
+  area(osc, 5).reason.includes(
+    "ammortizzatori: parametro non presente nel setup caricato",
+  ),
+);
 const uneven = computeSetupOverview({
   ...base,
   levers: { slowBump: [5, 5, 5, 6] },
 });
 assert.equal(area(uneven, 5).status, "fix");
 assert.ok(area(uneven, 5).reason.includes("uniformare slow bump"));
+assert.ok(
+  area(uneven, 5).reason.includes(
+    "oscillazioni: corsa delle sospensioni non disponibile",
+  ),
+);
+const evenNoOsc = area(
+  computeSetupOverview({ ...base, levers: { slowBump: [5, 5, 5, 5] } }),
+  5,
+);
+assert.equal(evenNoOsc.status, "ok");
+assert.ok(
+  evenNoOsc.reason.includes(
+    "oscillazioni: corsa delle sospensioni non disponibile",
+  ),
+);
 assert.equal(
   area(
     computeSetupOverview({
@@ -376,6 +445,24 @@ const aeroUnder = withZones(
 );
 assert.equal(area(aeroUnder, 8).status, "fix");
 assert.ok(area(aeroUnder, 8).reason.includes("più carico anteriore"));
+// Aero na: the real counts when too few, a k reason when k is unusable.
+const speedClasses = {
+  cornersSlow: 3,
+  cornersSlowUnder: 0,
+  cornersSlowOver: 0,
+  kSlowSum: 3,
+  cornersFast: 3,
+  kFastSum: 3,
+};
+assert.equal(
+  area(withZones(z({ ...speedClasses, cornersSlow: 2 })), 8).reason,
+  "curve lente 2, veloci 3: ne servono almeno 3 per classe",
+);
+assert.equal(
+  area(withZones(z({ ...speedClasses, kSlowSum: 0 })), 8).reason,
+  "k delle curve lente non disponibile",
+);
+assert.equal(area(withZones(z(speedClasses)), 8).status, "ok");
 assert.ok(area(aeroUnder, 6).reason.includes("vedi area 8"));
 assert.equal(area(aeroUnder, 6).status, "ok");
 

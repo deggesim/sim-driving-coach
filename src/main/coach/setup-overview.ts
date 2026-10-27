@@ -167,7 +167,7 @@ export const computeSetupOverview = (input: {
       ? kFast / fast / (kSlow / slow)
       : null;
   const sym: Record<Symptom, boolean> = {
-    entryUnder: !!entry && entryUnder > entry / 2 && !absDominant,
+    entryUnder: !!rh && !!entry && entryUnder > entry / 2 && !absDominant,
     upset: !!bot && bot.upset / Math.max(judgedLaps, 1) > BUMP_UPSET_PER_LAP,
     straightBottom: (bot?.straight ?? 0) > 0,
     osc: !!osc && osc.peaks > 0 && osc.oscillating / osc.peaks > OSC_SHARE,
@@ -227,19 +227,18 @@ export const computeSetupOverview = (input: {
 
   // 2 - ride heights and rake
   const heights = ((): OverviewArea => {
-    if (!rh && !entry)
-      return step(2, "na", "mancano l'altezza da terra e le curve misurabili");
-    const parts: Part[] = [];
-    if (rh) {
-      const touches = bot ? bot.straight + bot.brake + bot.other : 0;
-      parts.push({
+    // Spec §2: not judgeable without ride height, the rake included.
+    if (!rh) return step(2, "na", "altezza da terra non disponibile");
+    const touches = bot ? bot.straight + bot.brake + bot.other : 0;
+    const parts: Part[] = [
+      {
         data: `altezza minima ant ${mm(rh.minF)}, post ${mm(rh.minR)}, ${touchesOf(touches)}`,
         fix:
           !touches && Math.min(rh.minF, rh.minR) > RH_HIGH_M
             ? "abbassare di un click, stessi mm sui due assi"
             : undefined,
-      });
-    }
+      },
+    ];
     if (entry)
       parts.push({
         data: `sottosterzo in inserimento in ${entryUnder}/${entry} curve${absDominant && entryUnder > entry / 2 ? ", con ABS dominante: è del passo 2 della sequenza" : ""}`,
@@ -315,11 +314,19 @@ export const computeSetupOverview = (input: {
         ? [{ data: `${name} da ${min} a ${max}`, fix: `uniformare ${name}` }]
         : [];
     });
-    if (families.length && !parts.length)
+    if (!families.length)
+      parts.push({
+        data: "ammortizzatori: parametro non presente nel setup caricato",
+      });
+    else if (!parts.length)
       parts.push({
         data: `${families.map((f) => f.name).join(", ")} uniformi entro il ${DAMPER_SPREAD * 100} %`,
       });
-    if (osc)
+    if (!osc)
+      parts.push({
+        data: "oscillazioni: corsa delle sospensioni non disponibile",
+      });
+    else
       parts.push(
         osc.peaks
           ? {
@@ -379,11 +386,21 @@ export const computeSetupOverview = (input: {
 
   // 8 - aero: balance change between slow and fast corners.
   const aero = ((): OverviewArea => {
+    if (slow == null || fast == null)
+      return step(8, "na", "nessuna curva lenta o veloce misurata");
+    if (slow < MIN_CLASS_CORNERS || fast < MIN_CLASS_CORNERS)
+      return step(
+        8,
+        "na",
+        `curve lente ${slow}, veloci ${fast}: ne servono almeno ${MIN_CLASS_CORNERS} per classe`,
+      );
     if (aeroRatio == null)
       return step(
         8,
         "na",
-        `curve lente ${slow ?? 0}, veloci ${fast ?? 0}: ne servono almeno ${MIN_CLASS_CORNERS} per classe`,
+        kSlow == null || kSlow <= 0
+          ? "k delle curve lente non disponibile"
+          : "k delle curve veloci non disponibile",
       );
     return judge(8, [
       {
