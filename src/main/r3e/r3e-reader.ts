@@ -200,11 +200,13 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     // ponytail: R3E has no native slip-ratio channel - derived from wheel speed
     // vs car speed (both m/s per r3e.h). Zeroed below 5 m/s, where the ratio is
     // meaningless. No upgrade path: the SHM exposes nothing better.
+    // TireSpeed is negative when rolling forward (live, Monza 2026-10-27:
+    // w - v gave -2.01 cruising), hence -w.
     const carSpeedMps = carSpeed / 3.6;
     const slipRatio =
       carSpeedMps > 5
         ? readFloatArray(buf, "TireSpeed", 4).map(
-            (w) => (w - carSpeedMps) / carSpeedMps,
+            (w) => (-w - carSpeedMps) / carSpeedMps,
           )
         : [0, 0, 0, 0];
 

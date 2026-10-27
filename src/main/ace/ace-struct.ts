@@ -150,7 +150,7 @@ export const PHY = {
   wheelAngularSpeed: 104, // float[4] FL,FR,RL,RR - wheel angular speed (rad/s)
   tyreCoreTemperature: 152, // float[4] FL,FR,RL,RR - tyre core temperature (°C)
   suspensionTravel: 184, // float[4] FL,FR,RL,RR - suspension travel (m)
-  rideHeight: 268, // float[2] front,rear - aero ride height (m)
+  rideHeight: 268, // float[2] front,rear - aero ride height (mm)
   airTemp: 288, // float - ambient air temperature (°C)
   roadTemp: 292, // float - road surface temperature (°C)
   clutch: 364, // float - clutch position 0-1

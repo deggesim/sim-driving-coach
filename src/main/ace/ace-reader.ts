@@ -395,8 +395,10 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const wheelsPressure = readFloatArray(physBuf, PHY.wheelsPressure, 4);
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
-      // Ride height comes per axle: [F, F, R, R] keeps the quartet shape.
-      const [rhFront, rhRear] = readFloatArray(physBuf, PHY.rideHeight, 2);
+      // Ride height comes per axle, in mm (live: ~55-85): [F, F, R, R] in m.
+      const [rhFront, rhRear] = readFloatArray(physBuf, PHY.rideHeight, 2).map(
+        (v) => v / 1000,
+      );
       const wheelLoad = readFloatArray(physBuf, PHY.wheelLoad, 4);
       const fuel = readFloat(physBuf, PHY.fuel);
       const gfxTyre = (off: number) =>
