@@ -25,8 +25,6 @@ const BUMP_UPSET_PER_LAP = 0.1; // upsetting brake/other touches per judged lap
 const THIRD_HIGH_M = 0.01; // fast-straight − mid-corner mean ride height
 const OSC_SHARE = 0.2; // of the suspension-speed peaks (per wheel)
 const MIN_CLASS_CORNERS = 3; // corners per speed class
-const AERO_UNDER = 0.9; // k fast / k slow below this: understeer at speed
-const AERO_OVER = 1.1;
 const WEAVE_PER_KM = 6; // steering reversals per km of fast straight
 const WEAVE_MIN_M = 2000; // fast straight needed to judge toe
 const TYRE_CONFIRM_C = 5; // axle temperature gap that confirms a balance symptom
@@ -132,8 +130,9 @@ export const computeSetupOverview = (input: {
   const steer = sumFamily(
     zones.flatMap((z) => (z.straightSteer ? [z.straightSteer] : [])),
   );
-  // The axle with more touches, a tie goes to the front.
-  const axle = bot && bot.front >= bot.rear ? "anteriore" : "posteriore";
+  // The axle with more touches in the area's own phase, a tie goes to the front.
+  const axleOf = (f: number, r: number) =>
+    f >= r ? "anteriore" : "posteriore";
 
   // Symptoms first, so the areas that only cite them can.
   const entry = sum("cornersEntry");
@@ -154,17 +153,22 @@ export const computeSetupOverview = (input: {
           : null
       : null;
   const fast = sum("cornersFast");
-  const kSlow = sum("kSlowSum");
-  const kFast = sum("kFastSum");
-  const aeroRatio =
+  const fastUnder = sum("cornersFastUnder");
+  const fastOver = sum("cornersFastOver");
+  // Aero: a mid-corner symptom in most fast corners that the slow ones lack
+  // (in both classes it is the bars' symptom, area 6).
+  const aeroDir =
     slow != null &&
     fast != null &&
     slow >= MIN_CLASS_CORNERS &&
     fast >= MIN_CLASS_CORNERS &&
-    kSlow != null &&
-    kSlow > 0 &&
-    kFast != null
-      ? kFast / fast / (kSlow / slow)
+    fastUnder != null &&
+    fastOver != null
+      ? fastUnder > fast / 2 && slowUnder <= slow / 2
+        ? "under"
+        : fastOver > fast / 2 && slowOver <= slow / 2
+          ? "over"
+          : null
       : null;
   const sym: Record<Symptom, boolean> = {
     entryUnder: !!rh && !!entry && entryUnder > entry / 2 && !absDominant,
@@ -172,8 +176,7 @@ export const computeSetupOverview = (input: {
     straightBottom: (bot?.straight ?? 0) > 0,
     osc: !!osc && osc.peaks > 0 && osc.oscillating / osc.peaks > OSC_SHARE,
     slowMid: slowDir != null,
-    aero:
-      aeroRatio != null && (aeroRatio < AERO_UNDER || aeroRatio > AERO_OVER),
+    aero: aeroDir != null,
   };
 
   const step = (n: N, status: LadderStatus, reason: string): OverviewArea => ({
@@ -253,6 +256,7 @@ export const computeSetupOverview = (input: {
   const bumpstops = ((): OverviewArea => {
     if (!bot) return step(3, "na", "manca l'altezza da terra");
     const touches = bot.brake + bot.other;
+    const axle = axleOf(bot.upsetFront, bot.upsetRear);
     return judge(3, [
       sym.upset
         ? {
@@ -269,6 +273,7 @@ export const computeSetupOverview = (input: {
   const thirds = ((): OverviewArea => {
     if (!rh) return step(4, "na", "manca l'altezza da terra");
     const straightTouches = bot?.straight ?? 0;
+    const axle = axleOf(bot?.straightFront ?? 0, bot?.straightRear ?? 0);
     const parts: Part[] = [
       straightTouches
         ? {
@@ -282,8 +287,9 @@ export const computeSetupOverview = (input: {
       const mid = (rh.midF + rh.midR) / 2 / rh.midN;
       parts.push({
         data: `altezza media in rettilineo veloce ${mm(straight)}, a centro curva ${mm(mid)}`,
+        // Never opposite to "irrigidire": with straight touches the gap is moot.
         fix:
-          straight - mid > THIRD_HIGH_M
+          !straightTouches && straight - mid > THIRD_HIGH_M
             ? "ammorbidire le terze molle"
             : undefined,
       });
@@ -384,7 +390,7 @@ export const computeSetupOverview = (input: {
     ]);
   })();
 
-  // 8 - aero: balance change between slow and fast corners.
+  // 8 - aero: a mid-corner symptom in the fast corners only.
   const aero = ((): OverviewArea => {
     if (slow == null || fast == null)
       return step(8, "na", "nessuna curva lenta o veloce misurata");
@@ -394,21 +400,15 @@ export const computeSetupOverview = (input: {
         "na",
         `curve lente ${slow}, veloci ${fast}: ne servono almeno ${MIN_CLASS_CORNERS} per classe`,
       );
-    if (aeroRatio == null)
-      return step(
-        8,
-        "na",
-        kSlow == null || kSlow <= 0
-          ? "k delle curve lente non disponibile"
-          : "k delle curve veloci non disponibile",
-      );
+    if (fastUnder == null || fastOver == null)
+      return step(8, "na", "bilanciamento delle curve veloci non registrato");
     return judge(8, [
       {
-        data: `k medio curve veloci / lente ${aeroRatio.toFixed(2)} (${fast} veloci, ${slow} lente)`,
+        data: `sottosterzo a centro curva in ${fastUnder}/${fast} curve veloci e ${slowUnder}/${slow} lente, sovrasterzo in ${fastOver}/${fast} veloci e ${slowOver}/${slow} lente`,
         fix:
-          aeroRatio < AERO_UNDER
+          aeroDir === "under"
             ? "più carico anteriore (o meno posteriore)"
-            : aeroRatio > AERO_OVER
+            : aeroDir === "over"
               ? "più carico posteriore (o meno anteriore)"
               : undefined,
       },

@@ -193,6 +193,8 @@ export type ZoneData = {
   cornersSlowOver?: number; // of those, oversteer at mid-corner
   kSlowSum?: number; // sum of the mid-phase mean k of the slow corners
   cornersFast?: number; // corners with a valid mid phase above 160 km/h
+  cornersFastUnder?: number; // of those, understeer at mid-corner
+  cornersFastOver?: number; // of those, oversteer at mid-corner
   kFastSum?: number; // sum of the mid-phase mean k of the fast corners
   // Chassis counters (see main/chassis-counters.ts). Each family is present only
   // when the zone's frames carried its source channel: rh, wl, sus, gLat.
@@ -221,6 +223,10 @@ export type BottomingCounts = {
   upset: number; // brake/other events followed by an upset
   front: number;
   rear: number; // events by axle
+  straightFront: number;
+  straightRear: number; // fast-straight events by axle
+  upsetFront: number;
+  upsetRear: number; // upsetting events by axle
 };
 
 export type LoadFitSums = {

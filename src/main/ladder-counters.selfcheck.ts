@@ -218,6 +218,17 @@ const fast = midCorner(180);
 assert.equal(fast.cornersFast, 1);
 assert.equal(fast.cornersSlow, 0);
 assert.ok(Math.abs(fast.kFastSum! - 1.0 / (50 * 50 * 0.2)) < 1e-6);
+assert.equal(fast.cornersFastUnder, 0);
+assert.equal(fast.cornersFastOver, 0);
+// The slow-corner detectors also run on the fast corners.
+const speedUp = (fs: CompactFrame[]) => fs.map((f) => ({ ...f, spd: 180 }));
+const fastPush = zone0(speedUp(push));
+assert.equal(fastPush.cornersFastUnder, 1);
+assert.equal(fastPush.cornersFastOver, 0);
+assert.equal(fastPush.cornersSlowUnder, 0);
+const fastCounter = zone0(speedUp(counter));
+assert.equal(fastCounter.cornersFastOver, 1);
+assert.equal(fastCounter.cornersFastUnder, 0);
 
 // Between 120 and 160 km/h: in neither class.
 const medium = midCorner(140);
@@ -228,5 +239,6 @@ assert.equal(medium.cornersFast ?? 0, 0);
 const noGLat = zone0(run(100, { spd: 90, str: 0.2 }));
 assert.equal(noGLat.cornersSlow, undefined);
 assert.equal(noGLat.kSlowSum, undefined);
+assert.equal(noGLat.cornersFastUnder, undefined);
 
 console.log("ladder-counters self-check OK");

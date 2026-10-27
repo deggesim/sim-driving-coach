@@ -4,6 +4,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
+import { chassisCounters } from "../chassis-counters.js";
 import { computeSetupOverview, type SetupOverview } from "./setup-overview.js";
 import type { SetupLadder } from "./setup-ladder.js";
 import type { SetupLevers } from "./setup-levers.js";
@@ -55,6 +56,10 @@ const noBottoming = {
   upset: 0,
   front: 0,
   rear: 0,
+  straightFront: 0,
+  straightRear: 0,
+  upsetFront: 0,
+  upsetRear: 0,
 };
 
 const ladderOk: SetupLadder = {
@@ -220,7 +225,7 @@ assert.ok(!area(springs, 3).reason.includes("molle non verificate"));
 const bump = withZones(
   z({
     rideHeight: rh(),
-    bottoming: { ...noBottoming, brake: 2, upset: 2, front: 2 },
+    bottoming: { ...noBottoming, brake: 2, upset: 2, front: 2, upsetFront: 2 },
   }),
 );
 assert.equal(area(bump, 3).status, "fix");
@@ -298,7 +303,7 @@ assert.ok(!area(absEntry, 6).reason.includes("vedi area 2"));
 const third = withZones(
   z({
     rideHeight: rh(),
-    bottoming: { ...noBottoming, straight: 1, rear: 1 },
+    bottoming: { ...noBottoming, straight: 1, rear: 1, straightRear: 1 },
   }),
 );
 assert.equal(area(third, 4).status, "fix");
@@ -312,6 +317,70 @@ assert.ok(
 assert.ok(area(third, 4).reason.includes("avvicinare i bumpstop posteriori"));
 for (const n of [2, 3, 8])
   assert.ok(area(third, n).reason.includes("vedi area 4 (terze molle)"));
+// Each area names the axle of its own phase: front upsetting brake touches,
+// rear straight touches (more touches on the front overall).
+const byPhase = withZones(
+  z({
+    rideHeight: rh(),
+    bottoming: {
+      ...noBottoming,
+      brake: 2,
+      upset: 2,
+      upsetFront: 2,
+      straight: 1,
+      straightRear: 1,
+      front: 2,
+      rear: 1,
+    },
+  }),
+);
+assert.ok(area(byPhase, 3).reason.includes("asse anteriore"));
+assert.ok(
+  area(byPhase, 4).reason.includes("irrigidire la terza molla posteriore"),
+  area(byPhase, 4).reason,
+);
+// Straight touches and a straight 15 mm above mid-corner: only "irrigidire".
+const both = area(
+  withZones(
+    z({
+      rideHeight: rh({
+        straightF: 0.035,
+        straightR: 0.035,
+        straightN: 1, // 35 mm
+        midF: 0.02,
+        midR: 0.02,
+        midN: 1, // 20 mm
+      }),
+      bottoming: { ...noBottoming, straight: 1, rear: 1, straightRear: 1 },
+    }),
+  ),
+  4,
+);
+assert.ok(both.reason.includes("irrigidire"));
+assert.ok(!both.reason.includes("ammorbidire"), both.reason);
+// A rolled mid-corner (outside wheel low, inside high) with the straight's axle
+// mean, through the real counters: no "ammorbidire".
+const rolled = chassisCounters(
+  Array.from({ length: 20 }, (_, i) => ({
+    d: i,
+    spd: i < 10 ? 250 : 120,
+    thr: i < 10 ? 1 : 0.1,
+    brk: 0,
+    str: i < 10 ? 0 : 0.2,
+    gear: 5,
+    abs: 0,
+    tc: 0,
+    bt: [500, 500, 500, 500],
+    ts: i * 16,
+    gLat: i < 10 ? 0 : 1.5,
+    gLon: 0,
+    rh: i < 10 ? [0.05, 0.05, 0.05, 0.05] : [0.03, 0.07, 0.03, 0.07],
+  })),
+  () => 0,
+).get(0)!;
+const rolledArea = area(withZones(z({ ...rolled })), 4);
+assert.equal(rolledArea.status, "ok", rolledArea.reason);
+assert.ok(!rolledArea.reason.includes("ammorbidire"));
 const thirdSoft = area(
   withZones(
     z({
@@ -432,35 +501,58 @@ assert.ok(
 assert.ok(area(slowUnder, 7).reason.includes("vedi area 6"));
 assert.equal(slowUnder.tyreLine, "ant−post +6.0 °C, sx−dx +0.0 °C");
 
-// Aero: k fast / k slow = 0.8 with 3+3 corners → more front downforce.
-const aeroUnder = withZones(
-  z({
-    cornersSlow: 3,
-    cornersSlowUnder: 0,
-    cornersSlowOver: 0,
-    kSlowSum: 3,
-    cornersFast: 3,
-    kFastSum: 2.4,
-  }),
-);
-assert.equal(area(aeroUnder, 8).status, "fix");
-assert.ok(area(aeroUnder, 8).reason.includes("più carico anteriore"));
-// Aero na: the real counts when too few, a k reason when k is unusable.
+// Aero: the same mid-corner symptom in the fast corners but not in the slow ones.
 const speedClasses = {
-  cornersSlow: 3,
-  cornersSlowUnder: 0,
+  cornersSlow: 6,
+  cornersSlowUnder: 1,
   cornersSlowOver: 0,
-  kSlowSum: 3,
-  cornersFast: 3,
-  kFastSum: 3,
+  kSlowSum: 6,
+  cornersFast: 5,
+  cornersFastUnder: 0,
+  cornersFastOver: 0,
+  kFastSum: 5,
 };
+const aeroUnder = withZones(z({ ...speedClasses, cornersFastUnder: 4 }));
+assert.equal(area(aeroUnder, 8).status, "fix");
+assert.ok(
+  area(aeroUnder, 8).reason.startsWith(
+    "sottosterzo a centro curva in 4/5 curve veloci e 1/6 lente",
+  ),
+  area(aeroUnder, 8).reason,
+);
+assert.ok(area(aeroUnder, 8).reason.includes("più carico anteriore"));
+const aeroOver = area(withZones(z({ ...speedClasses, cornersFastOver: 3 })), 8);
+assert.equal(aeroOver.status, "fix");
+assert.ok(aeroOver.reason.includes("più carico posteriore"), aeroOver.reason);
+// Understeer in fast AND slow corners is area 6's symptom, not aero.
+const underEverywhere = withZones(
+  z({ ...speedClasses, cornersFastUnder: 4, cornersSlowUnder: 4 }),
+);
+assert.equal(area(underEverywhere, 8).status, "ok");
+assert.equal(area(underEverywhere, 6).status, "fix");
+// A low fast-corner k with no fast-corner symptom no longer reads as aero.
+assert.equal(
+  area(withZones(z({ ...speedClasses, kFastSum: 2 })), 8).status,
+  "ok",
+);
+// Aero na: the real counts when too few.
 assert.equal(
   area(withZones(z({ ...speedClasses, cornersSlow: 2 })), 8).reason,
-  "curve lente 2, veloci 3: ne servono almeno 3 per classe",
+  "curve lente 2, veloci 5: ne servono almeno 3 per classe",
 );
+// Fast corners recorded without their balance counters: na, never a 0/N.
 assert.equal(
-  area(withZones(z({ ...speedClasses, kSlowSum: 0 })), 8).reason,
-  "k delle curve lente non disponibile",
+  area(
+    withZones(
+      z({
+        ...speedClasses,
+        cornersFastUnder: undefined,
+        cornersFastOver: undefined,
+      }),
+    ),
+    8,
+  ).reason,
+  "bilanciamento delle curve veloci non registrato",
 );
 assert.equal(area(withZones(z(speedClasses)), 8).status, "ok");
 assert.ok(area(aeroUnder, 6).reason.includes("vedi area 8"));

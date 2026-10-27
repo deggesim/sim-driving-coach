@@ -27,6 +27,8 @@ export type LadderCounters = Pick<
   | "cornersSlowOver"
   | "kSlowSum"
   | "cornersFast"
+  | "cornersFastUnder"
+  | "cornersFastOver"
   | "kFastSum"
 >;
 
@@ -79,6 +81,8 @@ const CORNER_KEYS = [
   "cornersSlowOver",
   "kSlowSum",
   "cornersFast",
+  "cornersFastUnder",
+  "cornersFastOver",
   "kFastSum",
 ] as const;
 
@@ -231,6 +235,8 @@ export const ladderCounters = (
     } else if (midKmh > FAST_CORNER_KMH) {
       bump(c, "cornersFast");
       c.kFastSum = (c.kFastSum ?? 0) + mid;
+      if (midUndersteer(midFrames)) bump(c, "cornersFastUnder");
+      if (midOversteer(midFrames)) bump(c, "cornersFastOver");
     }
     if (entry !== undefined) {
       bump(c, "cornersEntry");

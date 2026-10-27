@@ -14,6 +14,9 @@ export type ChassisCounters = Pick<
 
 const BOTTOM_M = 0.003;
 const BOTTOM_MIN_FRAMES = 3;
+// Plausible lap median of the axle-mean ride height; outside it, `rh` is absent.
+const RH_MEDIAN_MIN_M = 0.005;
+const RH_MEDIAN_MAX_M = 0.3;
 // Share of the lap's top speed above which a straight counts as "fast".
 const FAST_STRAIGHT_SHARE = 0.7;
 const STRAIGHT_GLAT = 0.3;
@@ -80,10 +83,17 @@ export const chassisCounters = (
     }
     return c;
   };
-  // A lap whose every `rh` value is exactly 0 means an unpopulated field or a
-  // wrong offset (AMS2, not yet verified live): treat it as no `rh`, otherwise
-  // every frame would sit below BOTTOM_M and read as constant bottoming.
-  const hasRh = frames.some((f) => f.rh?.some((h) => h !== 0));
+  // A lap whose median axle-mean `rh` is outside RH_MEDIAN_MIN_M..RH_MEDIAN_MAX_M
+  // means an unpopulated field, a wrong offset or a unit error (offsets not yet
+  // verified live; all zeros is one case): treat it as no `rh`, otherwise
+  // every frame could sit below BOTTOM_M and read as constant bottoming.
+  const axleMeans = frames
+    .flatMap((f) =>
+      f.rh ? [(f.rh[0] + f.rh[1]) / 2, (f.rh[2] + f.rh[3]) / 2] : [],
+    )
+    .toSorted((a, b) => a - b);
+  const median = axleMeans[Math.floor(axleMeans.length / 2)];
+  const hasRh = median >= RH_MEDIAN_MIN_M && median <= RH_MEDIAN_MAX_M;
   const vMax = frames.reduce((m, f) => Math.max(m, f.spd), 0);
   const phaseOf = (f: CompactFrame): Phase =>
     f.brk > HARD_BRAKE
@@ -109,8 +119,10 @@ export const chassisCounters = (
 
     const frh = hasRh ? f.rh : undefined;
     if (frh) {
-      const hF = Math.min(frh[0], frh[1]);
-      const hR = Math.min(frh[2], frh[3]);
+      // Minimum: the lower wheel. Straight/mid sums: the axle mean, so roll
+      // alone does not open a gap between the straight and mid-corner.
+      const hF = (frh[0] + frh[1]) / 2;
+      const hR = (frh[2] + frh[3]) / 2;
       const rh = (c.rideHeight ??= {
         minF: Infinity,
         minR: Infinity,
@@ -128,9 +140,13 @@ export const chassisCounters = (
         upset: 0,
         front: 0,
         rear: 0,
+        straightFront: 0,
+        straightRear: 0,
+        upsetFront: 0,
+        upsetRear: 0,
       };
-      rh.minF = Math.min(rh.minF, hF);
-      rh.minR = Math.min(rh.minR, hR);
+      rh.minF = Math.min(rh.minF, frh[0], frh[1]);
+      rh.minR = Math.min(rh.minR, frh[2], frh[3]);
       if (phaseOf(f) === "straight") {
         rh.straightF += hF;
         rh.straightR += hR;
@@ -162,7 +178,12 @@ export const chassisCounters = (
       const phase = phaseOf(first);
       b[phase]++;
       b[axle === 0 ? "front" : "rear"]++;
-      if (phase !== "straight" && upsetAfter(frames, run.start)) b.upset++;
+      if (phase === "straight")
+        b[axle === 0 ? "straightFront" : "straightRear"]++;
+      else if (upsetAfter(frames, run.start)) {
+        b.upset++;
+        b[axle === 0 ? "upsetFront" : "upsetRear"]++;
+      }
     });
 
     if (f.wl && f.wl.length >= 4) {

@@ -47,6 +47,10 @@ assert.deepEqual(zone0(straightTouch).bottoming, {
   upset: 0,
   front: 1,
   rear: 0,
+  straightFront: 1,
+  straightRear: 0,
+  upsetFront: 0,
+  upsetRear: 0,
 });
 
 // ACE-style [F, F, R, R]: both front wheels below 3 mm → still ONE front event.
@@ -92,7 +96,30 @@ assert.deepEqual(zone0(brakeUpset).bottoming, {
   upset: 1,
   front: 1,
   rear: 0,
+  straightFront: 0,
+  straightRear: 0,
+  upsetFront: 1,
+  upsetRear: 0,
 });
+// Per phase and axle: a rear touch on the straight, a front upsetting one under braking.
+const mixed = zone0(
+  make(80, (i) => ({
+    spd: i < 40 ? 250 : 150,
+    brk: i >= 40 ? 0.8 : 0,
+    str: i < 60 ? 0.1 : -0.1,
+    gLat: i < 40 ? 0 : i < 60 ? -0.2 : 0.2,
+    rh:
+      i >= 10 && i < 14
+        ? [0.05, 0.05, 0.002, 0.002]
+        : i >= 50 && i < 54
+          ? [0.002, 0.002, 0.05, 0.05]
+          : FLAT,
+  })),
+).bottoming!;
+assert.deepEqual(
+  [mixed.straightRear, mixed.straightFront, mixed.upsetFront, mixed.upsetRear],
+  [1, 0, 1, 0],
+);
 
 // Same touch, steady steering: brake event, no upset.
 const brakeCalm = make(60, (i) => ({
@@ -136,6 +163,12 @@ const zeroTouch = make(30, (i) => ({
 }));
 assert.equal(zone0(zeroTouch).bottoming!.front, 1);
 assert.notEqual(zone0(zeroTouch).rideHeight, undefined);
+// Lap median of the axle means outside 5-300 mm = garbage or a unit error: absent.
+for (const h of [0.001, 0.4]) {
+  const implausible = zone0(make(30, () => ({ rh: [h, h, h, h] })));
+  assert.equal(implausible.rideHeight, undefined, `median ${h} m`);
+  assert.equal(implausible.bottoming, undefined, `median ${h} m`);
+}
 
 // --- Ride-height sums -----------------------------------------------------
 
@@ -149,12 +182,13 @@ const near = (a: number, b: number) =>
   assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
 assert.equal(rh.straightN, 10);
 assert.equal(rh.midN, 10);
+// The minimum keeps the lower wheel; the straight/mid sums use the axle mean.
 near(rh.minF, 0.04);
 near(rh.minR, 0.065);
-near(rh.straightF, 9 * 0.05 + 0.04);
-near(rh.straightR, 9 * 0.07 + 0.065);
-near(rh.midF, 10 * 0.05);
-near(rh.midR, 10 * 0.07);
+near(rh.straightF, 9 * 0.055 + 0.05);
+near(rh.straightR, 9 * 0.075 + 0.0725);
+near(rh.midF, 10 * 0.055);
+near(rh.midR, 10 * 0.075);
 
 // --- Load fit -------------------------------------------------------------
 
