@@ -69,7 +69,7 @@ Le aree `non valutabile` si scavalcano dichiarandole, come i passi della sequenz
 
 **Valori proposti** **(scelta)**: l'unico valore calcolato in TS è la molla dell'asse pesante (molla attuale dell'asse leggero × rapporto dei pesi, arrotondata all'intero nell'unità del setup). Per le altre aree TS dà direzione e ruote/asse; il valore è "attuale ± un passo minimo", che il modello legge dal setup, come fa già la sequenza. `SetupParam` non conserva minimo e passo del setup, quindi la variante di Frezza "asse leggero al minimo" non si propone.
 
-**Una sola area proprietaria per sintomo** **(scelta)**: quando un'area cede il proprio sintomo a un'altra (bumpstop non regolabili → Altezze +2 mm; auto senza terze molle → Bumpstop), l'area che cede è `non valutabile`, con il motivo che nomina l'area proprietaria (es. "bumpstop non regolabili: il tocco del fondo passa ad Altezze"), e solo la proprietaria è `da correggere`.
+**Una sola area proprietaria per sintomo** **(scelta)**: il proprietario di un sintomo è fisso e non dipende da cosa contiene il setup. Quando la leva del proprietario potrebbe mancare sull'auto, la sua direzione porta il ripiego della guida in forma condizionale, es. "avvicinare il bumpstop dell'asse anteriore; se l'auto non ha bumpstop regolabili, alzare le quattro altezze di 2 mm". Le altre aree della tabella citano il sintomo come "vedi area X", senza proposta.
 
 ### Sintomi e proprietari **(scelta)**
 
@@ -78,8 +78,8 @@ Le aree `non valutabile` si scavalcano dichiarandole, come i passi della sequenz
 | Molle non isofrequenziali (setup) | Molle | — |
 | Auto più alta del necessario (nessun tocco del fondo, margine ampio) | Altezze | — |
 | Sottosterzo in inserimento senza ABS dominante (la sequenza lo lascia libero) | Altezze → rake | Barre |
-| Fondo che tocca in frenata, sui cordoli o in curva | Bumpstop (se regolabile, altrimenti Altezze +2 mm) | Altezze |
-| Fondo che tocca nei rettilinei veloci | Terze molle (se l'auto le ha, altrimenti Bumpstop) | Altezze, Aerodinamica |
+| Fondo che tocca in frenata, sui cordoli o in curva | Bumpstop (direzione con il ripiego "altrimenti Altezze +2 mm") | Altezze |
+| Fondo che tocca nei rettilinei veloci | Terze molle (direzione con il ripiego "altrimenti Bumpstop") | Bumpstop, Altezze, Aerodinamica |
 | Oscillazioni prolungate dopo un trasferimento di carico | Ammortizzatori | Molle |
 | Ammortizzatori non uniformi (setup) | Ammortizzatori | — |
 | Sotto/sovrasterzo a centro curva nelle curve lente | Barre | Convergenze |
@@ -111,7 +111,7 @@ Guida "I bumpstop": regolazione facoltativa. Altezze al minimo; se il fondo tocc
 
 - **Evento "fondo"** **(scelta)**: altezza da terra < **3 mm** per ≥ 3 frame consecutivi su una ruota (ACE: un asse). Classificato per fase: rettilineo veloce (|gLat| < 0,3 g, nessuna frenata, velocità > 70 % della massima del giro), frenata (`brk > 0,30`), altro (curva, cordoli).
 - **Si scompone** **(scelta)**: entro 0,5 s dall'evento, inversione di segno dello sterzo con |Δ gLat| > 0,3 g.
-- `da correggere` se ci sono eventi in frenata o "altro" che scompongono l'auto in più del **10 % dei giri giudicati (scelta)** → avvicinare il bumpstop dell'asse che tocca; se il setup non ha bumpstop regolabili → "alzare le quattro altezze di 2 mm" (la riga va all'area Altezze, che diventa proprietaria).
+- `da correggere` se ci sono eventi in frenata o "altro" che scompongono l'auto in più del **10 % dei giri giudicati (scelta)** → "avvicinare il bumpstop dell'asse che tocca; se l'auto non ha bumpstop regolabili, o sono già al massimo, alzare le quattro altezze di 2 mm". L'area resta proprietaria anche quando il setup caricato non mostra i bumpstop.
 - Tocchi che non scompongono l'auto: `ok` con il conteggio (la guida: "se tocca ma non si scompone, si passa al rake").
 - `non valutabile`: senza altezza da terra.
 
@@ -119,10 +119,9 @@ Guida "I bumpstop": regolazione facoltativa. Altezze al minimo; se il fondo tocc
 
 Guida "Le terze molle": contrastano lo schiacciamento aerodinamico alle alte velocità senza irrigidire le molle d'angolo.
 
-- `da correggere` se ci sono eventi "fondo" nei rettilinei veloci → irrigidire la terza molla dell'asse che tocca; se non basta, +1 mm alle altezze mantenendo il rake (la proposta dice l'ordine).
-- Se l'auto non ha terze molle (assenti dal setup), il sintomo passa al Bumpstop.
+- `da correggere` se ci sono eventi "fondo" nei rettilinei veloci → "irrigidire la terza molla dell'asse che tocca; se non basta, +1 mm alle altezze mantenendo il rake; se l'auto non ha terze molle, avvicinare i bumpstop dell'asse che tocca". L'area resta proprietaria anche quando il setup caricato non mostra le terze molle.
 - Auto troppo alta in rettilineo ma non in curva (altezza in rettilineo veloce − altezza a centro curva > **10 mm, scelta**) → ammorbidire le terze molle.
-- `non valutabile`: senza altezza da terra; senza setup caricato (non si sa se le terze molle esistono).
+- `non valutabile`: senza altezza da terra.
 
 ### 5. Ammortizzatori
 
@@ -203,7 +202,9 @@ La sequenza si era data la regola "nessuno strato di normalizzazione dei setup":
 - ACE: etichette fisse di `ace-setup-reader.ts`.
 - AMS2: il prompt di Claude Vision (`ams2-setup-vision.ts`) riceve una lista di **nomi canonici obbligatori** per questi parametri (es. "Molla FL", "Slow Bump FL", "Terza molla anteriore"), così l'estrattore li trova; gli altri parametri restano liberi.
 - Il resto del setup continua ad arrivare al modello come testo, come oggi.
-- **Parametro assente** **(scelta)**: su R3E e ACE il setup è decodificato in modo deterministico, quindi un parametro assente vuol dire che l'auto non ce l'ha (es. niente terze molle → il sintomo passa al Bumpstop). Su AMS2 un parametro assente può voler dire solo che la schermata di quella pagina del setup non è stata acquisita: l'area è `non valutabile` con motivo "parametro non letto dalle schermate", e il sintomo **non** passa a un'altra area.
+- **Parametro assente** **(utente)**: su nessuno dei tre giochi un parametro assente prova che l'auto non abbia quella regolazione. R3E: il parser scarta le voci `disabled` del JSON. ACE: il `.carsetup` può non contenere un campo. AMS2: la schermata di quella pagina può non essere stata acquisita. Quindi:
+  - le aree giudicate sulla **telemetria** (altezze, bumpstop, terze molle, oscillazioni degli ammortizzatori, barre, convergenze, aerodinamica) restano `da correggere` quando il sintomo c'è, con la direzione condizionale del proprietario (vedi "Una sola area proprietaria per sintomo");
+  - i giudizi sui **numeri del setup** (isofrequenza delle molle, uniformità degli ammortizzatori) diventano `non valutabile` con motivo "parametro non presente nel setup caricato".
 
 ## Output
 
