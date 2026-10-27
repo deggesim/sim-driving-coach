@@ -87,6 +87,9 @@ export type CompactFrame = {
   tp?: number[]; // tyre pressures PSI [FL, FR, RL, RR]
   sr?: number[]; // slip ratios [FL, FR, RL, RR] (negative = locking)
   sus?: number[]; // suspension travel m [FL, FR, RL, RR]
+  rh?: number[]; // ride height m [FL, FR, RL, RR] (ACE: per axle, [F, F, R, R])
+  wl?: number[]; // wheel load N [FL, FR, RL, RR] (R3E, ACE; absent on AMS2)
+  fuel?: number; // fuel in the tank, litres (R3E, ACE)
   tt?: number[]; // tyre temps °C [FL, FR, RL, RR]
   tti?: number[]; // tyre surface temp °C, inner shoulder [FL, FR, RL, RR]
   ttc?: number[]; // tyre surface temp °C, centre [FL, FR, RL, RR]

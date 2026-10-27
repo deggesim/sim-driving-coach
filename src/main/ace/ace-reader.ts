@@ -395,6 +395,10 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const wheelsPressure = readFloatArray(physBuf, PHY.wheelsPressure, 4);
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
+      // Ride height comes per axle: [F, F, R, R] keeps the quartet shape.
+      const [rhFront, rhRear] = readFloatArray(physBuf, PHY.rideHeight, 2);
+      const wheelLoad = readFloatArray(physBuf, PHY.wheelLoad, 4);
+      const fuel = readFloat(physBuf, PHY.fuel);
       const gfxTyre = (off: number) =>
         GFX_TYRE.base.map((b) => readFloat(gfxBuf, b + off));
       // left/right are the wheel's physical sides, like R3E (spec says "inner-edge" but the
@@ -573,6 +577,9 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           tp: [...wheelsPressure],
           sr: [...slipRatio],
           sus: [...suspensionTravel],
+          rh: [rhFront, rhFront, rhRear, rhRear],
+          wl: wheelLoad,
+          fuel,
           tt: [...tyreCoreTemp],
           ...surfaceTemps(tyreTempI, tyreTempM, tyreTempO),
           at: airTemp,

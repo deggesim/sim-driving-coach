@@ -80,7 +80,7 @@ type FrameExt = {
   sr: number[];
   sus: number[];
   tt: number[];
-} & Pick<CompactFrame, "tti" | "ttc" | "tto">;
+} & Pick<CompactFrame, "tti" | "ttc" | "tto" | "rh" | "wl" | "fuel">;
 
 type ParsedFrame = R3EFrame & { ext: FrameExt };
 
@@ -176,6 +176,17 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       4,
     );
 
+    // Player_RideHeight is assumed to be metres (r3e.h gives no unit); to be
+    // checked live. TireLoad is N. A quartet with any value < 0 (-1 = N/A) is
+    // omitted whole, never shown as a fake zero.
+    const quartetOrUndefined = (q: number[]): number[] | undefined =>
+      q.some((v) => v < 0) ? undefined : q;
+    const rideHeight = quartetOrUndefined(
+      readDoubleArray(buf, "Player_RideHeight", 4),
+    );
+    const wheelLoad = quartetOrUndefined(readFloatArray(buf, "TireLoad", 4));
+    const fuelLeft = readFloat(buf, "FuelLeft");
+
     const rawTyreTemp = [tireTempFL, tireTempFR, tireTempRL, tireTempRR];
     const tyreTemp = rawTyreTemp.some((v) => v < 0)
       ? [0, 0, 0, 0] // -1 = no sensor, same convention as brake temps
@@ -257,7 +268,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       tireTempRL,
       tireTempRR,
 
-      fuelLeft: readFloat(buf, "FuelLeft"),
+      fuelLeft,
       fuelCapacity: readFloat(buf, "FuelCapacity"),
       fuelPerLap: readFloat(buf, "FuelPerLap"),
 
@@ -274,6 +285,9 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         tp: tirePressure,
         sr: slipRatio,
         sus: suspDeflection,
+        ...(rideHeight && { rh: rideHeight }),
+        ...(wheelLoad && { wl: wheelLoad }),
+        ...(fuelLeft >= 0 && { fuel: fuelLeft }),
         tt: tyreTemp,
         ...surfaceTemps(innerTemps, surface("Center"), outerTemps),
       },

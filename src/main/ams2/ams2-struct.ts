@@ -88,6 +88,10 @@ export const OFF = {
   tyreTempLeft: 20328, // float[4]  mTyreTempLeft
   tyreTempCenter: 20344, // float[4]  mTyreTempCenter
   tyreTempRight: 20360, // float[4]  mTyreTempRight
+  // AMS2 addition: absent from pCARS2 SharedMemory.h. Source: AMS2Page.cs of
+  // AMS2SharedMemoryNet (follows mTyreTempRight[4] and mDrsState). Not yet
+  // verified on a live sim.
+  rideHeight: 20380, // float[4]  mRideHeight (cm, not metres)
   brakeTempCelsius: 7184, // float[4]  mBrakeTempCelsius (Celsius)
 
   // Weather block, right before mSequenceNumber (mCrashState/mAeroDamage/

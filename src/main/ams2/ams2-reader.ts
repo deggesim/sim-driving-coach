@@ -300,6 +300,10 @@ export const createAms2Reader = (
         (v) => v * 0.145038,
       );
       const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
+      // mRideHeight is centimetres; stored in metres like `sus`.
+      const rideHeight = readFloatArray(buf, OFF.rideHeight, 4).map(
+        (v) => v / 100,
+      );
       // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
       const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
       const slipRatio = slipEstimator.slip({
@@ -382,6 +386,7 @@ export const createAms2Reader = (
         gLon: localAcc[2] / G,
         tp: [...tyrePressures],
         sus: [...suspTravel],
+        rh: rideHeight,
         tt: [...tyreTemps],
         // `sr` is estimated from mTyreRPS with a self-calibrated tyre radius;
         // absent until calibrated (absent beats a floored zero).

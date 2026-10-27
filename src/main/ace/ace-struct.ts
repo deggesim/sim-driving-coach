@@ -145,6 +145,7 @@ export const PHY = {
   steerAngle: 24,
   speedKmh: 28,
   accG: 44, // float[3] - G-forces: [0]=lateral, [1]=vertical, [2]=longitudinal
+  wheelLoad: 72, // float[4] FL,FR,RL,RR - wheel load (N)
   wheelsPressure: 88, // float[4] FL,FR,RL,RR - tyre pressures (PSI)
   wheelAngularSpeed: 104, // float[4] FL,FR,RL,RR - wheel angular speed (rad/s)
   tyreCoreTemperature: 152, // float[4] FL,FR,RL,RR - tyre core temperature (°C)

@@ -67,4 +67,18 @@ assert.ok(
 assert.ok(full.includes("slip=0.021/0.019/-0.114/-0.108"), full);
 assert.ok(full.includes("sosp=31.2/32.0/48.1/47.6mm"), full);
 
+// Ride height m → mm (1 decimal), wheel load N as read.
+assert.ok(
+  formatChannels(frame({ rh: [0.052, 0.051, 0.061, 0.06] })).includes(
+    "alt=52.0/51.0/61.0/60.0mm",
+  ),
+);
+assert.ok(bare.includes("alt=assente"), bare);
+assert.ok(
+  formatChannels(frame({ wl: [3000, 3100, 3900, 4000] })).includes(
+    "carico=3000/3100/3900/4000N",
+  ),
+);
+assert.ok(bare.includes("carico=assente"), bare);
+
 console.log("channel-log.selfcheck OK");

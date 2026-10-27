@@ -71,6 +71,9 @@ assert.ok(
   OFF.tyreTempRight + 16 <= AMS2_STRUCT_SIZE,
   "surface temp reads stay inside the mapped page",
 );
+// mRideHeight follows mTyreTempRight[4] and mDrsState (uint) in AMS2Page.cs.
+assert.equal(OFF.rideHeight, OFF.tyreTempRight + 16 + 4, "mRideHeight");
+assert.ok(OFF.rideHeight + 16 <= AMS2_STRUCT_SIZE);
 assert.ok(
   OFF.airPressure + 4 * 4 <= AMS2_STRUCT_SIZE,
   "per-wheel reads stay inside the mapped page",

@@ -52,7 +52,8 @@ export const formatChannels = (f: CompactFrame): string =>
   `gLat=${scalar(f.gLat, 2)}g gLon=${scalar(f.gLon, 2)}g ` +
   `press=${quartet(f.tp, 1, 1)}PSI temp=${quartet(f.tt, 1, 0)}°C ` +
   `${surface(f)} ` +
-  `slip=${quartet(f.sr, 1, 3)} sosp=${quartet(f.sus, 1000, 1)}mm`;
+  `slip=${quartet(f.sr, 1, 3)} sosp=${quartet(f.sus, 1000, 1)}mm ` +
+  `alt=${quartet(f.rh, 1000, 1)}mm carico=${quartet(f.wl, 1, 0)}N`;
 
 const counters = new Map<string, number>();
 
