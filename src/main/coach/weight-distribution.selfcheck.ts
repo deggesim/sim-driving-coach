@@ -25,12 +25,14 @@ const sums = (
     sxyR: 0,
     fuelSum: 0,
     fuelN: 0,
+    nLow: 0,
   };
   for (const v of speeds) {
     const x = v * v;
     const yF = front(x);
     const yR = rear(x);
     s.n++;
+    if (v * 3.6 < 120) s.nLow!++;
     s.sx += x;
     s.sxx += x * x;
     s.syF += yF;
@@ -92,6 +94,27 @@ for (const [f, r] of [
 assert.deepEqual(
   weightDistribution("ace", [zone(sums(speeds.slice(0, 50), F, R))], null),
   { known: false, reason: "meno di 300 campioni in linea retta" },
+);
+// Only fast samples (40..60 m/s): the intercept is an extrapolation, no answer.
+assert.deepEqual(
+  weightDistribution(
+    "r3e",
+    [
+      zone(
+        sums(
+          speeds.map((v) => 40 + v / 3),
+          F,
+          R,
+        ),
+      ),
+    ],
+    null,
+  ),
+  {
+    known: false,
+    reason:
+      "meno di 20 campioni in linea retta sotto i 120 km/h (basta un passaggio in corsia box)",
+  },
 );
 assert.deepEqual(
   weightDistribution("r3e", [zone(sums(Array(400).fill(30), F, R))], null),

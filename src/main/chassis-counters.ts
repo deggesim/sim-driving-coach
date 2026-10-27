@@ -23,10 +23,13 @@ const STRAIGHT_GLAT = 0.3;
 const HARD_BRAKE = 0.3;
 const UPSET_WINDOW_MS = 500;
 const UPSET_GLAT = 0.3;
-const LOAD_GLAT = 0.05;
-const LOAD_GLON = 0.05;
+// 0.05 g kept ~14 frames per lap at Monza, all at 250-260 km/h; 0.1 g keeps
+// ~400 and matches the low-speed front share within 1-1.5 points.
+const LOAD_GLAT = 0.1;
+const LOAD_GLON = 0.1;
 const LOAD_STEER = 0.02;
 const LOAD_MIN_KMH = 30;
+const LOAD_LOW_KMH = 120;
 // Starting value, to tune per game on a live sim.
 const SV_PEAK = 0.1; // m/s
 const OSC_WINDOW_MS = 1000;
@@ -197,6 +200,7 @@ export const chassisCounters = (
         sxyR: 0,
         fuelSum: 0,
         fuelN: 0,
+        nLow: 0,
       });
       if (
         f.gLat !== undefined &&
@@ -211,6 +215,7 @@ export const chassisCounters = (
         const yF = f.wl[0] + f.wl[1];
         const yR = f.wl[2] + f.wl[3];
         lf.n++;
+        if (f.spd < LOAD_LOW_KMH) lf.nLow = (lf.nLow ?? 0) + 1;
         lf.sx += x;
         lf.sxx += x * x;
         lf.syF += yF;

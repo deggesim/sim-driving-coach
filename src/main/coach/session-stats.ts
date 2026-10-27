@@ -389,7 +389,13 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
       zones: judgedZones,
       judgedLaps: judged.length,
       ladder: setupLadder,
-      weight: weightDistribution(game, judgedZones, car),
+      // Every lap of the session: the static split does not depend on the setup,
+      // and the slow samples that anchor the fit are usually on the out-lap.
+      weight: weightDistribution(
+        game,
+        laps.flatMap((l) => parseZones(l.zones_json)),
+        car,
+      ),
       levers: setup ? extractSetupLevers(setup.setup.params, game) : null,
       fixedSetup: !!input.fixedSetup,
       leaderboardMode: !!input.leaderboardMode,

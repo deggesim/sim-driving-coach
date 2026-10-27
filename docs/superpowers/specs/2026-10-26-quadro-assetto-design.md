@@ -136,7 +136,7 @@ Guida "Gli ammortizzatori": prima molle isofrequenziali, poi i quattro ammortizz
 
 Guida "Le barre anti rollio": agiscono solo sul rollio, quindi solo quando si usa lo sterzo (trail braking, percorrenza, accelerazione graduale). Anteriore più rigida = più sottosterzo; più morbida = più sovrasterzo e bloccaggi dell'anteriore interna. Posteriore più rigida = più rotazione, più sovrasterzo amplificato dal differenziale; più morbida = sottosterzo.
 
-- Dati: bilanciamento a **centro curva nelle curve lente** (velocità media della fase < **120 km/h, scelta**: sotto i 100-120 km/h l'aerodinamica è trascurabile, guida "Introduzione aerodinamica").
+- Dati: bilanciamento a **centro curva nelle curve lente** (velocità media della fase < **100 km/h, scelta**, era 120 fino al 2026-10-27: sotto i 100-120 km/h l'aerodinamica è trascurabile, guida "Introduzione aerodinamica").
 - Metriche nuove, contate da `ladder-counters` sulle curve che già delimita **(scelta, da tarare)**:
   - sovrasterzo a centro curva = frame di controsterzo (segno dello sterzo opposto a quello di gLat) in più del 15 % dei frame della fase;
   - sottosterzo a centro curva = per ≥ 300 ms lo sterzo cresce di oltre il 20 % mentre |gLat| varia meno del 2 %.
@@ -154,7 +154,7 @@ Guida "Convergenze e divergenze": rifinitura di un setup già costruito. Anterio
 
 Guida "Introduzione aerodinamica": più carico davanti = più sovrasterzo e meno velocità; più carico dietro = più sottosterzo e meno velocità; effetti sopra 100-120 km/h. I condotti freni e il radiatore aumentano la resistenza.
 
-- **Bilanciamento con la velocità** **(scelta, rivista il 2026-10-27)**: gli stessi rilevatori di sotto/sovrasterzo a centro curva delle curve lente, applicati alle curve veloci (> **160 km/h**). Sottosterzo in più della metà delle veloci e al massimo nella metà delle lente (< 120 km/h) → "più carico anteriore (o meno posteriore)"; sovrasterzo nello stesso modo → "più carico posteriore (o meno anteriore)"; lo stesso sintomo in entrambe le classi è delle barre (area 6). Il rapporto dei `k` non si usa: misura il gradiente di sottosterzo, non l'aerodinamica.
+- **Bilanciamento con la velocità** **(scelta, rivista il 2026-10-27)**: gli stessi rilevatori di sotto/sovrasterzo a centro curva delle curve lente, applicati alle curve veloci (> **120 km/h**; era 160 fino al 2026-10-27, ma a Monza Lesmo, Ascari e Parabolica stanno a 120-155 km/h a centro curva e nessuna curva risultava veloce). Sottosterzo in più della metà delle veloci e al massimo nella metà delle lente (< 100 km/h) → "più carico anteriore (o meno posteriore)"; sovrasterzo nello stesso modo → "più carico posteriore (o meno anteriore)"; lo stesso sintomo in entrambe le classi è delle barre (area 6). Il rapporto dei `k` non si usa: misura il gradiente di sottosterzo, non l'aerodinamica.
 - Informazione, senza stato: quota di carico aerodinamico per asse dalla regressione del carico ruota (R3E, ACE; vedi sotto); velocità massima per giro.
 - `non valutabile`: meno di **3 curve (scelta)** per classe di velocità.
 
@@ -248,7 +248,7 @@ Dopo le righe della sequenza, una riga "Quadro assetto" e una riga per area, nel
 
 - La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi, per scelta: un solo metodo (R3E mappa `Player_SuspensionVelocity`, ACE non ne ha).
 - L'estrattore del setup si limita a molle e quattro famiglie di ammortizzatori; le altre leve restano fuori.
-- Ammortizzatori uniformi entro il 5 % (`DAMPER_SPREAD`).
+- Ammortizzatori uniformi entro un click (`DAMPER_SPREAD_CLICKS`), come al §5. *(2026-10-27: era 5 %, ma segnalava i setup di default di R3E e ACE, che differiscono di un click fra anteriore e posteriore.)*
 - Gli aggregati per giro stanno in `zones_json`, nessuna nuova colonna né lettura di `frames_blob`.
 - Soglia bumpstop come eventi per giro giudicato, non per giro registrato.
 - Il carburante si legge solo su R3E e ACE.

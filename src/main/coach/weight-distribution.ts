@@ -2,6 +2,9 @@ import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type { GameSource, LoadFitSums, ZoneData } from "../../shared/types.js";
 
 const MIN_LOAD_SAMPLES = 300;
+// Samples below 120 km/h that anchor the intercept: from 175-270 km/h alone the
+// fit extrapolated ACE at Monza to 1795 kg and 46 % front (real ~1390 kg, 38 %).
+const MIN_LOW_SAMPLES = 20;
 // Relative floor for the regression denominator: below it every sample sits at one speed.
 const MIN_SPREAD = 1e-9;
 // Aero load at the mean sampled v² must be this share of the static load, else the slope is noise.
@@ -56,6 +59,7 @@ export const weightDistribution = (
       sxyR: a.sxyR + f.sxyR,
       fuelSum: a.fuelSum + f.fuelSum,
       fuelN: a.fuelN + f.fuelN,
+      nLow: (a.nLow ?? 0) + (f.nLow ?? 0),
     }),
     {
       n: 0,
@@ -67,10 +71,15 @@ export const weightDistribution = (
       sxyR: 0,
       fuelSum: 0,
       fuelN: 0,
+      nLow: 0,
     },
   );
   if (t.n < MIN_LOAD_SAMPLES)
     return unknown(`meno di ${MIN_LOAD_SAMPLES} campioni in linea retta`);
+  if ((t.nLow ?? 0) < MIN_LOW_SAMPLES)
+    return unknown(
+      `meno di ${MIN_LOW_SAMPLES} campioni in linea retta sotto i 120 km/h (basta un passaggio in corsia box)`,
+    );
 
   const den = t.n * t.sxx - t.sx * t.sx;
   if (!(den > MIN_SPREAD * t.n * t.sxx))

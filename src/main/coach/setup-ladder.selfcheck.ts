@@ -199,6 +199,18 @@ assert.equal(hotFront.current, 1);
 const unbalanced = ladder(okZone({ avgBrakeTempC: [450, 450, 250, 250] }));
 assert.equal(stepOf(unbalanced, 1).status, "fix");
 assert.ok(stepOf(unbalanced, 1).reason.includes("44 %"));
+assert.ok(stepOf(unbalanced, 1).reason.includes(", o chiudere"));
+// Both axles under the window (live Monza: 362/280 °C): only close the colder.
+const bothCold = stepOf(
+  ladder(okZone({ avgBrakeTempC: [362, 362, 280, 280] })),
+  1,
+).reason;
+assert.ok(bothCold.endsWith("→ chiudere i condotti dell'asse più freddo"));
+const bothHot = stepOf(
+  ladder(okZone({ avgBrakeTempC: [690, 690, 900, 900] })),
+  1,
+).reason;
+assert.ok(bothHot.endsWith("→ aprire i condotti dell'asse più caldo"));
 assert.equal(stepOf(ladder(okZone()), 1).status, "ok");
 const noBrakeTemps = ladder(
   okZone({

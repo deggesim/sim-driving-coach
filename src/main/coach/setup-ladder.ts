@@ -19,6 +19,10 @@ const MIN_JUDGED_LAPS = 2;
 const READY_JUDGED_LAPS = 3; // judged laps before the stint is worth an analysis: the pressure drift needs ≥ 3
 const DUCT_FRONT_MAX_C = 700;
 const DUCT_IMBALANCE = 0.2; // |front − rear| / max(front, rear)
+// Brake window 550 ± 137.5 °C: with both axles on one side of it, only the
+// duct move that brings the off axle back toward it.
+const BRAKE_MIN_C = 412.5;
+const BRAKE_MAX_C = 687.5;
 const LOCK_SHARE = 0.05; // of the hard-brake frames carrying slip
 const LOCK_RATIO = 2; // one axle locks at least this many times the other
 export const ABS_SHARE = 0.2; // of the hard-brake frames; the overview's rake reuses it
@@ -304,9 +308,13 @@ export const computeSetupLadder = (
     const imbalance = Math.abs(front - rear) / Math.max(front, rear);
     const fixes = [
       front > DUCT_FRONT_MAX_C ? "aprire i condotti anteriori" : null,
-      imbalance > DUCT_IMBALANCE
-        ? "aprire i condotti dell'asse più caldo, o chiudere quelli dell'asse più freddo"
-        : null,
+      imbalance <= DUCT_IMBALANCE
+        ? null
+        : Math.max(front, rear) < BRAKE_MIN_C
+          ? "chiudere i condotti dell'asse più freddo"
+          : Math.min(front, rear) > BRAKE_MAX_C
+            ? "aprire i condotti dell'asse più caldo"
+            : "aprire i condotti dell'asse più caldo, o chiudere quelli dell'asse più freddo",
     ].filter((f) => f != null);
     const data = `ant ${Math.round(front)} °C, post ${Math.round(rear)} °C, sbil. ${pct(imbalance)}`;
     return fixes.length

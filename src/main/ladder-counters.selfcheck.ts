@@ -90,6 +90,19 @@ const toNeutral = [
   ...run(5, { brk: 0.5, gear: 0, sr: [0, 0, 0, 0] }, neutPre),
 ];
 assert.equal(zone0(toNeutral).downshifts, 0);
+// R3E goes through neutral on every shift: 3 -> 0 -> 2 is one downshift.
+const viaNeutral = run(3, { brk: 0.5, gear: 2, sr: [0, 0, 0, 0] }, [
+  ...neutPre,
+  ...run(2, { brk: 0.5, gear: 0, sr: [0, 0, 0, 0] }, neutPre),
+]);
+assert.equal(
+  zone0([
+    ...neutPre,
+    ...run(2, { brk: 0.5, gear: 0, sr: [0, 0, 0, 0] }, neutPre),
+    ...viaNeutral,
+  ]).downshifts,
+  1,
+);
 
 // Soft braking still emits the always-present counters, at 0.
 const coast = zone0(run(5, {}));
@@ -136,7 +149,14 @@ assert.equal(c.cornersEntryUnder, 1);
 assert.equal(c.cornersEntryOver, 0);
 assert.equal(c.cornersExit, 1);
 assert.equal(c.cornersExitOver, 0);
-assert.equal(zone0(corner(1.3)).cornersExitOver, 1);
+// A higher exit k alone (yaw lag as the wheel unwinds) is not oversteer...
+assert.equal(zone0(corner(1.3)).cornersExitOver, 0);
+// ...counter-steer on 20 % of the exit frames is, and likewise on entry.
+const slide = corner(1.0);
+for (let i = 0; i < 8; i++) slide[80 + i * 5].gLat = -1.0;
+for (let i = 0; i < 8; i++) slide[i * 5].gLat = -0.6;
+assert.equal(zone0(slide).cornersExitOver, 1);
+assert.equal(zone0(slide).cornersEntryOver, 1);
 
 // A 0.5 s corner is discarded.
 const brief = run(31, { str: 0.2, gLat: 1.0 });
@@ -230,8 +250,8 @@ const fastCounter = zone0(speedUp(counter));
 assert.equal(fastCounter.cornersFastOver, 1);
 assert.equal(fastCounter.cornersFastUnder, 0);
 
-// Between 120 and 160 km/h: in neither class.
-const medium = midCorner(140);
+// Between 100 and 120 km/h: in neither class.
+const medium = midCorner(110);
 assert.equal(medium.cornersSlow ?? 0, 0);
 assert.equal(medium.cornersFast ?? 0, 0);
 

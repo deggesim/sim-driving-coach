@@ -226,6 +226,18 @@ const noFuel = zone0(
 ).loadFit!;
 assert.equal(noFuel.n, 10);
 assert.equal(noFuel.fuelN, 0);
+// Quasi-steady straight (0.08 g each way) still counts.
+assert.equal(
+  zone0(
+    make(10, () => ({
+      spd: 200,
+      wl: [1000, 1000, 1000, 1000],
+      gLat: 0.08,
+      gLon: 0.08,
+    })),
+  ).loadFit!.n,
+  10,
+);
 
 // --- Suspension oscillation -----------------------------------------------
 

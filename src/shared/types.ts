@@ -239,6 +239,7 @@ export type LoadFitSums = {
   sxyR: number; // y = axle load (N)
   fuelSum: number;
   fuelN: number;
+  nLow?: number; // samples below 120 km/h (absent before 2026-10-27)
 };
 
 export type SuspOscCounts = { peaks: number; oscillating: number };

@@ -75,7 +75,7 @@ const ladderOk: SetupLadder = {
 const w438: WeightDistribution = {
   known: true,
   frontPct: 43.8,
-  source: "misurata",
+  source: "tabella AMS2",
   aeroFrontPct: null,
   fuelL: null,
 };
@@ -168,6 +168,22 @@ assert.ok(
   area(springs, 1).reason,
 );
 assert.equal(springs.current, 1);
+// Measured (R3E/ACE): the isofrequency target is shown, never proposed.
+const measured = area(
+  computeSetupOverview({
+    ...base,
+    weight: { ...w438, source: "misurata" },
+    levers: springsOff,
+  }),
+  1,
+);
+assert.equal(measured.status, "ok");
+assert.ok(
+  measured.reason.includes(
+    "l'isofrequenza darebbe molle posteriori 289 N/mm, non proposto",
+  ),
+  measured.reason,
+);
 // Springs within 3 %: ok.
 assert.equal(
   area(
@@ -419,7 +435,7 @@ assert.equal(
   "ok",
 );
 
-// Ammortizzatori (5): oscillations over 20 % of the peaks, or a family spread over 5 %.
+// Ammortizzatori (5): oscillations over 20 % of the peaks, or a family spread over one click.
 const osc = withZones(z({ suspOsc: { peaks: 10, oscillating: 3 } }));
 assert.equal(area(osc, 5).status, "fix");
 assert.ok(area(osc, 5).reason.includes("più slow rebound sulle quattro ruote"));
@@ -432,7 +448,7 @@ assert.ok(
 );
 const uneven = computeSetupOverview({
   ...base,
-  levers: { slowBump: [5, 5, 5, 6] },
+  levers: { slowBump: [5, 5, 5, 7] },
 });
 assert.equal(area(uneven, 5).status, "fix");
 assert.ok(area(uneven, 5).reason.includes("uniformare slow bump"));
@@ -440,6 +456,13 @@ assert.ok(
   area(uneven, 5).reason.includes(
     "oscillazioni: corsa delle sospensioni non disponibile",
   ),
+);
+// One click apart (R3E/ACE defaults: front 12, rear 11) is uniform.
+assert.ok(
+  !area(
+    computeSetupOverview({ ...base, levers: { slowBump: [12, 12, 11, 11] } }),
+    5,
+  ).reason.includes("uniformare"),
 );
 const evenNoOsc = area(
   computeSetupOverview({ ...base, levers: { slowBump: [5, 5, 5, 5] } }),

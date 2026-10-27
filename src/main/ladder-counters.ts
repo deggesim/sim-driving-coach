@@ -50,11 +50,12 @@ const PHASE_MIN_FRAMES = 3;
 const ENTRY_BRAKE = 0.05;
 const MID_THROTTLE = 0.2;
 const PHASE_UNDER = 0.85;
-const PHASE_OVER = 1.15;
-const SLOW_CORNER_KMH = 120;
-const FAST_CORNER_KMH = 160;
-// Share of mid-phase frames whose str*gLat sign opposes the corner's majority.
-const MID_OVER_SHARE = 0.15;
+// Monza (live 2026-10-27): Lesmo, Ascari and Parabolica sit at 120-155 km/h
+// mid-corner, the chicanes at 60-90; 120/160 left every corner in between.
+const SLOW_CORNER_KMH = 100;
+const FAST_CORNER_KMH = 120;
+// Share of a phase's frames whose str*gLat sign opposes the corner's majority.
+const OVER_SHARE = 0.15;
 // Push: |str| grows by MID_UNDER_STEER_GAIN over >= MID_UNDER_MS while |gLat| stays flat.
 const MID_UNDER_MS = 300;
 const MID_UNDER_STEER_GAIN = 0.2;
@@ -88,13 +89,14 @@ const CORNER_KEYS = [
 
 type KFrame = { f: CompactFrame; k: number };
 
-// Majority sign of str*gLat defines "normal" (games differ in sign convention).
-const midOversteer = (mid: KFrame[]): boolean => {
-  const signs = mid.map(({ f }) => Math.sign(f.str * (f.gLat ?? 0)));
-  const pos = signs.filter((s) => s > 0).length;
-  const neg = signs.filter((s) => s < 0).length;
-  return Math.min(pos, neg) / mid.length > MID_OVER_SHARE;
-};
+const steerSign = ({ f }: KFrame): number => Math.sign(f.str * (f.gLat ?? 0));
+
+// Counter-steer: str*gLat against the corner's majority sign `normal` (games
+// differ in convention). Used for every phase instead of a k ratio: k rises on
+// entry and exit from yaw lag alone (live Monza: exit k x1.1-3.6, no slide felt).
+const oversteer = (ph: KFrame[], normal: number): boolean =>
+  ph.length >= PHASE_MIN_FRAMES &&
+  ph.filter((x) => steerSign(x) === -normal).length / ph.length > OVER_SHARE;
 
 // A window of consecutive mid frames >= MID_UNDER_MS where steer grows and |gLat| stays flat.
 // ponytail: O(n^2) over one corner's mid frames (a few hundred), fine at 60 Hz.
@@ -163,6 +165,7 @@ export const ladderCounters = (
     if (f.sr && c.downshifts === undefined) for (const k of SR_KEYS) c[k] = 0;
   }
 
+  let lastGear = 0;
   frames.forEach((f, i) => {
     const c = zoneFor(f);
     const hard = f.brk > HARD_BRAKE;
@@ -183,15 +186,15 @@ export const ladderCounters = (
         if (Math.abs(sr[2] - sr[3]) > SPIN_ASYMMETRY) bump(c, "spinFramesRear");
       }
     }
-    const prev = frames[i - 1];
+    // Against the last engaged gear: R3E reports neutral (0) between gears.
+    const prevGear = lastGear;
+    if (f.gear > 0) lastGear = f.gear;
     // Counted only on frames carrying `sr`, so nervous/downshifts share one population.
     if (
       sr &&
       c.downshifts !== undefined &&
-      prev &&
-      f.gear < prev.gear &&
       f.gear > 0 &&
-      prev.gear > 0 &&
+      f.gear < prevGear &&
       (f.brk > 0 || f.thr <= LIFTED_THROTTLE)
     ) {
       bump(c, "downshifts");
@@ -217,35 +220,36 @@ export const ladderCounters = (
         ? []
         : [{ f, k: Math.abs(f.gLat) / (v * v * Math.abs(f.str)) }];
     });
-    const phase = (keep: (f: CompactFrame) => boolean): number | undefined =>
-      mean(ks.filter((x) => keep(x.f)).map((x) => x.k));
-    const entry = phase((f) => f.brk > ENTRY_BRAKE);
+    const normal = Math.sign(ks.reduce((a, x) => a + steerSign(x), 0));
+    const entryFrames = ks.filter(({ f }) => f.brk > ENTRY_BRAKE);
+    const entry = mean(entryFrames.map((x) => x.k));
     const midFrames = ks.filter(
       ({ f }) => f.brk <= ENTRY_BRAKE && f.thr <= MID_THROTTLE,
     );
     const mid = mean(midFrames.map((x) => x.k));
-    const exit = phase((f) => f.thr > EXIT_THROTTLE);
+    const exitFrames = ks.filter(({ f }) => f.thr > EXIT_THROTTLE);
+    const exit = mean(exitFrames.map((x) => x.k));
     if (mid === undefined) continue;
     const midKmh = mean(midFrames.map((x) => x.f.spd))!;
     if (midKmh < SLOW_CORNER_KMH) {
       bump(c, "cornersSlow");
       c.kSlowSum = (c.kSlowSum ?? 0) + mid;
       if (midUndersteer(midFrames)) bump(c, "cornersSlowUnder");
-      if (midOversteer(midFrames)) bump(c, "cornersSlowOver");
+      if (oversteer(midFrames, normal)) bump(c, "cornersSlowOver");
     } else if (midKmh > FAST_CORNER_KMH) {
       bump(c, "cornersFast");
       c.kFastSum = (c.kFastSum ?? 0) + mid;
       if (midUndersteer(midFrames)) bump(c, "cornersFastUnder");
-      if (midOversteer(midFrames)) bump(c, "cornersFastOver");
+      if (oversteer(midFrames, normal)) bump(c, "cornersFastOver");
     }
     if (entry !== undefined) {
       bump(c, "cornersEntry");
       if (entry < PHASE_UNDER * mid) bump(c, "cornersEntryUnder");
-      if (entry > PHASE_OVER * mid) bump(c, "cornersEntryOver");
+      if (oversteer(entryFrames, normal)) bump(c, "cornersEntryOver");
     }
     if (exit !== undefined) {
       bump(c, "cornersExit");
-      if (exit > PHASE_OVER * mid) bump(c, "cornersExitOver");
+      if (oversteer(exitFrames, normal)) bump(c, "cornersExitOver");
     }
   }
   return out;

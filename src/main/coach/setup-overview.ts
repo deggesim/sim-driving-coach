@@ -19,7 +19,7 @@ import type { ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds (spec), to tune on real sessions.
 const SPRING_RATIO_TOL = 0.03; // |spring ratio ÷ weight ratio − 1|
-const DAMPER_SPREAD = 0.05; // (max − min) / max within one damper family
+const DAMPER_SPREAD_CLICKS = 1; // spec: "diversi di oltre un click" (game defaults differ by one)
 const RH_HIGH_M = 0.015; // min ride height above this with no touch: too high
 const BUMP_UPSET_PER_LAP = 0.1; // upsetting brake/other touches per judged lap
 const THIRD_HIGH_M = 0.01; // fast-straight − mid-corner mean ride height
@@ -211,13 +211,15 @@ export const computeSetupOverview = (input: {
       : rearPct / weight.frontPct;
     const sRatio = frontHeavy ? f / r : r / f;
     const u = s.unit;
+    const target = `molle ${frontHeavy ? "anteriori" : "posteriori"} ${Math.round((frontHeavy ? r : f) * wRatio)} ${u}`;
+    const off = Math.abs(sRatio / wRatio - 1) > SPRING_RATIO_TOL;
+    // R3E/ACE spring rates ignore the motion ratio: live Monza defaults run the
+    // rear softer with 58-61 % of the weight behind, so the target is shown only.
+    const shownOnly = weight.source === "misurata";
     const parts: Part[] = [
       {
-        data: `molle ant ${num(f)} ${u}, post ${num(r)} ${u} (rapporto ${sRatio.toFixed(2)}), pesi ant ${weight.frontPct.toFixed(1)} % post ${rearPct.toFixed(1)} % (${weight.source}, rapporto ${wRatio.toFixed(2)})`,
-        fix:
-          Math.abs(sRatio / wRatio - 1) > SPRING_RATIO_TOL
-            ? `molle ${frontHeavy ? "anteriori" : "posteriori"} ${Math.round((frontHeavy ? r : f) * wRatio)} ${u}`
-            : undefined,
+        data: `molle ant ${num(f)} ${u}, post ${num(r)} ${u} (rapporto ${sRatio.toFixed(2)}), pesi ant ${weight.frontPct.toFixed(1)} % post ${rearPct.toFixed(1)} % (${weight.source}, rapporto ${wRatio.toFixed(2)})${off && shownOnly ? `; l'isofrequenza darebbe ${target}, non proposto: rapporto di leva delle sospensioni sconosciuto` : ""}`,
+        fix: off && !shownOnly ? target : undefined,
       },
     ];
     if (fl !== fr || rl !== rr)
@@ -314,9 +316,7 @@ export const computeSetupOverview = (input: {
     const parts: Part[] = families.flatMap(({ name, q }) => {
       const max = Math.max(...q);
       const min = Math.min(...q);
-      // |max| guards negative click scales; all zeros gives NaN, i.e. uniform.
-      return (max - min) / Math.max(Math.abs(max), Math.abs(min)) >
-        DAMPER_SPREAD
+      return max - min > DAMPER_SPREAD_CLICKS
         ? [{ data: `${name} da ${min} a ${max}`, fix: `uniformare ${name}` }]
         : [];
     });
@@ -326,7 +326,7 @@ export const computeSetupOverview = (input: {
       });
     else if (!parts.length)
       parts.push({
-        data: `${families.map((f) => f.name).join(", ")} uniformi entro il ${DAMPER_SPREAD * 100} %`,
+        data: `${families.map((f) => f.name).join(", ")} uniformi entro ${DAMPER_SPREAD_CLICKS} click`,
       });
     if (!osc)
       parts.push({
