@@ -11,6 +11,7 @@ import {
   stintReadyMessage,
   type SetupLadder,
 } from "./setup-ladder.js";
+import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type { LapRow, ZoneData } from "../../shared/types.js";
 
 const mkLap = (
@@ -441,6 +442,80 @@ assert.equal(
   ).status,
   "fix",
 );
+
+// --- AMS2 car table: driveline and differential type ---
+const car = (over: Partial<Ams2Car>): Ams2Car => ({
+  name: "x",
+  weightKg: 1000,
+  frontPct: 45,
+  driveline: "RWD",
+  differential: "C-LSD",
+  tankL: null,
+  ...over,
+});
+const withCar = (z: ZoneData, c: Ams2Car | null | undefined): SetupLadder =>
+  computeSetupLadder(stint(5, z), new Map(), { fixedSetup: false, car: c });
+// Driveline from the table beats the slip heuristic: FWD → step 3 na even with rear-biased slip.
+assert.equal(
+  stepOf(
+    withCar(okZone({ nervousDownshifts: 3 }), car({ driveline: "FWD" })),
+    3,
+  ).reason,
+  "trazione anteriore",
+);
+// ...and RWD/AWD beat a front-biased slip (not fwd).
+for (const driveline of ["RWD", "AWD"])
+  assert.equal(
+    stepOf(
+      withCar(
+        okZone({
+          avgSlipRatioThrottle: [0.08, 0.08, 0.01, 0.01],
+          nervousDownshifts: 3,
+        }),
+        car({ driveline }),
+      ),
+      3,
+    ).status,
+    "fix",
+  );
+// Non-adjustable differential → step 6 na, before any other check.
+for (const differential of ["FIXED", "SPOOL", "OPEN"])
+  assert.equal(
+    stepOf(withCar(okZone({ spinFramesRear: 30 }), car({ differential })), 6)
+      .reason,
+    "differenziale non regolabile",
+  );
+assert.equal(
+  stepOf(withCar(zone(), car({ differential: "FIXED" })), 6).reason,
+  "differenziale non regolabile",
+  "even without counters",
+);
+// Geared LSD → bias ratio wording, no preload fallback.
+for (const differential of ["G-LSD", "GC-LSD"]) {
+  const g = (z: Partial<ZoneData>) =>
+    stepOf(withCar(okZone(z), car({ differential })), 6).reason;
+  const power = g({ spinFramesRear: 30 });
+  assert.ok(power.includes("alzare il bias ratio power"), power);
+  assert.ok(!power.includes("precarico") && !power.includes("ramp"), power);
+  const open = g({ cornersExitOver: 3 });
+  assert.ok(open.includes("abbassare il bias ratio power"), open);
+  assert.ok(!open.includes("precarico") && !open.includes("ramp"), open);
+  const coast = g({ cornersEntryOver: 3 });
+  assert.ok(coast.includes("alzare il bias ratio coast"), coast);
+  assert.ok(!coast.includes("precarico") && !coast.includes("ramp"), coast);
+}
+// Clutch LSDs (incl. SPL/C-LSD) keep the ramp wording; no car = today's behaviour.
+for (const c of [
+  car({ differential: "C-LSD" }),
+  car({ differential: "SPL/C-LSD" }),
+  null,
+  undefined,
+])
+  assert.ok(
+    stepOf(withCar(okZone({ spinFramesRear: 30 }), c), 6).reason.includes(
+      "chiudere la power ramp (più bloccaggio); se è già chiusa del tutto, più precarico",
+    ),
+  );
 
 // --- Old session: base fields only ---
 const old = ladder(zone());

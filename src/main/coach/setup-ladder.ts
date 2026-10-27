@@ -8,6 +8,7 @@
  */
 
 import { WHEEL_LABELS } from "../../shared/alert-types.js";
+import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds, to tune on real sessions.
@@ -26,6 +27,8 @@ const CAMBER_MIN_C = 2; // inner − outer below this: more negative camber
 const CAMBER_MAX_C = 10; // above this: less negative camber
 const DIFF_SPIN_SHARE = 0.2; // of the exit frames
 const DRIVEN_SLIP_EPS = 0.01; // front − rear throttle slip that marks fwd
+const FIXED_DIFFS = ["FIXED", "SPOOL", "OPEN"]; // AMS2 differentials with nothing to adjust
+const GEARED_DIFFS = ["G-LSD", "GC-LSD"]; // AMS2 differentials tuned by bias ratio, not ramps
 
 type Quartet = [number, number, number, number];
 
@@ -232,6 +235,7 @@ export const computeSetupLadder = (
     fixedSetup: boolean;
     leaderboardMode?: boolean;
     camberUnreadable?: boolean;
+    car?: Ams2Car | null; // AMS2 table row: driveline and differential type
   },
 ): SetupLadder => {
   const labelOf = (id: number | null): string | null =>
@@ -276,10 +280,12 @@ export const computeSetupLadder = (
   const slipT = meanQ(
     zs.flatMap((z) => (z.avgSlipRatioThrottle ? [z.avgSlipRatioThrottle] : [])),
   );
-  // Driven axle from throttle slip; awd/rwd/unknown all count as rear-driven.
-  const fwd =
-    slipT != null &&
-    (slipT[0] + slipT[1]) / 2 - (slipT[2] + slipT[3]) / 2 > DRIVEN_SLIP_EPS;
+  // Driven axle: the AMS2 table when known, else throttle slip; awd/rwd/unknown
+  // all count as rear-driven.
+  const fwd = opts.car
+    ? opts.car.driveline === "FWD"
+    : slipT != null &&
+      (slipT[0] + slipT[1]) / 2 - (slipT[2] + slipT[3]) / 2 > DRIVEN_SLIP_EPS;
 
   // 1 - brake ducts
   const ducts = ((): LadderStep => {
@@ -451,6 +457,10 @@ export const computeSetupLadder = (
   // 6 - differential
   const diff = ((): LadderStep => {
     const L = "differenziale";
+    const dt = opts.car?.differential;
+    if (dt && FIXED_DIFFS.includes(dt))
+      return step(6, L, "na", "differenziale non regolabile");
+    const geared = dt != null && GEARED_DIFFS.includes(dt);
     const exit = sum("exitFrames");
     if (exit == null) return step(6, L, "na", "manca lo slip");
     const entry = sum("cornersEntry");
@@ -467,21 +477,27 @@ export const computeSetupLadder = (
         6,
         L,
         "fix",
-        `${data} → chiudere la power ramp (più bloccaggio); se è già chiusa del tutto, più precarico`,
+        geared
+          ? `${data} → alzare il bias ratio power (più bloccaggio)`
+          : `${data} → chiudere la power ramp (più bloccaggio); se è già chiusa del tutto, più precarico`,
       );
     if (exitOver > exits / 2)
       return step(
         6,
         L,
         "fix",
-        `${data} → aprire la power ramp; se è già aperta del tutto, meno precarico`,
+        geared
+          ? `${data} → abbassare il bias ratio power`
+          : `${data} → aprire la power ramp; se è già aperta del tutto, meno precarico`,
       );
     if (entryOver > entry / 2)
       return step(
         6,
         L,
         "fix",
-        `${data} → chiudere la coast ramp; se è già al minimo, più precarico`,
+        geared
+          ? `${data} → alzare il bias ratio coast`
+          : `${data} → chiudere la coast ramp; se è già al minimo, più precarico`,
       );
     return step(6, L, "ok", data);
   })();
