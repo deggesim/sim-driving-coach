@@ -29,7 +29,7 @@ const FAMILIES: Family[] = [
 
 // Parameter-name prefix per family, in FAMILIES order.
 // R3E: labels come from `idToLabel` ("FastBumpFrontLeft" -> "Fast Bump Front Left").
-// The exact damper ids are confirmed on a real export in Task 10.
+// The exact damper ids are still to be confirmed on a real export.
 const PREFIXES: Record<GameSource, string[]> = {
   r3e: ["Springs", "Bump", "Rebound", "Fast Bump", "Fast Rebound"],
   ace: [

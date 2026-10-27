@@ -154,7 +154,7 @@ Guida "Convergenze e divergenze": rifinitura di un setup già costruito. Anterio
 
 Guida "Introduzione aerodinamica": più carico davanti = più sovrasterzo e meno velocità; più carico dietro = più sottosterzo e meno velocità; effetti sopra 100-120 km/h. I condotti freni e il radiatore aumentano la resistenza.
 
-- **Bilanciamento con la velocità** **(scelta)**: rapporto tra il `k` medio (curvatura per unità di sterzo, la metrica del passo 2 della sequenza) delle curve veloci (> **160 km/h**) e quello delle curve lente (< 120 km/h). < 0,9 → sottosterzo in velocità → "più carico anteriore (o meno posteriore)"; > 1,1 → il contrario. Il `k` per curva va salvato dove oggi si salva solo la classificazione.
+- **Bilanciamento con la velocità** **(scelta, rivista il 2026-10-27)**: gli stessi rilevatori di sotto/sovrasterzo a centro curva delle curve lente, applicati alle curve veloci (> **160 km/h**). Sottosterzo in più della metà delle veloci e al massimo nella metà delle lente (< 120 km/h) → "più carico anteriore (o meno posteriore)"; sovrasterzo nello stesso modo → "più carico posteriore (o meno anteriore)"; lo stesso sintomo in entrambe le classi è delle barre (area 6). Il rapporto dei `k` non si usa: misura il gradiente di sottosterzo, non l'aerodinamica.
 - Informazione, senza stato: quota di carico aerodinamico per asse dalla regressione del carico ruota (R3E, ACE; vedi sotto); velocità massima per giro.
 - `non valutabile`: meno di **3 curve (scelta)** per classe di velocità.
 
@@ -246,17 +246,18 @@ Dopo le righe della sequenza, una riga "Quadro assetto" e una riga per area, nel
 
 ## Scelte del piano e decisioni d'implementazione (2026-10-27)
 
-- La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi: nessun canale di velocità in SHM.
+- La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi, per scelta: un solo metodo (R3E mappa `Player_SuspensionVelocity`, ACE non ne ha).
 - L'estrattore del setup si limita a molle e quattro famiglie di ammortizzatori; le altre leve restano fuori.
 - Ammortizzatori uniformi entro il 5 % (`DAMPER_SPREAD`).
 - Gli aggregati per giro stanno in `zones_json`, nessuna nuova colonna né lettura di `frames_blob`.
 - Soglia bumpstop come eventi per giro giudicato, non per giro registrato.
 - Il carburante si legge solo su R3E e ACE.
 - Bersaglio molle con il rapporto di pesi esatto (289, non il 288 arrotondato di Frezza).
-- Altezza da terra tutta a zero = assente (offset sbagliato, non un'altezza nulla).
+- Altezza da terra con mediana del giro (medie per asse) fuori da 5–300 mm = assente (offset o unità sbagliati, il caso tutto a zero incluso).
 - Quota aerodinamica solo se almeno l'1 % del carico statico.
 - Ricerca auto AMS2 normalizzata (minuscole, accenti, punteggiatura → spazio); i nomi le cui righe differiscono sono ambigui → `null` (9 casi).
 - Peso plausibile 100–6000 kg, verificato nello script di aggiornamento della tabella.
 - Area 2 `na` senza altezza da terra (vince il §2 della spec sul piano).
 - Guardia ABS sul rake (§2 della spec).
 - Il quadro si stampa solo quando non mancano giri (`lapsMissing === 0`).
+- Area 8 giudicata sul sintomo a centro curva delle curve veloci contro quello delle lente (`cornersFastUnder/Over`), non sul rapporto dei `k` (gradiente di sottosterzo, non aerodinamica).
