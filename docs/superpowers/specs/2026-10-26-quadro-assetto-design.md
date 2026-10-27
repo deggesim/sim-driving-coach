@@ -1,6 +1,6 @@
 # Quadro assetto: le guide Frezza fuori dalla sequenza — design
 
-Data: 2026-10-26 · Stato: in revisione · Estende `2026-10-20-scaletta-setup-design.md` (la "sequenza setup", sei passi).
+Data: 2026-10-26 · Stato: approvato · Estende `2026-10-20-scaletta-setup-design.md` (la "sequenza setup", sei passi).
 
 Fonti:
 
@@ -243,3 +243,20 @@ Dopo le righe della sequenza, una riga "Quadro assetto" e una riga per area, nel
 - Selfcheck: estrattore del setup sui tre giochi (con fixture JSON R3E, etichette ACE, nomi canonici AMS2); ogni area (`ok`, `da correggere`, `non valutabile`); regola "un sintomo, un'area"; regressione della distribuzione dei pesi su dati sintetici con aerodinamica nota; associazione dei nomi auto AMS2.
 - Dal vivo, per ogni gioco: la riga `channel-log` mostra altezza da terra, velocità sospensioni e carico ruota plausibili (altezza: decine di mm che scendono in frenata e ad alta velocità; carico: somma ≈ peso × 9,81 a bassa velocità); la distribuzione misurata di un'auto R3E o ACE confrontata con il dato pubblicato; il nome di almeno tre auto AMS2 trovato nella tabella.
 - Gate del repo: `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck && npm run fallow:check`.
+
+## Scelte del piano e decisioni d'implementazione (2026-10-27)
+
+- La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi: nessun canale di velocità in SHM.
+- L'estrattore del setup si limita a molle e quattro famiglie di ammortizzatori; le altre leve restano fuori.
+- Ammortizzatori uniformi entro il 5 % (`DAMPER_SPREAD`).
+- Gli aggregati per giro stanno in `zones_json`, nessuna nuova colonna né lettura di `frames_blob`.
+- Soglia bumpstop come eventi per giro giudicato, non per giro registrato.
+- Il carburante si legge solo su R3E e ACE.
+- Bersaglio molle con il rapporto di pesi esatto (289, non il 288 arrotondato di Frezza).
+- Altezza da terra tutta a zero = assente (offset sbagliato, non un'altezza nulla).
+- Quota aerodinamica solo se almeno l'1 % del carico statico.
+- Ricerca auto AMS2 normalizzata (minuscole, accenti, punteggiatura → spazio); i nomi le cui righe differiscono sono ambigui → `null` (9 casi).
+- Peso plausibile 100–6000 kg, verificato nello script di aggiornamento della tabella.
+- Area 2 `na` senza altezza da terra (vince il §2 della spec sul piano).
+- Guardia ABS sul rake (§2 della spec).
+- Il quadro si stampa solo quando non mancano giri (`lapsMissing === 0`).
