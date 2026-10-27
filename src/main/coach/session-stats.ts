@@ -7,12 +7,22 @@
  * "Estimated impact per lap" is deliberately NOT computed (it stays a model judgment).
  */
 
-import type { Alert, LapRow, SessionSetupRow } from "../../shared/types.js";
+import type {
+  Alert,
+  GameSource,
+  LapRow,
+  SessionSetupRow,
+} from "../../shared/types.js";
+import { findAms2Car } from "../ams2/ams2-car-lookup.js";
 import {
   computeSetupLadder,
+  judgedLapsOfLastSegment,
   parseZones,
   type SetupLadder,
 } from "./setup-ladder.js";
+import { extractSetupLevers } from "./setup-levers.js";
+import { computeSetupOverview, type SetupOverview } from "./setup-overview.js";
+import { weightDistribution } from "./weight-distribution.js";
 
 const FRAME_MS = 16;
 const FLAT_EPS = 0.05; // seconds: |lastThird - firstThird| below this ⇒ "flat"
@@ -123,6 +133,9 @@ export type SessionStats = {
   // Always computed; in Leaderboard (tyres fixed at 85 °C) steps 4-5 are "na" and
   // there are no tyre lines. Nullable only so a prompt can be built without one.
   setupLadder: SetupLadder | null;
+  // The eight-area overview ("quadro assetto"), judged on the same laps as the
+  // ladder. Nullable only so a prompt can be built without one.
+  setupOverview: SetupOverview | null;
 };
 
 export type ComputeStatsInput = {
@@ -134,6 +147,8 @@ export type ComputeStatsInput = {
   leaderboardMode?: boolean;
   fixedSetup?: boolean;
   camberUnreadable?: boolean;
+  game?: GameSource; // default "r3e"
+  car?: string | null; // session.car: the raw SHM name for AMS2, only read there
 };
 
 const avg = (arr: number[]): number =>
@@ -141,6 +156,7 @@ const avg = (arr: number[]): number =>
 
 export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
   const { laps, setups, alerts, cornerNames } = input;
+  const game = input.game ?? "r3e";
 
   const times = laps.map((l) => l.lap_time);
   const bestLap = input.bestLap ?? (times.length ? Math.min(...times) : null);
@@ -324,6 +340,23 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
   const gateSlip = (delta: number): number | null =>
     Math.abs(delta) > SLIP_ASYM_EPS ? delta : null;
 
+  // The overview judges the laps the ladder judges, with the setup they ran.
+  const judged = judgedLapsOfLastSegment(laps, {
+    leaderboardMode: !!input.leaderboardMode,
+  });
+  const judgedZones = judged.flatMap((l) => l.zones);
+  const lastSetupId = laps.at(-1)?.setup_id;
+  const setup = setups.find((x) => x.id === lastSetupId);
+  const car = game === "ams2" && input.car ? findAms2Car(input.car) : null;
+  if (game === "ams2" && input.car && !car)
+    console.warn(`[AMS2] auto non trovata nella tabella: ${input.car}`);
+  const setupLadder = computeSetupLadder(laps, setupLabelById, {
+    fixedSetup: !!input.fixedSetup,
+    leaderboardMode: !!input.leaderboardMode,
+    camberUnreadable: !!input.camberUnreadable,
+    car,
+  });
+
   return {
     lapCount: laps.length,
     analyzableLapCount,
@@ -351,10 +384,15 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     slipAsymRearRelease: meanSlipRelease
       ? gateSlip(meanSlipRelease[2] - meanSlipRelease[3])
       : null,
-    setupLadder: computeSetupLadder(laps, setupLabelById, {
+    setupLadder,
+    setupOverview: computeSetupOverview({
+      zones: judgedZones,
+      judgedLaps: judged.length,
+      ladder: setupLadder,
+      weight: weightDistribution(game, judgedZones, car),
+      levers: setup ? extractSetupLevers(setup.setup.params, game) : null,
       fixedSetup: !!input.fixedSetup,
       leaderboardMode: !!input.leaderboardMode,
-      camberUnreadable: !!input.camberUnreadable,
     }),
   };
 };

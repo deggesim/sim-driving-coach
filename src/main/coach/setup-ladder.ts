@@ -10,6 +10,7 @@
 import { WHEEL_LABELS } from "../../shared/alert-types.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
+import type { SetupOverview } from "./setup-overview.js";
 
 // Judgment thresholds, to tune on real sessions.
 const PLATEAU_C = 2; // |Δ mean tyre temp vs previous lap| still settled
@@ -514,11 +515,17 @@ export const computeSetupLadder = (
 };
 
 /** Spoken at the end of a lap once the stint can be analysed, null while it cannot. */
-export const stintReadyMessage = (ladder: SetupLadder): string | null => {
+export const stintReadyMessage = (
+  ladder: SetupLadder,
+  overview?: SetupOverview | null,
+): string | null => {
   if (ladder.judgedLaps < READY_JUDGED_LAPS) return null;
   const current = ladder.steps.find((s) => s.n === ladder.current);
+  const area = overview?.areas.find((a) => a.n === overview.current);
   const verdict = current
     ? `Primo passo da correggere: ${current.label}.`
-    : "Nessun passo da correggere.";
+    : area
+      ? `Sequenza completa, prima area dell'assetto: ${area.label}.`
+      : "Nessun passo da correggere.";
   return `Stint analizzabile: ${ladder.judgedLaps} giri giudicati. ${verdict} Puoi metterti in pausa ed eseguire l'analisi.`;
 };

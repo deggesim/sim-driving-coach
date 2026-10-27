@@ -28,6 +28,7 @@ import type {
 import { formatLapTime } from "../../shared/format.js";
 import type { SessionStats } from "./session-stats.js";
 import type { SetupLadder } from "./setup-ladder.js";
+import type { SetupOverview } from "./setup-overview.js";
 
 /**
  * Select zones that are "interesting" for the analysis:
@@ -80,9 +81,12 @@ Poi "Dettagli per curva" (un bullet per curva critica, con entry speed, ∆ ster
 
 ### Setup attuale vs proposto
 Se nei Dati Calcolati c'è la riga "Sequenza setup", questa sottosezione è OBBLIGATORIA anche senza un setup caricato. Parti SEMPRE dalla tabella "Passo | Stato | Dato" con tutti i passi della riga "Sequenza setup" (se la sequenza chiede di completare dei giri, scrivi quella richiesta al posto della tabella); i passi dopo il corrente sono "da rivedere dopo", perché cambiano quando cambia il passo corrente.
-Poi, SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti e le proposte concrete numerate "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro. Finché c'è un passo corrente, le proposte numerate riguardano SOLO la leva del passo corrente, con le stesse regole della sintesi (un passo minimo, valori a freddo); le altre aree (sospensioni, ammortizzatori, barre, altezze, aerodinamica) solo come osservazioni, senza proposte. Se la sequenza NON ha un passo corrente (ogni passo ok o non valutabile, e nessuna richiesta "completa ancora N giri") puoi dare proposte numerate anche sulle altre aree, ciascuna con il dato che la sostiene; con la richiesta "completa ancora N giri" nessuna proposta numerata. Ogni proposta cita il dato che la sostiene.
+Poi, SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti e le proposte concrete numerate "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro. Finché c'è un passo corrente, le proposte numerate riguardano SOLO la leva del passo corrente, con le stesse regole della sintesi (un passo minimo, valori a freddo); le altre aree (sospensioni, ammortizzatori, barre, altezze, aerodinamica) solo come osservazioni, senza proposte. Se la sequenza NON ha un passo corrente, le proposte sulle altre aree stanno nella sottosezione "Quadro assetto", non qui. Con la richiesta "completa ancora N giri" nessuna proposta numerata. Ogni proposta cita il dato che la sostiene.
 Senza setup caricato: niente tabella dei parametri e niente valori "A → B"; per il passo corrente indica solo la direzione (come nella sintesi).
 Se la riga "Sequenza setup" manca e nessun setup è caricato, OMETTI l'intera sottosezione. Se la riga "Sequenza setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate: solo la tabella "Parametro | Valore | Valutazione" e osservazioni.
+
+### Quadro assetto
+Se nei Dati Calcolati c'è la riga "Quadro assetto", questa sottosezione è OBBLIGATORIA. Tabella "Area | Stato | Dato | Direzione" con tutte le otto aree nell'ordine della riga, poi la riga "Calore gomme" se presente. Se le aree sono "da rivedere dopo la sequenza", nessuna proposta: scrivilo in una riga. Altrimenti, con un setup caricato, una proposta numerata per ogni area DA CORREGGERE, nell'ordine del quadro, nel formato "N. Area — Parametro: ValoreAttuale → ValoreNuovo": usa il valore della riga quando lo dà (molle), altrimenti valore attuale ± il passo minimo nella direzione della riga. Chiudi con: "Applica una proposta alla volta, nell'ordine, e ripeti uno stint dopo ciascuna: le aree successive cambiano." Senza setup caricato, solo le direzioni. Le aree NON VALUTABILI si elencano con il motivo, senza proposte.
 
 ---
 
@@ -96,7 +100,7 @@ Se la riga "Sequenza setup" manca e nessun setup è caricato, OMETTI l'intera so
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
 
-Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato.`;
+Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato, e "Quadro assetto", omissibile SOLO se manca la riga "Quadro assetto".`;
 
 export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
 I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
@@ -111,7 +115,7 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
 
-Azioni di setup: segui la "Sequenza setup" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sul PASSO CORRENTE, nella direzione indicata dalla sua riga e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella riga del passo 4, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva del passo corrente, dillo e usa il passo DA CORREGGERE successivo. Nomina in una riga i passi NON VALUTABILI saltati, con il motivo. Se la sequenza chiede di completare dei giri, l'azione di setup è "completa ancora N giri con questo setup". Senza passo corrente, o senza riga "Sequenza setup", nessuna azione di setup. Le azioni di guida restano libere.
+Azioni di setup: segui la "Sequenza setup" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sul PASSO CORRENTE, nella direzione indicata dalla sua riga e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella riga del passo 4, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva del passo corrente, dillo e usa il passo DA CORREGGERE successivo. Nomina in una riga i passi NON VALUTABILI saltati, con il motivo. Se la sequenza chiede di completare dei giri, l'azione di setup è "completa ancora N giri con questo setup". Senza passo corrente, l'unica azione di setup è l'AREA CORRENTE del "Quadro assetto", nella direzione della sua riga e citandone il dato (stesse regole su A → B e sul passo minimo). Senza passo corrente né area corrente, o senza riga "Sequenza setup", nessuna azione di setup. Le azioni di guida restano libere.
 Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
@@ -282,6 +286,29 @@ const ladderLines = (ladder: SetupLadder, game: GameSource): string[] => {
   return lines;
 };
 
+/** The setup overview as computed by setup-overview.ts: header, one line per area, then the tyre heat line. */
+const overviewLines = (o: SetupOverview): string[] => {
+  const w = o.weight;
+  const head = w.known
+    ? `pesi ant ${w.frontPct.toFixed(1)} % ${
+        w.source === "misurata"
+          ? `misurata${w.fuelL != null ? `, carburante medio ${w.fuelL.toFixed(0)} L` : ""}`
+          : "da tabella AMS2"
+      }${w.aeroFrontPct != null ? `, carico aerodinamico ant ${w.aeroFrontPct.toFixed(1)} %` : ""}`
+    : `pesi sconosciuti: ${w.reason}`;
+  const lines = [`- Quadro assetto (${head}):`];
+  for (const a of o.areas) {
+    const mark = a.n === o.current ? " ← AREA CORRENTE" : "";
+    const after = o.afterLadder ? " (da rivedere dopo la sequenza)" : "";
+    const fixed = a.proposable ? "" : " (non modificabile con Setup Fisso)";
+    lines.push(
+      `  ${a.n} ${a.label}: ${LADDER_STATUS[a.status]}${mark} — ${a.reason}${after}${fixed}`,
+    );
+  }
+  if (o.tyreLine) lines.push(`  Calore gomme: ${o.tyreLine}`);
+  return lines;
+};
+
 /**
  * Authoritative numeric facts block, injected verbatim into both prompts.
  * The system prompts instruct the model to cite these numbers and never recompute.
@@ -322,6 +349,9 @@ export const buildStatsBlock = (
     lines.push(`- Condizioni: ${bits.join(", ")}`);
   }
   if (stats.setupLadder) lines.push(...ladderLines(stats.setupLadder, game));
+  // While the ladder still asks for laps there is nothing settled to judge.
+  if (stats.setupOverview && stats.setupLadder?.lapsMissing === 0)
+    lines.push(...overviewLines(stats.setupOverview));
   if (stats.suspAsymFrontMm != null || stats.suspAsymRearMm != null) {
     const bits: string[] = [];
     if (stats.suspAsymFrontMm != null)

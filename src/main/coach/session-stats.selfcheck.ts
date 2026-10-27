@@ -354,4 +354,29 @@ assert.ok(
   "ladder outside Leaderboard",
 );
 
+// Quadro assetto: AMS2 weights come from the car table, the default game is r3e.
+const ams2Ov = computeSessionStats({
+  ...ladderIn,
+  game: "ams2",
+  car: "Porsche 992 GT3 R",
+}).setupOverview;
+assert.ok(ams2Ov, "overview computed");
+assert.ok(
+  ams2Ov.weight.known && ams2Ov.weight.frontPct === 43.8,
+  JSON.stringify(ams2Ov.weight),
+);
+const r3eOv = computeSessionStats(ladderIn).setupOverview;
+assert.ok(r3eOv, "default game r3e still gets an overview");
+assert.equal(
+  r3eOv.weight.known,
+  false,
+  "no load fit in the zones: weights unknown, not guessed",
+);
+assert.equal(
+  computeSessionStats({ ...ladderIn, game: "ams2", car: "Auto inesistente" })
+    .setupOverview?.weight.known,
+  false,
+  "unknown AMS2 car: weights unknown",
+);
+
 console.log("session-stats.selfcheck OK");

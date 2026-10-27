@@ -11,6 +11,7 @@ import {
   stintReadyMessage,
   type SetupLadder,
 } from "./setup-ladder.js";
+import type { SetupOverview } from "./setup-overview.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type { LapRow, ZoneData } from "../../shared/types.js";
 
@@ -613,6 +614,41 @@ assert.equal(
 );
 // No temperatures (fixed warm-up, 3 judged laps by lap 6) and every step na: still speaks.
 assert.ok(readyOf(6, zone())?.includes("Nessun passo da correggere"));
+
+// --- stintReadyMessage with the overview: complete ladder, first area to fix ---
+const ladderComplete = computeSetupLadder(stint(4, okZone()), new Map(), {
+  fixedSetup: false,
+});
+const overviewCurrent6 = {
+  areas: [
+    {
+      n: 6,
+      label: "barre antirollio",
+      status: "fix",
+      reason: "x",
+      proposable: true,
+    },
+  ],
+  current: 6,
+  afterLadder: false,
+  weight: { known: false, reason: "x" },
+  tyreLine: null,
+} satisfies SetupOverview;
+assert.ok(
+  stintReadyMessage(ladderComplete, overviewCurrent6)?.includes(
+    "Sequenza completa, prima area dell'assetto: barre antirollio.",
+  ),
+);
+assert.ok(
+  stintReadyMessage(ladderComplete)?.includes("Nessun passo da correggere."),
+  "overview absent: unchanged",
+);
+assert.ok(
+  stintReadyMessage(ladderComplete, {
+    ...overviewCurrent6,
+    current: null,
+  })?.includes("Nessun passo da correggere."),
+);
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
 // flags only mean something on R3E; camber is unreadable on ACE only ---

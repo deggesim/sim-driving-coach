@@ -26,6 +26,7 @@ import {
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
 import type { SetupLadder } from "./setup-ladder.js";
+import type { SetupOverview } from "./setup-overview.js";
 import { decodeAlertCodes, WHEEL_ORDER } from "../../shared/alert-types.js";
 
 const session: SessionRow = {
@@ -205,6 +206,7 @@ for (const sub of [
   "Analisi telemetria",
   "Problemi identificati",
   "Setup attuale vs proposto",
+  "Quadro assetto",
 ]) {
   assert.ok(SESSION_SYSTEM_PROMPT.includes(`### ${sub}`), sub);
 }
@@ -325,13 +327,19 @@ assert.ok(SESSION_SYSTEM_PROMPT.includes("leva del passo corrente"));
 // every step ok / non valutabile it may propose on the other areas again.
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    "proposte numerate anche sulle altre aree, ciascuna con il dato che la sostiene",
+    'Se la sequenza NON ha un passo corrente, le proposte sulle altre aree stanno nella sottosezione "Quadro assetto", non qui.',
   ),
-  "Level 2 may propose on other areas when the ladder has no current step",
+  "Level 2: without a current step the other areas live in the Quadro assetto",
 );
 assert.ok(
-  SESSION_SYSTEM_PROMPT.includes("ogni passo ok o non valutabile"),
-  "no current step = every step ok or non valutabile",
+  !SESSION_SYSTEM_PROMPT.includes(
+    "puoi dare proposte numerate anche sulle altre aree",
+  ),
+  "old Level 2 sentence replaced",
+);
+assert.ok(
+  !SESSION_SYSTEM_PROMPT.includes("ogni passo ok o non valutabile"),
+  "old Level 2 sentence replaced",
 );
 assert.ok(
   !SYNTHESIS_SYSTEM_PROMPT.includes("anche sulle altre aree"),
@@ -571,6 +579,132 @@ assert.ok(
     `omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato`,
   ),
   "closing sentence matches the rule",
+);
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes(
+    'e "Quadro assetto", omissibile SOLO se manca la riga "Quadro assetto".',
+  ),
+  "Quadro assetto is omittable only without its row",
+);
+
+// Quadro assetto (Task 9): the overview reaches the stats block and both prompts.
+assert.ok(
+  SYNTHESIS_SYSTEM_PROMPT.includes("AREA CORRENTE"),
+  "Level 1 acts on the current area",
+);
+assert.ok(
+  SYNTHESIS_SYSTEM_PROMPT.includes(
+    'Senza passo corrente né area corrente, o senza riga "Sequenza setup"',
+  ),
+);
+assert.ok(
+  !SYNTHESIS_SYSTEM_PROMPT.includes(
+    'Senza passo corrente, o senza riga "Sequenza setup", nessuna azione di setup.',
+  ),
+  "old Level 1 sentence replaced",
+);
+assert.deepEqual(roots(SESSION_SYSTEM_PROMPT), [
+  "FORMATO OBBLIGATORIO",
+  "Regole Generali",
+]); // no new root
+const overviewFixture: SetupOverview = {
+  areas: [
+    {
+      n: 1,
+      label: "molle",
+      status: "fix",
+      reason: "rapporto molle 1.00, pesi 1.28 → molle posteriori 289 N/mm",
+      proposable: true,
+    },
+    {
+      n: 2,
+      label: "altezze e rake",
+      status: "ok",
+      reason: "min 12 mm",
+      proposable: true,
+    },
+    {
+      n: 3,
+      label: "bumpstop",
+      status: "na",
+      reason: "nessun contatto misurato",
+      proposable: false,
+    },
+  ],
+  current: 1,
+  afterLadder: false,
+  weight: {
+    known: true,
+    frontPct: 43.8,
+    source: "tabella AMS2",
+    aeroFrontPct: null,
+    fuelL: null,
+  },
+  tyreLine: "ant−post +6.2 °C, sx−dx −1.0 °C",
+};
+const ovBlock = (
+  over: Partial<SetupOverview> | null,
+  ladder: Partial<SetupLadder> = {},
+  game: GameSource = "ams2",
+) =>
+  buildStatsBlock(
+    {
+      ...baseStats,
+      setupLadder: { ...ladderFixture, current: null, ...ladder },
+      setupOverview: over && { ...overviewFixture, ...over },
+    },
+    game,
+  );
+const ov = ovBlock({});
+for (const x of [
+  "- Quadro assetto (pesi ant 43.8 % da tabella AMS2):",
+  "1 molle: DA CORREGGERE ← AREA CORRENTE — rapporto molle 1.00, pesi 1.28 → molle posteriori 289 N/mm",
+  "2 altezze e rake: ok — min 12 mm",
+  "3 bumpstop: NON VALUTABILE — nessun contatto misurato (non modificabile con Setup Fisso)",
+  "Calore gomme: ant−post +6.2 °C, sx−dx −1.0 °C",
+]) {
+  assert.ok(ov.includes(x), x);
+}
+assert.ok(
+  ov.indexOf("Sequenza setup") < ov.indexOf("Quadro assetto"),
+  "overview follows the ladder",
+);
+const ovAfter = ovBlock({ afterLadder: true, current: null });
+assert.ok(
+  ovAfter.includes(
+    "2 altezze e rake: ok — min 12 mm (da rivedere dopo la sequenza)",
+  ),
+);
+assert.ok(!ovAfter.includes("AREA CORRENTE"));
+assert.ok(
+  ovBlock({
+    weight: {
+      known: true,
+      frontPct: 47.2,
+      source: "misurata",
+      aeroFrontPct: 38.4871,
+      fuelL: 40.3,
+    },
+  }).includes(
+    "(pesi ant 47.2 % misurata, carburante medio 40 L, carico aerodinamico ant 38.5 %)",
+  ),
+);
+assert.ok(
+  ovBlock({
+    weight: { known: false, reason: "carico ruota non disponibile" },
+  }).includes("(pesi sconosciuti: carico ruota non disponibile)"),
+);
+assert.ok(!ovBlock({ tyreLine: null }).includes("Calore gomme"));
+assert.ok(
+  !ovBlock(null, {}, "r3e").includes("Quadro assetto"),
+  "no overview, no row",
+);
+// Controller ruling: while the ladder still asks for laps, the overview is not printed.
+assert.ok(
+  !ovBlock({}, { lapsMissing: 2, steps: [], current: null }).includes(
+    "Quadro assetto",
+  ),
+  "no overview while laps are missing",
 );
 
 // The asymmetry lines no longer point at a lever: the ladder owns that call.

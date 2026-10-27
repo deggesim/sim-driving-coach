@@ -17,11 +17,7 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
-import {
-  computeSetupLadder,
-  ladderFlags,
-  stintReadyMessage,
-} from "./setup-ladder.js";
+import { ladderFlags, stintReadyMessage } from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
@@ -250,13 +246,16 @@ export const createSessionCoachEngine = (
     stintReady: (sessionId, game) => {
       const bundle = loadSessionBundle(game, sessionId);
       if (!bundle) return null;
-      return stintReadyMessage(
-        computeSetupLadder(
-          bundle.laps,
-          new Map(),
-          ladderFlags(game, bundle.flags),
-        ),
-      );
+      const { setupLadder, setupOverview } = computeSessionStats({
+        laps: bundle.laps,
+        bestLap: bundle.session.best_lap,
+        setups: bundle.setups,
+        cornerNames,
+        game,
+        car: bundle.session.car,
+        ...ladderFlags(game, bundle.flags),
+      });
+      return setupLadder && stintReadyMessage(setupLadder, setupOverview);
     },
 
     analyzeSession: async (sessionId, game, resolved, alerts) => {
@@ -271,6 +270,8 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        game,
+        car: session.car,
         // Both columns default to 1 for every game: see ladderFlags.
         ...ladderFlags(game, flags),
       });
@@ -400,6 +401,8 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        game,
+        car: session.car,
         ...ladderFlags(game, flags),
       });
 
@@ -535,6 +538,8 @@ export const createSessionCoachEngine = (
             bestLap: bundle.session.best_lap,
             setups: bundle.setups,
             cornerNames,
+            game,
+            car: bundle.session.car,
             ...ladderFlags(game, bundle.flags),
           })
         : undefined;
