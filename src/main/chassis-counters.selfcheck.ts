@@ -126,6 +126,17 @@ const noRh = make(30);
 assert.equal(zone0(noRh).rideHeight, undefined);
 assert.equal(zone0(noRh).bottoming, undefined);
 
+// All-zero `rh` on the whole lap = unpopulated field / wrong offset: absent.
+const zeroRh = make(30, () => ({ rh: [0, 0, 0, 0] }));
+assert.equal(zone0(zeroRh).rideHeight, undefined);
+assert.equal(zone0(zeroRh).bottoming, undefined);
+// Real values plus a genuine 0-touch (3 frames at exactly 0): the event counts.
+const zeroTouch = make(30, (i) => ({
+  rh: i >= 10 && i < 13 ? [0, 0, 0.05, 0.05] : FLAT,
+}));
+assert.equal(zone0(zeroTouch).bottoming!.front, 1);
+assert.notEqual(zone0(zeroTouch).rideHeight, undefined);
+
 // --- Ride-height sums -----------------------------------------------------
 
 const rhLap = make(20, (i) => ({

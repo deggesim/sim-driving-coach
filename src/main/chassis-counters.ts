@@ -80,6 +80,10 @@ export const chassisCounters = (
     }
     return c;
   };
+  // A lap whose every `rh` value is exactly 0 means an unpopulated field or a
+  // wrong offset (AMS2, not yet verified live): treat it as no `rh`, otherwise
+  // every frame would sit below BOTTOM_M and read as constant bottoming.
+  const hasRh = frames.some((f) => f.rh?.some((h) => h !== 0));
   const vMax = frames.reduce((m, f) => Math.max(m, f.spd), 0);
   const phaseOf = (f: CompactFrame): Phase =>
     f.brk > HARD_BRAKE
@@ -103,9 +107,10 @@ export const chassisCounters = (
   frames.forEach((f, i) => {
     const c = zoneFor(f);
 
-    if (f.rh) {
-      const hF = Math.min(f.rh[0], f.rh[1]);
-      const hR = Math.min(f.rh[2], f.rh[3]);
+    const frh = hasRh ? f.rh : undefined;
+    if (frh) {
+      const hF = Math.min(frh[0], frh[1]);
+      const hR = Math.min(frh[2], frh[3]);
       const rh = (c.rideHeight ??= {
         minF: Infinity,
         minR: Infinity,
@@ -145,7 +150,7 @@ export const chassisCounters = (
     // counted once when the run reaches that length, on its first frame's zone.
     [0, 1].forEach((axle) => {
       const run = runs[axle];
-      const h = f.rh && Math.min(f.rh[axle * 2], f.rh[axle * 2 + 1]);
+      const h = frh && Math.min(frh[axle * 2], frh[axle * 2 + 1]);
       if (h === undefined || h >= BOTTOM_M) {
         run.len = 0;
         return;
