@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** accorciare il percorso della scaletta con tre misure: avviso "Stint analizzabile" anticipato quando il verdetto è stabile, passo 1 (condotti freni) giudicato senza aspettare le gomme, promemoria vocale di ripresa all'apertura della sessione.
+**Goal:** accorciare il percorso della scaletta e impedire che si blocchi su un passo senza leva o con la leva a fondo scala: avviso "Stint analizzabile" anticipato quando il verdetto è stabile, passo 1 (condotti freni) giudicato senza aspettare le gomme, promemoria vocale di ripresa all'apertura della sessione.
 
 **Architecture:** tutto il giudizio resta in TypeScript puro in `setup-ladder.ts`: il passo 1 su giri propri, `verdictKey`, la nuova regola di `stintReadyMessage`, `resumeMessage`. `session-coach.ts` calcola le statistiche "prima dell'ultimo giro" e legge la sessione precedente. `main.ts` pronuncia le frasi. `prompt-builder.ts` adatta la riga della sequenza quando il passo 1 è corrente prima dei giri giudicati.
 
@@ -233,8 +233,141 @@ assert.ok(resumeMessage(at, "A", null).includes("giri insufficienti per un giudi
   - `src/main/CLAUDE.md`: le voci `setup-ladder.ts` e `session-coach.ts`.
 - [ ] **Step 6: gate completo e commit.** Messaggio: `feat(coach): promemoria di ripresa all'apertura della sessione`.
 
+### Task 5: passo senza leva nel setup caricato → NON VALUTABILE
+
+**Files:**
+- Modify: `src/main/coach/setup-ladder.ts`: opzione `setupParams` di `computeSetupLadder`, tabella `LEVERS`, post-elaborazione dei passi in entrambi i ritorni, quello anticipato del Task 1 e quello finale
+- Modify: `src/main/coach/session-stats.ts`: passa `setupParams: setup?.setup.params ?? null`, dove `setup` è già il setup dell'ultimo segmento
+- Modify: `src/main/ams2/ams2-setup-vision.ts`: `AMS2_CANONICAL_PARAMS`
+- Test: `src/main/coach/setup-ladder.selfcheck.ts`, `src/main/coach/setup-levers.selfcheck.ts` se asserisce la lista canonica
+- Docs: `CLAUDE.md` (punto "Setup ladder"), `src/main/CLAUDE.md`
+
+**Interfaces:**
+- Consumes: il ritorno anticipato del Task 1 (`lapsMissing > 0`, passo 1 corrente).
+- Produces: `computeSetupLadder(laps, labels, opts: { …; setupParams?: SetupParam[] | null })`. Con `setupParams` assente o null il comportamento è quello di oggi.
+
+Regola, dalla spec §4: un passo `fix` per cui nessun `param.parameter` soddisfa il pattern della sua leva diventa `{ ...step, status: "na", reason: "leva non presente nel setup caricato — " + step.reason }`. Poi `current` si ricalcola con la regola di sempre: primo passo `fix` e proponibile. Nel ritorno anticipato del Task 1 la stessa regola fa sì che il passo 1 senza leva non diventi corrente. Pattern, case-insensitive:
+
+```ts
+const LEVERS: Record<number, RegExp> = {
+  1: /duct|condott/i,
+  2: /brake bias|ripartizione frenata|bilanciamento fren/i,
+  3: /coast|freno motore|engine brak/i,
+  4: /tyre pressure|^pression/i,
+  5: /camber|campanatura/i,
+  6: /differential (power|preload)|power locking|power ramp|precarico|preload/i,
+};
+```
+
+`AMS2_CANONICAL_PARAMS` riceve questi nomi, dopo quelli di molle e ammortizzatori:
+- singoli: "Condotti freni", "Bilanciamento freni", "Pressione freni", "Freno motore", "Coast ramp", "Power ramp", "Precarico";
+- per ruota, come gli altri: "Pressione FL/FR/RL/RR" e "Camber FL/FR/RL/RR".
+
+- [ ] **Step 1: scrivere i test che falliscono** in `setup-ladder.selfcheck.ts`:
+
+```ts
+const P = (...names: string[]) => names.map((parameter) => ({ category: "x", parameter, value: "1" }));
+const withParams = (laps: LapRow[], params: SetupParam[] | null) =>
+  computeSetupLadder(laps, new Map(), { fixedSetup: false, setupParams: params });
+const unbalanced = stint(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] }));
+// R3E Porsche (2026-10-27): no duct lever → step 1 na, the ladder moves on.
+const noDucts = withParams(unbalanced, P("Brake Bias", "Tyre Pressure Front Left", "Camber Front Left", "Differential Preload"));
+assert.equal(stepOf(noDucts, 1).status, "na");
+assert.ok(stepOf(noDucts, 1).reason.startsWith("leva non presente nel setup caricato — "));
+assert.equal(noDucts.current, null);
+// ACE never exports ducts either.
+assert.equal(withParams(unbalanced, P("Ripartizione Frenata Anteriore", "Pressione FL")).current, null);
+// The lever exists → unchanged.
+assert.equal(withParams(unbalanced, P("Condotti freni")).current, 1);
+// No setup loaded → unchanged.
+assert.equal(withParams(unbalanced, null).current, 1);
+// Early step 1 (Task 1 `drifting`) without the lever: not current.
+assert.equal(withParams(drifting(3, [720, 720, 400, 400]), P("Brake Bias")).current, null);
+// An ok step without its lever stays ok.
+assert.equal(stepOf(withParams(stint(5, okZone()), P()), 1).status, "ok");
+```
+
+Se `SetupParam` non è già importato nel selfcheck, importarlo da `../../shared/types.js`.
+
+- [ ] **Step 2: eseguire `npm run selfcheck` e verificare il fallimento.**
+- [ ] **Step 3: implementare** come descritto sopra, con un helper unico usato in entrambi i ritorni.
+- [ ] **Step 4: eseguire `npm run selfcheck`.** Atteso: tutti passati. I test esistenti non passano `setupParams`, quindi non cambiano.
+- [ ] **Step 5: aggiornare la documentazione.**
+  - `CLAUDE.md`, punto "Setup ladder": "Un passo DA CORREGGERE senza la sua leva nel setup caricato diventa NON VALUTABILE e si salta (R3E e ACE non hanno sempre i condotti freni)".
+  - `src/main/CLAUDE.md`: la stessa regola nella voce `setup-ladder.ts`, e i nomi nuovi nella voce `ams2-setup-vision.ts`.
+- [ ] **Step 6: gate completo e commit.** Messaggio: `feat(coach): passo senza leva nel setup saltato dalla scaletta`.
+
+### Task 6: leva a fondo scala (solo R3E)
+
+**Files:**
+- Modify: `src/shared/types.ts`: `SetupParam.limit?: "min" | "max"`
+- Modify: `src/shared/r3e-setup-parse.ts`: calcolo di `limit`
+- Modify: `src/main/coach/setup-ladder.ts`: `LadderStep.moves?`, mosse dei passi 2, 4 e 5, opzione `game`, post-elaborazione dopo quella del Task 5
+- Modify: `src/main/coach/session-stats.ts`: passa `game` a `computeSetupLadder`
+- Test: `src/shared/r3e-setup-parse.selfcheck.ts`, `src/main/coach/setup-ladder.selfcheck.ts`
+- Docs: `src/main/CLAUDE.md`
+
+**Interfaces:**
+- Consumes: `setupParams` e la post-elaborazione del Task 5.
+- Produces:
+  - `SetupParam.limit?: "min" | "max"`: il valore grezzo `minValue + currentStep * stepSize` è il più basso (`"min"`) o il più alto (`"max"`) raggiungibile. È assente se `maxStep === 0`, se `stepSize === 0` o se il valore è a metà corsa. Il valore più basso è al passo 0 quando `stepSize > 0`, al passo `maxStep` quando `stepSize < 0`.
+  - `LadderStep.moves?: { param: string; dir: "up" | "down" }[]`, con `param` uguale al nome R3E del parametro (`idToLabel`).
+  - `computeSetupLadder(…, opts: { …; game?: GameSource })`.
+
+Mosse, dalla spec §4. Le ruote in ordine FL, FR, RL, RR corrispondono a "Front Left", "Front Right", "Rear Left", "Rear Right".
+- **Passo 2:** verso il posteriore `{ param: "Brake Bias", dir: "up" }`, verso l'anteriore `"down"`. Con "ridurre la forza frenante" `{ param: "Brake Pressure", dir: "down" }`.
+- **Passo 4:** per ogni ruota fuori soglia, `Tyre Pressure <ruota>` con `"down"` se la pressione è alta e `"up"` se è bassa.
+- **Passo 5:** per ogni ruota indicata, `Camber <ruota>` con `"down"` se serve più campanatura negativa e `"up"` se ne serve meno.
+
+Regola: con `game === "r3e"`, per un passo `fix` con `moves` non vuote, si considerano le mosse il cui `param` è presente in `setupParams`. Se ce n'è almeno una e tutte sono bloccate, il passo diventa `{ ...step, status: "ok", reason: step.reason + " — già a fondo scala" }`. Una mossa è bloccata quando `limit === "max"` con `dir: "up"`, oppure `limit === "min"` con `dir: "down"`. Poi `current` si ricalcola.
+
+- [ ] **Step 1: scrivere i test che falliscono.**
+
+In `r3e-setup-parse.selfcheck.ts`, con le voci del JSON reale del 2026-10-27:
+
+```ts
+const lim = (item: object) => parseR3eSetupJson(JSON.stringify({ values: [item] }))[0].limit;
+assert.equal(lim({ id: "BrakePressure", currentStep: 21, minValue: 80, stepSize: 1, maxStep: 21, suffix: "%", disabled: false }), "max");
+assert.equal(lim({ id: "BrakePressure", currentStep: 20, minValue: 80, stepSize: 1, maxStep: 21, suffix: "%", disabled: false }), undefined);
+// Negative step: step 51 is the most negative camber, i.e. the lowest value.
+assert.equal(lim({ id: "CamberFrontLeft", currentStep: 51, minValue: 0, stepSize: -0.1, maxStep: 51, suffix: "deg", disabled: false }), "min");
+assert.equal(lim({ id: "CamberFrontLeft", currentStep: 0, minValue: 0, stepSize: -0.1, maxStep: 51, suffix: "deg", disabled: false }), "max");
+```
+
+In `setup-ladder.selfcheck.ts`, usando `stepOf` e i fixture esistenti:
+
+```ts
+const lp = (parameter: string, limit?: "min" | "max") => ({ category: "x", parameter, value: "1", limit });
+const camberLaps = stint(5, okZone({ avgTyreTempInnerC: [84, 84, 84, 84], avgTyreTempOuterC: [83, 83, 83, 83] })); // inner−outer +1 °C: more negative camber
+const r3e = (params: SetupParam[]) =>
+  computeSetupLadder(camberLaps, new Map(), { fixedSetup: false, setupParams: params, game: "r3e" });
+const wheels = ["Front Left", "Front Right", "Rear Left", "Rear Right"];
+assert.equal(stepOf(r3e(wheels.map((w) => lp(`Camber ${w}`))), 5).status, "fix");
+const maxed = r3e(wheels.map((w) => lp(`Camber ${w}`, "min")));
+assert.equal(stepOf(maxed, 5).status, "ok");
+assert.ok(stepOf(maxed, 5).reason.endsWith(" — già a fondo scala"));
+// One wheel can still move → still fix.
+assert.equal(stepOf(r3e([...wheels.slice(1).map((w) => lp(`Camber ${w}`, "min")), lp("Camber Front Left")]), 5).status, "fix");
+// Same params on ACE: limits are R3E-only, unchanged.
+assert.equal(
+  stepOf(computeSetupLadder(camberLaps, new Map(), { fixedSetup: false, setupParams: wheels.map((w) => lp(`Camber ${w}`, "min")), game: "ace" }), 5).status,
+  "fix",
+);
+```
+
+Prima delle altre asserzioni, verificare che con `camberLaps` il passo 5 sia `fix` e che i passi 1-4 siano ok. Se `okZone` non lo garantisce, scegliere temperature interne ed esterne che lo garantiscano. Con `setupParams` non vuoti si applica anche il Task 5: le liste dei parametri devono includere le leve dei passi che si vogliono lasciare valutabili.
+
+- [ ] **Step 2: eseguire `npm run selfcheck` e verificare il fallimento.**
+- [ ] **Step 3: implementare** come descritto sopra. Le mosse nascono nei passi 2, 4 e 5, dove la decisione per ruota esiste già.
+- [ ] **Step 4: eseguire `npm run selfcheck`.** Atteso: tutti passati.
+- [ ] **Step 5: aggiornare `src/main/CLAUDE.md`.**
+  - Voce `setup-ladder.ts`: "su R3E un passo con tutte le mosse a fondo scala diventa ok con nota".
+  - Voce `r3e-setup-parse` o `shared`: il nuovo campo `limit`.
+- [ ] **Step 6: gate completo e commit.** Messaggio: `feat(coach): leva R3E a fondo scala non blocca la scaletta`.
+
 ### Verifica finale con il simulatore (utente)
 
 - R3E o ACE: aprire una sessione nuova con la stessa combinazione di una sessione precedente. Il promemoria deve dire data, setup e passo corretti.
 - Al primo stint con un setup che ha i freni sbilanciati, l'avviso "condotti freni" deve arrivare dopo il giro 3, anche quando le gomme non sono ancora stabili.
 - Con un verdetto netto, l'avviso "Stint analizzabile" deve arrivare con 2 giri giudicati invece di 3.
+- R3E con la Porsche 911 GT3 R, oppure ACE: con i freni sbilanciati il passo 1 deve risultare "leva non presente nel setup caricato", e la scaletta deve proseguire.

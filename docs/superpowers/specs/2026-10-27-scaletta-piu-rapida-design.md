@@ -11,6 +11,7 @@ Percorrere la scaletta (6 passi) e il quadro assetto (8 aree) richiede molti gir
 1. **Prontezza adattiva**: l'avviso arriva appena il verdetto è stabile, non dopo un numero fisso di giri. Mai più tardi di oggi.
 2. **Condotti freni senza attendere le gomme**: il passo 1 si giudica sui giri del segmento dopo il primo, senza il plateau delle temperature gomme, perché guarda solo le temperature dei freni.
 3. **Promemoria di ripresa**: all'apertura di una sessione, se esiste una sessione precedente con la stessa auto e la stessa pista, una frase dice quale setup caricare e da dove si riprende.
+4. **Nessun blocco**: un passo senza leva nel setup, o con la leva a fondo scala, non ferma la scaletta (§4).
 
 ## Non obiettivi
 
@@ -66,6 +67,31 @@ Se esiste, si pronuncia una frase con:
 Esempio: "Ultima sessione con questa combinazione: 27 ottobre, setup Monza v2, passo 4, pressioni, da correggere. Per riprendere carica quel setup."
 
 Non c'è nessun confronto automatico fra il setup caricato e quello della sessione precedente.
+
+## 4. Passo senza leva o con la leva a fondo scala
+
+Problema: se il passo corrente è DA CORREGGERE ma il setup caricato non ha la sua leva, la scaletta resta ferma su quel passo per sempre. Succede lo stesso se la leva è già a fondo scala nella direzione richiesta. Il quadro non diventa mai corrente, perché finché la scaletta ha un passo corrente è "da rivedere dopo la sequenza". È il caso reale del 2026-10-27:
+- la Porsche 911 GT3 R su R3E non ha parametri per i condotti dei freni, e power e coast del differenziale sono disabilitati;
+- l'importatore ACE non produce mai un parametro per i condotti.
+
+Nei due casi il passo corrente era proprio il passo 1.
+
+**Leva assente** (tutti i giochi, solo con un setup caricato sull'ultimo segmento): un passo DA CORREGGERE la cui leva non compare fra i parametri del setup diventa NON VALUTABILE, con motivo "leva non presente nel setup caricato" seguito dal dato originale. Si salta come gli altri passi NON VALUTABILI. Leve per passo, riconosciute dal nome del parametro senza distinguere maiuscole e minuscole:
+1. condotti freni: `duct`, `condott`;
+2. bilanciamento: `brake bias`, `ripartizione frenata`, `bilanciamento fren`;
+3. freno motore: `coast`, `freno motore`, `engine brak`;
+4. pressioni: `tyre pressure`, oppure un nome che comincia per `pression`;
+5. campanatura: `camber`, `campanatura`;
+6. differenziale: `differential power`, `differential preload`, `power locking`, `power ramp`, `precarico`, `preload`.
+
+Il passo resta valido se basta una delle leve. Senza un setup caricato non cambia niente. AMS2 riceve questi nomi fra i nomi canonici imposti alla Vision.
+
+**Leva a fondo scala** (solo R3E, l'unico gioco che esporta minimo e massimo di ogni parametro): un passo DA CORREGGERE le cui mosse sono tutte bloccate diventa ok, con nota "già a fondo scala". Una mossa è bloccata quando il parametro è già al valore minimo (mossa "giù") o massimo (mossa "su"). Mosse considerate, solo quelle con direzione univoca:
+- passo 2: bilanciamento verso il posteriore = Brake Bias su (il valore grezzo è la quota posteriore), verso l'anteriore = giù, ridurre la forza frenante = Brake Pressure giù;
+- passo 4: pressione alta = Tyre Pressure della ruota giù, bassa = su;
+- passo 5: più campanatura negativa = Camber della ruota giù (valore più negativo), meno negativa = su.
+
+Il differenziale e il coast restano fuori: su R3E sono percentuali di bloccaggio, su AMS2 angoli di rampa, e la direzione non è univoca.
 
 ## Vincoli
 
