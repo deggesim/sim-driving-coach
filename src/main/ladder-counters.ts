@@ -22,6 +22,12 @@ export type LadderCounters = Pick<
   | "cornersEntryOver"
   | "cornersExit"
   | "cornersExitOver"
+  | "cornersSlow"
+  | "cornersSlowUnder"
+  | "cornersSlowOver"
+  | "kSlowSum"
+  | "cornersFast"
+  | "kFastSum"
 >;
 
 const HARD_BRAKE = 0.3;
@@ -43,6 +49,14 @@ const ENTRY_BRAKE = 0.05;
 const MID_THROTTLE = 0.2;
 const PHASE_UNDER = 0.85;
 const PHASE_OVER = 1.15;
+const SLOW_CORNER_KMH = 120;
+const FAST_CORNER_KMH = 160;
+// Share of mid-phase frames whose str*gLat sign opposes the corner's majority.
+const MID_OVER_SHARE = 0.15;
+// Push: |str| grows by MID_UNDER_STEER_GAIN over >= MID_UNDER_MS while |gLat| stays flat.
+const MID_UNDER_MS = 300;
+const MID_UNDER_STEER_GAIN = 0.2;
+const MID_UNDER_GLAT_FLAT = 0.02;
 
 const SR_KEYS = [
   "srHardBrakeFrames",
@@ -60,7 +74,45 @@ const CORNER_KEYS = [
   "cornersEntryOver",
   "cornersExit",
   "cornersExitOver",
+  "cornersSlow",
+  "cornersSlowUnder",
+  "cornersSlowOver",
+  "kSlowSum",
+  "cornersFast",
+  "kFastSum",
 ] as const;
+
+type KFrame = { f: CompactFrame; k: number };
+
+// Majority sign of str*gLat defines "normal" (games differ in sign convention).
+const midOversteer = (mid: KFrame[]): boolean => {
+  const signs = mid.map(({ f }) => Math.sign(f.str * (f.gLat ?? 0)));
+  const pos = signs.filter((s) => s > 0).length;
+  const neg = signs.filter((s) => s < 0).length;
+  return Math.min(pos, neg) / mid.length > MID_OVER_SHARE;
+};
+
+// A window of consecutive mid frames >= MID_UNDER_MS where steer grows and |gLat| stays flat.
+// ponytail: O(n^2) over one corner's mid frames (a few hundred), fine at 60 Hz.
+const midUndersteer = (mid: KFrame[]): boolean => {
+  for (let i = 0; i < mid.length; i++) {
+    let lo = Infinity;
+    let hi = 0;
+    for (let j = i; j < mid.length; j++) {
+      const g = Math.abs(mid[j].f.gLat ?? 0);
+      lo = Math.min(lo, g);
+      hi = Math.max(hi, g);
+      if (hi - lo > MID_UNDER_GLAT_FLAT * hi) break;
+      if (
+        mid[j].f.ts - mid[i].f.ts >= MID_UNDER_MS &&
+        Math.abs(mid[j].f.str) >=
+          Math.abs(mid[i].f.str) * (1 + MID_UNDER_STEER_GAIN)
+      )
+        return true;
+    }
+  }
+  return false;
+};
 
 const mean = (xs: number[]): number | undefined =>
   xs.length >= PHASE_MIN_FRAMES
@@ -164,9 +216,22 @@ export const ladderCounters = (
     const phase = (keep: (f: CompactFrame) => boolean): number | undefined =>
       mean(ks.filter((x) => keep(x.f)).map((x) => x.k));
     const entry = phase((f) => f.brk > ENTRY_BRAKE);
-    const mid = phase((f) => f.brk <= ENTRY_BRAKE && f.thr <= MID_THROTTLE);
+    const midFrames = ks.filter(
+      ({ f }) => f.brk <= ENTRY_BRAKE && f.thr <= MID_THROTTLE,
+    );
+    const mid = mean(midFrames.map((x) => x.k));
     const exit = phase((f) => f.thr > EXIT_THROTTLE);
     if (mid === undefined) continue;
+    const midKmh = mean(midFrames.map((x) => x.f.spd))!;
+    if (midKmh < SLOW_CORNER_KMH) {
+      bump(c, "cornersSlow");
+      c.kSlowSum = (c.kSlowSum ?? 0) + mid;
+      if (midUndersteer(midFrames)) bump(c, "cornersSlowUnder");
+      if (midOversteer(midFrames)) bump(c, "cornersSlowOver");
+    } else if (midKmh > FAST_CORNER_KMH) {
+      bump(c, "cornersFast");
+      c.kFastSum = (c.kFastSum ?? 0) + mid;
+    }
     if (entry !== undefined) {
       bump(c, "cornersEntry");
       if (entry < PHASE_UNDER * mid) bump(c, "cornersEntryUnder");

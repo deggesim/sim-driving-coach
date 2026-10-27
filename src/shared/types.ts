@@ -187,6 +187,13 @@ export type ZoneData = {
   cornersEntryOver?: number; // of those, oversteer on entry
   cornersExit?: number; // corners with valid exit and mid-corner phases
   cornersExitOver?: number; // of those, oversteer on exit
+  // Same presence as cornersEntry. Speed class = mean speed of the mid phase.
+  cornersSlow?: number; // corners with a valid mid phase below 120 km/h
+  cornersSlowUnder?: number; // of those, understeer at mid-corner
+  cornersSlowOver?: number; // of those, oversteer at mid-corner
+  kSlowSum?: number; // sum of the mid-phase mean k of the slow corners
+  cornersFast?: number; // corners with a valid mid phase above 160 km/h
+  kFastSum?: number; // sum of the mid-phase mean k of the fast corners
 };
 
 // --- Lap Record ---

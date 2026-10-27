@@ -166,4 +166,67 @@ assert.equal(exits.exitFrames, 12);
 assert.equal(exits.spinFramesRear, 12);
 assert.equal(exits.spinFramesFront, 0);
 
+// Corners by speed class: 100 mid-phase frames (1.6 s), steer 0.2, 1 g.
+const midCorner = (spd: number, over: Partial<CompactFrame> = {}) =>
+  zone0(run(100, { spd, str: 0.2, gLat: 1.0, ...over }));
+
+// Slow corner (90 km/h mid phase), steady: counted, neither under nor over.
+const slowSteady = midCorner(90);
+const expectedK = 1.0 / (25 * 25 * 0.2);
+assert.equal(slowSteady.cornersSlow, 1);
+assert.equal(slowSteady.cornersSlowUnder, 0);
+assert.equal(slowSteady.cornersSlowOver, 0);
+assert.ok(Math.abs(slowSteady.kSlowSum! - expectedK) < 1e-6);
+assert.equal(slowSteady.cornersFast, 0);
+assert.equal(slowSteady.kFastSum, 0);
+
+// Countersteer: 20 % of the mid frames with str·gLat opposite to the majority.
+const counter = run(100, { spd: 90, str: 0.2, gLat: 1.0 });
+for (let i = 0; i < 20; i++) counter[i * 5].gLat = -1.0;
+const slowCounter = zone0(counter);
+assert.equal(slowCounter.cornersSlowOver, 1);
+assert.equal(slowCounter.cornersSlowUnder, 0);
+
+// The same majority rule holds when the whole corner has the opposite sign.
+const flipped = run(100, { spd: 90, str: 0.2, gLat: -1.0 });
+for (let i = 0; i < 20; i++) flipped[i * 5].gLat = 1.0;
+assert.equal(zone0(flipped).cornersSlowOver, 1);
+assert.equal(midCorner(90, { gLat: -1.0 }).cornersSlowOver, 0);
+
+// Push: for 400+ ms |str| rises 30 % while |gLat| stays within 1 %.
+const push = run(100, { spd: 90, str: 0.2, gLat: 1.0 });
+push.forEach((f, i) => {
+  if (i >= 40) f.str = Math.min(0.26, 0.2 + (i - 40) * 0.002);
+});
+push[50].gLat = 1.005;
+const slowPush = zone0(push);
+assert.equal(slowPush.cornersSlowUnder, 1);
+assert.equal(slowPush.cornersSlowOver, 0);
+
+// More steer without a flat |gLat| is a normal tightening corner, not push.
+const tighten = run(100, { spd: 90, str: 0.2, gLat: 1.0 });
+tighten.forEach((f, i) => {
+  if (i >= 40) {
+    f.str = Math.min(0.26, 0.2 + (i - 40) * 0.002);
+    f.gLat = 1.0 + (i - 40) * 0.01;
+  }
+});
+assert.equal(zone0(tighten).cornersSlowUnder, 0);
+
+// Fast corner (180 km/h): counted in the fast family only.
+const fast = midCorner(180);
+assert.equal(fast.cornersFast, 1);
+assert.equal(fast.cornersSlow, 0);
+assert.ok(Math.abs(fast.kFastSum! - 1.0 / (50 * 50 * 0.2)) < 1e-6);
+
+// Between 120 and 160 km/h: in neither class.
+const medium = midCorner(140);
+assert.equal(medium.cornersSlow ?? 0, 0);
+assert.equal(medium.cornersFast ?? 0, 0);
+
+// No gLat on the lap: the corner family is absent, not zero.
+const noGLat = zone0(run(100, { spd: 90, str: 0.2 }));
+assert.equal(noGLat.cornersSlow, undefined);
+assert.equal(noGLat.kSlowSum, undefined);
+
 console.log("ladder-counters self-check OK");
