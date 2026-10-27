@@ -194,7 +194,50 @@ export type ZoneData = {
   kSlowSum?: number; // sum of the mid-phase mean k of the slow corners
   cornersFast?: number; // corners with a valid mid phase above 160 km/h
   kFastSum?: number; // sum of the mid-phase mean k of the fast corners
+  // Chassis counters (see main/chassis-counters.ts). Each family is present only
+  // when the zone's frames carried its source channel: rh, wl, sus, gLat.
+  rideHeight?: RideHeightSums;
+  bottoming?: BottomingCounts;
+  loadFit?: LoadFitSums;
+  suspOsc?: SuspOscCounts;
+  straightSteer?: StraightSteer;
 };
+
+export type RideHeightSums = {
+  minF: number;
+  minR: number; // m, minimum over the zone
+  straightF: number;
+  straightR: number;
+  straightN: number; // fast-straight sums
+  midF: number;
+  midR: number;
+  midN: number; // mid-corner sums
+};
+
+export type BottomingCounts = {
+  straight: number;
+  brake: number;
+  other: number; // events by phase
+  upset: number; // brake/other events followed by an upset
+  front: number;
+  rear: number; // events by axle
+};
+
+export type LoadFitSums = {
+  n: number;
+  sx: number;
+  sxx: number; // x = v² (m²/s²)
+  syF: number;
+  syR: number;
+  sxyF: number;
+  sxyR: number; // y = axle load (N)
+  fuelSum: number;
+  fuelN: number;
+};
+
+export type SuspOscCounts = { peaks: number; oscillating: number };
+
+export type StraightSteer = { metres: number; reversals: number };
 
 // --- Lap Record ---
 
