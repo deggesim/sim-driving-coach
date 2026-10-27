@@ -133,6 +133,24 @@ assert.deepEqual(
   noLoad,
 );
 
+// A measured front share outside 30-70 % (here 80 %) is not a car: unknown.
+assert.deepEqual(
+  weightDistribution(
+    "ace",
+    [
+      zone(
+        sums(
+          speeds,
+          (x) => 8000 + 0.1 * x,
+          (x) => 2000 + 0.16 * x,
+        ),
+      ),
+    ],
+    null,
+  ),
+  { known: false, reason: "distribuzione misurata non plausibile" },
+);
+
 // AMS2 never measures: table only, even when sums exist.
 assert.deepEqual(
   weightDistribution("ams2", [], findAms2Car("Porsche 992 GT3 R")),

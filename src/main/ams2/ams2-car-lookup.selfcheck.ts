@@ -19,6 +19,17 @@ assert.ok(
   AMS2_CARS.every((c) => c.frontPct >= 30 && c.frontPct <= 70),
   "frontPct out of range",
 );
+const DIFFS = [
+  "C-LSD",
+  "SPL/C-LSD",
+  "FIXED",
+  "SPOOL",
+  "OPEN",
+  "G-LSD",
+  "GC-LSD",
+];
+for (const c of AMS2_CARS)
+  assert.ok(DIFFS.includes(c.differential), `${c.name}: ${c.differential}`);
 
 // Ambiguous (same name, different specs) -> null; identical duplicates -> a car
 assert.equal(findAms2Car("MetalMoro AJR"), null);

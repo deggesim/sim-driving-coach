@@ -6,6 +6,9 @@ const MIN_LOAD_SAMPLES = 300;
 const MIN_SPREAD = 1e-9;
 // Aero load at the mean sampled v² must be this share of the static load, else the slope is noise.
 const MIN_AERO_SHARE = 0.01;
+// Plausible measured front share (%); outside it the fit is not a car.
+const MIN_FRONT_PCT = 30;
+const MAX_FRONT_PCT = 70;
 
 export type WeightDistribution =
   | {
@@ -81,6 +84,9 @@ export const weightDistribution = (
   // Loads of 0 / -1 (channel missing) or a non-physical fit: no distribution, never NaN.
   if (!Number.isFinite(aF + aR) || aF <= 0 || aR <= 0)
     return unknown("carico ruota non disponibile");
+  const frontPct = (aF / (aF + aR)) * 100;
+  if (frontPct < MIN_FRONT_PCT || frontPct > MAX_FRONT_PCT)
+    return unknown("distribuzione misurata non plausibile");
 
   const aeroOk =
     bF >= 0 &&
@@ -89,7 +95,7 @@ export const weightDistribution = (
 
   return {
     known: true,
-    frontPct: (aF / (aF + aR)) * 100,
+    frontPct,
     source: "misurata",
     aeroFrontPct: aeroOk ? (bF / (bF + bR)) * 100 : null,
     fuelL: t.fuelN > 0 ? t.fuelSum / t.fuelN : null,

@@ -603,6 +603,26 @@ assert.ok(
   ),
   "old Level 1 sentence replaced",
 );
+// Level 1 on the current area: the row's value wins, the front bar, the first direction.
+for (const s of [
+  "se la riga dà il valore (molle), B è quel valore",
+  "per le barre antirollio proponi la barra anteriore",
+  "se la riga indica più direzioni, usa la prima",
+]) {
+  assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes(s), s);
+}
+assert.ok(
+  !SYNTHESIS_SYSTEM_PROMPT.includes(
+    "stesse regole su A → B e sul passo minimo",
+  ),
+  "Level 1 no longer overrides the computed spring value",
+);
+// Level 2 Quadro: no proposal on a Fixed Setup area.
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes(
+    'Nessuna proposta per le aree marcate "non modificabile con Setup Fisso".',
+  ),
+);
 assert.deepEqual(roots(SESSION_SYSTEM_PROMPT), [
   "FORMATO OBBLIGATORIO",
   "Regole Generali",
