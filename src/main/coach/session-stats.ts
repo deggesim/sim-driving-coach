@@ -357,6 +357,7 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     camberUnreadable: !!input.camberUnreadable,
     car,
     minJudgedLaps: input.minJudgedLaps,
+    setupParams: setup?.setup.params ?? null,
   });
 
   return {

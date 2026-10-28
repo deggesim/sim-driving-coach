@@ -63,12 +63,24 @@ export const listAms2Screenshots = (
  * them back by exact name, so the OCR must not paraphrase them.
  */
 export const AMS2_CANONICAL_PARAMS = [
-  "Molla",
-  "Slow Bump",
-  "Slow Rebound",
-  "Fast Bump",
-  "Fast Rebound",
-].flatMap((name) => ["FL", "FR", "RL", "RR"].map((w) => `${name} ${w}`));
+  ...[
+    "Molla",
+    "Slow Bump",
+    "Slow Rebound",
+    "Fast Bump",
+    "Fast Rebound",
+    "Pressione",
+    "Camber",
+  ].flatMap((name) => ["FL", "FR", "RL", "RR"].map((w) => `${name} ${w}`)),
+  // The setup-ladder levers (setup-ladder.ts LEVERS matches these names).
+  "Condotti freni",
+  "Bilanciamento freni",
+  "Pressione freni",
+  "Freno motore",
+  "Coast ramp",
+  "Power ramp",
+  "Precarico",
+];
 
 export const buildAms2SetupSystemPrompt = (expectedCar: string): string =>
   `Sei un esperto di setup per il simulatore di guida Automobilista 2 (AMS2).

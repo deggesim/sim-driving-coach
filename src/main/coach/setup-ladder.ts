@@ -9,7 +9,12 @@
 
 import { WHEEL_LABELS } from "../../shared/alert-types.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
-import type { GameSource, LapRow, ZoneData } from "../../shared/types.js";
+import type {
+  GameSource,
+  LapRow,
+  SetupParam,
+  ZoneData,
+} from "../../shared/types.js";
 import type { SetupOverview } from "./setup-overview.js";
 
 // Judgment thresholds, to tune on real sessions.
@@ -33,6 +38,15 @@ const CAMBER_MAX_C = 10; // above this: less negative camber
 const DIFF_SPIN_SHARE = 0.2; // of the exit frames
 const DRIVEN_SLIP_EPS = 0.01; // front − rear throttle slip that marks fwd
 const FIXED_DIFFS = ["FIXED", "SPOOL", "OPEN"]; // AMS2 differentials with nothing to adjust
+// Lever per step, by setup parameter name (R3E idToLabel, ACE labels, AMS2 canonical names).
+const LEVERS: Record<LadderStep["n"], RegExp> = {
+  1: /duct|condott/i,
+  2: /brake bias|ripartizione frenata|bilanciamento fren/i,
+  3: /coast|freno motore|engine brak/i,
+  4: /tyre pressure|^pressione (fl|fr|rl|rr)\b/i, // not "Pressione freni"
+  5: /camber|campanatura/i,
+  6: /differential (power|preload)|power locking|power ramp|precarico|preload/i,
+};
 const GEARED_DIFFS = ["G-LSD", "GC-LSD"]; // AMS2 differentials tuned by bias ratio, not ramps
 
 type Quartet = [number, number, number, number];
@@ -243,6 +257,7 @@ export const computeSetupLadder = (
     camberUnreadable?: boolean;
     car?: Ams2Car | null; // AMS2 table row: driveline and differential type
     minJudgedLaps?: number; // 1 only to judge the verdict before the last lap
+    setupParams?: SetupParam[] | null; // the setup on the last segment, when loaded
   },
 ): SetupLadder => {
   const minJudged = opts.minJudgedLaps ?? MIN_JUDGED_LAPS;
@@ -319,18 +334,31 @@ export const computeSetupLadder = (
       : step(1, L, "ok", data);
   })();
 
+  // A step to fix whose lever the loaded setup lacks cannot be acted on: na,
+  // skipped like the others (R3E/ACE often have no brake ducts).
+  const params = opts.setupParams;
+  const levered = (s: LadderStep): LadderStep =>
+    params &&
+    s.status === "fix" &&
+    !params.some((p) => LEVERS[s.n].test(p.parameter))
+      ? {
+          ...s,
+          status: "na",
+          reason: `leva non presente nel setup caricato — ${s.reason}`,
+        }
+      : s;
+  const currentOf = (steps: LadderStep[]): number | null =>
+    steps.find((s) => s.status === "fix" && s.proposable)?.n ?? null;
+
   // Laps missing: step 1 alone, current once it has 2 laps and needs a fix.
-  if (lapsMissing > 0)
+  if (lapsMissing > 0) {
+    const steps = brakeLaps.length ? [levered(ducts)] : [];
     return {
       ...base,
-      steps: brakeLaps.length ? [ducts] : [],
-      current:
-        brakeLaps.length >= MIN_JUDGED_LAPS &&
-        ducts.status === "fix" &&
-        ducts.proposable
-          ? 1
-          : null,
+      steps,
+      current: brakeLaps.length >= MIN_JUDGED_LAPS ? currentOf(steps) : null,
     };
+  }
 
   const zs = judged.flatMap((l) => l.zones);
   const sum = (k: keyof ZoneData): number | null => total(zs, k);
@@ -537,14 +565,12 @@ export const computeSetupLadder = (
   })();
 
   // Fixed setup: only ducts and bias exist, and the ducts cannot be touched.
-  const steps = opts.fixedSetup
-    ? [ducts, bias]
-    : [ducts, bias, engine, pressures, camber, diff];
-  return {
-    ...base,
-    steps,
-    current: steps.find((s) => s.status === "fix" && s.proposable)?.n ?? null,
-  };
+  const steps = (
+    opts.fixedSetup
+      ? [ducts, bias]
+      : [ducts, bias, engine, pressures, camber, diff]
+  ).map(levered);
+  return { ...base, steps, current: currentOf(steps) };
 };
 
 const NUMBER = /\d+(?:[.,]\d+)?/g;

@@ -14,7 +14,7 @@ import {
 } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
-import type { LapRow, ZoneData } from "../../shared/types.js";
+import type { LapRow, SetupParam, ZoneData } from "../../shared/types.js";
 
 const mkLap = (
   lap_number: number,
@@ -865,4 +865,62 @@ assert.equal(
     ladder: L(drifting(2, [720, 720, 400, 400])),
   }),
   "Stint analizzabile: 2 giri giudicati. Primo passo da correggere: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
+);
+
+// --- A step to fix without its lever in the loaded setup is skipped ---
+const P = (...names: string[]): SetupParam[] =>
+  names.map((parameter) => ({ category: "x", parameter, value: "1" }));
+const withParams = (laps: LapRow[], params: SetupParam[] | null) =>
+  computeSetupLadder(laps, new Map(), {
+    fixedSetup: false,
+    setupParams: params,
+  });
+const unbalancedLaps = stint(
+  5,
+  okZone({ avgBrakeTempC: [720, 720, 400, 400] }),
+);
+// R3E Porsche (2026-10-27): no duct lever → step 1 na, the ladder moves on.
+const noDucts = withParams(
+  unbalancedLaps,
+  P(
+    "Brake Bias",
+    "Tyre Pressure Front Left",
+    "Camber Front Left",
+    "Differential Preload",
+  ),
+);
+assert.equal(stepOf(noDucts, 1).status, "na");
+assert.ok(
+  stepOf(noDucts, 1).reason.startsWith(
+    "leva non presente nel setup caricato — ",
+  ),
+);
+assert.equal(noDucts.current, null);
+// ACE never exports ducts either.
+assert.equal(
+  withParams(
+    unbalancedLaps,
+    P("Ripartizione Frenata Anteriore", "Pressione FL"),
+  ).current,
+  null,
+);
+// The lever exists → unchanged.
+assert.equal(withParams(unbalancedLaps, P("Condotti freni")).current, 1);
+// No setup loaded → unchanged.
+assert.equal(withParams(unbalancedLaps, null).current, 1);
+// Early step 1 (`drifting`) without the lever: not current.
+assert.equal(
+  withParams(drifting(3, [720, 720, 400, 400]), P("Brake Bias")).current,
+  null,
+);
+// An ok step without its lever stays ok.
+assert.equal(stepOf(withParams(stint(5, okZone()), P()), 1).status, "ok");
+// Brake pressure is not a tyre-pressure lever.
+assert.equal(
+  stepOf(withParams(stint(5, lowPress), P("Pressione freni")), 4).status,
+  "na",
+);
+assert.equal(
+  stepOf(withParams(stint(5, lowPress), P("Pressione RL")), 4).status,
+  "fix",
 );

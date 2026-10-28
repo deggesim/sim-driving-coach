@@ -61,7 +61,7 @@ Nei due casi il passo corrente era proprio il passo 1.
 1. condotti freni: `duct`, `condott`;
 2. bilanciamento: `brake bias`, `ripartizione frenata`, `bilanciamento fren`;
 3. freno motore: `coast`, `freno motore`, `engine brak`;
-4. pressioni: `tyre pressure`, oppure un nome che comincia per `pression`;
+4. pressioni: `tyre pressure`, oppure `pressione` seguito dalla ruota (FL, FR, RL, RR), così "Pressione freni" non conta *(2026-10-28, in implementazione)*;
 5. campanatura: `camber`, `campanatura`;
 6. differenziale: `differential power`, `differential preload`, `power locking`, `power ramp`, `precarico`, `preload`.
 

@@ -110,7 +110,9 @@ assert.equal(
 
 // AMS2 prompt <-> extractor stay in step
 const prompt = buildAms2SetupSystemPrompt("Porsche 992 GT3 R");
-assert.equal(AMS2_CANONICAL_PARAMS.length, 20);
+assert.equal(AMS2_CANONICAL_PARAMS.length, 35);
+assert.ok(AMS2_CANONICAL_PARAMS.includes("Condotti freni"));
+assert.ok(AMS2_CANONICAL_PARAMS.includes("Camber RR"));
 assert.ok(AMS2_CANONICAL_PARAMS.every((name) => prompt.includes(name)));
 assert.ok(prompt.includes("Porsche 992 GT3 R"));
 const all = extractSetupLevers(
