@@ -60,7 +60,8 @@ export type SetupLadder = {
   firstJudgedLap: number | null;
   lastJudgedLap: number | null;
   judgedLaps: number;
-  lapsMissing: number; // > 0 ⇒ steps is []
+  lapsMissing: number; // > 0 ⇒ steps is [] or holds step 1 alone
+  ductsLaps: number; // laps of the segment after the first: step 1's own laps
   steps: LadderStep[];
   current: number | null; // n of the first step with status "fix" && proposable
   tyres: TyreSummary[]; // one per segment with ≥ 2 judged laps and surface temps, chronological
@@ -256,6 +257,8 @@ export const computeSetupLadder = (
 
   const seg = segments.at(-1) ?? [];
   const judged = judgedOf(seg, opts.leaderboardMode);
+  // Every lap after the out-lap, valid or not: a dirty lap still heats the brakes.
+  const brakeLaps = seg.slice(1);
   // A lower bound: how many laps are still needed depends on the plateau.
   const lapsMissing = Math.max(0, MIN_JUDGED_LAPS - judged.length);
   const base = {
@@ -264,39 +267,31 @@ export const computeSetupLadder = (
     lastJudgedLap: judged.at(-1)?.lap_number ?? null,
     judgedLaps: judged.length,
     lapsMissing,
+    ductsLaps: brakeLaps.length,
     // Leaderboard: tyre temps are fixed at 85 °C, so no tyre lines either.
     tyres: opts.leaderboardMode
       ? []
       : analysed.flatMap((a) => (a ? [a.summary] : [])),
   };
-  if (lapsMissing > 0) return { ...base, steps: [], current: null };
-
-  const zs = judged.flatMap((l) => l.zones);
-  const sum = (k: keyof ZoneData): number | null => total(zs, k);
   const step = (
     n: LadderStep["n"],
     label: string,
     status: LadderStatus,
     reason: string,
-  ): LadderStep => ({ n, label, status, reason, proposable: true });
-  const noCorners = zs.some((z) => z.maxGLat != null)
-    ? "nessuna curva misurabile"
-    : "manca l'accelerazione laterale";
-  const slipT = meanQ(
-    zs.flatMap((z) => (z.avgSlipRatioThrottle ? [z.avgSlipRatioThrottle] : [])),
-  );
-  // Driven axle: the AMS2 table when known, else throttle slip; awd/rwd/unknown
-  // all count as rear-driven.
-  const fwd = opts.car
-    ? opts.car.driveline === "FWD"
-    : slipT != null &&
-      (slipT[0] + slipT[1]) / 2 - (slipT[2] + slipT[3]) / 2 > DRIVEN_SLIP_EPS;
+  ): LadderStep => ({
+    n,
+    label,
+    status,
+    reason,
+    proposable: !(n === 1 && opts.fixedSetup),
+  });
 
-  // 1 - brake ducts
+  // 1 - brake ducts, on its own laps: brake temperatures need no tyre plateau.
   const ducts = ((): LadderStep => {
     const L = "condotti freni";
+    const bz = brakeLaps.flatMap((l) => l.zones);
     const axle = (ws: number[]): number | null => {
-      const ts = zs
+      const ts = bz
         .flatMap((z) => ws.map((w) => z.avgBrakeTempC?.[w] ?? -1))
         .filter((t) => t > 0); // -1 = unavailable on this car
       return ts.length ? mean(ts) : null;
@@ -321,6 +316,34 @@ export const computeSetupLadder = (
       ? step(1, L, "fix", `${data} → ${fixes.join("; ")}`)
       : step(1, L, "ok", data);
   })();
+
+  // Laps missing: step 1 alone, current once it has 2 laps and needs a fix.
+  if (lapsMissing > 0)
+    return {
+      ...base,
+      steps: brakeLaps.length ? [ducts] : [],
+      current:
+        brakeLaps.length >= MIN_JUDGED_LAPS &&
+        ducts.status === "fix" &&
+        ducts.proposable
+          ? 1
+          : null,
+    };
+
+  const zs = judged.flatMap((l) => l.zones);
+  const sum = (k: keyof ZoneData): number | null => total(zs, k);
+  const noCorners = zs.some((z) => z.maxGLat != null)
+    ? "nessuna curva misurabile"
+    : "manca l'accelerazione laterale";
+  const slipT = meanQ(
+    zs.flatMap((z) => (z.avgSlipRatioThrottle ? [z.avgSlipRatioThrottle] : [])),
+  );
+  // Driven axle: the AMS2 table when known, else throttle slip; awd/rwd/unknown
+  // all count as rear-driven.
+  const fwd = opts.car
+    ? opts.car.driveline === "FWD"
+    : slipT != null &&
+      (slipT[0] + slipT[1]) / 2 - (slipT[2] + slipT[3]) / 2 > DRIVEN_SLIP_EPS;
 
   // 2 - brake bias
   const bias = ((): LadderStep => {
@@ -513,7 +536,7 @@ export const computeSetupLadder = (
 
   // Fixed setup: only ducts and bias exist, and the ducts cannot be touched.
   const steps = opts.fixedSetup
-    ? [{ ...ducts, proposable: false }, bias]
+    ? [ducts, bias]
     : [ducts, bias, engine, pressures, camber, diff];
   return {
     ...base,

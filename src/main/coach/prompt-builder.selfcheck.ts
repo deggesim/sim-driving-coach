@@ -445,6 +445,7 @@ const ladderFixture: SetupLadder = {
   lastJudgedLap: 9,
   judgedLaps: 6,
   lapsMissing: 0,
+  ductsLaps: 4,
   current: 4,
   steps: [
     {

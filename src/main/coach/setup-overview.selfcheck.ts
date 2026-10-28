@@ -68,6 +68,7 @@ const ladderOk: SetupLadder = {
   lastJudgedLap: 6,
   judgedLaps: 5,
   lapsMissing: 0,
+  ductsLaps: 4,
   steps: [],
   current: null,
   tyres: [],

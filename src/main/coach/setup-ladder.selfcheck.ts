@@ -102,7 +102,11 @@ const short = computeSetupLadder(stint(2, okZone()), new Map(), {
 });
 assert.equal(short.judgedLaps, 1, "settled from the 2nd lap: no fixed floor");
 assert.equal(short.lapsMissing, 1, "1 of the 2 judged laps missing");
-assert.equal(short.steps.length, 0);
+assert.deepEqual(
+  short.steps.map((s) => s.n),
+  [1],
+  "step 1 is judged on the lap after the out-lap",
+);
 assert.equal(short.current, null);
 
 const twoSetups = computeSetupLadder(
@@ -742,4 +746,76 @@ assert.equal(
   stepOf(flatShoulders({ camberUnreadable: false }), 5).status,
   "fix",
   "the same flat shoulders elsewhere are judged: more negative camber",
+);
+
+// --- Step 1 on the laps after the out-lap, before the judged laps ---
+// Tyres never settle (+5 °C per lap): 0 judged laps, but brakes are judged on laps 2..n.
+type Q = [number, number, number, number];
+const drifting = (n: number, brakes: Q, extra: Partial<LapRow> = {}) =>
+  Array.from({ length: n }, (_, i) =>
+    mkLap(
+      i + 1,
+      [
+        okZone({
+          avgBrakeTempC: brakes,
+          avgTyreTempC: [70 + 5 * i, 70 + 5 * i, 70 + 5 * i, 70 + 5 * i],
+        }),
+      ],
+      extra,
+    ),
+  );
+const early = computeSetupLadder(drifting(3, [720, 720, 400, 400]), new Map(), {
+  fixedSetup: false,
+});
+assert.ok(early.lapsMissing > 0);
+assert.equal(early.ductsLaps, 2);
+assert.equal(early.current, 1);
+assert.deepEqual(
+  early.steps.map((s) => s.n),
+  [1],
+);
+assert.equal(early.steps[0].status, "fix");
+// Brakes in the window: step 1 shown, not current.
+const earlyOk = computeSetupLadder(
+  drifting(3, [600, 600, 560, 560]),
+  new Map(),
+  { fixedSetup: false },
+);
+assert.equal(earlyOk.current, null);
+assert.equal(earlyOk.steps[0].status, "ok");
+// Invalid laps still count for the brakes.
+assert.equal(
+  computeSetupLadder(
+    drifting(3, [720, 720, 400, 400], { valid: false }),
+    new Map(),
+    {
+      fixedSetup: false,
+    },
+  ).current,
+  1,
+);
+// One lap after the out-lap: step 1 shown, not yet current.
+const oneLap = computeSetupLadder(
+  drifting(2, [720, 720, 400, 400]),
+  new Map(),
+  {
+    fixedSetup: false,
+  },
+);
+assert.equal(oneLap.ductsLaps, 1);
+assert.equal(oneLap.current, null);
+assert.equal(oneLap.steps[0].status, "fix");
+// Only the out-lap: no step yet.
+assert.deepEqual(
+  computeSetupLadder(drifting(1, [720, 720, 400, 400]), new Map(), {
+    fixedSetup: false,
+  }).steps,
+  [],
+);
+// Fixed Setup: step 1 is not proposable, so never current before the judged laps.
+assert.equal(
+  computeSetupLadder(drifting(3, [720, 720, 400, 400]), new Map(), {
+    fixedSetup: true,
+  }).current,
+  null,
 );
