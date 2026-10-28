@@ -547,6 +547,30 @@ assert.ok(
   missing.includes(`Gomme setup "Gara B" (6 giri giudicati)`),
   "earlier tyre lines survive a short last segment",
 );
+// Step 1 already current while steps 2-6 still wait for judged laps.
+const earlyDucts = ladderBlock({
+  lapsMissing: 2,
+  ductsLaps: 2,
+  current: 1,
+  steps: [{ ...ladderFixture.steps[0], status: "fix" }],
+});
+assert.ok(
+  earlyDucts.includes(
+    `- Sequenza setup: passo 1 giudicato su 2 giri dopo il primo; per i passi 2-6 completa ancora 2 giri con il setup "Gara B"
+  1 condotti freni: DA CORREGGERE ← PASSO CORRENTE`,
+  ),
+  earlyDucts,
+);
+assert.ok(
+  SYNTHESIS_SYSTEM_PROMPT.includes(
+    "Se la sequenza chiede di completare dei giri e non ha un passo corrente, l'azione di setup è",
+  ),
+);
+assert.ok(
+  SESSION_SYSTEM_PROMPT.includes(
+    'Con la richiesta "completa ancora N giri" e nessun passo corrente, nessuna proposta numerata.',
+  ),
+);
 const notEditable = ladderBlock({
   steps: [{ ...ladderFixture.steps[0], status: "fix", proposable: false }],
   current: null,
