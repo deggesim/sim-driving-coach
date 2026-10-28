@@ -197,17 +197,18 @@ assert.equal(
   ).status,
   "ok",
 );
-// Left ≠ right on one axle: fix, equalise.
-assert.ok(
-  area(
-    computeSetupOverview({
-      ...base,
-      weight: w438,
-      levers: { springs: { values: [225, 230, 286, 286], unit: "N/mm" } },
-    }),
-    1,
-  ).reason.includes("uguagliare sinistra e destra"),
+// Left ≠ right on one axle is a legitimate choice (one-way tracks, corner
+// weights): never a fix, the axle mean is what the ratio uses.
+const asym = area(
+  computeSetupOverview({
+    ...base,
+    weight: w438,
+    levers: { springs: { values: [222, 228, 286, 286], unit: "N/mm" } },
+  }),
+  1,
 );
+assert.equal(asym.status, "ok");
+assert.ok(!asym.reason.includes("uguagliare"));
 // Weight unknown → na with the weight's reason; springs absent → na; a zero spring → na.
 assert.equal(area(old, 1).status, "na");
 assert.equal(
@@ -438,8 +439,9 @@ assert.equal(
   "ok",
 );
 
-// Ammortizzatori (5): a family spread over one click. Suspension oscillations
-// are not judged: +3 clicks of slow rebound left the share unchanged (R3E, Monza).
+// Ammortizzatori (5): never judged, only shown. Suspension oscillations did not
+// move with +3 clicks of slow rebound (R3E, Monza), and asymmetric dampers are
+// a legitimate choice (front/rear always, left/right on one-way tracks).
 const noSetup = area(withZones(z({})), 5);
 assert.equal(noSetup.status, "na");
 assert.ok(noSetup.reason.startsWith("nessun setup caricato"));
@@ -448,26 +450,20 @@ assert.equal(noDampers.status, "na");
 assert.ok(
   noDampers.reason.startsWith("parametro non presente nel setup caricato"),
 );
-const uneven = computeSetupOverview({
-  ...base,
-  levers: { slowBump: [5, 5, 5, 7] },
-});
-assert.equal(area(uneven, 5).status, "fix");
-assert.ok(area(uneven, 5).reason.includes("uniformare slow bump"));
-assert.ok(!area(uneven, 5).reason.includes("oscillazioni"));
-// One click apart (R3E/ACE defaults: front 12, rear 11) is uniform.
-assert.ok(
-  !area(
-    computeSetupOverview({ ...base, levers: { slowBump: [12, 12, 11, 11] } }),
-    5,
-  ).reason.includes("uniformare"),
-);
-const evenNoOsc = area(
-  computeSetupOverview({ ...base, levers: { slowBump: [5, 5, 5, 5] } }),
+const shown = area(
+  computeSetupOverview({
+    ...base,
+    levers: { slowBump: [12, 12, 8, 8], slowRebound: [10, 11, 9, 9] },
+  }),
   5,
 );
-assert.equal(evenNoOsc.status, "ok");
-assert.ok(evenNoOsc.reason.startsWith("slow bump uniformi entro 1 click"));
+assert.equal(shown.status, "na");
+assert.ok(
+  shown.reason.startsWith(
+    "slow bump ant 12/12 post 8/8, slow rebound ant 10/11 post 9/9; non giudicati: nessun criterio affidabile dalla telemetria",
+  ),
+  shown.reason,
+);
 
 // Convergenze (7): 7 reversals/km over 3 km → fix; 5/km → ok; under 2 km → na.
 const weave = withZones(z({ straightSteer: { metres: 3000, reversals: 21 } }));

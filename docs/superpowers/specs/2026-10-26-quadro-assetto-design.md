@@ -80,7 +80,6 @@ Le aree `non valutabile` si scavalcano dichiarandole, come i passi della sequenz
 | Sottosterzo in inserimento senza ABS dominante (la sequenza lo lascia libero) | Altezze → rake | Barre |
 | Fondo che tocca in frenata, sui cordoli o in curva | Bumpstop (direzione con il ripiego "altrimenti Altezze +2 mm") | Altezze |
 | Fondo che tocca nei rettilinei veloci | Terze molle (direzione con il ripiego "altrimenti Bumpstop") | Bumpstop, Altezze, Aerodinamica |
-| Ammortizzatori non uniformi (setup) | Ammortizzatori | — |
 | Sotto/sovrasterzo a centro curva nelle curve lente | Barre | Convergenze |
 | Instabilità in rettilineo veloce | Convergenze | — |
 | Bilanciamento che cambia con la velocità (lente vs veloci) | Aerodinamica | Barre |
@@ -91,7 +90,7 @@ Guida "La registrazione delle molle": molle isofrequenziali, rigidezza in propor
 
 - Dati: distribuzione dei pesi (vedi "Distribuzione dei pesi"); molle delle quattro ruote dal setup.
 - `da correggere` se il rapporto attuale `molla asse pesante / molla asse leggero` differisce dal rapporto dei pesi di oltre **3 % (scelta)**. Proposta: asse pesante = molla attuale dell'asse leggero × rapporto dei pesi, calcolata in TS e arrotondata all'intero.
-- Sinistra e destra dello stesso asse diverse: `da correggere`, "uguagliare" (la guida tratta l'asse, non la ruota) **(scelta)**.
+- Sinistra e destra dello stesso asse diverse: mostrate, mai `da correggere` (2026-10-28). È una scelta legittima sui tracciati a prevalenza di curve nello stesso verso e per il bilanciamento dei pesi sulle ruote; il rapporto usa la media dell'asse.
 - `non valutabile`: distribuzione dei pesi sconosciuta; molle assenti dal setup; nessun setup caricato.
 
 ### 2. Altezze da terra e rake
@@ -126,7 +125,7 @@ Guida "Le terze molle": contrastano lo schiacciamento aerodinamico alle alte vel
 
 Guida "Gli ammortizzatori": prima molle isofrequenziali, poi i quattro ammortizzatori con gli stessi valori; oscillazioni prolungate → più slow rebound sulle quattro, se non basta anche slow bump; fast bump/rebound al minimo su AMS2, salvo cordoli digeriti male (prima verificare altezze e bumpstop).
 
-- **Setup**: slow bump, slow rebound, fast bump, fast rebound diversi tra le quattro ruote di oltre un click → `da correggere`, "uniformare" **(scelta: la guida li vuole uguali o simili)**.
+- **Setup: non giudicato** (2026-10-28). La guida parte dai quattro ammortizzatori uguali come metodo di costruzione, non come regola di correttezza: anteriore diverso dal posteriore è la norma, sinistra diversa da destra è una scelta sui tracciati a senso prevalente. L'area è sempre `non valutabile` con i valori per asse e il motivo "non giudicati: nessun criterio affidabile dalla telemetria".
 - **Oscillazioni: non giudicate** (verifica live del 2026-10-28). Il contatore previsto (semiperiodi con |velocità| > 30 % del picco entro 1 s, ≥ 3 in più del 20 % dei picchi) non misura lo smorzamento: su R3E a Monza, Porsche 911 GT3 R, +3 click di slow rebound sulle quattro ruote hanno lasciato la quota al 65-74 %, come il setup di default (61-74 %). I picchi sono quasi tutti cordoli, e i frame a 33 Hz sono troppo radi per il decadimento libero. L'area resta giudicata solo sul setup.
 - `non valutabile`: nessun setup caricato, o setup senza ammortizzatori (setup fisso).
 
@@ -202,7 +201,7 @@ La sequenza si era data la regola "nessuno strato di normalizzazione dei setup":
 - Il resto del setup continua ad arrivare al modello come testo, come oggi.
 - **Parametro assente** **(utente)**: su nessuno dei tre giochi un parametro assente prova che l'auto non abbia quella regolazione. R3E: il parser scarta le voci `disabled` del JSON. ACE: il `.carsetup` può non contenere un campo. AMS2: la schermata di quella pagina può non essere stata acquisita. Quindi:
   - le aree giudicate sulla **telemetria** (altezze, bumpstop, terze molle, barre, convergenze, aerodinamica) restano `da correggere` quando il sintomo c'è, con la direzione condizionale del proprietario (vedi "Una sola area proprietaria per sintomo");
-  - i giudizi sui **numeri del setup** (isofrequenza delle molle, uniformità degli ammortizzatori) diventano `non valutabile` con motivo "parametro non presente nel setup caricato".
+  - i giudizi sui **numeri del setup** (isofrequenza delle molle) diventano `non valutabile` con motivo "parametro non presente nel setup caricato".
 
 ## Output
 
@@ -246,7 +245,7 @@ Dopo le righe della sequenza, una riga "Quadro assetto" e una riga per area, nel
 
 - La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi, per scelta: un solo metodo (R3E mappa `Player_SuspensionVelocity`, ACE non ne ha).
 - L'estrattore del setup si limita a molle e quattro famiglie di ammortizzatori; le altre leve restano fuori.
-- Ammortizzatori uniformi entro un click (`DAMPER_SPREAD_CLICKS`), come al §5. *(2026-10-27: era 5 %, ma segnalava i setup di default di R3E e ACE, che differiscono di un click fra anteriore e posteriore.)*
+- Ammortizzatori uniformi entro un click (`DAMPER_SPREAD_CLICKS`), come al §5. *(2026-10-27: era 5 %, ma segnalava i setup di default di R3E e ACE, che differiscono di un click fra anteriore e posteriore. 2026-10-28: tolto del tutto, vedi §5.)*
 - Gli aggregati per giro stanno in `zones_json`, nessuna nuova colonna né lettura di `frames_blob`.
 - Soglia bumpstop come eventi per giro giudicato, non per giro registrato.
 - Il carburante si legge solo su R3E e ACE.

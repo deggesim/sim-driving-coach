@@ -1,6 +1,6 @@
 /**
  * Numeric spring and damper values read back from a loaded setup, for the
- * "quadro assetto" checks (spring isofrequency, damper uniformity). Pure: the
+ * "quadro assetto" (spring isofrequency, damper values shown). Pure: the
  * input is the `SetupParam[]` the three setup importers already produce.
  * A family is present only when all four wheels were found with one unit —
  * a partial or mixed-unit family is absent, never zeros or a guessed value.

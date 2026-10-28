@@ -21,7 +21,6 @@ import type { GameSource, SetupParam, ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds (spec), to tune on real sessions.
 const SPRING_RATIO_TOL = 0.03; // |spring ratio ÷ weight ratio − 1|
-const DAMPER_SPREAD_CLICKS = 1; // spec: "diversi di oltre un click" (game defaults differ by one)
 const RH_HIGH_M = 0.015; // min ride height above this with no touch: too high
 const BUMP_UPSET_PER_LAP = 0.1; // upsetting brake/other touches per judged lap
 const THIRD_HIGH_M = 0.01; // fast-straight − mid-corner mean ride height
@@ -235,11 +234,10 @@ export const computeSetupOverview = (input: {
         fix: off && !shownOnly ? target : undefined,
       },
     ];
+    // Left ≠ right is a legitimate choice (one-way tracks, corner weights):
+    // shown, never a fix; the ratio above uses the axle means.
     if (fl !== fr || rl !== rr)
-      parts.push({
-        data: `ant ${fl}/${fr}, post ${rl}/${rr} ${u}`,
-        fix: "uguagliare sinistra e destra",
-      });
+      parts.push({ data: `ant ${fl}/${fr}, post ${rl}/${rr} ${u}` });
     return judge(1, parts);
   })();
 
@@ -333,9 +331,10 @@ export const computeSetupOverview = (input: {
     return judge(4, parts);
   })();
 
-  // 5 - dampers: the same values on the four wheels. Prolonged oscillation is
-  // not judged: +3 clicks of slow rebound on R3E (Monza, 2026-10-28) left the
-  // share of oscillating suspension peaks unchanged (kerbs dominate it).
+  // 5 - dampers: shown, never judged. Asymmetry is a legitimate choice (front
+  // vs rear always, left vs right on one-way tracks), and prolonged oscillation
+  // did not move with +3 clicks of slow rebound on R3E (Monza, 2026-10-28):
+  // kerbs dominate it. No telemetry criterion is left to judge them by.
   const dampers = ((): OverviewArea => {
     if (!levers) return step(5, "na", "nessun setup caricato");
     const families = (Object.keys(DAMPERS) as (keyof typeof DAMPERS)[]).flatMap(
@@ -346,18 +345,11 @@ export const computeSetupOverview = (input: {
     );
     if (!families.length)
       return step(5, "na", "parametro non presente nel setup caricato");
-    const parts: Part[] = families.flatMap(({ name, q }) => {
-      const max = Math.max(...q);
-      const min = Math.min(...q);
-      return max - min > DAMPER_SPREAD_CLICKS
-        ? [{ data: `${name} da ${min} a ${max}`, fix: `uniformare ${name}` }]
-        : [];
-    });
-    if (!parts.length)
-      parts.push({
-        data: `${families.map((f) => f.name).join(", ")} uniformi entro ${DAMPER_SPREAD_CLICKS} click`,
-      });
-    return judge(5, parts);
+    return step(
+      5,
+      "na",
+      `${families.map(({ name, q }) => `${name} ant ${q[0]}/${q[1]} post ${q[2]}/${q[3]}`).join(", ")}; non giudicati: nessun criterio affidabile dalla telemetria`,
+    );
   })();
 
   // 6 - anti-roll bars: mid-corner balance in the slow corners (no aero there).
