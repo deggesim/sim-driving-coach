@@ -74,6 +74,17 @@ Il passo resta valido se basta una delle leve. Senza un setup caricato non cambi
 
 Il differenziale e il coast restano fuori: su R3E sono percentuali di bloccaggio, su AMS2 angoli di rampa, e la direzione non è univoca.
 
+**Fondo scala nel quadro** *(2026-10-28, richiesta dell'utente)*: la stessa regola vale per le aree del quadro. Una correzione può avere più alternative ("barra anteriore più morbida **o** posteriore più rigida"), e un'alternativa può richiedere più mosse insieme ("abbassare, stessi mm sui due assi" = le quattro altezze giù). Una correzione è bloccata se ogni alternativa nota ha almeno una mossa già a fondo scala; allora diventa un dato con la nota "…: già a fondo scala" e l'area, senza altre correzioni, è ok. Le direzioni sono quelle del valore numerico, come le applica già il Livello 1 (valore ± passo minimo):
+- area 2: abbassare = Ride Height ×4 giù; più rake = posteriori su, oppure anteriori giù;
+- area 3: le quattro altezze su (R3E non espone bumpstop);
+- area 4: irrigidire = Springs <asse> Third su, oppure le quattro altezze su; ammorbidire = le due terze molle giù;
+- area 5: più slow rebound = Rebound ×4 su, oppure Bump ×4 su;
+- area 6: barra anteriore e posteriore (Anti Roll Bar Front/Rear, N/mm) nel verso indicato;
+- area 7: Toe In Front su;
+- area 8: più carico anteriore = Splitter su, oppure Wing Angle giù (e viceversa).
+
+Molle (isofrequenza solo mostrata su R3E, "uguagliare") e ammortizzatori da uniformare non hanno una direzione e restano fuori.
+
 ## Vincoli
 
 - Calcoli in TypeScript puro, verificati dai selfcheck esistenti (`setup-ladder.selfcheck.ts`, `session-stats.selfcheck.ts`).

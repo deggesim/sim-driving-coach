@@ -9,7 +9,7 @@ import { computeSetupOverview, type SetupOverview } from "./setup-overview.js";
 import type { SetupLadder } from "./setup-ladder.js";
 import type { SetupLevers } from "./setup-levers.js";
 import type { WeightDistribution } from "./weight-distribution.js";
-import type { ZoneData } from "../../shared/types.js";
+import type { SetupParam, ZoneData } from "../../shared/types.js";
 
 // A zone recorded before this work: base fields only.
 const legacyZone: ZoneData = {
@@ -621,3 +621,68 @@ assert.equal(
   computeSetupOverview({ ...base, leaderboardMode: true }).tyreLine,
   null,
 );
+
+// --- R3E: an area whose fix has every alternative at the end of its range ---
+const lp = (parameter: string, limit?: "min" | "max"): SetupParam => ({
+  category: "x",
+  parameter,
+  value: "1",
+  limit,
+});
+const rhParams = (front?: "min" | "max", rear?: "min" | "max") => [
+  lp("Ride Height Front Left", front),
+  lp("Ride Height Front Right", front),
+  lp("Ride Height Rear Left", rear),
+  lp("Ride Height Rear Right", rear),
+];
+const highZone = z({
+  rideHeight: rh({ minF: 0.018, minR: 0.022 }),
+  bottoming: noBottoming,
+});
+const lowerWith = (params: SetupParam[], game: "r3e" | "ace" = "r3e") =>
+  area(
+    computeSetupOverview({
+      ...base,
+      zones: [highZone],
+      setupParams: params,
+      game,
+    }),
+    2,
+  );
+// Free to lower: unchanged.
+assert.equal(lowerWith(rhParams()).status, "fix");
+// The R3E Porsche of 2026-10-27: front already at its lowest. "Stessi mm sui
+// due assi" needs both axles, so the fix cannot be applied: ok with the note.
+const frontAtMin = lowerWith(rhParams("min"));
+assert.equal(frontAtMin.status, "ok");
+assert.ok(
+  frontAtMin.reason.includes(
+    "abbassare di un click, stessi mm sui due assi: già a fondo scala",
+  ),
+  frontAtMin.reason,
+);
+// R3E only.
+assert.equal(lowerWith(rhParams("min"), "ace").status, "fix");
+// Bars: front softer OR rear stiffer — blocked only when both are.
+const barsWith = (front?: "min" | "max", rear?: "min" | "max") =>
+  area(
+    computeSetupOverview({
+      ...base,
+      zones: [
+        z({
+          cornersSlow: 4,
+          cornersSlowUnder: 3,
+          cornersSlowOver: 0,
+          kSlowSum: 4,
+        }),
+      ],
+      setupParams: [
+        lp("Anti Roll Bar Front", front),
+        lp("Anti Roll Bar Rear", rear),
+      ],
+      game: "r3e",
+    }),
+    6,
+  ).status;
+assert.equal(barsWith("min"), "fix");
+assert.equal(barsWith("min", "max"), "ok");

@@ -68,7 +68,7 @@ export type LadderStep = {
   reason: string; // Italian: numbers + direction (fix) or why (na)
   proposable: boolean; // false only for step 1 under fixedSetup
   // R3E range check: the R3E parameter each fix would move, and which way.
-  moves?: { param: string; dir: "up" | "down" }[];
+  moves?: Move[];
 };
 type PressureState = "alta" | "ok" | "bassa";
 export type TyreSummary = {
@@ -80,6 +80,33 @@ export type TyreSummary = {
   pressureState: PressureState[]; // majority of judged laps
   driftPsi: Quartet | null; // last − first judged lap, only with ≥ 3 judged laps
 };
+/** One R3E parameter a fix would move, and which way (the numeric value). */
+export type Move = { param: string; dir: "up" | "down" };
+
+/**
+ * R3E: true when a fix cannot be applied. `alternatives` are ORed, the moves
+ * inside one are needed together; an alternative naming a parameter absent
+ * from the setup is unknown and ignored. Blocked = at least one known
+ * alternative, and each has a move already at the end of its range.
+ */
+export const blockedAtLimit = (
+  alternatives: Move[][],
+  params: SetupParam[],
+): boolean => {
+  const known = alternatives.flatMap((alt) => {
+    const ps = alt.map((m) => params.find((q) => q.parameter === m.param));
+    return ps.every((p) => p)
+      ? [alt.map((m, i) => ({ ...m, limit: ps[i]!.limit }))]
+      : [];
+  });
+  return (
+    known.length > 0 &&
+    known.every((alt) =>
+      alt.some((m) => m.limit === (m.dir === "up" ? "max" : "min")),
+    )
+  );
+};
+
 export type SetupLadder = {
   setupLabel: string | null;
   firstJudgedLap: number | null;
@@ -370,19 +397,17 @@ export const computeSetupLadder = (
       : s;
   // R3E: a fix whose every known move is already at the end of its range
   // cannot be applied either: ok, with the note, and the ladder moves on.
-  const limited = (s: LadderStep): LadderStep => {
-    const known =
-      opts.game === "r3e" && params && s.status === "fix"
-        ? (s.moves ?? []).flatMap((m) => {
-            const p = params.find((q) => q.parameter === m.param);
-            return p ? [{ ...m, limit: p.limit }] : [];
-          })
-        : [];
-    return known.length &&
-      known.every((m) => m.limit === (m.dir === "up" ? "max" : "min"))
+  // Each move is its own alternative (one wheel, or one way to move the bias).
+  const limited = (s: LadderStep): LadderStep =>
+    opts.game === "r3e" &&
+    params &&
+    s.status === "fix" &&
+    blockedAtLimit(
+      (s.moves ?? []).map((m) => [m]),
+      params,
+    )
       ? { ...s, status: "ok", reason: `${s.reason} — già a fondo scala` }
       : s;
-  };
   const currentOf = (steps: LadderStep[]): number | null =>
     steps.find((s) => s.status === "fix" && s.proposable)?.n ?? null;
 

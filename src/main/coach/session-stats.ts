@@ -401,6 +401,8 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
         car,
       ),
       levers: setup ? extractSetupLevers(setup.setup.params, game) : null,
+      setupParams: setup?.setup.params ?? null,
+      game,
       fixedSetup: !!input.fixedSetup,
       leaderboardMode: !!input.leaderboardMode,
     }),

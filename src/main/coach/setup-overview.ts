@@ -10,12 +10,14 @@
 
 import {
   ABS_SHARE,
+  blockedAtLimit,
   type LadderStatus,
+  type Move,
   type SetupLadder,
 } from "./setup-ladder.js";
 import type { SetupLevers } from "./setup-levers.js";
 import type { WeightDistribution } from "./weight-distribution.js";
-import type { ZoneData } from "../../shared/types.js";
+import type { GameSource, SetupParam, ZoneData } from "../../shared/types.js";
 
 // Judgment thresholds (spec), to tune on real sessions.
 const SPRING_RATIO_TOL = 0.03; // |spring ratio ÷ weight ratio − 1|
@@ -100,7 +102,12 @@ const sumFamily = <T extends Record<string, number>>(fs: T[]): T | null =>
     : null;
 
 /** A judged datum, with the direction when it needs fixing. */
-type Part = { data: string; fix?: string };
+type Part = { data: string; fix?: string; moves?: Move[][] }; // moves: R3E, see blockedAtLimit
+
+// R3E parameter names (idToLabel) of the overview's levers, wheels FL, FR, RL, RR.
+const R3E_WHEELS = ["Front Left", "Front Right", "Rear Left", "Rear Right"];
+const all4 = (name: string, dir: Move["dir"], wheels = [0, 1, 2, 3]): Move[] =>
+  wheels.map((w) => ({ param: `${name} ${R3E_WHEELS[w]}`, dir }));
 
 export const computeSetupOverview = (input: {
   zones: ZoneData[];
@@ -110,6 +117,8 @@ export const computeSetupOverview = (input: {
   levers: SetupLevers | null;
   fixedSetup: boolean;
   leaderboardMode: boolean;
+  setupParams?: SetupParam[] | null; // the setup on the last segment, when loaded
+  game?: GameSource; // range limits are read only on R3E
 }): SetupOverview => {
   const { zones, judgedLaps, ladder, weight, levers } = input;
   const sum = (k: keyof ZoneData): number | null => {
@@ -186,12 +195,21 @@ export const computeSetupOverview = (input: {
     reason,
     proposable: !input.fixedSetup,
   });
-  const judge = (n: N, parts: Part[]): OverviewArea =>
-    step(
+  // R3E: a fix whose every alternative is already at the end of its range is
+  // reported, not proposed (same rule as the setup ladder).
+  const params = input.game === "r3e" ? input.setupParams : null;
+  const judge = (n: N, raw: Part[]): OverviewArea => {
+    const parts = raw.map((p) =>
+      p.fix && p.moves && params && blockedAtLimit(p.moves, params)
+        ? { data: `${p.data}; ${p.fix}: già a fondo scala` }
+        : p,
+    );
+    return step(
       n,
       parts.some((p) => p.fix) ? "fix" : "ok",
       parts.map((p) => (p.fix ? `${p.data} → ${p.fix}` : p.data)).join("; "),
     );
+  };
 
   // 1 - springs: isofrequency, stiffness in proportion to the axle weight.
   const springs = ((): OverviewArea => {
@@ -242,6 +260,7 @@ export const computeSetupOverview = (input: {
           !touches && Math.min(rh.minF, rh.minR) > RH_HIGH_M
             ? "abbassare di un click, stessi mm sui due assi"
             : undefined,
+        moves: [all4("Ride Height", "down")],
       },
     ];
     if (entry)
@@ -250,6 +269,10 @@ export const computeSetupOverview = (input: {
         fix: sym.entryUnder
           ? "più rake (posteriore più alto o anteriore più basso)"
           : undefined,
+        moves: [
+          all4("Ride Height", "up", [2, 3]),
+          all4("Ride Height", "down", [0, 1]),
+        ],
       });
     return judge(2, parts);
   })();
@@ -264,6 +287,7 @@ export const computeSetupOverview = (input: {
         ? {
             data: `${touchesOf(bot.upset)} che ${bot.upset === 1 ? "scompone" : "scompongono"} l'auto in ${judgedLaps} giri, asse ${axle}`,
             fix: `avvicinare il bumpstop ${axle}; se l'auto non ha bumpstop regolabili, o sono già al massimo, alzare le quattro altezze di 2 mm`,
+            moves: [all4("Ride Height", "up")],
           }
         : {
             data: `${touchesOf(touches)} in frenata o in curva, che scompongono l'auto: ${bot.upset} in ${judgedLaps} giri`,
@@ -281,6 +305,15 @@ export const computeSetupOverview = (input: {
         ? {
             data: `${touchesOf(straightTouches)} in rettilineo veloce, asse ${axle}`,
             fix: `irrigidire la terza molla ${axle}; se non basta, +1 mm alle altezze mantenendo il rake; se l'auto non ha terze molle, avvicinare i bumpstop ${axle === "anteriore" ? "anteriori" : "posteriori"}`,
+            moves: [
+              [
+                {
+                  param: `Springs ${axle === "anteriore" ? "Front" : "Rear"} Third`,
+                  dir: "up",
+                },
+              ],
+              all4("Ride Height", "up"),
+            ],
           }
         : { data: "nessun tocco del fondo in rettilineo veloce" },
     ];
@@ -294,6 +327,12 @@ export const computeSetupOverview = (input: {
           !straightTouches && straight - mid > THIRD_HIGH_M
             ? "ammorbidire le terze molle"
             : undefined,
+        moves: [
+          [
+            { param: "Springs Front Third", dir: "down" },
+            { param: "Springs Rear Third", dir: "down" },
+          ],
+        ],
       });
     }
     return judge(4, parts);
@@ -340,6 +379,7 @@ export const computeSetupOverview = (input: {
               fix: sym.osc
                 ? "più slow rebound sulle quattro ruote; se non basta, più slow bump"
                 : undefined,
+              moves: [all4("Rebound", "up"), all4("Bump", "up")],
             }
           : { data: "nessun picco di velocità delle sospensioni" },
       );
@@ -364,6 +404,16 @@ export const computeSetupOverview = (input: {
             : slowDir === "over"
               ? "barra anteriore più rigida o posteriore più morbida"
               : undefined,
+        moves:
+          slowDir === "under"
+            ? [
+                [{ param: "Anti Roll Bar Front", dir: "down" }],
+                [{ param: "Anti Roll Bar Rear", dir: "up" }],
+              ]
+            : [
+                [{ param: "Anti Roll Bar Front", dir: "up" }],
+                [{ param: "Anti Roll Bar Rear", dir: "down" }],
+              ],
       },
     ]);
   })();
@@ -386,6 +436,7 @@ export const computeSetupOverview = (input: {
           perKm > WEAVE_PER_KM
             ? "più convergenza anteriore (o meno divergenza)"
             : undefined,
+        moves: [[{ param: "Toe In Front", dir: "up" }]],
       },
     ]);
   })();
@@ -411,6 +462,16 @@ export const computeSetupOverview = (input: {
             : aeroDir === "over"
               ? "più carico posteriore (o meno anteriore)"
               : undefined,
+        moves:
+          aeroDir === "under"
+            ? [
+                [{ param: "Splitter", dir: "up" }],
+                [{ param: "Wing Angle", dir: "down" }],
+              ]
+            : [
+                [{ param: "Wing Angle", dir: "up" }],
+                [{ param: "Splitter", dir: "down" }],
+              ],
       },
     ]);
   })();
