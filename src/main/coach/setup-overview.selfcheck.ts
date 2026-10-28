@@ -149,7 +149,7 @@ assert.equal(
   area(old, 2).reason,
   "altezza da terra non disponibile · molle non verificate",
 );
-assert.ok(!area(old, 6).reason.includes("vedi area 2"));
+assert.ok(!area(old, 6).reason.includes("vedi altezze e rake"));
 assert.equal(area(old, 8).reason, "nessuna curva lenta o veloce misurata");
 assert.equal(
   computeSetupOverview({ ...base, zones: [legacyZone] }).tyreLine,
@@ -255,7 +255,7 @@ assert.ok(
 assert.ok(
   area(bump, 3).reason.includes("se l'auto non ha bumpstop regolabili"),
 );
-assert.ok(area(bump, 2).reason.includes("vedi area 3"));
+assert.ok(area(bump, 2).reason.includes("vedi bumpstop"));
 assert.equal(area(bump, 2).status, "ok", "a cited symptom never fixes area 2");
 // Touches that do not upset the car: ok.
 assert.equal(
@@ -297,7 +297,7 @@ const entryUnder = withZones(
 );
 assert.equal(area(entryUnder, 2).status, "fix");
 assert.ok(area(entryUnder, 2).reason.includes("più rake"));
-assert.ok(area(entryUnder, 6).reason.includes("vedi area 2"));
+assert.ok(area(entryUnder, 6).reason.includes("vedi altezze e rake"));
 assert.notEqual(area(entryUnder, 6).status, "fix");
 // With ABS dominant (30 % of the hard-brake frames) the same understeer is the
 // ladder's step 2: no rake here, and area 6 does not cite area 2.
@@ -312,8 +312,10 @@ const absEntry = withZones(
   }),
 );
 assert.equal(area(absEntry, 2).status, "ok");
-assert.ok(area(absEntry, 2).reason.includes("passo 2 della sequenza"));
-assert.ok(!area(absEntry, 6).reason.includes("vedi area 2"));
+assert.ok(
+  area(absEntry, 2).reason.includes("va corretto con il bilanciamento freni"),
+);
+assert.ok(!area(absEntry, 6).reason.includes("vedi altezze e rake"));
 
 // Terze molle (4): a touch on a fast straight → stiffer third spring; straight
 // 10+ mm higher than mid-corner → softer; neither → ok.
@@ -333,7 +335,7 @@ assert.ok(
 );
 assert.ok(area(third, 4).reason.includes("avvicinare i bumpstop posteriori"));
 for (const n of [2, 3, 8])
-  assert.ok(area(third, n).reason.includes("vedi area 4 (terze molle)"));
+  assert.ok(area(third, n).reason.includes("vedi terze molle"));
 // Each area names the axle of its own phase: front upsetting brake touches,
 // rear straight touches (more touches on the front overall).
 const byPhase = withZones(
@@ -440,7 +442,7 @@ assert.equal(
 const osc = withZones(z({ suspOsc: { peaks: 10, oscillating: 3 } }));
 assert.equal(area(osc, 5).status, "fix");
 assert.ok(area(osc, 5).reason.includes("più slow rebound sulle quattro ruote"));
-assert.ok(area(osc, 1).reason.includes("vedi area 5"));
+assert.ok(area(osc, 1).reason.includes("vedi ammortizzatori"));
 // One half missing: stated, the other half still decides.
 assert.ok(
   area(osc, 5).reason.includes(
@@ -522,7 +524,7 @@ assert.ok(
   area(slowUnder, 6).reason.includes("conferma: anteriori più calde di 6.0 °C"),
   area(slowUnder, 6).reason,
 );
-assert.ok(area(slowUnder, 7).reason.includes("vedi area 6"));
+assert.ok(area(slowUnder, 7).reason.includes("vedi barre antirollio"));
 assert.equal(slowUnder.tyreLine, "ant−post +6.0 °C, sx−dx +0.0 °C");
 
 // Aero: the same mid-corner symptom in the fast corners but not in the slow ones.
@@ -579,7 +581,7 @@ assert.equal(
   "bilanciamento delle curve veloci non registrato",
 );
 assert.equal(area(withZones(z(speedClasses)), 8).status, "ok");
-assert.ok(area(aeroUnder, 6).reason.includes("vedi area 8"));
+assert.ok(area(aeroUnder, 6).reason.includes("vedi aerodinamica"));
 assert.equal(area(aeroUnder, 6).status, "ok");
 
 // Ladder with a current step: areas computed, no current area.

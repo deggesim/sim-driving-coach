@@ -628,14 +628,14 @@ const readyOf = (laps: number, z: ZoneData): string | null =>
 assert.equal(readyOf(3, okZone()), null, "2 judged laps: not yet");
 assert.equal(
   readyOf(4, okZone()),
-  "Stint analizzabile: 3 giri giudicati. Nessun passo da correggere. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint analizzabile: 3 giri giudicati. Nessuna correzione da fare. Puoi metterti in pausa ed eseguire l'analisi.",
 );
 assert.equal(
   readyOf(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] })),
-  "Stint analizzabile: 4 giri giudicati. Primo passo da correggere: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint analizzabile: 4 giri giudicati. Prima correzione: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
 );
 // No temperatures (fixed warm-up, 3 judged laps by lap 6) and every step na: still speaks.
-assert.ok(readyOf(6, zone())?.includes("Nessun passo da correggere"));
+assert.ok(readyOf(6, zone())?.includes("Nessuna correzione da fare"));
 
 // --- stintReadyMessage with the overview: complete ladder, first area to fix ---
 const ladderComplete = computeSetupLadder(stint(4, okZone()), new Map(), {
@@ -658,18 +658,18 @@ const overviewCurrent6 = {
 } satisfies SetupOverview;
 assert.ok(
   stintReadyMessage(ladderComplete, overviewCurrent6)?.includes(
-    "Sequenza completa, prima area dell'assetto: barre antirollio.",
+    "Prima correzione: barre antirollio.",
   ),
 );
 assert.ok(
-  stintReadyMessage(ladderComplete)?.includes("Nessun passo da correggere."),
+  stintReadyMessage(ladderComplete)?.includes("Nessuna correzione da fare."),
   "overview absent: unchanged",
 );
 assert.ok(
   stintReadyMessage(ladderComplete, {
     ...overviewCurrent6,
     current: null,
-  })?.includes("Nessun passo da correggere."),
+  })?.includes("Nessuna correzione da fare."),
 );
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
@@ -838,7 +838,7 @@ assert.equal(
   stintReadyMessage(L(stint(3, okZone())), null, {
     ladder: L1(stint(2, okZone())),
   }),
-  "Stint analizzabile: 2 giri giudicati. Nessun passo da correggere. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint analizzabile: 2 giri giudicati. Nessuna correzione da fare. Puoi metterti in pausa ed eseguire l'analisi.",
 );
 // Numbers alone differ: still stable.
 const hotF = (t: number) => okZone({ avgBrakeTempC: [t, t, 400, 400] });
@@ -869,7 +869,7 @@ assert.equal(
   stintReadyMessage(L(drifting(3, [720, 720, 400, 400])), null, {
     ladder: L(drifting(2, [720, 720, 400, 400])),
   }),
-  "Stint analizzabile: 2 giri giudicati. Primo passo da correggere: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint analizzabile: 2 giri giudicati. Prima correzione: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
 );
 
 // --- A step to fix without its lever in the loaded setup is skipped ---
@@ -1041,3 +1041,11 @@ assert.equal(
   ).status,
   "fix",
 );
+
+// The spoken cue names the correction, never the procedure.
+for (const m of [
+  readyOf(4, okZone()),
+  readyOf(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] })),
+  stintReadyMessage(ladderComplete, overviewCurrent6),
+])
+  assert.ok(m && !/scalett|sequenz|quadro|passo|area/i.test(m), m ?? "null");

@@ -695,9 +695,9 @@ export const stintReadyMessage = (
   const current = ladder.steps.find((s) => s.n === ladder.current);
   const area = overview?.areas.find((a) => a.n === overview.current);
   const verdict = current
-    ? `Primo passo da correggere: ${current.label}.`
+    ? `Prima correzione: ${current.label}.`
     : area
-      ? `Sequenza completa, prima area dell'assetto: ${area.label}.`
-      : "Nessun passo da correggere.";
+      ? `Prima correzione: ${area.label}.`
+      : "Nessuna correzione da fare.";
   return `Stint analizzabile: ${counted} giri giudicati. ${verdict} Puoi metterti in pausa ed eseguire l'analisi.`;
 };

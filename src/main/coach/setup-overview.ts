@@ -43,7 +43,7 @@ export type OverviewArea = {
 export type SetupOverview = {
   areas: OverviewArea[];
   current: number | null; // first "fix" && proposable, only when ladder.current == null && ladder.lapsMissing === 0
-  afterLadder: boolean; // true when the ladder still has a current step: every area "da rivedere dopo la sequenza"
+  afterLadder: boolean; // true when the ladder still has a current step: every area "da rivedere dopo la messa a punto di base"
   weight: WeightDistribution;
   tyreLine: string | null; // null in Leaderboard
 };
@@ -265,7 +265,7 @@ export const computeSetupOverview = (input: {
     ];
     if (entry)
       parts.push({
-        data: `sottosterzo in inserimento in ${entryUnder}/${entry} curve${absDominant && entryUnder > entry / 2 ? ", con ABS dominante: è del passo 2 della sequenza" : ""}`,
+        data: `sottosterzo in inserimento in ${entryUnder}/${entry} curve${absDominant && entryUnder > entry / 2 ? ", con ABS dominante: va corretto con il bilanciamento freni" : ""}`,
         fix: sym.entryUnder
           ? "più rake (posteriore più alto o anteriore più basso)"
           : undefined,
@@ -504,7 +504,7 @@ export const computeSetupOverview = (input: {
     const notes = [
       springsNa && a.n >= 2 && a.n <= 5 ? "molle non verificate" : null,
       ...(CITES[a.n] ?? []).map(([s, owner]) =>
-        sym[s] ? `vedi area ${owner} (${LABELS[owner - 1]})` : null,
+        sym[s] ? `vedi ${LABELS[owner - 1]}` : null,
       ),
       a.n === 6 && t && slowDir === "under" && frontMinusRear >= TYRE_CONFIRM_C
         ? `conferma: anteriori più calde di ${frontMinusRear.toFixed(1)} °C`

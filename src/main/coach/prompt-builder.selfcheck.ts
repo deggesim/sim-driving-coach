@@ -206,7 +206,7 @@ for (const sub of [
   "Analisi telemetria",
   "Problemi identificati",
   "Setup attuale vs proposto",
-  "Quadro assetto",
+  "Assetto telaio",
 ]) {
   assert.ok(SESSION_SYSTEM_PROMPT.includes(`### ${sub}`), sub);
 }
@@ -321,15 +321,15 @@ assert.ok(!ams2PressureLap.includes("PSI"), "no PSI label for AMS2");
 
 // Setup proposals follow the ladder: one lever, on the current step. The old
 // "cover every area" wording must be gone from both levels.
-assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("PASSO CORRENTE"));
-assert.ok(SESSION_SYSTEM_PROMPT.includes("leva del passo corrente"));
+assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("SOLO sulla riga da fare ora"));
+assert.ok(SESSION_SYSTEM_PROMPT.includes("riguardano SOLO quella regolazione"));
 // Level 2 only: the restriction holds WHILE a current step exists (spec); with
 // every step ok / non valutabile it may propose on the other areas again.
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'Se la sequenza NON ha un passo corrente, le proposte sulle altre aree stanno nella sottosezione "Quadro assetto", non qui.',
+    'Se nessuna riga della "Messa a punto di base" è da fare ora, le proposte sulle altre regolazioni stanno nella sottosezione "Assetto telaio", non qui.',
   ),
-  "Level 2: without a current step the other areas live in the Quadro assetto",
+  "Level 2: without a current step the other areas live in Assetto telaio",
 );
 assert.ok(
   !SESSION_SYSTEM_PROMPT.includes(
@@ -509,11 +509,11 @@ const ladderBlock = (
 
 const lb = ladderBlock({});
 for (const s of [
-  `Sequenza setup (setup "Gara B", giri 4-9, 6 giudicati)`,
-  "2 bilanciamento freni: NON VALUTABILE — manca lo slip",
-  "1 condotti freni: ok — ant 612 °C",
-  "4 pressioni: DA CORREGGERE ← PASSO CORRENTE — Δ ANT-SX +2.1 °C → abbassare",
-  "5 campanatura: ok (da rivedere dopo il passo 4)",
+  `Messa a punto di base, in ordine (setup "Gara B", giri 4-9, 6 giudicati)`,
+  "- bilanciamento freni: non valutabile — manca lo slip",
+  "- condotti freni: ok — ant 612 °C",
+  "- pressioni: da correggere ← da fare ora — Δ ANT-SX +2.1 °C → abbassare",
+  "- campanatura: ok (da rivedere dopo: pressioni)",
   `Gomme setup "Gara B" (6 giri giudicati) (${WHEEL_ORDER})`,
   "press. a caldo 2.04/2.03/1.95/1.94 bar",
   "stato alta/alta/ok/ok",
@@ -538,7 +538,7 @@ assert.ok(
 const missing = ladderBlock({ lapsMissing: 3, steps: [], current: null });
 assert.ok(
   missing.includes(
-    `Sequenza setup: completa ancora 3 giri con il setup "Gara B"`,
+    `Messa a punto di base: completa ancora 3 giri con il setup "Gara B"`,
   ),
 );
 // Right after a setup change the earlier segments' tyre lines are the useful
@@ -556,19 +556,19 @@ const earlyDucts = ladderBlock({
 });
 assert.ok(
   earlyDucts.includes(
-    `- Sequenza setup: passo 1 giudicato su 2 giri dopo il primo; per i passi 2-6 completa ancora 2 giri con il setup "Gara B"
-  1 condotti freni: DA CORREGGERE ← PASSO CORRENTE`,
+    `- Messa a punto di base: condotti freni giudicati su 2 giri dopo il primo; per le altre regolazioni completa ancora 2 giri con il setup "Gara B"
+  - condotti freni: da correggere ← da fare ora`,
   ),
   earlyDucts,
 );
 assert.ok(
   SYNTHESIS_SYSTEM_PROMPT.includes(
-    "Se la sequenza chiede di completare dei giri e non ha un passo corrente, l'azione di setup è",
+    `Se la "Messa a punto di base" chiede di completare dei giri e non ha una riga da fare ora, l'azione di setup è`,
   ),
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'Con la richiesta "completa ancora N giri" e nessun passo corrente, nessuna proposta numerata.',
+    'Con la richiesta "completa ancora N giri" e nessuna riga da fare ora, nessuna proposta numerata.',
   ),
 );
 const notEditable = ladderBlock({
@@ -576,7 +576,10 @@ const notEditable = ladderBlock({
   current: null,
 });
 assert.ok(notEditable.includes("(non modificabile con Setup Fisso)"));
-assert.ok(!ladderBlock(null).includes("Sequenza setup"), "no ladder, no row");
+assert.ok(
+  !ladderBlock(null).includes("Messa a punto di base"),
+  "no ladder, no row",
+);
 
 // Level 2: the ladder table is mandatory whenever the "Sequenza setup" row
 // exists, loaded setup or not; the parameter table and A → B need a setup.
@@ -586,12 +589,12 @@ const setupSub = SESSION_SYSTEM_PROMPT.slice(
 );
 for (const s of [
   `OBBLIGATORIA anche senza un setup caricato`,
-  `tabella "Passo | Stato | Dato"`,
+  `tabella "Regolazione | Stato | Dato"`,
   `SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione"`,
   `Senza setup caricato: niente tabella dei parametri e niente valori "A → B"`,
   `indica solo la direzione`,
-  `Se la riga "Sequenza setup" manca e nessun setup è caricato, OMETTI`,
-  `Se la riga "Sequenza setup" manca ma un setup è caricato, niente tabella dei passi e niente proposte numerate`,
+  `Se la riga "Messa a punto di base" manca e nessun setup è caricato, OMETTI`,
+  `Se manca ma un setup è caricato, niente tabella delle regolazioni e niente proposte numerate`,
 ]) {
   assert.ok(setupSub.includes(s), s);
 }
@@ -601,25 +604,27 @@ assert.ok(
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    `omissibile SOLO se manca la riga "Sequenza setup" e nessun setup è caricato`,
+    `omissibile SOLO se manca la riga "Messa a punto di base" e nessun setup è caricato`,
   ),
   "closing sentence matches the rule",
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'e "Quadro assetto", omissibile SOLO se manca la riga "Quadro assetto".',
+    'e "Assetto telaio", omissibile SOLO se manca la riga "Assetto telaio".',
   ),
-  "Quadro assetto is omittable only without its row",
+  "Assetto telaio is omittable only without its row",
 );
 
 // Quadro assetto (Task 9): the overview reaches the stats block and both prompts.
 assert.ok(
-  SYNTHESIS_SYSTEM_PROMPT.includes("AREA CORRENTE"),
+  SYNTHESIS_SYSTEM_PROMPT.includes(
+    "l'unica azione di setup è la riga da fare ora dell'\"Assetto telaio\"",
+  ),
   "Level 1 acts on the current area",
 );
 assert.ok(
   SYNTHESIS_SYSTEM_PROMPT.includes(
-    'Senza passo corrente né area corrente, o senza riga "Sequenza setup"',
+    'Senza nessuna riga da fare ora, o senza riga "Messa a punto di base"',
   ),
 );
 assert.ok(
@@ -645,7 +650,7 @@ assert.ok(
 // Level 2 Quadro: no proposal on a Fixed Setup area.
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'Nessuna proposta per le aree marcate "non modificabile con Setup Fisso".',
+    'Nessuna proposta per le righe marcate "non modificabile con Setup Fisso".',
   ),
 );
 assert.deepEqual(roots(SESSION_SYSTEM_PROMPT), [
@@ -702,25 +707,25 @@ const ovBlock = (
   );
 const ov = ovBlock({});
 for (const x of [
-  "- Quadro assetto (pesi ant 43.8 % da tabella AMS2):",
-  "1 molle: DA CORREGGERE ← AREA CORRENTE — rapporto molle 1.00, pesi 1.28 → molle posteriori 289 N/mm",
-  "2 altezze e rake: ok — min 12 mm",
-  "3 bumpstop: NON VALUTABILE — nessun contatto misurato (non modificabile con Setup Fisso)",
+  "- Assetto telaio, in ordine (pesi ant 43.8 % da tabella AMS2):",
+  "- molle: da correggere ← da fare ora — rapporto molle 1.00, pesi 1.28 → molle posteriori 289 N/mm",
+  "- altezze e rake: ok — min 12 mm",
+  "- bumpstop: non valutabile — nessun contatto misurato (non modificabile con Setup Fisso)",
   "Calore gomme: ant−post +6.2 °C, sx−dx −1.0 °C",
 ]) {
   assert.ok(ov.includes(x), x);
 }
 assert.ok(
-  ov.indexOf("Sequenza setup") < ov.indexOf("Quadro assetto"),
+  ov.indexOf("Messa a punto di base") < ov.indexOf("Assetto telaio"),
   "overview follows the ladder",
 );
 const ovAfter = ovBlock({ afterLadder: true, current: null });
 assert.ok(
   ovAfter.includes(
-    "2 altezze e rake: ok — min 12 mm (da rivedere dopo la sequenza)",
+    "- altezze e rake: ok — min 12 mm (da rivedere dopo la messa a punto di base)",
   ),
 );
-assert.ok(!ovAfter.includes("AREA CORRENTE"));
+assert.ok(!ovAfter.includes("da fare ora"));
 assert.ok(
   ovBlock({
     weight: {
@@ -741,13 +746,13 @@ assert.ok(
 );
 assert.ok(!ovBlock({ tyreLine: null }).includes("Calore gomme"));
 assert.ok(
-  !ovBlock(null, {}, "r3e").includes("Quadro assetto"),
+  !ovBlock(null, {}, "r3e").includes("Assetto telaio"),
   "no overview, no row",
 );
 // Controller ruling: while the ladder still asks for laps, the overview is not printed.
 assert.ok(
   !ovBlock({}, { lapsMissing: 2, steps: [], current: null }).includes(
-    "Quadro assetto",
+    "Assetto telaio",
   ),
   "no overview while laps are missing",
 );
@@ -770,7 +775,9 @@ const fixedCtx = buildSessionPrompt({
   fixedSetup: true,
 });
 assert.ok(
-  fixedCtx.includes("La sequenza setup mostra solo i passi 1-2"),
+  fixedCtx.includes(
+    "La messa a punto di base mostra solo condotti e bilanciamento freni",
+  ),
   "fixed setup wording",
 );
 
@@ -788,3 +795,18 @@ assert.equal(
 assert.equal(decodeAlertCodes("nessun codice"), "nessun codice");
 
 console.log("prompt-builder.selfcheck OK");
+
+// The data the model writes from carries none of the procedure's jargon: a
+// race engineer never says "scaletta", "sequenza", "quadro", "passo N", "area N".
+const JARGON =
+  /scalett|sequenz|quadro|passo corrente|area corrente|\bpass[oi] \d|\barea \d|vedi area/i;
+for (const block of [lb, earlyDucts, ov, ovAfter])
+  assert.ok(!JARGON.test(block), block.match(JARGON)?.[0]);
+
+// No shouting either: states and markers reach the model in lower case, so it
+// never copies an all-caps label into the analysis; both prompts forbid it.
+const SHOUT = /\b(DA CORREGGERE|NON VALUTABIL[EI]|DA FARE ORA|ATTIV[AO])\b/;
+for (const block of [lb, earlyDucts, ov, ovAfter, fixedCtx])
+  assert.ok(!SHOUT.test(block), block.match(SHOUT)?.[0]);
+for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT])
+  assert.ok(p.includes("Mai parole o frasi intere in maiuscolo"));
