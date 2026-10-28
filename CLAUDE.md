@@ -16,6 +16,7 @@ See `package.json` scripts. The non-obvious parts:
 
 - `npm run rebuild:native` is **required after every `npm install`** — `better-sqlite3` must be compiled against Electron's Node version. `koffi` (shared memory FFI) does **not** need rebuilding.
 - `npm run update:ams2-cars` regenerates `src/main/ams2/ams2-cars.ts` from the community sheet "Cars of AMS2" (network; the file is generated, formatter- and fallow-exempt) — run it only to pick up new cars.
+- `npm run dev:debug` is `npm run dev` with `SDC_CHANNEL_LOG=1`, echoed to the console and saved to `logs/sdc-YYYYMMDD-HHmm.txt` (git-ignored, ANSI stripped): the log to share after a live session.
 - `npm run selfcheck` runs the assert-based self-checks (struct offsets, prompt builder, session stats, voice summary) — no sim needed.
 - If TypeScript errors appear in `npm run dev`, stop and run `npm run typecheck` for the full list before restarting.
 - `npm run build:electron` is the only script that produces a distributable; `npm run build` is the Vite bundle alone.

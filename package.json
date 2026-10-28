@@ -7,6 +7,7 @@
   "main": "out/main/main.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:debug": "node scripts/dev-debug.mjs",
     "build": "electron-vite build",
     "build:electron": "electron-vite build && electron-builder",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
