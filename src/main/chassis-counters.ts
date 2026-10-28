@@ -1,10 +1,9 @@
 /**
  * Per-zone chassis counters (ride height, bottoming, wheel-load regression
  * sums, straight-line steering, damper velocity histogram), derived from one
- * lap's frames. Pure: no DB,
- * no IPC. Presence is per counter family (see ZoneData): a zone gets a family
- * only if its frames carry the source channel (`rh`, `wl`, `gLat`, `sv`), never
- * a zero standing in for a missing channel.
+ * lap's frames. Pure: no DB, no IPC. Presence is per counter family (see
+ * ZoneData): a zone gets a family only if its frames carry the source channel
+ * (`rh`, `wl`, `gLat`, `sv`), never a zero standing in for a missing channel.
  */
 import type { CompactFrame, ZoneData } from "../shared/types.js";
 
@@ -43,8 +42,11 @@ const DAMPER_MIN_KMH = 30;
 // |k| of the sv-vs-Δsus slope read as m/s or as mm/s; anything else = unusable.
 const SV_K_MS = [0.3, 3];
 const SV_K_MMS = [300, 3000];
+// Consecutive frame pairs where at least one wheel's travel changed.
 const SV_MIN_PAIRS = 200;
 const SV_MAX_DT_MS = 100;
+// Hard-brake frames (carrying `sus`) needed to read the compression direction.
+const SV_MIN_BRAKE_FRAMES = 20;
 
 type Phase = "straight" | "brake" | "other";
 
@@ -68,17 +70,26 @@ const upsetAfter = (frames: CompactFrame[], i: number): boolean => {
   return pos && neg && hi - lo > UPSET_GLAT;
 };
 
-// Multiplier turning raw `sv` into m/s, positive = compression; null = unusable.
+export type SvCalibration = {
+  scale: number | null;
+  k: number | null;
+  reason: string | null;
+};
+
+// Multiplier turning raw `sv` into m/s, positive = compression; null = unusable
+// (`reason` says why, in Italian, for the per-lap log line).
 // Unit and sign of the games' suspension velocity are not documented: the
 // unit comes from the slope of sv against the travel derivative, the
 // compression direction from the front travel under hard braking (nose dives).
-const svScale = (frames: CompactFrame[]): number | null => {
+export const svCalibration = (frames: CompactFrame[]): SvCalibration => {
   let svd = 0;
   let sdd = 0;
   let pairs = 0;
+  let any = false;
   for (let i = 1; i < frames.length; i++) {
     const a = frames[i - 1];
     const b = frames[i];
+    if (a.sv && b.sv) any = true;
     const dt = b.ts - a.ts;
     if (!a.sus || !b.sus || !a.sv || !b.sv) continue;
     if (dt <= 0 || dt > SV_MAX_DT_MS) continue;
@@ -91,7 +102,13 @@ const svScale = (frames: CompactFrame[]): number | null => {
     }
     if (moved) pairs++;
   }
-  if (pairs < SV_MIN_PAIRS) return null;
+  const none = (k: number | null, reason: string): SvCalibration => ({
+    scale: null,
+    k,
+    reason,
+  });
+  if (!any) return none(null, "nessuna velocità");
+  if (pairs < SV_MIN_PAIRS) return none(null, "coppie insufficienti");
   const k = Math.abs(svd / sdd);
   const unit =
     k >= SV_K_MS[0] && k <= SV_K_MS[1]
@@ -99,14 +116,16 @@ const svScale = (frames: CompactFrame[]): number | null => {
       : k >= SV_K_MMS[0] && k <= SV_K_MMS[1]
         ? 0.001
         : null;
+  if (unit === null) return none(k, `pendenza k=${k.toFixed(2)} fuori banda`);
   const withSus = frames.filter((f) => f.sus);
   const frontMean = (fs: CompactFrame[]) =>
     fs.reduce((s, f) => s + (f.sus![0] + f.sus![1]) / 2, 0) / fs.length;
   const braking = withSus.filter((f) => f.brk > HARD_BRAKE);
-  const comp = braking.length
-    ? Math.sign(frontMean(braking) - frontMean(withSus))
-    : 0;
-  return unit === null || comp === 0 ? null : unit * Math.sign(svd) * comp;
+  if (braking.length < SV_MIN_BRAKE_FRAMES)
+    return none(k, "frenate forti insufficienti");
+  const comp = Math.sign(frontMean(braking) - frontMean(withSus));
+  if (comp === 0) return none(k, "verso della compressione indeterminato");
+  return { scale: unit * Math.sign(svd) * comp, k, reason: null };
 };
 
 export const chassisCounters = (
@@ -196,7 +215,7 @@ export const chassisCounters = (
   let steerDir = 0;
   let steerExt = 0;
   let steerArmed = false;
-  const svK = svScale(frames);
+  const svK = svCalibration(frames).scale;
 
   frames.forEach((f, i) => {
     const c = zoneFor(f);

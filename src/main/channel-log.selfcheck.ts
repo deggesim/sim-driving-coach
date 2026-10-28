@@ -6,7 +6,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { formatChannels } from "./channel-log.js";
+import { formatCalibration, formatChannels } from "./channel-log.js";
 import type { CompactFrame } from "../shared/types.js";
 
 const frame = (over: Partial<CompactFrame> = {}): CompactFrame => ({
@@ -83,5 +83,23 @@ assert.ok(
   ),
 );
 assert.ok(bare.includes("carico=assente"), bare);
+
+// Calibration line: accepted (mm/s, compression negative) and null.
+assert.equal(
+  formatCalibration({ scale: -0.001, k: 1012.345, reason: null }),
+  "[sospensioni] calibrazione: k=1012.35, unità mm/s, compressione negativa",
+);
+assert.equal(
+  formatCalibration({ scale: 1, k: 0.98, reason: null }),
+  "[sospensioni] calibrazione: k=0.98, unità m/s, compressione positiva",
+);
+assert.equal(
+  formatCalibration({
+    scale: null,
+    k: 12,
+    reason: "pendenza k=12.00 fuori banda",
+  }),
+  "[sospensioni] calibrazione assente: pendenza k=12.00 fuori banda",
+);
 
 console.log("channel-log.selfcheck OK");

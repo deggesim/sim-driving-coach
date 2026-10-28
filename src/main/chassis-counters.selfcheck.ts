@@ -5,7 +5,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { chassisCounters } from "./chassis-counters.js";
+import { chassisCounters, svCalibration } from "./chassis-counters.js";
 import type { CompactFrame } from "../shared/types.js";
 
 const STEP_MS = 16;
@@ -344,6 +344,9 @@ assert.equal(total(h), 600 * 4);
 assert.deepEqual(zone0(scaleSv(damped, 1000)).damperHist, h);
 // Both sus and sv negated (compression negative): same counts.
 assert.deepEqual(zone0(negate(damped)).damperHist, h);
+// Only sv negated (game reports compression as negative velocity while the
+// travel is positive): same counts.
+assert.deepEqual(zone0(scaleSv(damped, -1)).damperHist, h);
 // sv unrelated to sus (constant, or ×50): no family.
 assert.equal(
   zone0(withSv(damped, () => [0.2, 0.2, 0.2, 0.2])).damperHist,
@@ -352,6 +355,17 @@ assert.equal(
 assert.equal(zone0(scaleSv(damped, 50)).damperHist, undefined);
 // No hard braking: compression direction unknown, no family.
 assert.equal(zone0(noBrake(damped)).damperHist, undefined);
+// Fewer than 20 hard-brake frames: compression direction unreliable, no family.
+const shortBrake = remap(damped, (f, i) => ({
+  brk: i >= 100 && i < 115 ? 0.8 : 0,
+}));
+assert.equal(zone0(shortBrake).damperHist, undefined);
+assert.equal(svCalibration(shortBrake).reason, "frenate forti insufficienti");
+// The calibration reports unit, sign and slope for the per-lap log line.
+const cal = svCalibration(scaleSv(damped, -1000));
+assert.equal(cal.scale, -0.001);
+assert.ok(cal.k! > 300 && cal.k! < 3000, `k ${cal.k}`);
+assert.equal(svCalibration(make(600)).reason, "nessuna velocità");
 // Frames under 30 km/h are not counted (one full period → shares unchanged).
 const slowPeriod = zone0(
   remap(damped, (f, i) => ({ spd: i >= 300 && i < 360 ? 20 : f.spd })),
