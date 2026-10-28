@@ -1,15 +1,16 @@
 /**
  * Per-zone chassis counters (ride height, bottoming, wheel-load regression
- * sums, straight-line steering), derived from one lap's frames. Pure: no DB,
+ * sums, straight-line steering, damper velocity histogram), derived from one
+ * lap's frames. Pure: no DB,
  * no IPC. Presence is per counter family (see ZoneData): a zone gets a family
- * only if its frames carry the source channel (`rh`, `wl`, `gLat`), never a
- * zero standing in for a missing channel.
+ * only if its frames carry the source channel (`rh`, `wl`, `gLat`, `sv`), never
+ * a zero standing in for a missing channel.
  */
 import type { CompactFrame, ZoneData } from "../shared/types.js";
 
 export type ChassisCounters = Pick<
   ZoneData,
-  "rideHeight" | "bottoming" | "loadFit" | "straightSteer"
+  "rideHeight" | "bottoming" | "loadFit" | "straightSteer" | "damperHist"
 >;
 
 const BOTTOM_M = 0.003;
@@ -36,6 +37,14 @@ const STEER_REVERSAL = 0.01;
 const MID_STEER = 0.05;
 const MID_BRAKE = 0.05;
 const MID_THROTTLE = 0.2;
+// Slow/fast damper knee (spec §5): below it, the slow-damping range.
+export const DAMPER_KNEE_MPS = 0.05;
+const DAMPER_MIN_KMH = 30;
+// |k| of the sv-vs-Δsus slope read as m/s or as mm/s; anything else = unusable.
+const SV_K_MS = [0.3, 3];
+const SV_K_MMS = [300, 3000];
+const SV_MIN_PAIRS = 200;
+const SV_MAX_DT_MS = 100;
 
 type Phase = "straight" | "brake" | "other";
 
@@ -57,6 +66,47 @@ const upsetAfter = (frames: CompactFrame[], i: number): boolean => {
     if (f.str < 0) neg = true;
   }
   return pos && neg && hi - lo > UPSET_GLAT;
+};
+
+// Multiplier turning raw `sv` into m/s, positive = compression; null = unusable.
+// Unit and sign of the games' suspension velocity are not documented: the
+// unit comes from the slope of sv against the travel derivative, the
+// compression direction from the front travel under hard braking (nose dives).
+const svScale = (frames: CompactFrame[]): number | null => {
+  let svd = 0;
+  let sdd = 0;
+  let pairs = 0;
+  for (let i = 1; i < frames.length; i++) {
+    const a = frames[i - 1];
+    const b = frames[i];
+    const dt = b.ts - a.ts;
+    if (!a.sus || !b.sus || !a.sv || !b.sv) continue;
+    if (dt <= 0 || dt > SV_MAX_DT_MS) continue;
+    let moved = false;
+    for (let w = 0; w < 4; w++) {
+      const d = (b.sus[w] - a.sus[w]) / (dt / 1000);
+      svd += ((a.sv[w] + b.sv[w]) / 2) * d;
+      sdd += d * d;
+      if (d !== 0) moved = true;
+    }
+    if (moved) pairs++;
+  }
+  if (pairs < SV_MIN_PAIRS) return null;
+  const k = Math.abs(svd / sdd);
+  const unit =
+    k >= SV_K_MS[0] && k <= SV_K_MS[1]
+      ? 1
+      : k >= SV_K_MMS[0] && k <= SV_K_MMS[1]
+        ? 0.001
+        : null;
+  const withSus = frames.filter((f) => f.sus);
+  const frontMean = (fs: CompactFrame[]) =>
+    fs.reduce((s, f) => s + (f.sus![0] + f.sus![1]) / 2, 0) / fs.length;
+  const braking = withSus.filter((f) => f.brk > HARD_BRAKE);
+  const comp = braking.length
+    ? Math.sign(frontMean(braking) - frontMean(withSus))
+    : 0;
+  return unit === null || comp === 0 ? null : unit * Math.sign(svd) * comp;
 };
 
 export const chassisCounters = (
@@ -146,9 +196,29 @@ export const chassisCounters = (
   let steerDir = 0;
   let steerExt = 0;
   let steerArmed = false;
+  const svK = svScale(frames);
 
   frames.forEach((f, i) => {
     const c = zoneFor(f);
+
+    if (svK !== null && f.sv && f.spd >= DAMPER_MIN_KMH)
+      f.sv.forEach((raw, w) => {
+        const u = svK * raw;
+        if (u === 0) return;
+        const dh = (c.damperHist ??= {
+          lowBumpF: 0,
+          lowRebF: 0,
+          highBumpF: 0,
+          highRebF: 0,
+          lowBumpR: 0,
+          lowRebR: 0,
+          highBumpR: 0,
+          highRebR: 0,
+        });
+        dh[
+          `${Math.abs(u) < DAMPER_KNEE_MPS ? "low" : "high"}${u > 0 ? "Bump" : "Reb"}${w < 2 ? "F" : "R"}` as const
+        ]++;
+      });
 
     const frh = hasRh ? f.rh : undefined;
     if (frh) {

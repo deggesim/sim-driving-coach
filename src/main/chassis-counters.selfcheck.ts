@@ -289,4 +289,84 @@ assert.equal(
   undefined,
 );
 
+// --- Damper velocity histogram --------------------------------------------
+
+// Triangle wave on every wheel: compression (sus rising) 5 mm in 24 frames,
+// extension 5 mm in 36 frames → 60 % of the samples in rebound, all slow
+// (13.0 and 8.7 mm/s). Hard braking on frames 100-149 dives the front by
+// up to 20 mm (±50 mm/s on top of the triangle). sv = forward slope of the very
+// same sus sequence, in m/s, positive = compression.
+const UP = 24;
+const DOWN = 36;
+const AMP = 0.005;
+const triangle = (i: number) => {
+  const p = i % (UP + DOWN);
+  return p < UP ? (AMP * p) / UP : AMP * (1 - (p - UP) / DOWN);
+};
+const dive = (i: number) =>
+  i < 100 || i >= 150 ? 0 : (0.02 * (i < 125 ? i - 100 : 150 - i)) / 25;
+const susAt = (i: number) => {
+  const f = triangle(i) + dive(i);
+  const r = triangle(i);
+  return [f, f, r, r];
+};
+const damped = make(600, (i) => ({
+  brk: i >= 100 && i < 150 ? 0.8 : 0,
+  sus: susAt(i),
+  sv: susAt(i + 1).map((s, w) => (s - susAt(i)[w]) / (STEP_MS / 1000)),
+}));
+const remap = (
+  frames: CompactFrame[],
+  over: (f: CompactFrame, i: number) => Partial<CompactFrame>,
+) => frames.map((f, i) => ({ ...f, ...over(f, i) }));
+const scaleSv = (frames: CompactFrame[], k: number) =>
+  remap(frames, (f) => ({ sv: f.sv?.map((v) => v * k) }));
+const negate = (frames: CompactFrame[]) =>
+  remap(frames, (f) => ({
+    sus: f.sus?.map((v) => -v),
+    sv: f.sv?.map((v) => -v),
+  }));
+const withSv = (frames: CompactFrame[], sv: (i: number) => number[]) =>
+  remap(frames, (_, i) => ({ sv: sv(i) }));
+const noBrake = (frames: CompactFrame[]) => remap(frames, () => ({ brk: 0 }));
+const total = (h: Record<string, number>) =>
+  Object.values(h).reduce((a, b) => a + b, 0);
+
+const h = zone0(damped).damperHist!;
+// Shares per axle as built by the fixture (the dive shifts a few front samples).
+assert.ok(Math.abs(h.lowRebF / (h.lowRebF + h.lowBumpF) - 0.6) < 0.05);
+assert.equal(h.lowRebR / (h.lowRebR + h.lowBumpR), 0.6);
+assert.equal(h.highBumpR + h.highRebR, 0);
+// The dive on top of compression is fast: 5 frames × 2 front wheels.
+assert.equal(h.highBumpF, 10);
+assert.equal(total(h), 600 * 4);
+// mm/s: same counts.
+assert.deepEqual(zone0(scaleSv(damped, 1000)).damperHist, h);
+// Both sus and sv negated (compression negative): same counts.
+assert.deepEqual(zone0(negate(damped)).damperHist, h);
+// sv unrelated to sus (constant, or ×50): no family.
+assert.equal(
+  zone0(withSv(damped, () => [0.2, 0.2, 0.2, 0.2])).damperHist,
+  undefined,
+);
+assert.equal(zone0(scaleSv(damped, 50)).damperHist, undefined);
+// No hard braking: compression direction unknown, no family.
+assert.equal(zone0(noBrake(damped)).damperHist, undefined);
+// Frames under 30 km/h are not counted (one full period → shares unchanged).
+const slowPeriod = zone0(
+  remap(damped, (f, i) => ({ spd: i >= 300 && i < 360 ? 20 : f.spd })),
+).damperHist!;
+assert.equal(total(slowPeriod), 540 * 4);
+assert.equal(
+  slowPeriod.lowRebR / (slowPeriod.lowRebR + slowPeriod.lowBumpR),
+  0.6,
+);
+// Pit frames are not counted.
+assert.deepEqual(
+  chassisCounters(damped, () => 0, damped).get(0)!.damperHist,
+  h,
+);
+// No sv at all (ACE, old recordings): no family.
+assert.equal(zone0(make(600)).damperHist, undefined);
+
 console.log("chassis-counters self-check OK");

@@ -198,11 +198,27 @@ export type ZoneData = {
   cornersFastOver?: number; // of those, oversteer at mid-corner
   kFastSum?: number; // sum of the mid-phase mean k of the fast corners
   // Chassis counters (see main/chassis-counters.ts). Each family is present only
-  // when the zone's frames carried its source channel: rh, wl, gLat.
+  // when the zone's frames carried its source channel: rh, wl, gLat, sv (the
+  // last one also only on a lap whose sv calibration succeeded).
   rideHeight?: RideHeightSums;
   bottoming?: BottomingCounts;
   loadFit?: LoadFitSums;
   straightSteer?: StraightSteer;
+  damperHist?: DamperHist;
+};
+
+// Suspension-velocity histogram: samples (wheel × frame), both wheels of an
+// axle pooled. low/high = below/above the slow-damping knee; Bump = compression,
+// Reb = extension (rebound).
+export type DamperHist = {
+  lowBumpF: number;
+  lowRebF: number;
+  highBumpF: number;
+  highRebF: number;
+  lowBumpR: number;
+  lowRebR: number;
+  highBumpR: number;
+  highRebR: number;
 };
 
 export type RideHeightSums = {
