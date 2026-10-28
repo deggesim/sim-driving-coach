@@ -362,6 +362,7 @@ export type SetupParam = {
   category: string;
   parameter: string;
   value: string;
+  limit?: "min" | "max"; // R3E only: the raw value is at the end of its range
 };
 
 export type SetupData = {

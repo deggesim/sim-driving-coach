@@ -358,6 +358,7 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     car,
     minJudgedLaps: input.minJudgedLaps,
     setupParams: setup?.setup.params ?? null,
+    game,
   });
 
   return {

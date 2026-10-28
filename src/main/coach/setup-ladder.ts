@@ -58,6 +58,8 @@ export type LadderStep = {
   status: LadderStatus;
   reason: string; // Italian: numbers + direction (fix) or why (na)
   proposable: boolean; // false only for step 1 under fixedSetup
+  // R3E range check: the R3E parameter each fix would move, and which way.
+  moves?: { param: string; dir: "up" | "down" }[];
 };
 type PressureState = "alta" | "ok" | "bassa";
 export type TyreSummary = {
@@ -91,6 +93,7 @@ export const parseZones = (json: string | null): ZoneData[] => {
 };
 
 const WHEELS = Object.keys(WHEEL_LABELS); // ANT-SX, ANT-DX, POST-SX, POST-DX
+const R3E_WHEELS = ["Front Left", "Front Right", "Rear Left", "Rear Right"]; // idToLabel suffixes
 const W = [0, 1, 2, 3] as const;
 
 const mean = (xs: number[]): number =>
@@ -258,6 +261,7 @@ export const computeSetupLadder = (
     car?: Ams2Car | null; // AMS2 table row: driveline and differential type
     minJudgedLaps?: number; // 1 only to judge the verdict before the last lap
     setupParams?: SetupParam[] | null; // the setup on the last segment, when loaded
+    game?: GameSource; // limits are read only on R3E
   },
 ): SetupLadder => {
   const minJudged = opts.minJudgedLaps ?? MIN_JUDGED_LAPS;
@@ -295,12 +299,14 @@ export const computeSetupLadder = (
     label: string,
     status: LadderStatus,
     reason: string,
+    moves?: LadderStep["moves"],
   ): LadderStep => ({
     n,
     label,
     status,
     reason,
     proposable: !(n === 1 && opts.fixedSetup),
+    ...(moves && { moves }),
   });
 
   // 1 - brake ducts, on its own laps: brake temperatures need no tyre plateau.
@@ -347,6 +353,21 @@ export const computeSetupLadder = (
           reason: `leva non presente nel setup caricato — ${s.reason}`,
         }
       : s;
+  // R3E: a fix whose every known move is already at the end of its range
+  // cannot be applied either: ok, with the note, and the ladder moves on.
+  const limited = (s: LadderStep): LadderStep => {
+    const known =
+      opts.game === "r3e" && params && s.status === "fix"
+        ? (s.moves ?? []).flatMap((m) => {
+            const p = params.find((q) => q.parameter === m.param);
+            return p ? [{ ...m, limit: p.limit }] : [];
+          })
+        : [];
+    return known.length &&
+      known.every((m) => m.limit === (m.dir === "up" ? "max" : "min"))
+      ? { ...s, status: "ok", reason: `${s.reason} — già a fondo scala` }
+      : s;
+  };
   const currentOf = (steps: LadderStep[]): number | null =>
     steps.find((s) => s.status === "fix" && s.proposable)?.n ?? null;
 
@@ -389,7 +410,9 @@ export const computeSetupLadder = (
       const under = sum("cornersEntryUnder") ?? 0;
       const data = `ABS nel ${pct(share)} delle frenate forti, sottosterzo in inserimento in ${under}/${entry} curve`;
       return share > ABS_SHARE && under > entry / 2
-        ? step(2, L, "fix", `${data} → bilanciamento verso il posteriore`)
+        ? step(2, L, "fix", `${data} → bilanciamento verso il posteriore`, [
+            { param: "Brake Bias", dir: "up" },
+          ])
         : step(2, L, "ok", data);
     }
     const srHard = sum("srHardBrakeFrames");
@@ -403,6 +426,7 @@ export const computeSetupLadder = (
         L,
         "fix",
         `${data} → bilanciamento verso il posteriore (l'auto tira dritta)`,
+        [{ param: "Brake Bias", dir: "up" }],
       );
     if (r > LOCK_SHARE && r >= LOCK_RATIO * f)
       return step(
@@ -410,6 +434,7 @@ export const computeSetupLadder = (
         L,
         "fix",
         `${data} → bilanciamento verso l'anteriore (il posteriore scoda)`,
+        [{ param: "Brake Bias", dir: "down" }],
       );
     // Both axles lock and neither dominates: no bias fixes it (guide: "forza
     // frenante" - lower the brake pressure, then redo the bias).
@@ -419,6 +444,7 @@ export const computeSetupLadder = (
         L,
         "fix",
         `${data} → bloccano entrambi gli assi: ridurre la forza frenante (brake pressure), poi rifare il bilanciamento`,
+        [{ param: "Brake Pressure", dir: "down" }],
       );
     return step(2, L, "ok", data);
   })();
@@ -474,6 +500,10 @@ export const computeSetupLadder = (
                 `Δ ${WHEELS[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "alta" ? "abbassare" : "alzare"}`,
             )
             .join(", ")}`,
+          wheels.map((w) => ({
+            param: `Tyre Pressure ${R3E_WHEELS[w]}`,
+            dir: pressureState[w] === "alta" ? "down" : "up",
+          })),
         )
       : step(4, L, "ok", `Δ entro ±${TYRE_BALANCE_TOL_C} °C su tutte le ruote`);
   })();
@@ -491,6 +521,7 @@ export const computeSetupLadder = (
     const okWheels = W.filter((w) => pressureState[w] === "ok");
     if (!okWheels.length)
       return step(5, L, "na", "nessuna ruota con pressione a posto");
+    const moves: NonNullable<LadderStep["moves"]> = [];
     const off = okWheels.flatMap((w) => {
       const dir = majority(
         tyres.perLap.map((t) =>
@@ -498,6 +529,12 @@ export const computeSetupLadder = (
         ),
         "ok",
       );
+      // More negative camber = a lower raw value.
+      if (dir !== "ok")
+        moves.push({
+          param: `Camber ${R3E_WHEELS[w]}`,
+          dir: dir === "più" ? "down" : "up",
+        });
       return dir === "ok"
         ? []
         : [
@@ -507,7 +544,7 @@ export const computeSetupLadder = (
           ];
     });
     return off.length
-      ? step(5, L, "fix", `interna−esterna ${off.join(", ")}`)
+      ? step(5, L, "fix", `interna−esterna ${off.join(", ")}`, moves)
       : step(
           5,
           L,
@@ -569,7 +606,7 @@ export const computeSetupLadder = (
     opts.fixedSetup
       ? [ducts, bias]
       : [ducts, bias, engine, pressures, camber, diff]
-  ).map(levered);
+  ).map((s) => limited(levered(s)));
   return { ...base, steps, current: currentOf(steps) };
 };
 

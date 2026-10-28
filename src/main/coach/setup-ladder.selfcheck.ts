@@ -14,7 +14,12 @@ import {
 } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
-import type { LapRow, SetupParam, ZoneData } from "../../shared/types.js";
+import type {
+  GameSource,
+  LapRow,
+  SetupParam,
+  ZoneData,
+} from "../../shared/types.js";
 
 const mkLap = (
   lap_number: number,
@@ -924,3 +929,74 @@ assert.equal(
   stepOf(withParams(stint(5, lowPress), P("Pressione RL")), 4).status,
   "fix",
 );
+
+// --- R3E: a step whose moves are all at the end of their range is ok ---
+const lp = (parameter: string, limit?: "min" | "max"): SetupParam => ({
+  category: "x",
+  parameter,
+  value: "1",
+  limit,
+});
+// inner−outer +1 °C (more negative camber), pressures in the window.
+const camberLaps = stint(
+  5,
+  okZone({
+    avgTyreTempInnerC: [84, 84, 84, 84],
+    avgTyreTempCenterC: [84, 84, 84, 84],
+    avgTyreTempOuterC: [83, 83, 83, 83],
+  }),
+);
+const r3eLadder = (params: SetupParam[], game: GameSource = "r3e") =>
+  computeSetupLadder(camberLaps, new Map(), {
+    fixedSetup: false,
+    setupParams: params,
+    game,
+  });
+const corners4 = ["Front Left", "Front Right", "Rear Left", "Rear Right"];
+const free = r3eLadder(corners4.map((w) => lp(`Camber ${w}`)));
+assert.equal(free.current, 5, "camber is the step to fix");
+const atEnd = r3eLadder(corners4.map((w) => lp(`Camber ${w}`, "min")));
+assert.equal(stepOf(atEnd, 5).status, "ok");
+assert.ok(stepOf(atEnd, 5).reason.endsWith(" — già a fondo scala"));
+assert.equal(atEnd.current, null);
+// One wheel can still move → still fix.
+assert.equal(
+  stepOf(
+    r3eLadder([
+      ...corners4.slice(1).map((w) => lp(`Camber ${w}`, "min")),
+      lp("Camber Front Left"),
+    ]),
+    5,
+  ).status,
+  "fix",
+);
+// "max" does not block a move down.
+assert.equal(
+  stepOf(r3eLadder(corners4.map((w) => lp(`Camber ${w}`, "max"))), 5).status,
+  "fix",
+);
+// Limits are R3E-only.
+assert.equal(
+  stepOf(
+    r3eLadder(
+      corners4.map((w) => lp(`Camber ${w}`, "min")),
+      "ace",
+    ),
+    5,
+  ).status,
+  "fix",
+);
+// Bias toward the rear (front locks) blocked at the top of Brake Bias.
+const frontLocks = stint(5, okZone({ lockFramesFront: 20, lockFramesRear: 1 }));
+const biasAt = (limit?: "min" | "max") =>
+  stepOf(
+    computeSetupLadder(frontLocks, new Map(), {
+      fixedSetup: false,
+      setupParams: [lp("Brake Bias", limit)],
+      game: "r3e",
+    }),
+    2,
+  ).status;
+assert.equal(biasAt(), "fix");
+assert.equal(biasAt("max"), "ok");
+assert.equal(biasAt("min"), "fix");
