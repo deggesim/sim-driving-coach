@@ -59,15 +59,15 @@ Nei due casi il passo corrente era proprio il passo 1.
 
 **Leva assente** (tutti i giochi, solo con un setup caricato sull'ultimo segmento): un passo DA CORREGGERE la cui leva non compare fra i parametri del setup diventa NON VALUTABILE, con motivo "leva non presente nel setup caricato" seguito dal dato originale. Si salta come gli altri passi NON VALUTABILI. Leve per passo, riconosciute dal nome del parametro senza distinguere maiuscole e minuscole:
 1. condotti freni: `duct`, `condott`;
-2. bilanciamento: `brake bias`, `ripartizione frenata`, `bilanciamento fren`;
+2. bilanciamento: `brake bias`, `ripartizione frenata`, `bilanciamento fren`, e la forza frenante (`brake pressure`, `pressione freni`), che il passo stesso indica quando bloccano entrambi gli assi;
 3. freno motore: `coast`, `freno motore`, `engine brak`;
 4. pressioni: `tyre pressure`, oppure `pressione` seguito dalla ruota (FL, FR, RL, RR), così "Pressione freni" non conta *(2026-10-28, in implementazione)*;
 5. campanatura: `camber`, `campanatura`;
-6. differenziale: `differential power`, `differential preload`, `power locking`, `power ramp`, `precarico`, `preload`.
+6. differenziale: `differential power`, `differential preload`, `power locking`, `power ramp`, `precarico`, `preload`, `bias ratio` (G-LSD e GC-LSD su AMS2).
 
-Il passo resta valido se basta una delle leve. Senza un setup caricato non cambia niente. AMS2 riceve questi nomi fra i nomi canonici imposti alla Vision.
+Il passo resta valido se basta una delle leve. Senza un setup caricato non cambia niente. Su AMS2 il setup viene dalle schermate scelte, che possono non includere tutte le pagine: la leva risulta assente solo se il setup contiene almeno un parametro della categoria Vision del passo (Freni per i passi 1-2, Motore/Elettronica o Differenziale per il 3, Gomme per il 4, Sospensioni per il 5, Differenziale per il 6). *(2026-10-28, dalla revisione finale.)* AMS2 riceve questi nomi fra i nomi canonici imposti alla Vision.
 
-**Leva a fondo scala** (solo R3E, l'unico gioco che esporta minimo e massimo di ogni parametro): un passo DA CORREGGERE le cui mosse sono tutte bloccate diventa ok, con nota "già a fondo scala". Una mossa è bloccata quando il parametro è già al valore minimo (mossa "giù") o massimo (mossa "su"). Mosse considerate, solo quelle con direzione univoca:
+**Leva a fondo scala** (solo R3E, l'unico gioco che esporta minimo e massimo di ogni parametro; `maxStep` è il numero di passi, quindi l'ultimo è `maxStep − 1`: con l'indice il bilanciamento arriverebbe a 0,005 × 201 = 1,005): un passo DA CORREGGERE le cui mosse sono tutte bloccate diventa ok, con nota "già a fondo scala". Una mossa è bloccata quando il parametro è già al valore minimo (mossa "giù") o massimo (mossa "su"). Mosse considerate, solo quelle con direzione univoca:
 - passo 2: bilanciamento verso il posteriore = Brake Bias su (il valore grezzo è la quota posteriore), verso l'anteriore = giù, ridurre la forza frenante = Brake Pressure giù;
 - passo 4: pressione alta = Tyre Pressure della ruota giù, bassa = su;
 - passo 5: più campanatura negativa = Camber della ruota giù (valore più negativo), meno negativa = su.

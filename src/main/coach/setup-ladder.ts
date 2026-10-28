@@ -41,11 +41,20 @@ const FIXED_DIFFS = ["FIXED", "SPOOL", "OPEN"]; // AMS2 differentials with nothi
 // Lever per step, by setup parameter name (R3E idToLabel, ACE labels, AMS2 canonical names).
 const LEVERS: Record<LadderStep["n"], RegExp> = {
   1: /duct|condott/i,
-  2: /brake bias|ripartizione frenata|bilanciamento fren/i,
+  2: /brake bias|ripartizione frenata|bilanciamento fren|brake pressure|pressione freni/i,
   3: /coast|freno motore|engine brak/i,
   4: /tyre pressure|^pressione (fl|fr|rl|rr)\b/i, // not "Pressione freni"
   5: /camber|campanatura/i,
-  6: /differential (power|preload)|power locking|power ramp|precarico|preload/i,
+  6: /differential (power|preload)|power locking|power ramp|precarico|preload|bias ratio/i,
+};
+// AMS2 Vision categories (buildAms2SetupSystemPrompt) holding each step's lever.
+const AMS2_LEVER_PAGES: Record<LadderStep["n"], string[]> = {
+  1: ["Freni"],
+  2: ["Freni"],
+  3: ["Motore/Elettronica", "Differenziale"],
+  4: ["Gomme"],
+  5: ["Sospensioni"],
+  6: ["Differenziale"],
 };
 const GEARED_DIFFS = ["G-LSD", "GC-LSD"]; // AMS2 differentials tuned by bias ratio, not ramps
 
@@ -343,9 +352,15 @@ export const computeSetupLadder = (
   // A step to fix whose lever the loaded setup lacks cannot be acted on: na,
   // skipped like the others (R3E/ACE often have no brake ducts).
   const params = opts.setupParams;
+  // AMS2 setups come from the screenshots the user picked: a lever is missing
+  // only if its page was read (a category of the step is present).
+  const pageRead = (n: LadderStep["n"]): boolean =>
+    opts.game !== "ams2" ||
+    !!params?.some((p) => AMS2_LEVER_PAGES[n].includes(p.category));
   const levered = (s: LadderStep): LadderStep =>
     params &&
     s.status === "fix" &&
+    pageRead(s.n) &&
     !params.some((p) => LEVERS[s.n].test(p.parameter))
       ? {
           ...s,

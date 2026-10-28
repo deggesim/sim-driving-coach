@@ -1000,3 +1000,44 @@ const biasAt = (limit?: "min" | "max") =>
 assert.equal(biasAt(), "fix");
 assert.equal(biasAt("max"), "ok");
 assert.equal(biasAt("min"), "fix");
+
+// --- AMS2: a lever counts as missing only if its page was read ---
+const ams2With = (params: SetupParam[]) =>
+  computeSetupLadder(unbalancedLaps, new Map(), {
+    fixedSetup: false,
+    setupParams: params,
+    game: "ams2",
+  });
+const page = (category: string, parameter: string): SetupParam => ({
+  category,
+  parameter,
+  value: "1",
+});
+// Only the suspension page captured: the brakes are unknown, step 1 stays.
+assert.equal(ams2With([page("Sospensioni", "Camber FL")]).current, 1);
+// Brakes page read and no duct among them: the lever is really missing.
+assert.equal(
+  stepOf(ams2With([page("Freni", "Bilanciamento freni")]), 1).status,
+  "na",
+);
+
+// --- Levers named by the steps' own fixes ---
+// G-LSD (AMS2): the diff is tuned by bias ratio only.
+assert.equal(
+  stepOf(
+    withParams(stint(5, okZone({ spinFramesRear: 50 })), P("Bias ratio power")),
+    6,
+  ).status,
+  "fix",
+);
+// Both axles lock: the fix moves the brake pressure.
+assert.equal(
+  stepOf(
+    withParams(
+      stint(5, okZone({ lockFramesFront: 20, lockFramesRear: 20 })),
+      P("Brake Pressure"),
+    ),
+    2,
+  ).status,
+  "fix",
+);

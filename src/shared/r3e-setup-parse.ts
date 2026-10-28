@@ -79,11 +79,14 @@ const formatValue = (item: R3ESetupItem): string => {
 
 // The raw value (minValue + currentStep * stepSize) at the lowest or highest
 // end of its range: with a negative stepSize the last step is the lowest.
+// maxStep counts the steps (BrakeBias 0.005 × 201 would pass 100 %; front
+// springs 140 + 6 × 20 = 260 with maxStep 7), so the last one is maxStep − 1.
 const limitOf = (item: R3ESetupItem): SetupParam["limit"] => {
-  if (!item.maxStep || !item.stepSize) return undefined;
-  const lowStep = item.stepSize > 0 ? 0 : item.maxStep;
+  const last = (item.maxStep ?? 0) - 1;
+  if (last < 1 || !item.stepSize) return undefined;
+  const lowStep = item.stepSize > 0 ? 0 : last;
   if (item.currentStep === lowStep) return "min";
-  if (item.currentStep === item.maxStep - lowStep) return "max";
+  if (item.currentStep === last - lowStep) return "max";
   return undefined;
 };
 
