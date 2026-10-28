@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** accorciare il percorso della scaletta e impedire che si blocchi su un passo senza leva o con la leva a fondo scala: avviso "Stint analizzabile" anticipato quando il verdetto è stabile, passo 1 (condotti freni) giudicato senza aspettare le gomme, promemoria vocale di ripresa all'apertura della sessione.
+**Goal:** accorciare il percorso della scaletta e impedire che si blocchi su un passo senza leva o con la leva a fondo scala: avviso "Stint analizzabile" anticipato quando il verdetto è stabile, passo 1 (condotti freni) giudicato senza aspettare le gomme.
 
-**Architecture:** tutto il giudizio resta in TypeScript puro in `setup-ladder.ts`: il passo 1 su giri propri, `verdictKey`, la nuova regola di `stintReadyMessage`, `resumeMessage`. `session-coach.ts` calcola le statistiche "prima dell'ultimo giro" e legge la sessione precedente. `main.ts` pronuncia le frasi. `prompt-builder.ts` adatta la riga della sequenza quando il passo 1 è corrente prima dei giri giudicati.
+**Architecture:** tutto il giudizio resta in TypeScript puro in `setup-ladder.ts`: il passo 1 su giri propri, `verdictKey`, la nuova regola di `stintReadyMessage`, le leve del setup. `session-coach.ts` calcola le statistiche "prima dell'ultimo giro". `prompt-builder.ts` adatta la riga della sequenza quando il passo 1 è corrente prima dei giri giudicati.
 
 **Tech Stack:** Electron main process, TypeScript strict, better-sqlite3, selfcheck con `node:assert/strict`.
 
@@ -26,7 +26,6 @@
 2. **Setup Fisso (R3E)**: il passo 1 non è proponibile, quindi non deve diventare corrente prima dei giri giudicati (Task 1, test "fixedSetup").
 3. **Ultimo giro non valido**: la stabilità confronta il verdetto prima e dopo l'ultimo giro *contato*, non l'ultimo giro registrato (Task 3: il taglio usa `lastJudgedLap`).
 4. **Passo corrente 4 (pressioni)**: servono sempre 3 giri anche con verdetto stabile (Task 3, test dedicato).
-5. **Sessione precedente senza setup acquisito**: la frase dice "setup non acquisito" e "usa lo stesso setup" (Task 4, test dedicato).
 
 ---
 
@@ -171,69 +170,7 @@ assert.equal(
   - `src/main/CLAUDE.md`: stessa regola nella voce `setup-ladder.ts`; nella voce `session-coach.ts`, il calcolo di `prev`.
 - [ ] **Step 6: gate completo e commit.** Messaggio: `feat(coach): avviso stint anticipato quando il verdetto è stabile`.
 
-### Task 4: promemoria di ripresa all'apertura della sessione
-
-**Files:**
-- Modify: `src/main/coach/setup-ladder.ts` (nuovo `resumeMessage`)
-- Modify: `src/main/coach/session-coach.ts` (nuovo metodo `resumeHint` nel tipo e nell'oggetto restituito)
-- Modify: `src/main/main.ts` (`openSessionByVoice`, handler `session:start`)
-- Test: `src/main/coach/setup-ladder.selfcheck.ts`
-- Docs: `CLAUDE.md`, `src/main/CLAUDE.md`
-
-**Interfaces:**
-- Produces:
-  - `resumeMessage(startedAt: string, setupName: string | null, ladder: SetupLadder | null, overview?: SetupOverview | null): string`;
-  - `SessionCoach.resumeHint(game: GameSource, sessionId: number): string | null`.
-
-Testo, dalla spec §3: `Ultima sessione con questa combinazione: ${data}, ${setup}, ${stato}. ${chiusura}`.
-- **`data`:** `new Date(startedAt).toLocaleDateString("it-IT", { day: "numeric", month: "long" })`, per esempio "27 ottobre".
-- **`setup`:** `setup ${setupName}`, oppure "setup non acquisito".
-- **`stato`:**
-  - "giri insufficienti per un giudizio" se `ladder` è null, oppure se `lapsMissing > 0` e `current` è null;
-  - `passo ${n}, ${label}, da correggere` se c'è un passo corrente;
-  - `sequenza completa, area ${n}, ${label}` se c'è un'area corrente del quadro;
-  - "nessun passo da correggere" negli altri casi.
-- **`chiusura`:** "Per riprendere carica quel setup." se c'è un nome, altrimenti "Per riprendere usa lo stesso setup.".
-
-`resumeHint`:
-1. Legge auto, circuito e layout della sessione `sessionId`.
-2. Cerca la sessione precedente: `SELECT id, started_at FROM ${tableFor(game, "sessions")} WHERE car = ? AND track = ? AND layout IS ? AND id < ? AND lap_count > 0 ORDER BY id DESC LIMIT 1`.
-3. Ne carica il bundle con `loadSessionBundle` e calcola `computeSessionStats` con gli stessi input di `stintReady`.
-4. Prende come setup quello dell'ultimo giro (`bundle.setups.find((s) => s.id === bundle.laps.at(-1)?.setup_id)?.setup.name ?? null`).
-5. Restituisce `null` se non c'è una sessione precedente.
-
-In `main.ts`, un helper `speakResumeHint` legge `currentSessionId`/`currentSessionGame` e pronuncia il promemoria se non è null. Si chiama in due punti:
-- in `openSessionByVoice`, dopo `await speakText("Sessione aperta su …")`;
-- nell'handler `session:start`, dopo un avvio con `ok: true`. L'handler diventa `async` e restituisce comunque il risultato di `startSession`.
-
-- [ ] **Step 1: scrivere i test che falliscono** in `setup-ladder.selfcheck.ts`:
-
-```ts
-const at = "2026-10-27T15:18:00.000Z";
-assert.equal(
-  resumeMessage(at, "Monza v2", L(stint(4, okZone({ avgBrakeTempC: [720, 720, 400, 400] })))),
-  "Ultima sessione con questa combinazione: 27 ottobre, setup Monza v2, passo 1, condotti freni, da correggere. Per riprendere carica quel setup.",
-);
-assert.equal(
-  resumeMessage(at, null, L(stint(4, okZone()))),
-  "Ultima sessione con questa combinazione: 27 ottobre, setup non acquisito, nessun passo da correggere. Per riprendere usa lo stesso setup.",
-);
-assert.ok(resumeMessage(at, "A", L(stint(1, okZone()))).includes("giri insufficienti per un giudizio"));
-assert.ok(resumeMessage(at, "A", ladderComplete, overviewCurrent6).includes("sequenza completa, area 6, barre antirollio"));
-assert.ok(resumeMessage(at, "A", null).includes("giri insufficienti per un giudizio"));
-```
-
-`ladderComplete` e `overviewCurrent6` esistono già nel selfcheck. Se sono dichiarati più avanti nel file, mettere questi test dopo di loro.
-
-- [ ] **Step 2: eseguire `npm run selfcheck` e verificare il fallimento.**
-- [ ] **Step 3: implementare** `resumeMessage`, `resumeHint` e il collegamento in `main.ts`, come descritto sopra.
-- [ ] **Step 4: eseguire `npm run selfcheck`.** Atteso: tutti passati.
-- [ ] **Step 5: aggiornare la documentazione.**
-  - `CLAUDE.md`, punto "Setup ladder": "All'apertura della sessione (voce o interfaccia) un promemoria dice data, setup e stato dell'ultima sessione con la stessa auto, circuito e layout".
-  - `src/main/CLAUDE.md`: le voci `setup-ladder.ts` e `session-coach.ts`.
-- [ ] **Step 6: gate completo e commit.** Messaggio: `feat(coach): promemoria di ripresa all'apertura della sessione`.
-
-### Task 5: passo senza leva nel setup caricato → NON VALUTABILE
+### Task 4: passo senza leva nel setup caricato → NON VALUTABILE
 
 **Files:**
 - Modify: `src/main/coach/setup-ladder.ts`: opzione `setupParams` di `computeSetupLadder`, tabella `LEVERS`, post-elaborazione dei passi in entrambi i ritorni, quello anticipato del Task 1 e quello finale
@@ -246,7 +183,7 @@ assert.ok(resumeMessage(at, "A", null).includes("giri insufficienti per un giudi
 - Consumes: il ritorno anticipato del Task 1 (`lapsMissing > 0`, passo 1 corrente).
 - Produces: `computeSetupLadder(laps, labels, opts: { …; setupParams?: SetupParam[] | null })`. Con `setupParams` assente o null il comportamento è quello di oggi.
 
-Regola, dalla spec §4: un passo `fix` per cui nessun `param.parameter` soddisfa il pattern della sua leva diventa `{ ...step, status: "na", reason: "leva non presente nel setup caricato — " + step.reason }`. Poi `current` si ricalcola con la regola di sempre: primo passo `fix` e proponibile. Nel ritorno anticipato del Task 1 la stessa regola fa sì che il passo 1 senza leva non diventi corrente. Pattern, case-insensitive:
+Regola, dalla spec §3: un passo `fix` per cui nessun `param.parameter` soddisfa il pattern della sua leva diventa `{ ...step, status: "na", reason: "leva non presente nel setup caricato — " + step.reason }`. Poi `current` si ricalcola con la regola di sempre: primo passo `fix` e proponibile. Nel ritorno anticipato del Task 1 la stessa regola fa sì che il passo 1 senza leva non diventi corrente. Pattern, case-insensitive:
 
 ```ts
 const LEVERS: Record<number, RegExp> = {
@@ -297,24 +234,24 @@ Se `SetupParam` non è già importato nel selfcheck, importarlo da `../../shared
   - `src/main/CLAUDE.md`: la stessa regola nella voce `setup-ladder.ts`, e i nomi nuovi nella voce `ams2-setup-vision.ts`.
 - [ ] **Step 6: gate completo e commit.** Messaggio: `feat(coach): passo senza leva nel setup saltato dalla scaletta`.
 
-### Task 6: leva a fondo scala (solo R3E)
+### Task 5: leva a fondo scala (solo R3E)
 
 **Files:**
 - Modify: `src/shared/types.ts`: `SetupParam.limit?: "min" | "max"`
 - Modify: `src/shared/r3e-setup-parse.ts`: calcolo di `limit`
-- Modify: `src/main/coach/setup-ladder.ts`: `LadderStep.moves?`, mosse dei passi 2, 4 e 5, opzione `game`, post-elaborazione dopo quella del Task 5
+- Modify: `src/main/coach/setup-ladder.ts`: `LadderStep.moves?`, mosse dei passi 2, 4 e 5, opzione `game`, post-elaborazione dopo quella del Task 4
 - Modify: `src/main/coach/session-stats.ts`: passa `game` a `computeSetupLadder`
 - Test: `src/shared/r3e-setup-parse.selfcheck.ts`, `src/main/coach/setup-ladder.selfcheck.ts`
 - Docs: `src/main/CLAUDE.md`
 
 **Interfaces:**
-- Consumes: `setupParams` e la post-elaborazione del Task 5.
+- Consumes: `setupParams` e la post-elaborazione del Task 4.
 - Produces:
   - `SetupParam.limit?: "min" | "max"`: il valore grezzo `minValue + currentStep * stepSize` è il più basso (`"min"`) o il più alto (`"max"`) raggiungibile. È assente se `maxStep === 0`, se `stepSize === 0` o se il valore è a metà corsa. Il valore più basso è al passo 0 quando `stepSize > 0`, al passo `maxStep` quando `stepSize < 0`.
   - `LadderStep.moves?: { param: string; dir: "up" | "down" }[]`, con `param` uguale al nome R3E del parametro (`idToLabel`).
   - `computeSetupLadder(…, opts: { …; game?: GameSource })`.
 
-Mosse, dalla spec §4. Le ruote in ordine FL, FR, RL, RR corrispondono a "Front Left", "Front Right", "Rear Left", "Rear Right".
+Mosse, dalla spec §3. Le ruote in ordine FL, FR, RL, RR corrispondono a "Front Left", "Front Right", "Rear Left", "Rear Right".
 - **Passo 2:** verso il posteriore `{ param: "Brake Bias", dir: "up" }`, verso l'anteriore `"down"`. Con "ridurre la forza frenante" `{ param: "Brake Pressure", dir: "down" }`.
 - **Passo 4:** per ogni ruota fuori soglia, `Tyre Pressure <ruota>` con `"down"` se la pressione è alta e `"up"` se è bassa.
 - **Passo 5:** per ogni ruota indicata, `Camber <ruota>` con `"down"` se serve più campanatura negativa e `"up"` se ne serve meno.
@@ -355,7 +292,7 @@ assert.equal(
 );
 ```
 
-Prima delle altre asserzioni, verificare che con `camberLaps` il passo 5 sia `fix` e che i passi 1-4 siano ok. Se `okZone` non lo garantisce, scegliere temperature interne ed esterne che lo garantiscano. Con `setupParams` non vuoti si applica anche il Task 5: le liste dei parametri devono includere le leve dei passi che si vogliono lasciare valutabili.
+Prima delle altre asserzioni, verificare che con `camberLaps` il passo 5 sia `fix` e che i passi 1-4 siano ok. Se `okZone` non lo garantisce, scegliere temperature interne ed esterne che lo garantiscano. Con `setupParams` non vuoti si applica anche il Task 4: le liste dei parametri devono includere le leve dei passi che si vogliono lasciare valutabili.
 
 - [ ] **Step 2: eseguire `npm run selfcheck` e verificare il fallimento.**
 - [ ] **Step 3: implementare** come descritto sopra. Le mosse nascono nei passi 2, 4 e 5, dove la decisione per ruota esiste già.
@@ -367,7 +304,6 @@ Prima delle altre asserzioni, verificare che con `camberLaps` il passo 5 sia `fi
 
 ### Verifica finale con il simulatore (utente)
 
-- R3E o ACE: aprire una sessione nuova con la stessa combinazione di una sessione precedente. Il promemoria deve dire data, setup e passo corretti.
 - Al primo stint con un setup che ha i freni sbilanciati, l'avviso "condotti freni" deve arrivare dopo il giro 3, anche quando le gomme non sono ancora stabili.
 - Con un verdetto netto, l'avviso "Stint analizzabile" deve arrivare con 2 giri giudicati invece di 3.
 - R3E con la Porsche 911 GT3 R, oppure ACE: con i freni sbilanciati il passo 1 deve risultare "leva non presente nel setup caricato", e la scaletta deve proseguire.
