@@ -9,6 +9,7 @@ import {
   judgedLapsOfLastSegment,
   ladderFlags,
   stintReadyMessage,
+  verdictKey,
   type SetupLadder,
 } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
@@ -818,4 +819,50 @@ assert.equal(
     fixedSetup: true,
   }).current,
   null,
+);
+
+// --- Readiness: 2 counted laps when the verdict is stable, else 3 ---
+const L = (laps: LapRow[]) =>
+  computeSetupLadder(laps, new Map(), { fixedSetup: false });
+// The verdict before the last counted lap is judged on a single lap.
+const L1 = (laps: LapRow[]) =>
+  computeSetupLadder(laps, new Map(), { fixedSetup: false, minJudgedLaps: 1 });
+assert.equal(L1(stint(2, okZone())).lapsMissing, 0);
+// Stable at 2 judged laps: speaks one lap earlier than today.
+assert.equal(
+  stintReadyMessage(L(stint(3, okZone())), null, {
+    ladder: L1(stint(2, okZone())),
+  }),
+  "Stint analizzabile: 2 giri giudicati. Nessun passo da correggere. Puoi metterti in pausa ed eseguire l'analisi.",
+);
+// Numbers alone differ: still stable.
+const hotF = (t: number) => okZone({ avgBrakeTempC: [t, t, 400, 400] });
+assert.equal(
+  verdictKey(L(stint(3, hotF(720)))),
+  verdictKey(L(stint(3, hotF(730)))),
+);
+// The verdict flips with the second judged lap: wait for the third.
+assert.equal(
+  stintReadyMessage(L(stint(3, okZone())), null, {
+    ladder: L1(stint(2, hotF(720))),
+  }),
+  null,
+);
+// Without prev: today's rule (3 judged laps).
+assert.equal(stintReadyMessage(L(stint(3, okZone()))), null);
+// Current step 4 (pressures): 3 laps even when stable.
+const lowPress = okZone({ avgTyreTempCenterC: [83, 83, 83, 83] }); // Δ centre − shoulders −2 °C: "bassa"
+assert.equal(L(stint(3, lowPress)).current, 4);
+assert.equal(
+  stintReadyMessage(L(stint(3, lowPress)), null, {
+    ladder: L1(stint(2, lowPress)),
+  }),
+  null,
+);
+// Early step 1 (`drifting`): 2 brake laps, stable against 1 → ready.
+assert.equal(
+  stintReadyMessage(L(drifting(3, [720, 720, 400, 400])), null, {
+    ladder: L(drifting(2, [720, 720, 400, 400])),
+  }),
+  "Stint analizzabile: 2 giri giudicati. Primo passo da correggere: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
 );

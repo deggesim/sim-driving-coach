@@ -149,6 +149,7 @@ export type ComputeStatsInput = {
   camberUnreadable?: boolean;
   game?: GameSource; // default "r3e"
   car?: string | null; // session.car: the raw SHM name for AMS2, only read there
+  minJudgedLaps?: number; // forwarded to computeSetupLadder (stintReady's "before the last lap")
 };
 
 const avg = (arr: number[]): number =>
@@ -355,6 +356,7 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     leaderboardMode: !!input.leaderboardMode,
     camberUnreadable: !!input.camberUnreadable,
     car,
+    minJudgedLaps: input.minJudgedLaps,
   });
 
   return {

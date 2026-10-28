@@ -242,15 +242,17 @@ export const computeSetupLadder = (
     leaderboardMode?: boolean;
     camberUnreadable?: boolean;
     car?: Ams2Car | null; // AMS2 table row: driveline and differential type
+    minJudgedLaps?: number; // 1 only to judge the verdict before the last lap
   },
 ): SetupLadder => {
+  const minJudged = opts.minJudgedLaps ?? MIN_JUDGED_LAPS;
   const labelOf = (id: number | null): string | null =>
     id != null ? (setupLabelById.get(id) ?? null) : null;
 
   const segments = segmentsOf(laps);
   const analysed = segments.map((seg) => {
     const judged = judgedOf(seg, opts.leaderboardMode);
-    return judged.length >= MIN_JUDGED_LAPS
+    return judged.length >= minJudged
       ? tyreSummary(judged, labelOf(seg[0].setup_id), !opts.camberUnreadable)
       : null;
   });
@@ -260,7 +262,7 @@ export const computeSetupLadder = (
   // Every lap after the out-lap, valid or not: a dirty lap still heats the brakes.
   const brakeLaps = seg.slice(1);
   // A lower bound: how many laps are still needed depends on the plateau.
-  const lapsMissing = Math.max(0, MIN_JUDGED_LAPS - judged.length);
+  const lapsMissing = Math.max(0, minJudged - judged.length);
   const base = {
     setupLabel: labelOf(seg[0]?.setup_id ?? null),
     firstJudgedLap: judged[0]?.lap_number ?? null,
@@ -545,12 +547,48 @@ export const computeSetupLadder = (
   };
 };
 
-/** Spoken at the end of a lap once the stint can be analysed, null while it cannot. */
+const NUMBER = /\d+(?:[.,]\d+)?/g;
+const keyOf = (xs: { n: number; status: string; reason: string }[]): string[] =>
+  xs.map((x) => `${x.n}:${x.status}:${x.reason.replace(NUMBER, "#")}`);
+
+/**
+ * The verdict the stint stands on, numbers blanked: the steps up to the
+ * current one (all without one) and, once the ladder is complete, the overview
+ * areas up to the current area. Equal keys = same states, directions, wheels.
+ */
+export const verdictKey = (
+  ladder: SetupLadder,
+  overview?: SetupOverview | null,
+): string => {
+  const upTo = <T extends { n: number }>(xs: T[], cur: number | null): T[] =>
+    cur == null ? xs : xs.filter((x) => x.n <= cur);
+  const areas =
+    ladder.current == null && ladder.lapsMissing === 0 && overview
+      ? keyOf(upTo(overview.areas, overview.current))
+      : [];
+  return [...keyOf(upTo(ladder.steps, ladder.current)), ...areas].join("|");
+};
+
+/**
+ * Spoken at the end of a lap once the stint can be analysed, null while it
+ * cannot: 3 counted laps, or 2 when the verdict did not change with the last
+ * one (`prev`: the stats before it). Step 4 always waits for 3 (pressure drift).
+ */
 export const stintReadyMessage = (
   ladder: SetupLadder,
   overview?: SetupOverview | null,
+  prev?: { ladder: SetupLadder; overview?: SetupOverview | null } | null,
 ): string | null => {
-  if (ladder.judgedLaps < READY_JUDGED_LAPS) return null;
+  const counted =
+    ladder.lapsMissing > 0 && ladder.current === 1
+      ? ladder.ductsLaps
+      : ladder.judgedLaps;
+  const stable =
+    counted >= MIN_JUDGED_LAPS &&
+    ladder.current !== 4 &&
+    prev != null &&
+    verdictKey(prev.ladder, prev.overview) === verdictKey(ladder, overview);
+  if (counted < READY_JUDGED_LAPS && !stable) return null;
   const current = ladder.steps.find((s) => s.n === ladder.current);
   const area = overview?.areas.find((a) => a.n === overview.current);
   const verdict = current
@@ -558,5 +596,5 @@ export const stintReadyMessage = (
     : area
       ? `Sequenza completa, prima area dell'assetto: ${area.label}.`
       : "Nessun passo da correggere.";
-  return `Stint analizzabile: ${ladder.judgedLaps} giri giudicati. ${verdict} Puoi metterti in pausa ed eseguire l'analisi.`;
+  return `Stint analizzabile: ${counted} giri giudicati. ${verdict} Puoi metterti in pausa ed eseguire l'analisi.`;
 };

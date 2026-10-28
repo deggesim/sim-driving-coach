@@ -246,16 +246,38 @@ export const createSessionCoachEngine = (
     stintReady: (sessionId, game) => {
       const bundle = loadSessionBundle(game, sessionId);
       if (!bundle) return null;
-      const { setupLadder, setupOverview } = computeSessionStats({
-        laps: bundle.laps,
-        bestLap: bundle.session.best_lap,
-        setups: bundle.setups,
-        cornerNames,
-        game,
-        car: bundle.session.car,
-        ...ladderFlags(game, bundle.flags),
-      });
-      return setupLadder && stintReadyMessage(setupLadder, setupOverview);
+      const statsOf = (laps: LapRow[], minJudgedLaps?: number) =>
+        computeSessionStats({
+          laps,
+          bestLap: bundle.session.best_lap,
+          setups: bundle.setups,
+          cornerNames,
+          game,
+          car: bundle.session.car,
+          minJudgedLaps,
+          ...ladderFlags(game, bundle.flags),
+        });
+      const { setupLadder, setupOverview } = statsOf(bundle.laps);
+      if (!setupLadder) return null;
+      // The verdict before the last counted lap, judged on one lap less.
+      const cut =
+        setupLadder.lapsMissing > 0 && setupLadder.current === 1
+          ? (bundle.laps.at(-1)?.lap_number ?? null)
+          : setupLadder.lastJudgedLap;
+      const before =
+        cut == null
+          ? null
+          : statsOf(
+              bundle.laps.filter((l) => l.lap_number < cut),
+              1,
+            );
+      return stintReadyMessage(
+        setupLadder,
+        setupOverview,
+        before?.setupLadder
+          ? { ladder: before.setupLadder, overview: before.setupOverview }
+          : null,
+      );
     },
 
     analyzeSession: async (sessionId, game, resolved, alerts) => {
