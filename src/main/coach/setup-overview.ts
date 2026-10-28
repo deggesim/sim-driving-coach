@@ -15,6 +15,7 @@ import {
   type Move,
   type SetupLadder,
 } from "./setup-ladder.js";
+import { DAMPER_KNEE_MPS } from "../chassis-counters.js";
 import type { SetupLevers } from "./setup-levers.js";
 import type { WeightDistribution } from "./weight-distribution.js";
 import type { GameSource, SetupParam, ZoneData } from "../../shared/types.js";
@@ -28,6 +29,9 @@ const MIN_CLASS_CORNERS = 3; // corners per speed class
 const WEAVE_PER_KM = 6; // steering reversals per km of fast straight
 const WEAVE_MIN_M = 2000; // fast straight needed to judge toe
 const TYRE_CONFIRM_C = 5; // axle temperature gap that confirms a balance symptom
+const DAMPER_REB_MIN = 0.4; // rebound share of the slow damper samples, per axle
+const DAMPER_REB_MAX = 0.65;
+const DAMPER_MIN_SAMPLES = 1000; // slow samples needed on each axle
 
 type Quartet = [number, number, number, number];
 
@@ -331,25 +335,62 @@ export const computeSetupOverview = (input: {
     return judge(4, parts);
   })();
 
-  // 5 - dampers: shown, never judged. Asymmetry is a legitimate choice (front
-  // vs rear always, left vs right on one-way tracks), and prolonged oscillation
-  // did not move with +3 clicks of slow rebound on R3E (Monza, 2026-10-28):
-  // kerbs dominate it. No telemetry criterion is left to judge them by.
+  // 5 - dampers, judged from the suspension-velocity histogram: the share of
+  // rebound among the slow samples (below the knee) per axle. The free decay
+  // cannot be measured at 33 Hz, the distribution can. Left vs right is not
+  // judged (one-way tracks), both wheels of an axle are pooled.
   const dampers = ((): OverviewArea => {
-    if (!levers) return step(5, "na", "nessun setup caricato");
     const families = (Object.keys(DAMPERS) as (keyof typeof DAMPERS)[]).flatMap(
       (k) => {
-        const q: Quartet | undefined = levers[k];
+        const q: Quartet | undefined = levers?.[k];
         return q ? [{ name: DAMPERS[k], q }] : [];
       },
     );
-    if (!families.length)
-      return step(5, "na", "parametro non presente nel setup caricato");
-    return step(
-      5,
-      "na",
-      `${families.map(({ name, q }) => `${name} ant ${q[0]}/${q[1]} post ${q[2]}/${q[3]}`).join(", ")}; non giudicati: nessun criterio affidabile dalla telemetria`,
+    const setupData = families.length
+      ? families
+          .map(
+            ({ name, q }) => `${name} ant ${q[0]}/${q[1]} post ${q[2]}/${q[3]}`,
+          )
+          .join(", ")
+      : null;
+    const na = (why: string) =>
+      step(5, "na", [setupData, why].filter(Boolean).join("; "));
+    const h = sumFamily(
+      zones.flatMap((z) => (z.damperHist ? [z.damperHist] : [])),
     );
+    if (!h) return na("velocità ammortizzatori non disponibile");
+    const axles = (["F", "R"] as const).map((a) => {
+      const low = h[`lowBump${a}`] + h[`lowReb${a}`];
+      const high = h[`highBump${a}`] + h[`highReb${a}`];
+      return {
+        low,
+        share: h[`lowReb${a}`] / low,
+        hiShare: high / (low + high),
+      };
+    });
+    if (axles.some((a) => a.low < DAMPER_MIN_SAMPLES))
+      return na(
+        `ant ${axles[0].low}, post ${axles[1].low} campioni lenti, ne servono almeno ${DAMPER_MIN_SAMPLES}`,
+      );
+    const pct = (x: number) => Math.round(x * 100);
+    const dist = axles.map((a) =>
+      Math.max(DAMPER_REB_MIN - a.share, a.share - DAMPER_REB_MAX, 0),
+    );
+    const worst = dist[1] > dist[0] ? 1 : 0; // a tie goes to the front
+    const parts: Part[] = axles.map((a, i) => {
+      const name = i ? "post" : "ant";
+      const data = `${name}: rebound nel ${pct(a.share)} % dei campioni sotto ${DAMPER_KNEE_MPS * 1000} mm/s, ${pct(a.hiShare)} % dei campioni oltre ${DAMPER_KNEE_MPS * 1000} mm/s`;
+      if (i !== worst || !dist[i]) return { data };
+      const down = a.share > DAMPER_REB_MAX;
+      const axle = i ? "posteriore" : "anteriore";
+      return {
+        data,
+        fix: `${down ? "meno" : "più"} slow rebound ${axle}`,
+        moves: [all4("Rebound", down ? "down" : "up", i ? [2, 3] : [0, 1])],
+      };
+    });
+    if (setupData) parts.push({ data: setupData });
+    return judge(5, parts);
   })();
 
   // 6 - anti-roll bars: mid-corner balance in the slow corners (no aero there).
