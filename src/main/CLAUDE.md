@@ -31,6 +31,7 @@ missing channel never reaches a prompt as a zero.
 | `tp` (PSI, stored) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
 | `sr` | derived: `(-TireSpeed - CarSpeed) / CarSpeed` (TireSpeed is negative rolling forward, verified live), zeroed below 5 m/s | `slipRatio` | — derived from `mTyreRPS` (rad/s) with a tyre radius estimated in pure rolling (median of 100 samples, redone on every reader start); absent until estimated |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
+| `sv` (raw) | `Player_SuspensionVelocity` double[4] | — | `mSuspensionVelocity` @7356, **not verified live** |
 | `rh` (m) | `Player_RideHeight` double[4], **assumed metres**, not verified live; a quartet with any value < 0 is dropped | `rideHeight[2]` @268, **per axle**, mapped to `[F, F, R, R]` (a touch must count once per axle, not twice) | `mRideHeight` @20380 in cm, ÷ 100. Not in pCARS2 `SharedMemory.h`: an AMS2 addition taken from AMS2SharedMemoryNet `AMS2Page.cs`, **not verified** |
 | `wl` (N) | `TireLoad`, same dropping rule | `wheelLoad` @72 | — absent |
 | `fuel` (L) | `FuelLeft` | `fuel` @12 | — absent (fuel is used only for R3E/ACE) |
@@ -45,6 +46,8 @@ never needs to know which game it is averaging. Display is a separate concern:
 Claude, to the unit of each game's setup screen: bar on AMS2, kPa on R3E (its
 setup export and UI), PSI on ACE (matching what's already stored) — the raw
 channel is untouched.
+
+`sv` is stored raw, in the game's own unit and sign (R3E, AMS2; absent on ACE): the unit and sign are calibrated per lap in `chassis-counters.ts`. The `channel-log` line prints `vsosp=…mm/s` (raw × 1000: in m/s it reads tens to hundreds, in mm/s tens of thousands), the live check of the unit.
 
 None of the `rh` / `wl` / `fuel` offsets or units has been checked live yet: the `channel-log` line prints `alt=…mm carico=…N`, which should read tens of mm falling under braking and at speed, and four wheel loads summing to about mass × 9.81 at low speed. An `rh` whose lap median (axle means) is outside 5–300 mm — all zeros included — counts as absent (wrong offset or unit), never as a zero ride height.
 

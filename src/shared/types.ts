@@ -87,6 +87,7 @@ export type CompactFrame = {
   tp?: number[]; // tyre pressures PSI [FL, FR, RL, RR]
   sr?: number[]; // slip ratios [FL, FR, RL, RR] (negative = locking)
   sus?: number[]; // suspension travel m [FL, FR, RL, RR]
+  sv?: number[]; // suspension velocity [FL, FR, RL, RR], raw game units and sign (R3E, AMS2); calibrated per lap in chassis-counters
   rh?: number[]; // ride height m [FL, FR, RL, RR] (ACE: per axle, [F, F, R, R])
   wl?: number[]; // wheel load N [FL, FR, RL, RR] (R3E, ACE; absent on AMS2)
   fuel?: number; // fuel in the tank, litres (R3E, ACE)

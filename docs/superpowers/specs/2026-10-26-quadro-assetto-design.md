@@ -80,6 +80,7 @@ Le aree `non valutabile` si scavalcano dichiarandole, come i passi della sequenz
 | Sottosterzo in inserimento senza ABS dominante (la sequenza lo lascia libero) | Altezze → rake | Barre |
 | Fondo che tocca in frenata, sui cordoli o in curva | Bumpstop (direzione con il ripiego "altrimenti Altezze +2 mm") | Altezze |
 | Fondo che tocca nei rettilinei veloci | Terze molle (direzione con il ripiego "altrimenti Bumpstop") | Bumpstop, Altezze, Aerodinamica |
+| Quota di rebound lento fuori banda (istogramma velocità) | Ammortizzatori | — |
 | Sotto/sovrasterzo a centro curva nelle curve lente | Barre | Convergenze |
 | Instabilità in rettilineo veloce | Convergenze | — |
 | Bilanciamento che cambia con la velocità (lente vs veloci) | Aerodinamica | Barre |
@@ -125,9 +126,14 @@ Guida "Le terze molle": contrastano lo schiacciamento aerodinamico alle alte vel
 
 Guida "Gli ammortizzatori": prima molle isofrequenziali, poi i quattro ammortizzatori con gli stessi valori; oscillazioni prolungate → più slow rebound sulle quattro, se non basta anche slow bump; fast bump/rebound al minimo su AMS2, salvo cordoli digeriti male (prima verificare altezze e bumpstop).
 
-- **Setup: non giudicato** (2026-10-28). La guida parte dai quattro ammortizzatori uguali come metodo di costruzione, non come regola di correttezza: anteriore diverso dal posteriore è la norma, sinistra diversa da destra è una scelta sui tracciati a senso prevalente. L'area è sempre `non valutabile` con i valori per asse e il motivo "non giudicati: nessun criterio affidabile dalla telemetria".
-- **Oscillazioni: non giudicate** (verifica live del 2026-10-28). Il contatore previsto (semiperiodi con |velocità| > 30 % del picco entro 1 s, ≥ 3 in più del 20 % dei picchi) non misura lo smorzamento: su R3E a Monza, Porsche 911 GT3 R, +3 click di slow rebound sulle quattro ruote hanno lasciato la quota al 65-74 %, come il setup di default (61-74 %). I picchi sono quasi tutti cordoli, e i frame a 33 Hz sono troppo radi per il decadimento libero. L'area resta giudicata solo sul setup.
-- `non valutabile`: nessun setup caricato, o setup senza ammortizzatori (setup fisso).
+- **Setup: non giudicato** (2026-10-28). La guida parte dai quattro ammortizzatori uguali come metodo di costruzione, non come regola di correttezza: anteriore diverso dal posteriore è la norma, sinistra diversa da destra è una scelta sui tracciati a senso prevalente. I valori del setup, quando caricato, si mostrano per asse accanto al giudizio, mai come correzione.
+- **Oscillazioni: non giudicate** (verifica live del 2026-10-28). Il contatore previsto (semiperiodi con |velocità| > 30 % del picco entro 1 s, ≥ 3 in più del 20 % dei picchi) non misura lo smorzamento: su R3E a Monza, Porsche 911 GT3 R, +3 click di slow rebound sulle quattro ruote hanno lasciato la quota al 65-74 %, come il setup di default (61-74 %). I picchi sono quasi tutti cordoli, e i frame a 33 Hz sono troppo radi per il decadimento libero.
+- **Istogramma della velocità degli ammortizzatori** (2026-10-28, criterio scelto da Claude su richiesta dell'utente). La distribuzione delle velocità si stima anche con campioni radi, a differenza del decadimento, purché la velocità sia quella istantanea del gioco e non una differenza di corse: R3E `Player_SuspensionVelocity`, AMS2 `mSuspensionVelocity` (offset 7356, tra `mSuspensionTravel` e `mAirPressure`); ACE non la espone → `non valutabile`. Riferimento: gli istogrammi di velocità ammortizzatori di TelemetryTool e la pratica d'ingegneria (simmetria compressione/estensione).
+  - **Calibrazione per giro**, perché segno e unità della velocità non sono documentati né verificati dal vivo: la velocità del gioco si confronta con la derivata della corsa (`sus`) tra frame consecutivi. Pendenza `k = Σ v·d / Σ d²` con |k| fra 0,3 e 3 → m/s, fra 300 e 3000 → mm/s; altrimenti il canale è assente (offset o unità sbagliati), mai un giudizio. Il verso della compressione è quello in cui si sposta la corsa anteriore in frenata forte (l'avantreno affonda); giro senza frenate forti → canale assente.
+  - **Grandezza giudicata**: per asse, la quota di campioni in estensione (rebound) fra quelli sotto **50 mm/s (scelta)**, il campo dello slow damping; esclusi i frame sotto 30 km/h. Ammortizzatori bilanciati danno una quota vicina al 50 %: la corsa torna sempre al punto di partenza, quindi un rebound più frenato si allunga nel tempo. Banda accettata **40-65 % (scelta, da tarare)**: il rebound è di norma più duro del bump.
+  - `da correggere` quando un asse esce dalla banda; si corregge solo l'asse più lontano dalla banda (l'altro resta come dato), così il modello non sceglie. Quota sopra 65 % → "meno slow rebound" su quell'asse; sotto 40 % → "più slow rebound". Leva unica: la guida mette il rebound per primo.
+  - Mostrati ma non giudicati: la quota di campioni oltre 50 mm/s per asse (cordoli; la guida vuole il fast al minimo salvo cordoli digeriti male) e i valori del setup.
+- `non valutabile`: velocità ammortizzatori non disponibile (ACE, registrazioni precedenti, calibrazione fallita); meno di **1000 campioni lenti (scelta)** per asse.
 
 ### 6. Barre antirollio
 
@@ -238,12 +244,13 @@ Dopo le righe della sequenza, una riga "Quadro assetto" e una riga per area, nel
 ## Verifica
 
 - Selfcheck: estrattore del setup sui tre giochi (con fixture JSON R3E, etichette ACE, nomi canonici AMS2); ogni area (`ok`, `da correggere`, `non valutabile`); regola "un sintomo, un'area"; regressione della distribuzione dei pesi su dati sintetici con aerodinamica nota; associazione dei nomi auto AMS2.
+- Ammortizzatori, dal vivo su R3E e AMS2: la riga `channel-log` mostra `vsosp` in decine/centinaia di mm/s; una sessione con +3 click di slow rebound sulle quattro ruote deve alzare la quota di rebound lento rispetto al setup di partenza. Se non si sposta, il criterio va tolto come le oscillazioni.
 - Dal vivo, per ogni gioco: la riga `channel-log` mostra altezza da terra, velocità sospensioni e carico ruota plausibili (altezza: decine di mm che scendono in frenata e ad alta velocità; carico: somma ≈ peso × 9,81 a bassa velocità); la distribuzione misurata di un'auto R3E o ACE confrontata con il dato pubblicato; il nome di almeno tre auto AMS2 trovato nella tabella.
 - Gate del repo: `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck && npm run fallow:check`.
 
 ## Scelte del piano e decisioni d'implementazione (2026-10-27)
 
-- La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi, per scelta: un solo metodo (R3E mappa `Player_SuspensionVelocity`, ACE non ne ha).
+- La velocità delle sospensioni si deriva dalla corsa (`sus`) per tutti e tre i giochi, per scelta: un solo metodo (R3E mappa `Player_SuspensionVelocity`, ACE non ne ha). *(2026-10-28: superata dal §5, l'istogramma usa la velocità istantanea del gioco su R3E e AMS2; la derivata della corsa serve solo a calibrarne segno e unità.)*
 - L'estrattore del setup si limita a molle e quattro famiglie di ammortizzatori; le altre leve restano fuori.
 - Ammortizzatori uniformi entro un click (`DAMPER_SPREAD_CLICKS`), come al §5. *(2026-10-27: era 5 %, ma segnalava i setup di default di R3E e ACE, che differiscono di un click fra anteriore e posteriore. 2026-10-28: tolto del tutto, vedi §5.)*
 - Gli aggregati per giro stanno in `zones_json`, nessuna nuova colonna né lettura di `frames_blob`.

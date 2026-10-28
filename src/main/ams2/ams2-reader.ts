@@ -300,6 +300,8 @@ export const createAms2Reader = (
         (v) => v * 0.145038,
       );
       const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
+      // Raw suspension velocity: unit and sign are calibrated per lap downstream.
+      const suspVelocity = readFloatArray(buf, OFF.suspensionVelocity, 4);
       // mRideHeight is centimetres; stored in metres like `sus`.
       const rideHeight = readFloatArray(buf, OFF.rideHeight, 4).map(
         (v) => v / 100,
@@ -386,6 +388,7 @@ export const createAms2Reader = (
         gLon: localAcc[2] / G,
         tp: [...tyrePressures],
         sus: [...suspTravel],
+        sv: [...suspVelocity],
         rh: rideHeight,
         tt: [...tyreTemps],
         // `sr` is estimated from mTyreRPS with a self-calibrated tyre radius;

@@ -54,6 +54,7 @@ const full = formatChannels(
     tto: [80, 82, 74, 72],
     sr: [0.021, 0.019, -0.114, -0.108],
     sus: [0.0312, 0.032, 0.0481, 0.0476],
+    sv: [0.0421, -0.0105, 0.1, 0],
   }),
 );
 assert.ok(full.includes("rpm=6820"), full);
@@ -66,6 +67,8 @@ assert.ok(
 );
 assert.ok(full.includes("slip=0.021/0.019/-0.114/-0.108"), full);
 assert.ok(full.includes("sosp=31.2/32.0/48.1/47.6mm"), full);
+assert.ok(full.includes("vsosp=42/-11/100/0mm/s"), full);
+assert.ok(bare.includes("vsosp=assente"), bare);
 
 // Ride height m → mm (1 decimal), wheel load N as read.
 assert.ok(
