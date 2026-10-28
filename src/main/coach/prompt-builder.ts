@@ -93,9 +93,9 @@ Se nei Dati Calcolati c'è la riga "Assetto telaio", questa sottosezione è OBBL
 ## Regole Generali
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
 - Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C) (informativa: il giudizio sui condotti è nella "Messa a punto di base"). Se valore = -1, ignora.
-- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono in PSI (bar per AMS2, vedi sotto), l'unità è sempre indicata accanto al numero.
+- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono nella stessa unità del setup (bar per AMS2), l'unità è sempre indicata accanto al numero.
 - Bilanciamento frenata NEI SETUP (formato "front/rear%", es. "68.00/32.00%"): il PRIMO valore è SEMPRE l'anteriore, il SECONDO è SEMPRE il posteriore. Non invertire mai l'ordine.
-- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" nell'unità del setup del gioco (PSI per ACE, kPa per R3E, bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
 - Maiuscole: scrivi in minuscolo normale, con la maiuscola solo a inizio frase e nei nomi propri. Mai parole o frasi intere in maiuscolo, né per enfasi né per gli stati (scrivi "da correggere", "non valutabile"); le sigle (ABS, TC, PSI…) restano come sono.
@@ -120,7 +120,7 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 Azioni di setup: segui la "Messa a punto di base" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sulla riga da fare ora, nella direzione indicata e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella loro riga, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva della riga da fare ora, dillo e usa la riga da correggere successiva. Nomina in una riga le regolazioni non valutabili saltate, con il motivo. Se la "Messa a punto di base" chiede di completare dei giri e non ha una riga da fare ora, l'azione di setup è "completa ancora N giri con questo setup". Se nessuna riga della "Messa a punto di base" è da fare ora, l'unica azione di setup è la riga da fare ora dell'"Assetto telaio", nella sua direzione e citandone il dato: se la riga dà il valore (molle), B è quel valore; altrimenti B = valore attuale ± il passo minimo; se la riga indica più direzioni, usa la prima; per le barre antirollio proponi la barra anteriore. Senza nessuna riga da fare ora, o senza riga "Messa a punto di base", nessuna azione di setup. Le azioni di guida restano libere.
 Maiuscole: scrivi in minuscolo normale, con la maiuscola solo a inizio frase e nei nomi propri. Mai parole o frasi intere in maiuscolo, né per enfasi né per gli stati (scrivi "da correggere", "non valutabile"); le sigle (ABS, TC, PSI…) restano come sono.
 Linguaggio: parla come un ingegnere di pista. Nel testo e nel blocco vocale non usare MAI le parole "scaletta", "sequenza", "quadro", "passo" o "area" riferiti alla procedura di messa a punto, né le etichette "Messa a punto di base", "Assetto telaio" o "da fare ora", né il nome Frezza: nomina direttamente la regolazione e il componente (es. "chiudi i condotti dei freni posteriori", "ammorbidisci la barra anteriore"). "Passo minimo" come incremento di un click resta lecito.
-Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" nell'unità del setup del gioco (PSI per ACE, kPa per R3E, bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
 <sintesi-vocale>
@@ -182,15 +182,17 @@ const wheelQuartet = (
 
 /**
  * `tp` is stored internally as PSI for all three games (see src/main/CLAUDE.md).
- * AMS2's own UI shows bar, unlike R3E/ACE which show PSI, so only the AMS2
- * prompt display converts back - the stored channel and the other games are untouched.
+ * The prompt shows the unit of each game's setup screen: bar on AMS2, kPa on
+ * R3E, PSI on ACE - the stored channel is untouched.
  */
 const pressureUnit = (
   game: GameSource,
 ): { scale: number; digits: number; label: string } =>
   game === "ams2"
     ? { scale: 0.0689476, digits: 2, label: "bar" }
-    : { scale: 1, digits: 1, label: "PSI" };
+    : game === "r3e"
+      ? { scale: 6.89476, digits: 0, label: "kPa" }
+      : { scale: 1, digits: 1, label: "PSI" };
 
 const summarizeLapZones = (
   zones: ZoneData[],

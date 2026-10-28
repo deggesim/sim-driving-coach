@@ -438,16 +438,15 @@ assert.equal(
   "ok",
 );
 
-// Ammortizzatori (5): oscillations over 20 % of the peaks, or a family spread over one click.
-const osc = withZones(z({ suspOsc: { peaks: 10, oscillating: 3 } }));
-assert.equal(area(osc, 5).status, "fix");
-assert.ok(area(osc, 5).reason.includes("più slow rebound sulle quattro ruote"));
-assert.ok(area(osc, 1).reason.includes("vedi ammortizzatori"));
-// One half missing: stated, the other half still decides.
+// Ammortizzatori (5): a family spread over one click. Suspension oscillations
+// are not judged: +3 clicks of slow rebound left the share unchanged (R3E, Monza).
+const noSetup = area(withZones(z({})), 5);
+assert.equal(noSetup.status, "na");
+assert.ok(noSetup.reason.startsWith("nessun setup caricato"));
+const noDampers = area(computeSetupOverview({ ...base, levers: {} }), 5);
+assert.equal(noDampers.status, "na");
 assert.ok(
-  area(osc, 5).reason.includes(
-    "ammortizzatori: parametro non presente nel setup caricato",
-  ),
+  noDampers.reason.startsWith("parametro non presente nel setup caricato"),
 );
 const uneven = computeSetupOverview({
   ...base,
@@ -455,11 +454,7 @@ const uneven = computeSetupOverview({
 });
 assert.equal(area(uneven, 5).status, "fix");
 assert.ok(area(uneven, 5).reason.includes("uniformare slow bump"));
-assert.ok(
-  area(uneven, 5).reason.includes(
-    "oscillazioni: corsa delle sospensioni non disponibile",
-  ),
-);
+assert.ok(!area(uneven, 5).reason.includes("oscillazioni"));
 // One click apart (R3E/ACE defaults: front 12, rear 11) is uniform.
 assert.ok(
   !area(
@@ -472,22 +467,7 @@ const evenNoOsc = area(
   5,
 );
 assert.equal(evenNoOsc.status, "ok");
-assert.ok(
-  evenNoOsc.reason.includes(
-    "oscillazioni: corsa delle sospensioni non disponibile",
-  ),
-);
-assert.equal(
-  area(
-    computeSetupOverview({
-      ...base,
-      zones: [z({ suspOsc: { peaks: 10, oscillating: 1 } })],
-      levers: { slowBump: [5, 5, 5, 5], slowRebound: [8, 8, 8, 8] },
-    }),
-    5,
-  ).status,
-  "ok",
-);
+assert.ok(evenNoOsc.reason.startsWith("slow bump uniformi entro 1 click"));
 
 // Convergenze (7): 7 reversals/km over 3 km → fix; 5/km → ok; under 2 km → na.
 const weave = withZones(z({ straightSteer: { metres: 3000, reversals: 21 } }));

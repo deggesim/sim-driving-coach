@@ -533,8 +533,14 @@ assert.ok(
 );
 assert.ok(
   ladderBlock({}, "ace").includes("press. a caldo 29.6/29.4/28.3/28.1 PSI"),
-  "PSI outside AMS2",
+  "PSI on ACE",
 );
+// R3E shows kPa in its setup screen and export: the prompt follows it.
+assert.ok(
+  ladderBlock({}, "r3e").includes("press. a caldo 204/203/195/194 kPa"),
+  "kPa on R3E",
+);
+assert.ok(!ladderBlock({}, "r3e").includes("PSI"), "no PSI label for R3E");
 const missing = ladderBlock({ lapsMissing: 3, steps: [], current: null });
 assert.ok(
   missing.includes(

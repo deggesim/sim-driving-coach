@@ -22,6 +22,7 @@ interface LapEventReader {
       lapTime: number;
       sectorTimes: number[];
       frames: CompactFrame[];
+      pitFrames?: CompactFrame[];
       car: string;
       track: string;
       layout: string;
@@ -71,6 +72,7 @@ const countTransitions = (
 export const aggregateZones = (
   frames: CompactFrame[],
   layoutLength: number,
+  pitFrames: CompactFrame[] = [],
 ): ZoneData[] => {
   const numZones = Math.ceil(layoutLength / ZONE_SIZE_M);
   const zoneMap = new Map<number, CompactFrame[]>();
@@ -85,7 +87,7 @@ export const aggregateZones = (
   const zoneOf = (d: number) =>
     Math.min(Math.floor(d / ZONE_SIZE_M), numZones - 1);
   const counters = ladderCounters(frames, zoneOf);
-  const chassis = chassisCounters(frames, zoneOf);
+  const chassis = chassisCounters(frames, zoneOf, pitFrames);
   const zones: ZoneData[] = [];
 
   for (let z = 0; z < numZones; z++) {
@@ -270,13 +272,18 @@ export const createLapRecorder = (hasExistingBaseline = false): LapRecorder => {
     lapTime: number;
     sectorTimes: number[];
     frames: CompactFrame[];
+    pitFrames?: CompactFrame[];
     car: string;
     track: string;
     layout: string;
     layoutLength: number;
     valid: boolean;
   }): void => {
-    const zones = aggregateZones(lapData.frames, lapData.layoutLength);
+    const zones = aggregateZones(
+      lapData.frames,
+      lapData.layoutLength,
+      lapData.pitFrames,
+    );
 
     const lap: LapRecord = {
       lapNumber: lapData.lapNumber,

@@ -197,11 +197,10 @@ export type ZoneData = {
   cornersFastOver?: number; // of those, oversteer at mid-corner
   kFastSum?: number; // sum of the mid-phase mean k of the fast corners
   // Chassis counters (see main/chassis-counters.ts). Each family is present only
-  // when the zone's frames carried its source channel: rh, wl, sus, gLat.
+  // when the zone's frames carried its source channel: rh, wl, gLat.
   rideHeight?: RideHeightSums;
   bottoming?: BottomingCounts;
   loadFit?: LoadFitSums;
-  suspOsc?: SuspOscCounts;
   straightSteer?: StraightSteer;
 };
 
@@ -241,8 +240,6 @@ export type LoadFitSums = {
   fuelN: number;
   nLow?: number; // samples below 120 km/h (absent before 2026-10-27)
 };
-
-export type SuspOscCounts = { peaks: number; oscillating: number };
 
 export type StraightSteer = { metres: number; reversals: number };
 

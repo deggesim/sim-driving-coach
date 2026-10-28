@@ -239,28 +239,22 @@ assert.equal(
   10,
 );
 
-// --- Suspension oscillation -----------------------------------------------
-
-// Wheel 0 velocity = 0.2 m/s * sin(2π·4·t) for 0.5 s, then still.
-const suspLap = (hz: number, seconds: number, amp = 0.2): CompactFrame[] => {
-  let pos = 0;
-  return make(120, (i) => {
-    const t = i * (STEP_MS / 1000);
-    if (i > 0 && t < seconds)
-      pos += amp * Math.sin(2 * Math.PI * hz * t) * (STEP_MS / 1000);
-    return { sus: [pos, 0.02, 0.02, 0.02] };
-  });
-};
-// Peak 0.2 m/s then 3+ sign changes above 30 % within 1 s.
-assert.deepEqual(zone0(suspLap(4, 0.5)).suspOsc, { peaks: 1, oscillating: 1 });
-// One half-sine bump: a peak, no oscillation.
-assert.deepEqual(zone0(suspLap(2, 0.25)).suspOsc, { peaks: 1, oscillating: 0 });
-// Below the peak threshold: nothing.
-assert.deepEqual(zone0(suspLap(4, 0.5, 0.05)).suspOsc, {
-  peaks: 0,
-  oscillating: 0,
-});
-assert.equal(zone0(noRh).suspOsc, undefined);
+// Pit-lane frames (kept out of the lap by the readers) feed only the load fit,
+// in the lap's first zone: the speed limiter is the steady slow run that
+// anchors the intercept. Their ride height on the floor must not count.
+const pitFit = chassisCounters(
+  make(10, (i) => ({ d: 120 + i, wl: [1000, 1000, 1000, 1000] })),
+  (d) => Math.floor(d / 50),
+  make(25, () => ({
+    spd: 60,
+    wl: [1000, 1000, 1500, 1500],
+    rh: [0.002, 0.002, 0.002, 0.002],
+  })),
+).get(2);
+assert.equal(pitFit?.loadFit?.n, 35);
+assert.equal(pitFit?.loadFit?.nLow, 25);
+assert.equal(pitFit?.bottoming, undefined);
+assert.equal(pitFit?.rideHeight, undefined);
 
 // --- Straight-line steering -----------------------------------------------
 

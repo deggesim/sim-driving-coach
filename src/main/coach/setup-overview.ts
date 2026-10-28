@@ -25,7 +25,6 @@ const DAMPER_SPREAD_CLICKS = 1; // spec: "diversi di oltre un click" (game defau
 const RH_HIGH_M = 0.015; // min ride height above this with no touch: too high
 const BUMP_UPSET_PER_LAP = 0.1; // upsetting brake/other touches per judged lap
 const THIRD_HIGH_M = 0.01; // fast-straight − mid-corner mean ride height
-const OSC_SHARE = 0.2; // of the suspension-speed peaks (per wheel)
 const MIN_CLASS_CORNERS = 3; // corners per speed class
 const WEAVE_PER_KM = 6; // steering reversals per km of fast straight
 const WEAVE_MIN_M = 2000; // fast straight needed to judge toe
@@ -59,11 +58,9 @@ const LABELS = [
   "convergenze",
   "aerodinamica",
 ];
-type Symptom =
-  "entryUnder" | "upset" | "straightBottom" | "osc" | "slowMid" | "aero";
+type Symptom = "entryUnder" | "upset" | "straightBottom" | "slowMid" | "aero";
 // Spec "Sintomi e proprietari": area → [symptom, owner area] it cites.
 const CITES: Partial<Record<N, [Symptom, N][]>> = {
-  1: [["osc", 5]],
   2: [
     ["upset", 3],
     ["straightBottom", 4],
@@ -135,7 +132,6 @@ export const computeSetupOverview = (input: {
   const bot = sumFamily(
     zones.flatMap((z) => (z.bottoming ? [z.bottoming] : [])),
   );
-  const osc = sumFamily(zones.flatMap((z) => (z.suspOsc ? [z.suspOsc] : [])));
   const steer = sumFamily(
     zones.flatMap((z) => (z.straightSteer ? [z.straightSteer] : [])),
   );
@@ -183,7 +179,6 @@ export const computeSetupOverview = (input: {
     entryUnder: !!rh && !!entry && entryUnder > entry / 2 && !absDominant,
     upset: !!bot && bot.upset / Math.max(judgedLaps, 1) > BUMP_UPSET_PER_LAP,
     straightBottom: (bot?.straight ?? 0) > 0,
-    osc: !!osc && osc.peaks > 0 && osc.oscillating / osc.peaks > OSC_SHARE,
     slowMid: slowDir != null,
     aero: aeroDir != null,
   };
@@ -338,20 +333,19 @@ export const computeSetupOverview = (input: {
     return judge(4, parts);
   })();
 
-  // 5 - dampers: the same values on the four wheels, no prolonged oscillation.
+  // 5 - dampers: the same values on the four wheels. Prolonged oscillation is
+  // not judged: +3 clicks of slow rebound on R3E (Monza, 2026-10-28) left the
+  // share of oscillating suspension peaks unchanged (kerbs dominate it).
   const dampers = ((): OverviewArea => {
+    if (!levers) return step(5, "na", "nessun setup caricato");
     const families = (Object.keys(DAMPERS) as (keyof typeof DAMPERS)[]).flatMap(
       (k) => {
-        const q: Quartet | undefined = levers?.[k];
+        const q: Quartet | undefined = levers[k];
         return q ? [{ name: DAMPERS[k], q }] : [];
       },
     );
-    if (!families.length && !osc)
-      return step(
-        5,
-        "na",
-        "ammortizzatori assenti dal setup e corsa delle sospensioni non disponibile",
-      );
+    if (!families.length)
+      return step(5, "na", "parametro non presente nel setup caricato");
     const parts: Part[] = families.flatMap(({ name, q }) => {
       const max = Math.max(...q);
       const min = Math.min(...q);
@@ -359,30 +353,10 @@ export const computeSetupOverview = (input: {
         ? [{ data: `${name} da ${min} a ${max}`, fix: `uniformare ${name}` }]
         : [];
     });
-    if (!families.length)
-      parts.push({
-        data: "ammortizzatori: parametro non presente nel setup caricato",
-      });
-    else if (!parts.length)
+    if (!parts.length)
       parts.push({
         data: `${families.map((f) => f.name).join(", ")} uniformi entro ${DAMPER_SPREAD_CLICKS} click`,
       });
-    if (!osc)
-      parts.push({
-        data: "oscillazioni: corsa delle sospensioni non disponibile",
-      });
-    else
-      parts.push(
-        osc.peaks
-          ? {
-              data: `oscillazioni prolungate dopo ${osc.oscillating}/${osc.peaks} picchi delle sospensioni (${Math.round((osc.oscillating / osc.peaks) * 100)} %)`,
-              fix: sym.osc
-                ? "più slow rebound sulle quattro ruote; se non basta, più slow bump"
-                : undefined,
-              moves: [all4("Rebound", "up"), all4("Bump", "up")],
-            }
-          : { data: "nessun picco di velocità delle sospensioni" },
-      );
     return judge(5, parts);
   })();
 

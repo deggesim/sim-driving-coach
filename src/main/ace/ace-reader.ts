@@ -152,6 +152,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
 
   // Per-lap state
   let lapFrames: CompactFrame[] = [];
+  let pitFrames: CompactFrame[] = [];
   let ownLapCount = 0;
   let prevNpos = -1;
   let prevCurrentLapTimeMs = 0;
@@ -163,6 +164,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
   let pendingLapComplete: {
     lapNumber: number;
     frames: CompactFrame[];
+    pitFrames: CompactFrame[];
     car: string;
     track: string;
     layout: string;
@@ -213,6 +215,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
     if (connected) {
       connected = false;
       lapFrames = [];
+      pitFrames = [];
       ownLapCount = 0;
       prevNpos = -1;
       prevCurrentLapTimeMs = 0;
@@ -558,9 +561,10 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       // Track pit lane presence for outlap/drive-through detection.
       if (isInPitLane) lapExitedPit = true;
 
-      // Accumulate CompactFrame (exclude pit lane frames)
-      if (!isInPitLane) {
-        lapFrames.push({
+      // Accumulate CompactFrame. Pit-lane frames stay out of the lap but feed
+      // the load fit (moving only: a car parked in the box would pile them up).
+      if (!isInPitLane || speedKmh > 1) {
+        (isInPitLane ? pitFrames : lapFrames).push({
           d: cumulativeDist,
           spd: speedKmh,
           thr: gas,
@@ -590,7 +594,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           wy: playerWy,
           wz: playerWz,
         });
-        logChannels("ACE", lapFrames.at(-1));
+        if (!isInPitLane) logChannels("ACE", lapFrames.at(-1));
       }
 
       // Lap crossing: npos crosses start/finish (0.85→1.0 → 0.0→0.15).
@@ -602,6 +606,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
         pendingLapComplete = {
           lapNumber: ownLapCount,
           frames: [...lapFrames],
+          pitFrames,
           car: cachedCarModel,
           track: cachedTrack,
           layout: cachedLayout,
@@ -613,6 +618,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           pollsWaited: 0,
         };
         lapFrames = [];
+        pitFrames = [];
         cumulativeDist = 0;
         lastFrameWx = undefined;
         lastFrameWz = undefined;
@@ -661,6 +667,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
             lapTime,
             sectorTimes: [-1, -1, -1] as [number, number, number],
             frames: pendingLapComplete.frames,
+            pitFrames: pendingLapComplete.pitFrames,
             car: pendingLapComplete.car,
             track: pendingLapComplete.track,
             layout: pendingLapComplete.layout,

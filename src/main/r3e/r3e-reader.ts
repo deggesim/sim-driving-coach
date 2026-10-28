@@ -113,6 +113,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
   let lastCompletedLaps = -1;
   let lastTrackSector = -1;
   let lapFrames: CompactFrame[] = [];
+  let pitFrames: CompactFrame[] = [];
   let currentCar = "";
   let currentTrack = "";
   let currentLayout = "";
@@ -302,8 +303,15 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     if (frame.layoutId > 0) currentLayout = String(frame.layoutId);
     if (frame.layoutLength > 0) currentLayoutLength = frame.layoutLength;
 
-    if (!frame.gamePaused && !frame.gameInMenus && !frame.inPitlane) {
-      lapFrames.push({
+    // Pit-lane frames stay out of the lap but feed the load fit (moving only:
+    // a car parked in the box would pile them up).
+    const pit = frame.inPitlane;
+    if (
+      !frame.gamePaused &&
+      !frame.gameInMenus &&
+      (!pit || frame.carSpeed > 1)
+    ) {
+      (pit ? pitFrames : lapFrames).push({
         d: frame.lapDistance,
         spd: frame.carSpeed,
         thr: frame.throttle,
@@ -327,7 +335,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         wy: frame.posY,
         wz: frame.posZ,
       });
-      logChannels("R3E", lapFrames.at(-1));
+      if (!pit) logChannels("R3E", lapFrames.at(-1));
     }
 
     // Sector boundary
@@ -361,6 +369,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         lapTime: frame.lapTimePreviousSelf,
         sectorTimes: [...frame.sectorTimesCurrentSelf],
         frames: [...lapFrames],
+        pitFrames,
         car: currentCar,
         track: currentTrack,
         layout: currentLayout,
@@ -370,6 +379,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
           frame.sectorTimesCurrentSelf.every((s) => s > 0),
       };
       lapFrames = [];
+      pitFrames = [];
       emitter.emit("lapComplete", lapData);
     }
     lastCompletedLaps = frame.completedLaps;

@@ -1,15 +1,15 @@
 /**
  * Per-zone chassis counters (ride height, bottoming, wheel-load regression
- * sums, suspension oscillation, straight-line steering), derived from one
- * lap's frames. Pure: no DB, no IPC. Presence is per counter family (see
- * ZoneData): a zone gets a family only if its frames carry the source channel
- * (`rh`, `wl`, `sus`, `gLat`), never a zero standing in for a missing channel.
+ * sums, straight-line steering), derived from one lap's frames. Pure: no DB,
+ * no IPC. Presence is per counter family (see ZoneData): a zone gets a family
+ * only if its frames carry the source channel (`rh`, `wl`, `gLat`), never a
+ * zero standing in for a missing channel.
  */
 import type { CompactFrame, ZoneData } from "../shared/types.js";
 
 export type ChassisCounters = Pick<
   ZoneData,
-  "rideHeight" | "bottoming" | "loadFit" | "suspOsc" | "straightSteer"
+  "rideHeight" | "bottoming" | "loadFit" | "straightSteer"
 >;
 
 const BOTTOM_M = 0.003;
@@ -30,11 +30,6 @@ const LOAD_GLON = 0.1;
 const LOAD_STEER = 0.02;
 const LOAD_MIN_KMH = 30;
 const LOAD_LOW_KMH = 120;
-// Starting value, to tune per game on a live sim.
-const SV_PEAK = 0.1; // m/s
-const OSC_WINDOW_MS = 1000;
-const OSC_REL = 0.3;
-const OSC_HALF_CYCLES = 3;
 const STEER_STRAIGHT_KMH = 150;
 const STEER_STRAIGHT_GLAT = 0.2;
 const STEER_REVERSAL = 0.01;
@@ -64,17 +59,12 @@ const upsetAfter = (frames: CompactFrame[], i: number): boolean => {
   return pos && neg && hi - lo > UPSET_GLAT;
 };
 
-// Velocity (m/s) of wheel w between consecutive frames; 0 where undefined.
-const suspVelocity = (frames: CompactFrame[], w: number): number[] =>
-  frames.map((f, i) => {
-    const prev = frames[i - 1];
-    const dt = prev ? (f.ts - prev.ts) / 1000 : 0;
-    return f.sus && prev?.sus && dt > 0 ? (f.sus[w] - prev.sus[w]) / dt : 0;
-  });
-
 export const chassisCounters = (
   frames: CompactFrame[],
   zoneOf: (d: number) => number,
+  // Kept out of the lap by the readers; the speed limiter is the steady slow
+  // run that anchors the load fit's intercept (weight-distribution.ts).
+  pitFrames: CompactFrame[] = [],
 ): Map<number, ChassisCounters> => {
   const out = new Map<number, ChassisCounters>();
   const zoneFor = (f: CompactFrame): ChassisCounters => {
@@ -85,6 +75,46 @@ export const chassisCounters = (
       out.set(z, c);
     }
     return c;
+  };
+  const addLoad = (c: ChassisCounters, f: CompactFrame): void => {
+    if (!f.wl || f.wl.length < 4) return;
+    const lf = (c.loadFit ??= {
+      n: 0,
+      sx: 0,
+      sxx: 0,
+      syF: 0,
+      syR: 0,
+      sxyF: 0,
+      sxyR: 0,
+      fuelSum: 0,
+      fuelN: 0,
+      nLow: 0,
+    });
+    if (
+      f.gLat !== undefined &&
+      f.gLon !== undefined &&
+      Math.abs(f.gLat) < LOAD_GLAT &&
+      Math.abs(f.gLon) < LOAD_GLON &&
+      Math.abs(f.str) < LOAD_STEER &&
+      f.spd >= LOAD_MIN_KMH &&
+      f.wl.every((w) => w > 0)
+    ) {
+      const x = (f.spd / 3.6) ** 2;
+      const yF = f.wl[0] + f.wl[1];
+      const yR = f.wl[2] + f.wl[3];
+      lf.n++;
+      if (f.spd < LOAD_LOW_KMH) lf.nLow = (lf.nLow ?? 0) + 1;
+      lf.sx += x;
+      lf.sxx += x * x;
+      lf.syF += yF;
+      lf.syR += yR;
+      lf.sxyF += x * yF;
+      lf.sxyR += x * yR;
+      if (f.fuel !== undefined) {
+        lf.fuelSum += f.fuel;
+        lf.fuelN++;
+      }
+    }
   };
   // A lap whose median axle-mean `rh` is outside RH_MEDIAN_MIN_M..RH_MEDIAN_MAX_M
   // means an unpopulated field, a wrong offset or a unit error (offsets not yet
@@ -189,47 +219,7 @@ export const chassisCounters = (
       }
     });
 
-    if (f.wl && f.wl.length >= 4) {
-      const lf = (c.loadFit ??= {
-        n: 0,
-        sx: 0,
-        sxx: 0,
-        syF: 0,
-        syR: 0,
-        sxyF: 0,
-        sxyR: 0,
-        fuelSum: 0,
-        fuelN: 0,
-        nLow: 0,
-      });
-      if (
-        f.gLat !== undefined &&
-        f.gLon !== undefined &&
-        Math.abs(f.gLat) < LOAD_GLAT &&
-        Math.abs(f.gLon) < LOAD_GLON &&
-        Math.abs(f.str) < LOAD_STEER &&
-        f.spd >= LOAD_MIN_KMH &&
-        f.wl.every((w) => w > 0)
-      ) {
-        const x = (f.spd / 3.6) ** 2;
-        const yF = f.wl[0] + f.wl[1];
-        const yR = f.wl[2] + f.wl[3];
-        lf.n++;
-        if (f.spd < LOAD_LOW_KMH) lf.nLow = (lf.nLow ?? 0) + 1;
-        lf.sx += x;
-        lf.sxx += x * x;
-        lf.syF += yF;
-        lf.syR += yR;
-        lf.sxyF += x * yF;
-        lf.sxyR += x * yR;
-        if (f.fuel !== undefined) {
-          lf.fuelSum += f.fuel;
-          lf.fuelN++;
-        }
-      }
-    }
-
-    if (f.sus) c.suspOsc ??= { peaks: 0, oscillating: 0 };
+    addLoad(c, f);
 
     if (f.gLat !== undefined) {
       const ss = (c.straightSteer ??= { metres: 0, reversals: 0 });
@@ -259,33 +249,7 @@ export const chassisCounters = (
     } else steerArmed = false;
   });
 
-  // Suspension oscillation, per wheel: a velocity peak, then sign changes of
-  // the velocity above OSC_REL of the peak within OSC_WINDOW_MS. The next peak
-  // is searched after that window.
-  if (frames.some((f) => f.sus)) {
-    for (let w = 0; w < 4; w++) {
-      const v = suspVelocity(frames, w);
-      for (let i = 1; i < frames.length - 1; i++) {
-        const a = Math.abs(v[i]);
-        if (a <= SV_PEAK || a <= Math.abs(v[i - 1]) || a < Math.abs(v[i + 1]))
-          continue;
-        let flips = 0;
-        let sign = Math.sign(v[i]);
-        let j = i + 1;
-        for (; j < frames.length; j++) {
-          if (frames[j].ts - frames[i].ts > OSC_WINDOW_MS) break;
-          if (Math.abs(v[j]) <= OSC_REL * a) continue;
-          if (Math.sign(v[j]) !== sign) {
-            flips++;
-            sign = -sign;
-          }
-        }
-        const s = zoneFor(frames[i]).suspOsc!;
-        s.peaks++;
-        if (flips >= OSC_HALF_CYCLES) s.oscillating++;
-        i = j - 1;
-      }
-    }
-  }
+  // Pit-lane frames: only the load fit, in the lap's first zone.
+  if (frames[0]) pitFrames.forEach((f) => addLoad(zoneFor(frames[0]), f));
   return out;
 };
