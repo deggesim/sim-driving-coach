@@ -51,6 +51,9 @@ assert.equal(OFF.sequenceNumber, 7320, "mSequenceNumber offset");
 // are correct here, not a copy-paste slip.
 assert.equal(OFF.suspensionTravel, 7340, "mSuspensionTravel offset");
 assert.equal(OFF.airPressure, 7372, "mAirPressure offset");
+assert.equal(OFF.suspensionVelocity, 7356, "mSuspensionVelocity offset");
+assert.equal(OFF.suspensionVelocity, OFF.suspensionTravel + 16);
+assert.equal(OFF.airPressure, OFF.suspensionVelocity + 16);
 assert.equal(OFF.tyreRPS, 7040, "mTyreRPS offset");
 assert.equal(
   OFF.tyreRPS + 32,
