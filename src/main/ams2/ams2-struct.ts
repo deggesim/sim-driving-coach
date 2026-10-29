@@ -110,7 +110,6 @@ export const OFF = {
 
   // Not a typo: SharedMemory.h declares these two AFTER mSequenceNumber.
   suspensionTravel: 7340, // float[4]  mSuspensionTravel (metres)
-  suspensionVelocity: 7356, // float[4]  mSuspensionVelocity, between mSuspensionTravel and mAirPressure; unit not verified live
   airPressure: 7372, // float[4]  mAirPressure (PSI)
 } as const;
 

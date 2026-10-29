@@ -9,7 +9,7 @@ import { computeSetupOverview, type SetupOverview } from "./setup-overview.js";
 import type { SetupLadder } from "./setup-ladder.js";
 import type { SetupLevers } from "./setup-levers.js";
 import type { WeightDistribution } from "./weight-distribution.js";
-import type { DamperHist, SetupParam, ZoneData } from "../../shared/types.js";
+import type { SetupParam, ZoneData } from "../../shared/types.js";
 
 // A zone recorded before this work: base fields only.
 const legacyZone: ZoneData = {
@@ -439,92 +439,31 @@ assert.equal(
   "ok",
 );
 
-const lp = (parameter: string, limit?: "min" | "max"): SetupParam => ({
-  category: "x",
-  parameter,
-  value: "1",
-  limit,
-});
-// Ammortizzatori (5): judged from the suspension-velocity histogram. The share
-// of rebound among the slow samples (< 50 mm/s) should sit in 40-65 % per axle.
-const hist = (over: Partial<DamperHist> = {}): DamperHist => ({
-  lowBumpF: 1000,
-  lowRebF: 1100,
-  highBumpF: 100,
-  highRebF: 80,
-  lowBumpR: 1000,
-  lowRebR: 1100,
-  highBumpR: 100,
-  highRebR: 80,
-  ...over,
-});
-// No velocity (ACE, old recordings): na, setup values still shown.
-const noVel = area(
-  computeSetupOverview({ ...base, levers: { slowBump: [12, 12, 8, 8] } }),
+// Ammortizzatori (5): never judged, only shown. Suspension oscillations did not
+// move with +3 clicks of slow rebound (R3E, Monza), and asymmetric dampers are
+// a legitimate choice (front/rear always, left/right on one-way tracks).
+const noSetup = area(withZones(z({})), 5);
+assert.equal(noSetup.status, "na");
+assert.ok(noSetup.reason.startsWith("nessun setup caricato"));
+const noDampers = area(computeSetupOverview({ ...base, levers: {} }), 5);
+assert.equal(noDampers.status, "na");
+assert.ok(
+  noDampers.reason.startsWith("parametro non presente nel setup caricato"),
+);
+const shown = area(
+  computeSetupOverview({
+    ...base,
+    levers: { slowBump: [12, 12, 8, 8], slowRebound: [10, 11, 9, 9] },
+  }),
   5,
 );
-assert.equal(noVel.status, "na");
+assert.equal(shown.status, "na");
 assert.ok(
-  noVel.reason.startsWith(
-    "slow bump ant 12/12 post 8/8; velocità ammortizzatori non disponibile",
+  shown.reason.startsWith(
+    "slow bump ant 12/12 post 8/8, slow rebound ant 10/11 post 9/9; non giudicati: nessun criterio affidabile dalla telemetria",
   ),
-  noVel.reason,
+  shown.reason,
 );
-assert.ok(
-  area(withZones(z({})), 5).reason.startsWith(
-    "velocità ammortizzatori non disponibile",
-  ),
-);
-// Balanced (52 % / 52 %): ok, figures cited.
-const bal = area(withZones(z({ damperHist: hist() })), 5);
-assert.equal(bal.status, "ok");
-assert.ok(
-  bal.reason.includes("rebound nel 52 % dei campioni sotto 50 mm/s"),
-  bal.reason,
-);
-// Front 75 % (10.0 points out), rear 30.1 % (9.9 out): only the farther axle,
-// the front, gets the fix.
-const out = area(
-  withZones(z({ damperHist: hist({ lowRebF: 3000, lowRebR: 430 }) })),
-  5,
-);
-assert.equal(out.status, "fix");
-assert.ok(out.reason.includes("→ meno slow rebound anteriore"), out.reason);
-assert.ok(!out.reason.includes("più slow rebound posteriore"), out.reason);
-// Rear 25 %: più slow rebound posteriore.
-assert.ok(
-  area(withZones(z({ damperHist: hist({ lowRebR: 333 }) })), 5).reason.includes(
-    "→ più slow rebound posteriore",
-  ),
-);
-// Fewer than 1000 slow samples on an axle: na with the count.
-const thin = area(
-  withZones(z({ damperHist: hist({ lowBumpR: 300, lowRebR: 300 }) })),
-  5,
-);
-assert.equal(thin.status, "na");
-assert.ok(thin.reason.includes("600 campioni lenti"), thin.reason);
-// R3E with Rebound at its limit: the datum says "già a fondo scala".
-const reboundFront75 = (limit?: "min" | "max") =>
-  area(
-    computeSetupOverview({
-      ...base,
-      zones: [z({ damperHist: hist({ lowRebF: 3000 }) })],
-      game: "r3e",
-      setupParams: [
-        lp("Rebound Front Left", limit),
-        lp("Rebound Front Right", limit),
-      ],
-    }),
-    5,
-  );
-const reboundAtMin = reboundFront75("min");
-assert.equal(reboundAtMin.status, "ok");
-assert.ok(
-  reboundAtMin.reason.includes("già a fondo scala"),
-  reboundAtMin.reason,
-);
-assert.equal(reboundFront75().status, "fix");
 
 // Convergenze (7): 7 reversals/km over 3 km → fix; 5/km → ok; under 2 km → na.
 const weave = withZones(z({ straightSteer: { metres: 3000, reversals: 21 } }));
@@ -662,6 +601,12 @@ assert.equal(
 );
 
 // --- R3E: an area whose fix has every alternative at the end of its range ---
+const lp = (parameter: string, limit?: "min" | "max"): SetupParam => ({
+  category: "x",
+  parameter,
+  value: "1",
+  limit,
+});
 const rhParams = (front?: "min" | "max", rear?: "min" | "max") => [
   lp("Ride Height Front Left", front),
   lp("Ride Height Front Right", front),

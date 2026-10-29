@@ -6,7 +6,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { formatCalibration, formatChannels } from "./channel-log.js";
+import { formatChannels } from "./channel-log.js";
 import type { CompactFrame } from "../shared/types.js";
 
 const frame = (over: Partial<CompactFrame> = {}): CompactFrame => ({
@@ -54,7 +54,6 @@ const full = formatChannels(
     tto: [80, 82, 74, 72],
     sr: [0.021, 0.019, -0.114, -0.108],
     sus: [0.0312, 0.032, 0.0481, 0.0476],
-    sv: [0.0421, -0.0105, 0.1, 0],
   }),
 );
 assert.ok(full.includes("rpm=6820"), full);
@@ -67,8 +66,6 @@ assert.ok(
 );
 assert.ok(full.includes("slip=0.021/0.019/-0.114/-0.108"), full);
 assert.ok(full.includes("sosp=31.2/32.0/48.1/47.6mm"), full);
-assert.ok(full.includes("vsosp=42/-11/100/0mm/s"), full);
-assert.ok(bare.includes("vsosp=assente"), bare);
 
 // Ride height m → mm (1 decimal), wheel load N as read.
 assert.ok(
@@ -83,23 +80,5 @@ assert.ok(
   ),
 );
 assert.ok(bare.includes("carico=assente"), bare);
-
-// Calibration line: accepted (mm/s, compression negative) and null.
-assert.equal(
-  formatCalibration({ scale: -0.001, k: 1012.345, reason: null }),
-  "[sospensioni] calibrazione: k=1012.35, unità mm/s, compressione negativa",
-);
-assert.equal(
-  formatCalibration({ scale: 1, k: 0.98, reason: null }),
-  "[sospensioni] calibrazione: k=0.98, unità m/s, compressione positiva",
-);
-assert.equal(
-  formatCalibration({
-    scale: null,
-    k: 12,
-    reason: "pendenza k=12.00 fuori banda",
-  }),
-  "[sospensioni] calibrazione assente: pendenza k=12.00 fuori banda",
-);
 
 console.log("channel-log.selfcheck OK");

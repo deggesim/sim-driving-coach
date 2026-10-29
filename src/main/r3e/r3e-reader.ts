@@ -79,7 +79,6 @@ type FrameExt = {
   tp: number[];
   sr: number[];
   sus: number[];
-  sv: number[];
   tt: number[];
 } & Pick<CompactFrame, "tti" | "ttc" | "tto" | "rh" | "wl" | "fuel">;
 
@@ -177,8 +176,6 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       "Player_SuspensionDeflection",
       4,
     );
-    // Raw suspension velocity: unit and sign are calibrated per lap downstream.
-    const suspVelocity = readDoubleArray(buf, "Player_SuspensionVelocity", 4);
 
     // Player_RideHeight is assumed to be metres (r3e.h gives no unit); to be
     // checked live. TireLoad is N. A quartet with any value < 0 (-1 = N/A) is
@@ -291,7 +288,6 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         tp: tirePressure,
         sr: slipRatio,
         sus: suspDeflection,
-        sv: suspVelocity,
         ...(rideHeight && { rh: rideHeight }),
         ...(wheelLoad && { wl: wheelLoad }),
         ...(fuelLeft >= 0 && { fuel: fuelLeft }),

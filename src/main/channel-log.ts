@@ -16,7 +16,6 @@
  * pressures 20-30 PSI, suspension travel tens of mm, slip |0.02-0.15|).
  */
 import type { CompactFrame } from "../shared/types.js";
-import type { SvCalibration } from "./chassis-counters.js";
 
 const LOG_EVERY = 120; // ~2s at the 16ms poll
 const MOVING_KMH = 30; // below this, G/slip/pressures are not yet meaningful
@@ -54,19 +53,7 @@ export const formatChannels = (f: CompactFrame): string =>
   `press=${quartet(f.tp, 1, 1)}PSI temp=${quartet(f.tt, 1, 0)}°C ` +
   `${surface(f)} ` +
   `slip=${quartet(f.sr, 1, 3)} sosp=${quartet(f.sus, 1000, 1)}mm ` +
-  `vsosp=${quartet(f.sv, 1000, 0)}mm/s ` +
   `alt=${quartet(f.rh, 1000, 1)}mm carico=${quartet(f.wl, 1, 0)}N`;
-
-/**
- * Per-lap suspension-velocity calibration line: tells a wrong sign from a
- * criterion that does not work. Pure, asserted by `channel-log.selfcheck.ts`.
- */
-export const formatCalibration = (c: SvCalibration): string =>
-  c.scale === null
-    ? `[sospensioni] calibrazione assente: ${c.reason}`
-    : `[sospensioni] calibrazione: k=${c.k?.toFixed(2)}, unità ${
-        Math.abs(c.scale) === 1 ? "m/s" : "mm/s"
-      }, compressione ${c.scale > 0 ? "positiva" : "negativa"}`;
 
 const counters = new Map<string, number>();
 

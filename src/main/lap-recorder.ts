@@ -10,8 +10,7 @@
 import { EventEmitter } from "events";
 import { CALIBRATION_LAPS, ZONE_SIZE_M } from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
-import { formatCalibration } from "./channel-log.js";
-import { chassisCounters, svCalibration } from "./chassis-counters.js";
+import { chassisCounters } from "./chassis-counters.js";
 import { ladderCounters } from "./ladder-counters.js";
 
 /** Minimal reader interface required by LapRecorder (duck-typed by both R3EReader and AceReader). */
@@ -280,9 +279,6 @@ export const createLapRecorder = (hasExistingBaseline = false): LapRecorder => {
     layoutLength: number;
     valid: boolean;
   }): void => {
-    // Live check of the suspension-velocity calibration (ACE: no `sv`, no line).
-    if (lapData.frames.some((f) => f.sv))
-      console.log(formatCalibration(svCalibration(lapData.frames)));
     const zones = aggregateZones(
       lapData.frames,
       lapData.layoutLength,

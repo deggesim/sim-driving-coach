@@ -87,7 +87,6 @@ export type CompactFrame = {
   tp?: number[]; // tyre pressures PSI [FL, FR, RL, RR]
   sr?: number[]; // slip ratios [FL, FR, RL, RR] (negative = locking)
   sus?: number[]; // suspension travel m [FL, FR, RL, RR]
-  sv?: number[]; // suspension velocity [FL, FR, RL, RR], raw game units and sign (R3E, AMS2); calibrated per lap in chassis-counters
   rh?: number[]; // ride height m [FL, FR, RL, RR] (ACE: per axle, [F, F, R, R])
   wl?: number[]; // wheel load N [FL, FR, RL, RR] (R3E, ACE; absent on AMS2)
   fuel?: number; // fuel in the tank, litres (R3E, ACE)
@@ -198,27 +197,11 @@ export type ZoneData = {
   cornersFastOver?: number; // of those, oversteer at mid-corner
   kFastSum?: number; // sum of the mid-phase mean k of the fast corners
   // Chassis counters (see main/chassis-counters.ts). Each family is present only
-  // when the zone's frames carried its source channel: rh, wl, gLat, sv (the
-  // last one also only on a lap whose sv calibration succeeded).
+  // when the zone's frames carried its source channel: rh, wl, gLat.
   rideHeight?: RideHeightSums;
   bottoming?: BottomingCounts;
   loadFit?: LoadFitSums;
   straightSteer?: StraightSteer;
-  damperHist?: DamperHist;
-};
-
-// Suspension-velocity histogram: samples (wheel × frame), both wheels of an
-// axle pooled. low/high = below/above the slow-damping knee; Bump = compression,
-// Reb = extension (rebound).
-export type DamperHist = {
-  lowBumpF: number;
-  lowRebF: number;
-  highBumpF: number;
-  highRebF: number;
-  lowBumpR: number;
-  lowRebR: number;
-  highBumpR: number;
-  highRebR: number;
 };
 
 export type RideHeightSums = {
