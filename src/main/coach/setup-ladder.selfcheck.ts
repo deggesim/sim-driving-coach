@@ -9,6 +9,7 @@ import {
   judgedLapsOfLastSegment,
   ladderFlags,
   stintReadyMessage,
+  tyreTempsFixed,
   verdictKey,
   type SetupLadder,
 } from "./setup-ladder.js";
@@ -583,6 +584,39 @@ assert.equal(
   "fix",
   "the same data outside Leaderboard is judged",
 );
+// Tyres fixed by the game with the Leaderboard flag off (R3E, 2026-10-28): the
+// same temperature on every shoulder of every wheel cannot come from a real tyre.
+const flat: [number, number, number, number] = [85, 85, 85, 85];
+const flatZone = okZone({
+  avgTyreTempInnerC: flat,
+  avgTyreTempCenterC: flat,
+  avgTyreTempOuterC: flat,
+});
+assert.equal(tyreTempsFixed(stint(3, flatZone)), true);
+assert.equal(tyreTempsFixed(stint(3, okZone())), false, "real tyre spread");
+assert.equal(
+  tyreTempsFixed(
+    stint(3, okZone({ ...flatZone, avgTyreTempOuterC: [85, 85, 85, 84] })),
+  ),
+  false,
+  "one wheel differs",
+);
+assert.equal(
+  tyreTempsFixed(
+    stint(
+      3,
+      okZone({
+        avgTyreTempInnerC: undefined,
+        avgTyreTempCenterC: undefined,
+        avgTyreTempOuterC: undefined,
+      }),
+    ),
+  ),
+  false,
+  "no temperatures is not fixed temperatures",
+);
+assert.equal(tyreTempsFixed([]), false);
+
 const lbFixed = computeSetupLadder(
   stint(5, okZone({ lockFramesFront: 8 })),
   new Map(),

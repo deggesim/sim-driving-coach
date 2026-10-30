@@ -128,6 +128,22 @@ export const parseZones = (json: string | null): ZoneData[] => {
   }
 };
 
+/**
+ * True when the game fixes the tyre temperatures (R3E Leaderboard, 85 °C): one
+ * value on every shoulder of every wheel, which no real tyre gives. The session
+ * flag can be off in that case, and "+0.0 °C" would read as a camber to fix.
+ */
+export const tyreTempsFixed = (laps: LapRow[]): boolean =>
+  new Set(
+    laps.flatMap((l) =>
+      parseZones(l.zones_json).flatMap((z) => [
+        ...(z.avgTyreTempInnerC ?? []),
+        ...(z.avgTyreTempCenterC ?? []),
+        ...(z.avgTyreTempOuterC ?? []),
+      ]),
+    ),
+  ).size === 1;
+
 const WHEELS = Object.keys(WHEEL_LABELS); // ANT-SX, ANT-DX, POST-SX, POST-DX
 const R3E_WHEELS = ["Front Left", "Front Right", "Rear Left", "Rear Right"]; // idToLabel suffixes
 const W = [0, 1, 2, 3] as const;

@@ -17,7 +17,11 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
-import { ladderFlags, stintReadyMessage } from "./setup-ladder.js";
+import {
+  ladderFlags,
+  stintReadyMessage,
+  tyreTempsFixed,
+} from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
@@ -175,16 +179,19 @@ export const createSessionCoachEngine = (
     // NOT NULL DEFAULT 1, so a missing value can only mean a pre-migration row
     // and `!== 0` maps that to true.
     const flagOn = (v: unknown): boolean => v !== 0;
-    const flags = {
-      leaderboardMode: flagOn(sessionRow.leaderboard_mode),
-      fixedSetup: flagOn(sessionRow.fixed_setup),
-    };
 
     const laps = db
       .prepare(
         `SELECT * FROM ${lapsTable} WHERE session_id = ? ORDER BY lap_number ASC`,
       )
       .all(sessionId) as LapRow[];
+
+    const flags = {
+      // The telemetry wins over a flag left off: fixed temperatures judge nothing.
+      leaderboardMode:
+        flagOn(sessionRow.leaderboard_mode) || tyreTempsFixed(laps),
+      fixedSetup: flagOn(sessionRow.fixed_setup),
+    };
 
     const setupRowsRaw = db
       .prepare(
