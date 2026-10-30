@@ -26,5 +26,17 @@ for (const car of AMS2_CARS) {
   );
 }
 
-export const findAms2Car = (name: string): Ams2Car | null =>
-  BY_NAME.get(norm(name)) ?? null;
+// Names the game reports that differ from the sheet (normalized), only where a
+// single row is clearly the same car. "Ginetta G40" and "Fiat Uno" have two rows
+// with different specs and stay ambiguous; Audi R8 and Vee Gen2 have no row.
+const ALIASES = new Map([
+  ["caterham academy", "caterham academy 270r"],
+  ["kart 4 stroke race", "kart gx390 race"],
+  ["formula vee gen1", "formula vee"],
+  ["formula vee gen1 fin", "formula vee fin"],
+]);
+
+export const findAms2Car = (name: string): Ams2Car | null => {
+  const key = norm(name);
+  return BY_NAME.get(ALIASES.get(key) ?? key) ?? null;
+};

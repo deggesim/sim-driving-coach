@@ -31,6 +31,21 @@ const DIFFS = [
 for (const c of AMS2_CARS)
   assert.ok(DIFFS.includes(c.differential), `${c.name}: ${c.differential}`);
 
+// Names the game reports, seen in real sessions, that differ from the sheet
+assert.equal(findAms2Car("Caterham Academy")?.name, "Caterham Academy (270R)");
+assert.equal(findAms2Car("Kart 4-Stroke Race")?.name, "Kart GX390 Race");
+assert.equal(findAms2Car("Formula Vee Gen1")?.name, "Formula Vee");
+assert.equal(findAms2Car("Formula Vee Gen1 + Fin")?.name, "Formula Vee + Fin");
+// Two rows with different specs, or no row at all: never a variant picked at random
+for (const name of [
+  "Ginetta G40",
+  "Ginetta G40 Cup",
+  "Copa Uno",
+  "Formula Vee Gen2",
+  "Audi R8 LMS GT3",
+])
+  assert.equal(findAms2Car(name), null, name);
+
 // Ambiguous (same name, different specs) -> null; identical duplicates -> a car
 assert.equal(findAms2Car("MetalMoro AJR"), null);
 assert.equal(findAms2Car("Ginetta G58")?.weightKg, 1020);
