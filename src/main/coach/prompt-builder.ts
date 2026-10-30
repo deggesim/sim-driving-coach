@@ -27,6 +27,8 @@ import type {
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
 import type { SessionStats } from "./session-stats.js";
+import type { SetupLadder } from "./setup-ladder.js";
+import type { SetupOverview } from "./setup-overview.js";
 
 /**
  * Select zones that are "interesting" for the analysis:
@@ -71,30 +73,36 @@ Produci un'unica sezione radice "## Analisi approfondita" con queste sottosezion
 Eventuali ulteriori suddivisioni interne devono usare "####": NON introdurre altre intestazioni "##" oltre a "Analisi approfondita".
 
 ### Analisi telemetria
-Panoramica sessione (numero giri, setup, trend direzionale). Trend giro-per-giro con la causa meccanica del miglioramento/peggioramento. Curve critiche per volume di alert nel formato "@XXXm NomeCurva: N alert (tipo+durata in secondi, …), causa probabile". Osservazioni pressioni gomme (ometti se non disponibili). Dati critici mancanti (ometti se nessuno).
+Panoramica sessione (numero giri, setup, trend direzionale). Trend giro-per-giro con la causa meccanica del miglioramento/peggioramento. Curve critiche per volume di alert nel formato "@XXXm NomeCurva: N alert (tipo+durata in secondi, …), causa probabile". Osservazioni pressioni gomme: tabella per ruota dalle righe "Gomme setup" (Δ, stato, deriva, per setup se più di uno), con l'avvertenza che ritmo e temperatura asfalto spostano le pressioni (ometti se non disponibili). Dati critici mancanti (ometti se nessuno).
 
 ### Problemi identificati
 Tabella markdown: Rank | Problema | Localizzazione | Alert Count | Impatto Stim.
 Poi "Dettagli per curva" (un bullet per curva critica, con entry speed, ∆ sterzata %, durate in secondi, causa meccanica) e "Pattern sistemico" (analisi trasversale: apprendimento pilota vs gestione termica vs setup).
 
 ### Setup attuale vs proposto
-(OMETTI l'intera sottosezione se nessun setup è stato caricato.)
-Tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti. Poi proposte concrete numerate: "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro.
-Copri ogni area che i dati sostengono (freni, pressioni e temperature gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio): NON limitarti ai freni. Ogni proposta cita il dato che la sostiene.
+Se nei Dati Calcolati c'è la riga "Messa a punto di base", questa sottosezione è OBBLIGATORIA anche senza un setup caricato. Parti SEMPRE dalla tabella "Regolazione | Stato | Dato" con tutte le righe della "Messa a punto di base", nel loro ordine (se chiede di completare dei giri, scrivi quella richiesta al posto della tabella); le righe dopo quella da fare ora sono "da rivedere dopo", perché cambiano quando cambia quella.
+Poi, SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti e le proposte concrete numerate "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro. Finché una riga della "Messa a punto di base" è da fare ora, le proposte numerate riguardano SOLO quella regolazione, con le stesse regole della sintesi (un passo minimo, valori a freddo); le altre regolazioni (sospensioni, ammortizzatori, barre, altezze, aerodinamica) solo come osservazioni, senza proposte. Se nessuna riga della "Messa a punto di base" è da fare ora, le proposte sulle altre regolazioni stanno nella sottosezione "Assetto telaio", non qui. Con la richiesta "completa ancora N giri" e nessuna riga da fare ora, nessuna proposta numerata. Ogni proposta cita il dato che la sostiene.
+Senza setup caricato: niente tabella dei parametri e niente valori "A → B"; per la regolazione da fare ora indica solo la direzione (come nella sintesi).
+Se la riga "Messa a punto di base" manca e nessun setup è caricato, OMETTI l'intera sottosezione. Se manca ma un setup è caricato, niente tabella delle regolazioni e niente proposte numerate: solo la tabella "Parametro | Valore | Valutazione" e osservazioni.
+
+### Assetto telaio
+Se nei Dati Calcolati c'è la riga "Assetto telaio", questa sottosezione è OBBLIGATORIA. Tabella "Regolazione | Stato | Dato | Direzione" con tutte le otto righe nell'ordine dei dati, poi la riga "Calore gomme" se presente. Se le righe sono "da rivedere dopo la messa a punto di base", nessuna proposta: scrivi in una riga che vanno riviste dopo le regolazioni di freni, gomme e differenziale. Altrimenti, con un setup caricato, una proposta numerata per ogni riga da correggere, nel loro ordine, nel formato "N. Regolazione — Parametro: ValoreAttuale → ValoreNuovo": usa il valore della riga quando lo dà (molle), altrimenti valore attuale ± il passo minimo nella direzione della riga. Chiudi con: "Applica una modifica alla volta, nell'ordine, con uno stint dopo ciascuna: le successive possono cambiare." Senza setup caricato, solo le direzioni. Le righe non valutabili si elencano con il motivo, senza proposte. Nessuna proposta per le righe marcate "non modificabile con Setup Fisso".
 
 ---
 
 ## Regole Generali
 - NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
-- Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C). Se valore = -1, ignora.
-- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono in PSI (bar per AMS2, vedi sotto), l'unità è sempre indicata accanto al numero.
+- Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C) (informativa: il giudizio sui condotti è nella "Messa a punto di base"). Se valore = -1, ignora.
+- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono nella stessa unità del setup (bar per AMS2), l'unità è sempre indicata accanto al numero.
 - Bilanciamento frenata NEI SETUP (formato "front/rear%", es. "68.00/32.00%"): il PRIMO valore è SEMPRE l'anteriore, il SECONDO è SEMPRE il posteriore. Non invertire mai l'ordine.
-- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" nell'unità del setup del gioco (PSI per ACE, kPa per R3E, bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 - R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
 - Ogni affermazione deve essere supportata da almeno un dato numerico.
+- Maiuscole: scrivi in minuscolo normale, con la maiuscola solo a inizio frase e nei nomi propri. Mai parole o frasi intere in maiuscolo, né per enfasi né per gli stati (scrivi "da correggere", "non valutabile"); le sigle (ABS, TC, PSI…) restano come sono.
+- Linguaggio: parla come un ingegnere di pista. Nel testo e nel blocco vocale non usare MAI le parole "scaletta", "sequenza", "quadro", "passo" o "area" riferiti alla procedura di messa a punto, né le etichette "Messa a punto di base", "Assetto telaio" o "da fare ora", né il nome Frezza: nomina direttamente la regolazione e il componente (es. "chiudi i condotti dei freni posteriori", "ammorbidisci la barra anteriore"). "Passo minimo" come incremento di un click resta lecito.
 - Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
 
-Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se nessun setup è caricato.`;
+Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Messa a punto di base" e nessun setup è caricato, e "Assetto telaio", omissibile SOLO se manca la riga "Assetto telaio".`;
 
 export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
 I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
@@ -109,8 +117,10 @@ Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una 
 1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
 2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
 
-NON concentrare tutte le azioni sulla stessa area: valuta ogni leva che i dati supportano (freni, pressioni gomme, sospensioni e ammortizzatori, aerodinamica, differenziale, elettronica/preset TC-ABS, cambio) oltre alla tecnica di guida. Proponi una leva SOLO se un dato del contesto la sostiene, e cita quel dato.
-Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" in PSI (bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+Azioni di setup: segui la "Messa a punto di base" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sulla riga da fare ora, nella direzione indicata e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella loro riga, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva della riga da fare ora, dillo e usa la riga da correggere successiva. Nomina in una riga le regolazioni non valutabili saltate, con il motivo. Se la "Messa a punto di base" chiede di completare dei giri e non ha una riga da fare ora, l'azione di setup è "completa ancora N giri con questo setup". Se nessuna riga della "Messa a punto di base" è da fare ora, l'unica azione di setup è la riga da fare ora dell'"Assetto telaio", nella sua direzione e citandone il dato: se la riga dà il valore (molle), B è quel valore; altrimenti B = valore attuale ± il passo minimo; se la riga indica più direzioni, usa la prima; per le barre antirollio proponi la barra anteriore. Senza nessuna riga da fare ora, o senza riga "Messa a punto di base", nessuna azione di setup. Le azioni di guida restano libere.
+Maiuscole: scrivi in minuscolo normale, con la maiuscola solo a inizio frase e nei nomi propri. Mai parole o frasi intere in maiuscolo, né per enfasi né per gli stati (scrivi "da correggere", "non valutabile"); le sigle (ABS, TC, PSI…) restano come sono.
+Linguaggio: parla come un ingegnere di pista. Nel testo e nel blocco vocale non usare MAI le parole "scaletta", "sequenza", "quadro", "passo" o "area" riferiti alla procedura di messa a punto, né le etichette "Messa a punto di base", "Assetto telaio" o "da fare ora", né il nome Frezza: nomina direttamente la regolazione e il componente (es. "chiudi i condotti dei freni posteriori", "ammorbidisci la barra anteriore"). "Passo minimo" come incremento di un click resta lecito.
+Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" nell'unità del setup del gioco (PSI per ACE, kPa per R3E, bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
 
 Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
 <sintesi-vocale>
@@ -172,15 +182,17 @@ const wheelQuartet = (
 
 /**
  * `tp` is stored internally as PSI for all three games (see src/main/CLAUDE.md).
- * AMS2's own UI shows bar, unlike R3E/ACE which show PSI, so only the AMS2
- * prompt display converts back - the stored channel and the other games are untouched.
+ * The prompt shows the unit of each game's setup screen: bar on AMS2, kPa on
+ * R3E, PSI on ACE - the stored channel is untouched.
  */
 const pressureUnit = (
   game: GameSource,
 ): { scale: number; digits: number; label: string } =>
   game === "ams2"
     ? { scale: 0.0689476, digits: 2, label: "bar" }
-    : { scale: 1, digits: 1, label: "PSI" };
+    : game === "r3e"
+      ? { scale: 6.89476, digits: 0, label: "kPa" }
+      : { scale: 1, digits: 1, label: "PSI" };
 
 const summarizeLapZones = (
   zones: ZoneData[],
@@ -234,6 +246,82 @@ const summarizeLapZones = (
   return lines;
 };
 
+const LADDER_STATUS = { ok: "ok", fix: "da correggere", na: "non valutabile" };
+
+/** The setup ladder as computed by setup-ladder.ts: one line per step, then the tyre lines. */
+const ladderLines = (ladder: SetupLadder, game: GameSource): string[] => {
+  const label = ladder.setupLabel ? `"${ladder.setupLabel}"` : null;
+  // With laps missing there are no steps, but the earlier segments' tyre lines stay.
+  const withSetup = label ? `il setup ${label}` : "questo setup";
+  const lines =
+    ladder.lapsMissing > 0 && ladder.current === 1
+      ? [
+          `- Messa a punto di base: condotti freni giudicati su ${ladder.ductsLaps} giri dopo il primo; per le altre regolazioni completa ancora ${ladder.lapsMissing} giri con ${withSetup}`,
+        ]
+      : ladder.lapsMissing > 0
+        ? [
+            `- Messa a punto di base: completa ancora ${ladder.lapsMissing} giri con ${withSetup}`,
+          ]
+        : [
+            `- Messa a punto di base, in ordine (${label ? `setup ${label}` : "setup non caricato"}, giri ${ladder.firstJudgedLap}-${ladder.lastJudgedLap}, ${ladder.judgedLaps} giudicati):`,
+          ];
+  for (const s of ladder.steps) {
+    const mark =
+      s.n === ladder.current
+        ? " ← da fare ora"
+        : ladder.current != null && s.n > ladder.current
+          ? ` (da rivedere dopo: ${ladder.steps.find((c) => c.n === ladder.current)?.label})`
+          : "";
+    const fixed = s.proposable ? "" : " (non modificabile con Setup Fisso)";
+    lines.push(
+      `  - ${s.label}: ${LADDER_STATUS[s.status]}${mark} — ${s.reason}${fixed}`,
+    );
+  }
+  const pu = pressureUnit(game);
+  for (const t of ladder.tyres) {
+    const hot = wheelQuartet(t.hotPressurePsi, pu.scale, pu.digits);
+    const delta = wheelQuartet(t.deltaC, 1, 1);
+    const io = wheelQuartet(t.innerMinusOuterC, 1, 1);
+    const drift = wheelQuartet(t.driftPsi, pu.scale, pu.digits);
+    const bits = [
+      hot && `press. a caldo ${hot} ${pu.label}`,
+      delta && `Δ centro-spalle ${delta} °C`,
+      io && `interna-esterna ${io} °C`,
+      `stato ${t.pressureState.join("/")}`,
+      drift && `deriva ${drift} ${pu.label}`,
+    ].filter((b) => b);
+    lines.push(
+      `    Gomme setup ${t.setupLabel ? `"${t.setupLabel}"` : "non caricato"} (${t.judgedLaps} giri giudicati) (${WHEEL_ORDER}) ${bits.join(" | ")}`,
+    );
+  }
+  return lines;
+};
+
+/** The setup overview as computed by setup-overview.ts: header, one line per area, then the tyre heat line. */
+const overviewLines = (o: SetupOverview): string[] => {
+  const w = o.weight;
+  const head = w.known
+    ? `pesi ant ${w.frontPct.toFixed(1)} % ${
+        w.source === "misurata"
+          ? `misurata${w.fuelL != null ? `, carburante medio ${w.fuelL.toFixed(0)} L` : ""}`
+          : "da tabella AMS2"
+      }${w.aeroFrontPct != null ? `, carico aerodinamico ant ${w.aeroFrontPct.toFixed(1)} %` : ""}`
+    : `pesi sconosciuti: ${w.reason}`;
+  const lines = [`- Assetto telaio, in ordine (${head}):`];
+  for (const a of o.areas) {
+    const mark = a.n === o.current ? " ← da fare ora" : "";
+    const after = o.afterLadder
+      ? " (da rivedere dopo la messa a punto di base)"
+      : "";
+    const fixed = a.proposable ? "" : " (non modificabile con Setup Fisso)";
+    lines.push(
+      `  - ${a.label}: ${LADDER_STATUS[a.status]}${mark} — ${a.reason}${after}${fixed}`,
+    );
+  }
+  if (o.tyreLine) lines.push(`  Calore gomme: ${o.tyreLine}`);
+  return lines;
+};
+
 /**
  * Authoritative numeric facts block, injected verbatim into both prompts.
  * The system prompts instruct the model to cite these numbers and never recompute.
@@ -273,6 +361,10 @@ export const buildStatsBlock = (
       bits.push(`nuvolosità ${(stats.avgCloudBrightness * 100).toFixed(0)}%`);
     lines.push(`- Condizioni: ${bits.join(", ")}`);
   }
+  if (stats.setupLadder) lines.push(...ladderLines(stats.setupLadder, game));
+  // While the ladder still asks for laps there is nothing settled to judge.
+  if (stats.setupOverview && stats.setupLadder?.lapsMissing === 0)
+    lines.push(...overviewLines(stats.setupOverview));
   if (stats.suspAsymFrontMm != null || stats.suspAsymRearMm != null) {
     const bits: string[] = [];
     if (stats.suspAsymFrontMm != null)
@@ -280,7 +372,7 @@ export const buildStatsBlock = (
     if (stats.suspAsymRearMm != null)
       bits.push(`posteriore ${stats.suspAsymRearMm.toFixed(1)}mm (RL-RR)`);
     lines.push(
-      `- Asimmetria corsa sospensione (media sessione): ${bits.join(", ")} — verifica camber/altezza da terra`,
+      `- Asimmetria corsa sospensione (media sessione): ${bits.join(", ")}`,
     );
   }
   if (
@@ -293,7 +385,7 @@ export const buildStatsBlock = (
     if (stats.slipAsymRearThrottle != null)
       bits.push(`posteriore ${stats.slipAsymRearThrottle.toFixed(3)} (RL-RR)`);
     lines.push(
-      `- Asimmetria slip ratio in trazione (media sessione): ${bits.join(", ")} — verifica differenziale power`,
+      `- Asimmetria slip ratio in trazione (media sessione): ${bits.join(", ")}`,
     );
   }
   if (stats.slipAsymFrontRelease != null || stats.slipAsymRearRelease != null) {
@@ -303,7 +395,7 @@ export const buildStatsBlock = (
     if (stats.slipAsymRearRelease != null)
       bits.push(`posteriore ${stats.slipAsymRearRelease.toFixed(3)} (RL-RR)`);
     lines.push(
-      `- Asimmetria slip ratio in rilascio/frenata (media sessione): ${bits.join(", ")} — verifica differenziale coast`,
+      `- Asimmetria slip ratio in rilascio/frenata (media sessione): ${bits.join(", ")}`,
     );
   }
   if (stats.laps.length > 0) {
@@ -425,12 +517,12 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   if (session.game === "r3e") {
     if (leaderboardMode) {
       parts.push(
-        `- **Modalità Leaderboard ATTIVA**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative - non diagnosticare questi valori come problemi.`,
+        `- **Modalità Leaderboard attiva**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative - non diagnosticare questi valori come problemi. Nella messa a punto di base pressioni e campanatura sono non valutabili.`,
       );
     }
     if (fixedSetup) {
       parts.push(
-        `- **Setup Fisso ATTIVO**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. Tutte le altre raccomandazioni di setup (sospensioni, aerodinamica, differenziale, ecc.) non sono applicabili - ometti o segnala esplicitamente questa limitazione nelle proposte di setup.`,
+        `- **Setup Fisso attivo**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. La messa a punto di base mostra solo condotti e bilanciamento freni; i condotti non sono modificabili.`,
       );
     }
   }

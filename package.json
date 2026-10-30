@@ -7,11 +7,13 @@
   "main": "out/main/main.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:debug": "node scripts/dev-debug.mjs",
     "build": "electron-vite build",
     "build:electron": "electron-vite build && electron-builder",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "start": "electron-vite preview",
     "lint": "eslint .",
+    "update:ams2-cars": "node scripts/update-ams2-cars.mjs",
     "selfcheck": "node -e \"require('node:fs').rmSync('.selfcheck-out',{recursive:true,force:true})\" && tsc -p tsconfig.selfcheck.json && node scripts/run-selfchecks.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

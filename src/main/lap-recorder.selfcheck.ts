@@ -89,4 +89,26 @@ assert.equal(bare[0].maxGLat, undefined);
 assert.equal(bare[0].avgSuspTravel, undefined);
 assert.ok(bare[0].avgBrakeTempC, "brake temps are outside the extended block");
 
+// Surface temps (inner shoulder here): averaged per wheel like `tt`, absent when
+// no frame carried the channel.
+const surf = aggregateZones(
+  [frame(10, { tti: [80, 80, 80, 80] }), frame(20, { tti: [82, 82, 82, 82] })],
+  100,
+);
+assert.deepEqual(surf[0].avgTyreTempInnerC, [81, 81, 81, 81]);
+assert.equal(surf[0].avgTyreTempCenterC, undefined);
+assert.equal(surf[0].avgTyreTempOuterC, undefined);
+assert.equal(bare[0].avgTyreTempInnerC, undefined);
+
+// Ladder counters: hard-brake frames are always on the zone, even at 0.
+const hard = aggregateZones(
+  [frame(10, { brk: 0.8, abs: 1 }), frame(60, { brk: 0.1 })],
+  100,
+);
+assert.equal(hard[0].hardBrakeFrames, 1);
+assert.equal(hard[0].absHardBrakeFrames, 1);
+assert.equal(hard[1].hardBrakeFrames, 0);
+assert.equal(hard[1].absHardBrakeFrames, 0);
+assert.equal(hard[0].lockFramesFront, undefined, "no sr, no lock counter");
+
 console.log("lap-recorder.selfcheck OK");

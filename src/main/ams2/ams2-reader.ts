@@ -22,6 +22,8 @@ import {
 } from "../../shared/alert-types.js";
 import type { CompactFrame, GameFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
+import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
+import { createSlipEstimator } from "./ams2-slip.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -93,6 +95,8 @@ export const createAms2Reader = (
   let lapInvalidatedAccum = false;
   let lastSectors: [number, number, number] = [-1, -1, -1];
   let lastSeq = -1;
+  const slipEstimator = createSlipEstimator();
+  let radiusLogged = false; // one smoke-test line per reader start
   let staleCount = 0;
 
   const isNullPtr = (ptr: NativePointer): boolean => {
@@ -283,6 +287,11 @@ export const createAms2Reader = (
       const antiLock = buf.readUInt8(OFF.antiLockActive) !== 0;
       const brakeTemps = readFloatArray(buf, OFF.brakeTempCelsius, 4);
       const tyreTemps = readFloatArray(buf, OFF.tyreTemp, 4);
+      // Left/right orientation assumed as in R3E; offsets not yet verified live.
+      const [innerTemps, outerTemps] = leftRightToInnerOuter(
+        readFloatArray(buf, OFF.tyreTempLeft, 4),
+        readFloatArray(buf, OFF.tyreTempRight, 4),
+      );
       // mAirPressure is documented as PSI in SharedMemory.h, but the raw values
       // match the setup's cold pressure read as kPa (e.g. a 1.75 bar/175 kPa
       // setup reads ~180 here at the start of a session), not as PSI. Converted
@@ -291,8 +300,27 @@ export const createAms2Reader = (
         (v) => v * 0.145038,
       );
       const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
+      // mRideHeight is centimetres; stored in metres like `sus`.
+      const rideHeight = readFloatArray(buf, OFF.rideHeight, 4).map(
+        (v) => v / 100,
+      );
       // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
       const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
+      const slipRatio = slipEstimator.slip({
+        speedMps: speed,
+        wheelRadS: readFloatArray(buf, OFF.tyreRPS, 4),
+        brake,
+        throttle,
+        steering,
+        gLat: localAcc[0] / G,
+      });
+      const radius = slipEstimator.radius();
+      if (radius && !radiusLogged) {
+        radiusLogged = true;
+        console.log(
+          `[AMS2] raggio ruota calibrato: ${(radius.reduce((a, b) => a + b, 0) / radius.length).toFixed(2)} m, slip disponibile`,
+        );
+      }
       const ambientTemp = readFloat(buf, OFF.ambientTemp);
       const trackTemp = readFloat(buf, OFF.trackTemp);
       const rainDensity = readFloat(buf, OFF.rainDensity);
@@ -358,9 +386,16 @@ export const createAms2Reader = (
         gLon: localAcc[2] / G,
         tp: [...tyrePressures],
         sus: [...suspTravel],
+        rh: rideHeight,
         tt: [...tyreTemps],
-        // No `sr`: AMS2 has no slip-ratio channel and mTyreRPS needs a tyre
-        // radius the SHM does not expose. Absent beats a floored zero.
+        // `sr` is estimated from mTyreRPS with a self-calibrated tyre radius;
+        // absent until calibrated (absent beats a floored zero).
+        ...(slipRatio && { sr: slipRatio }),
+        ...surfaceTemps(
+          innerTemps,
+          readFloatArray(buf, OFF.tyreTempCenter, 4),
+          outerTemps,
+        ),
         at: ambientTemp,
         rt: trackTemp,
         rain: rainDensity,
@@ -435,6 +470,8 @@ export const createAms2Reader = (
   return {
     start: () => {
       stopped = false;
+      slipEstimator.reset();
+      radiusLogged = false;
       if (isMock) startMock();
       else tryConnect();
     },

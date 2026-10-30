@@ -17,6 +17,11 @@ import {
   buildSynthesisPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
+import {
+  ladderFlags,
+  stintReadyMessage,
+  tyreTempsFixed,
+} from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
@@ -89,6 +94,8 @@ type SessionCoachOptions = {
 export type SessionCoachEngine = {
   updateApiKey: (apiKey: string) => void;
   updateCornerNames: (names: Map<number, string>) => void;
+  // The phrase to speak when the stint can be analysed, null while it cannot.
+  stintReady: (sessionId: number, game: GameSource) => string | null;
   analyzeSession: (
     sessionId: number,
     game: GameSource,
@@ -172,16 +179,19 @@ export const createSessionCoachEngine = (
     // NOT NULL DEFAULT 1, so a missing value can only mean a pre-migration row
     // and `!== 0` maps that to true.
     const flagOn = (v: unknown): boolean => v !== 0;
-    const flags = {
-      leaderboardMode: flagOn(sessionRow.leaderboard_mode),
-      fixedSetup: flagOn(sessionRow.fixed_setup),
-    };
 
     const laps = db
       .prepare(
         `SELECT * FROM ${lapsTable} WHERE session_id = ? ORDER BY lap_number ASC`,
       )
       .all(sessionId) as LapRow[];
+
+    const flags = {
+      // The telemetry wins over a flag left off: fixed temperatures judge nothing.
+      leaderboardMode:
+        flagOn(sessionRow.leaderboard_mode) || tyreTempsFixed(laps),
+      fixedSetup: flagOn(sessionRow.fixed_setup),
+    };
 
     const setupRowsRaw = db
       .prepare(
@@ -240,6 +250,43 @@ export const createSessionCoachEngine = (
       cornerNames = names;
     },
 
+    stintReady: (sessionId, game) => {
+      const bundle = loadSessionBundle(game, sessionId);
+      if (!bundle) return null;
+      const statsOf = (laps: LapRow[], minJudgedLaps?: number) =>
+        computeSessionStats({
+          laps,
+          bestLap: bundle.session.best_lap,
+          setups: bundle.setups,
+          cornerNames,
+          game,
+          car: bundle.session.car,
+          minJudgedLaps,
+          ...ladderFlags(game, bundle.flags),
+        });
+      const { setupLadder, setupOverview } = statsOf(bundle.laps);
+      if (!setupLadder) return null;
+      // The verdict before the last counted lap, judged on one lap less.
+      const cut =
+        setupLadder.lapsMissing > 0 && setupLadder.current === 1
+          ? (bundle.laps.at(-1)?.lap_number ?? null)
+          : setupLadder.lastJudgedLap;
+      const before =
+        cut == null
+          ? null
+          : statsOf(
+              bundle.laps.filter((l) => l.lap_number < cut),
+              1,
+            );
+      return stintReadyMessage(
+        setupLadder,
+        setupOverview,
+        before?.setupLadder
+          ? { ladder: before.setupLadder, overview: before.setupOverview }
+          : null,
+      );
+    },
+
     analyzeSession: async (sessionId, game, resolved, alerts) => {
       const analysesTable = tableFor(game, "session_analyses");
       const bundle = loadSessionBundle(game, sessionId);
@@ -252,6 +299,10 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        game,
+        car: session.car,
+        // Both columns default to 1 for every game: see ladderFlags.
+        ...ladderFlags(game, flags),
       });
 
       const prompt = buildSynthesisPrompt({
@@ -379,6 +430,9 @@ export const createSessionCoachEngine = (
         setups,
         alerts,
         cornerNames,
+        game,
+        car: session.car,
+        ...ladderFlags(game, flags),
       });
 
       const prompt = buildSessionPrompt({
@@ -513,6 +567,9 @@ export const createSessionCoachEngine = (
             bestLap: bundle.session.best_lap,
             setups: bundle.setups,
             cornerNames,
+            game,
+            car: bundle.session.car,
+            ...ladderFlags(game, bundle.flags),
           })
         : undefined;
       const prompt = buildCommentPrompt({

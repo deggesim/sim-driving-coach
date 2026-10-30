@@ -31,6 +31,7 @@ import {
   AC_LIVE,
   PHY,
   GFX,
+  GFX_TYRE,
   STA,
   readInt32,
   readFloat,
@@ -44,6 +45,7 @@ import {
 } from "../../shared/alert-types.js";
 import type { GameFrame, CompactFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
+import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -150,6 +152,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
 
   // Per-lap state
   let lapFrames: CompactFrame[] = [];
+  let pitFrames: CompactFrame[] = [];
   let ownLapCount = 0;
   let prevNpos = -1;
   let prevCurrentLapTimeMs = 0;
@@ -161,6 +164,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
   let pendingLapComplete: {
     lapNumber: number;
     frames: CompactFrame[];
+    pitFrames: CompactFrame[];
     car: string;
     track: string;
     layout: string;
@@ -211,6 +215,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
     if (connected) {
       connected = false;
       lapFrames = [];
+      pitFrames = [];
       ownLapCount = 0;
       prevNpos = -1;
       prevCurrentLapTimeMs = 0;
@@ -393,6 +398,21 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       const wheelsPressure = readFloatArray(physBuf, PHY.wheelsPressure, 4);
       const suspensionTravel = readFloatArray(physBuf, PHY.suspensionTravel, 4);
       const tyreCoreTemp = readFloatArray(physBuf, PHY.tyreCoreTemperature, 4);
+      // Ride height comes per axle, in mm (live: ~55-85): [F, F, R, R] in m.
+      const [rhFront, rhRear] = readFloatArray(physBuf, PHY.rideHeight, 2).map(
+        (v) => v / 1000,
+      );
+      const wheelLoad = readFloatArray(physBuf, PHY.wheelLoad, 4);
+      const fuel = readFloat(physBuf, PHY.fuel);
+      const gfxTyre = (off: number) =>
+        GFX_TYRE.base.map((b) => readFloat(gfxBuf, b + off));
+      // left/right are the wheel's physical sides, like R3E (spec says "inner-edge" but the
+      // Lotus data only makes sense that way: outer shoulder +2 °C on all four wheels).
+      const [tyreTempI, tyreTempO] = leftRightToInnerOuter(
+        gfxTyre(GFX_TYRE.tempLeft),
+        gfxTyre(GFX_TYRE.tempRight),
+      );
+      const tyreTempM = gfxTyre(GFX_TYRE.tempCenter);
       const slipRatio = readFloatArray(physBuf, PHY.slipRatio, 4);
       const airTemp = readFloat(physBuf, PHY.airTemp);
       const roadTemp = readFloat(physBuf, PHY.roadTemp);
@@ -541,9 +561,10 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
       // Track pit lane presence for outlap/drive-through detection.
       if (isInPitLane) lapExitedPit = true;
 
-      // Accumulate CompactFrame (exclude pit lane frames)
-      if (!isInPitLane) {
-        lapFrames.push({
+      // Accumulate CompactFrame. Pit-lane frames stay out of the lap but feed
+      // the load fit (moving only: a car parked in the box would pile them up).
+      if (!isInPitLane || speedKmh > 1) {
+        (isInPitLane ? pitFrames : lapFrames).push({
           d: cumulativeDist,
           spd: speedKmh,
           thr: gas,
@@ -562,14 +583,18 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           tp: [...wheelsPressure],
           sr: [...slipRatio],
           sus: [...suspensionTravel],
+          rh: [rhFront, rhFront, rhRear, rhRear],
+          wl: wheelLoad,
+          fuel,
           tt: [...tyreCoreTemp],
+          ...surfaceTemps(tyreTempI, tyreTempM, tyreTempO),
           at: airTemp,
           rt: roadTemp,
           wx: playerWx,
           wy: playerWy,
           wz: playerWz,
         });
-        logChannels("ACE", lapFrames.at(-1));
+        if (!isInPitLane) logChannels("ACE", lapFrames.at(-1));
       }
 
       // Lap crossing: npos crosses start/finish (0.85→1.0 → 0.0→0.15).
@@ -581,6 +606,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
         pendingLapComplete = {
           lapNumber: ownLapCount,
           frames: [...lapFrames],
+          pitFrames,
           car: cachedCarModel,
           track: cachedTrack,
           layout: cachedLayout,
@@ -592,6 +618,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
           pollsWaited: 0,
         };
         lapFrames = [];
+        pitFrames = [];
         cumulativeDist = 0;
         lastFrameWx = undefined;
         lastFrameWz = undefined;
@@ -640,6 +667,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
             lapTime,
             sectorTimes: [-1, -1, -1] as [number, number, number],
             frames: pendingLapComplete.frames,
+            pitFrames: pendingLapComplete.pitFrames,
             car: pendingLapComplete.car,
             track: pendingLapComplete.track,
             layout: pendingLapComplete.layout,

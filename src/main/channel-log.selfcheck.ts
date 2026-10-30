@@ -30,6 +30,7 @@ assert.ok(bare.includes("rpm=assente"), bare);
 assert.ok(bare.includes("gLat=assenteg"), bare);
 assert.ok(bare.includes("press=assentePSI"), bare);
 assert.ok(bare.includes("slip=assente"), bare);
+assert.ok(bare.includes("sup=assente"), bare);
 assert.ok(
   !bare.includes("0.0"),
   "an absent channel must not render as a value",
@@ -48,6 +49,9 @@ const full = formatChannels(
     gLon: 0.88,
     tp: [24.6, 24.8, 23.9, 24.1],
     tt: [88.4, 90.1, 85.2, 84.3],
+    tti: [85, 80, 72, 74],
+    ttc: [83, 81, 73, 73],
+    tto: [80, 82, 74, 72],
     sr: [0.021, 0.019, -0.114, -0.108],
     sus: [0.0312, 0.032, 0.0481, 0.0476],
   }),
@@ -56,7 +60,25 @@ assert.ok(full.includes("rpm=6820"), full);
 assert.ok(full.includes("gLat=-1.42g gLon=0.88g"), full);
 assert.ok(full.includes("press=24.6/24.8/23.9/24.1PSI"), full);
 assert.ok(full.includes("temp=88/90/85/84°C"), full);
+assert.ok(
+  full.includes("sup(I-C-E)=85-83-80/80-81-82/72-73-74/74-73-72°C"),
+  full,
+);
 assert.ok(full.includes("slip=0.021/0.019/-0.114/-0.108"), full);
 assert.ok(full.includes("sosp=31.2/32.0/48.1/47.6mm"), full);
+
+// Ride height m → mm (1 decimal), wheel load N as read.
+assert.ok(
+  formatChannels(frame({ rh: [0.052, 0.051, 0.061, 0.06] })).includes(
+    "alt=52.0/51.0/61.0/60.0mm",
+  ),
+);
+assert.ok(bare.includes("alt=assente"), bare);
+assert.ok(
+  formatChannels(frame({ wl: [3000, 3100, 3900, 4000] })).includes(
+    "carico=3000/3100/3900/4000N",
+  ),
+);
+assert.ok(bare.includes("carico=assente"), bare);
 
 console.log("channel-log.selfcheck OK");

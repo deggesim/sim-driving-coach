@@ -30,6 +30,7 @@ import {
 } from "../../shared/alert-types.js";
 import type { R3EFrame, CompactFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
+import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -79,7 +80,7 @@ type FrameExt = {
   sr: number[];
   sus: number[];
   tt: number[];
-};
+} & Pick<CompactFrame, "tti" | "ttc" | "tto" | "rh" | "wl" | "fuel">;
 
 type ParsedFrame = R3EFrame & { ext: FrameExt };
 
@@ -112,6 +113,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
   let lastCompletedLaps = -1;
   let lastTrackSector = -1;
   let lapFrames: CompactFrame[] = [];
+  let pitFrames: CompactFrame[] = [];
   let currentCar = "";
   let currentTrack = "";
   let currentLayout = "";
@@ -149,6 +151,17 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     const tireTempRL = readFloat(buf, "TireTemp_RL_Center");
     const tireTempRR = readFloat(buf, "TireTemp_RR_Center");
 
+    // Surface temps: "left"/"right" are assumed to be the sensor's physical side
+    // of the car, so inner/outer follow the wheel side. Orientation not yet
+    // confirmed on a live sim (check on a long corner).
+    const wheels = ["FL", "FR", "RL", "RR"] as const;
+    const surface = (side: "Left" | "Center" | "Right"): number[] =>
+      wheels.map((w) => readFloat(buf, `TireTemp_${w}_${side}`));
+    const [innerTemps, outerTemps] = leftRightToInnerOuter(
+      surface("Left"),
+      surface("Right"),
+    );
+
     // TirePressure is kPa with -1 = N/A (r3e.h). Converted to PSI so the `tp`
     // channel carries one unit for all three games; a quartet with any -1 is
     // dropped whole rather than printed as a fake 0 PSI downstream.
@@ -164,6 +177,17 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       4,
     );
 
+    // Player_RideHeight is assumed to be metres (r3e.h gives no unit); to be
+    // checked live. TireLoad is N. A quartet with any value < 0 (-1 = N/A) is
+    // omitted whole, never shown as a fake zero.
+    const quartetOrUndefined = (q: number[]): number[] | undefined =>
+      q.some((v) => v < 0) ? undefined : q;
+    const rideHeight = quartetOrUndefined(
+      readDoubleArray(buf, "Player_RideHeight", 4),
+    );
+    const wheelLoad = quartetOrUndefined(readFloatArray(buf, "TireLoad", 4));
+    const fuelLeft = readFloat(buf, "FuelLeft");
+
     const rawTyreTemp = [tireTempFL, tireTempFR, tireTempRL, tireTempRR];
     const tyreTemp = rawTyreTemp.some((v) => v < 0)
       ? [0, 0, 0, 0] // -1 = no sensor, same convention as brake temps
@@ -177,11 +201,13 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     // ponytail: R3E has no native slip-ratio channel - derived from wheel speed
     // vs car speed (both m/s per r3e.h). Zeroed below 5 m/s, where the ratio is
     // meaningless. No upgrade path: the SHM exposes nothing better.
+    // TireSpeed is negative when rolling forward (live, Monza 2026-10-27:
+    // w - v gave -2.01 cruising), hence -w.
     const carSpeedMps = carSpeed / 3.6;
     const slipRatio =
       carSpeedMps > 5
         ? readFloatArray(buf, "TireSpeed", 4).map(
-            (w) => (w - carSpeedMps) / carSpeedMps,
+            (w) => (-w - carSpeedMps) / carSpeedMps,
           )
         : [0, 0, 0, 0];
 
@@ -245,7 +271,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       tireTempRL,
       tireTempRR,
 
-      fuelLeft: readFloat(buf, "FuelLeft"),
+      fuelLeft,
       fuelCapacity: readFloat(buf, "FuelCapacity"),
       fuelPerLap: readFloat(buf, "FuelPerLap"),
 
@@ -262,7 +288,11 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         tp: tirePressure,
         sr: slipRatio,
         sus: suspDeflection,
+        ...(rideHeight && { rh: rideHeight }),
+        ...(wheelLoad && { wl: wheelLoad }),
+        ...(fuelLeft >= 0 && { fuel: fuelLeft }),
         tt: tyreTemp,
+        ...surfaceTemps(innerTemps, surface("Center"), outerTemps),
       },
     };
   };
@@ -273,8 +303,15 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
     if (frame.layoutId > 0) currentLayout = String(frame.layoutId);
     if (frame.layoutLength > 0) currentLayoutLength = frame.layoutLength;
 
-    if (!frame.gamePaused && !frame.gameInMenus && !frame.inPitlane) {
-      lapFrames.push({
+    // Pit-lane frames stay out of the lap but feed the load fit (moving only:
+    // a car parked in the box would pile them up).
+    const pit = frame.inPitlane;
+    if (
+      !frame.gamePaused &&
+      !frame.gameInMenus &&
+      (!pit || frame.carSpeed > 1)
+    ) {
+      (pit ? pitFrames : lapFrames).push({
         d: frame.lapDistance,
         spd: frame.carSpeed,
         thr: frame.throttle,
@@ -298,7 +335,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         wy: frame.posY,
         wz: frame.posZ,
       });
-      logChannels("R3E", lapFrames.at(-1));
+      if (!pit) logChannels("R3E", lapFrames.at(-1));
     }
 
     // Sector boundary
@@ -332,6 +369,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         lapTime: frame.lapTimePreviousSelf,
         sectorTimes: [...frame.sectorTimesCurrentSelf],
         frames: [...lapFrames],
+        pitFrames,
         car: currentCar,
         track: currentTrack,
         layout: currentLayout,
@@ -341,6 +379,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
           frame.sectorTimesCurrentSelf.every((s) => s > 0),
       };
       lapFrames = [];
+      pitFrames = [];
       emitter.emit("lapComplete", lapData);
     }
     lastCompletedLaps = frame.completedLaps;

@@ -330,4 +330,53 @@ assert.ok(
 assert.equal(flat.suspAsymFrontMm, null, "no travel data ⇒ null, not 0");
 assert.equal(flat.slipAsymFrontThrottle, null);
 
+// Setup ladder: always computed. In Leaderboard (tyres fixed at 85 °C) steps
+// 4-5 are na and there are no tyre lines.
+const ladderIn = {
+  laps: Array.from({ length: 5 }, (_, i) => mkLap(i + 1, 100, [zone(8)])),
+  bestLap: 100,
+  setups: [],
+  cornerNames: new Map<number, string>(),
+};
+const lbLadder = computeSessionStats({
+  ...ladderIn,
+  leaderboardMode: true,
+}).setupLadder;
+assert.ok(lbLadder, "ladder also in Leaderboard");
+for (const step of lbLadder.steps.filter((x) => x.n === 4 || x.n === 5)) {
+  assert.equal(step.status, "na");
+  assert.equal(step.reason, "gomme fisse a 85 °C (Leaderboard)");
+}
+assert.equal(lbLadder.steps.length, 6, "steps 4 and 5 are both present");
+assert.equal(lbLadder.tyres.length, 0, "no tyre lines in Leaderboard");
+assert.ok(
+  computeSessionStats(ladderIn).setupLadder,
+  "ladder outside Leaderboard",
+);
+
+// Quadro assetto: AMS2 weights come from the car table, the default game is r3e.
+const ams2Ov = computeSessionStats({
+  ...ladderIn,
+  game: "ams2",
+  car: "Porsche 992 GT3 R",
+}).setupOverview;
+assert.ok(ams2Ov, "overview computed");
+assert.ok(
+  ams2Ov.weight.known && ams2Ov.weight.frontPct === 43.8,
+  JSON.stringify(ams2Ov.weight),
+);
+const r3eOv = computeSessionStats(ladderIn).setupOverview;
+assert.ok(r3eOv, "default game r3e still gets an overview");
+assert.equal(
+  r3eOv.weight.known,
+  false,
+  "no load fit in the zones: weights unknown, not guessed",
+);
+assert.equal(
+  computeSessionStats({ ...ladderIn, game: "ams2", car: "Auto inesistente" })
+    .setupOverview?.weight.known,
+  false,
+  "unknown AMS2 car: weights unknown",
+);
+
 console.log("session-stats.selfcheck OK");
