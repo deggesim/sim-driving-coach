@@ -2,6 +2,8 @@
 
 Data: 2026-10-29. Spec: `docs/superpowers/specs/2026-10-26-quadro-assetto-design.md` §5. Piano: `docs/superpowers/plans/2026-10-28-ammortizzatori-istogramma.md` (commit 2ceeaaf, d8550c3, 2af4d0e, d7633ed).
 
+> **Aggiornamento 2026-10-30**: il confronto fra rebound al minimo e al massimo corregge parte di questo documento. Vedi le ultime due sezioni.
+
 ## Esito
 
 - **Registrazione: corretta.** Velocità sospensioni letta, tarata e salvata per zona in ogni giro.
@@ -60,9 +62,25 @@ La varianza fra giri (traiettoria, cordoli) domina l'effetto di 3 click.
 
 Su un giro chiuso la sospensione torna al punto di partenza, quindi l'integrale della velocità è nullo: un rebound più frenato dovrebbe solo allungare il tempo in estensione. Su R3E, con 3 click, l'effetto vale circa un punto percentuale, mentre le sollecitazioni della pista cambiano la distribuzione di più da un giro all'altro. A differenza delle oscillazioni il limite non è il campionamento a 33 Hz, che basta per un istogramma, ma la grandezza scelta.
 
-## Proposta
+## Aggiornamento 2026-10-30: rebound al minimo e al massimo
 
-1. **Raccomandata — togliere tutto**: area 5 torna `non valutabile` con i valori del setup mostrati per asse; via l'istogramma per zona (`damperHist`), la calibrazione e il canale `sv`. Diff più piccolo, nessun dato registrato e mai usato. I frame delle sessioni 53 e 54 restano nel DB per riprovare un'altra misura.
-2. **Togliere solo il giudizio**: canale `sv` e riga `vsosp` restano nel log per prove future.
+Sessioni 55 (rebound 1/1, setup 82) e 56 (18/18, setup 83), stessa auto e pista. Rispetto al default cambiano solo il rebound e il moltiplicatore FFB (1× contro 1,5×), che non tocca la fisica ma può cambiare la guida. Giri validi lanciati: 4, 2, 3 e 3.
 
-In entrambi i casi la spec §5 va aggiornata con questi numeri, come già fatto per le oscillazioni.
+| Rebound (ant/post) | Rapporto mediane rebound/bump, ant | Rapporto, post | Mediana rebound, ant/post (mm/s) | Quota rebound lento, ant/post |
+|---|---|---|---|---|
+| 1/1 minimo (55) | 1,37-1,53 | 1,58-1,68 | 16,0-16,6 / 18,9-19,9 | 43,3 / 40,6 % |
+| 14/15 default (54) | 1,07-1,11 | 1,03-1,07 | 10,2-10,6 / 10,5-10,8 | 48,4 / 47,9 % |
+| 17/18 (53) | 1,06-1,11 | 0,99-1,07 | 9,9-10,1 / 9,6-10,1 | 49,4 / 48,3 % |
+| 18/18 massimo (56) | 1,06-1,16 | 0,97-1,08 | 9,5-10,4 / 9,5-10,2 | 48,8 / 48,6 % |
+
+La quota è la media dei giri dopo il lancio, compresi quelli invalidati.
+
+- **Il segnale esiste, ma solo lontano dal default.** Il minimo si distingue senza sovrapposizioni, su tutti i settori, le fasi e le ruote. Da 14 a 18 click la risposta è quasi piatta. Le sessioni 53 e 56, con lo stesso rebound posteriore, danno gli stessi valori: la misura è ripetibile.
+- **Correzioni a quanto scritto sopra.** "Il criterio non discrimina" vale fra default e +3, non in generale. La tabella delle misure alternative includeva il giro di lancio: sui soli giri validi la mediana rebound al posteriore separa default e +3 di circa 0,7 mm/s, con solo 2 giri validi sul default. La stima "oltre 15 click" era un'estrapolazione lineare, e la risposta non è lineare.
+- **Il criterio tolto restava sbagliato.** Con la banda 40-65 % anche 1 click al posteriore (40,4-40,7 %) sarebbe stato "ok".
+- **Risoluzione stimata del rapporto.** Variazione fra giri circa 0,05: con 4 giri due setup si distinguono da 0,07 in su, cioè 2-3 click al meglio sotto il default, e nulla da 14 a 18 click. Non può dire "troppo rebound" né indicare il valore ottimale.
+- **Proposte esterne provate agli estremi.** Il ritorno del muso al rilascio del freno resta rumore. La posizione in curva si sposta nel verso atteso (+0,9 mm al posteriore in 19 zone su 19, +0,4 mm all'anteriore), ma è troppo piccola, sparisce sopra il default e non ha un riferimento assoluto.
+
+## Decisione
+
+Analisi chiusa: si parte sempre dal setup di default, dove un rilevatore del genere non scatterebbe mai. Area 5 `non valutabile` con i valori del setup per asse; tolti giudizio, istogramma, calibrazione e canale `sv`. I frame delle sessioni 53-56 restano nel DB.
