@@ -49,6 +49,12 @@ export const createRuleEngine = (
   baseline: AdaptiveBaseline,
   getCornerName: GetCornerNameFn,
 ): RuleEngine => {
+  // One alert per episode: a wheel fires when it crosses BRAKE_TEMP.max and
+  // re-arms only once it cools REARM_C below it, so a hot brake does not emit
+  // one alert per sample (500+ per stint, the session buffer's whole capacity).
+  const REARM_C = 20;
+  const brakeHot = [false, false, false, false];
+
   const checkBrakeTemp = (
     frame: GameFrame,
     zone: number,
@@ -61,10 +67,14 @@ export const createRuleEngine = (
       { label: "posteriore destro", value: frame.brakeTempRR },
     ];
 
-    for (const t of temps) {
-      if (t.value === BRAKE_TEMP.unavailable) continue;
-
+    temps.forEach((t, i) => {
+      if (t.value === BRAKE_TEMP.unavailable) return;
+      if (brakeHot[i]) {
+        if (t.value < BRAKE_TEMP.max - REARM_C) brakeHot[i] = false;
+        return;
+      }
       if (t.value > BRAKE_TEMP.max) {
+        brakeHot[i] = true;
         dispatcher.dispatch({
           type: "BRAKE_TEMP_CRITICAL",
           priority: 1,
@@ -77,7 +87,7 @@ export const createRuleEngine = (
           timestamp: Date.now(),
         });
       }
-    }
+    });
   };
 
   const checkTcAbsAnomaly = (
