@@ -7,7 +7,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { aggregateZones } from "./lap-recorder.js";
+import { aggregateZones, zoneDurationMs } from "./lap-recorder.js";
 import type { CompactFrame } from "../shared/types.js";
 
 const frame = (d: number, over: Partial<CompactFrame> = {}): CompactFrame => ({
@@ -110,5 +110,23 @@ assert.equal(hard[0].absHardBrakeFrames, 1);
 assert.equal(hard[1].hardBrakeFrames, 0);
 assert.equal(hard[1].absHardBrakeFrames, 0);
 assert.equal(hard[0].lockFramesFront, undefined, "no sr, no lock counter");
+
+// Durations follow the timestamps (~31ms on Windows), a gap > 100ms counts 16ms,
+// and zones saved before the *Ms fields fall back to frames × 16.
+const timed = aggregateZones(
+  [
+    frame(10, { abs: 1, tc: 1, thr: 0.5, ts: 0 }),
+    frame(12, { abs: 1, thr: 0, ts: 31 }),
+    frame(14, { abs: 1, thr: 0, ts: 62 }),
+    frame(16, { thr: 0, ts: 5000 }),
+  ],
+  100,
+);
+assert.equal(timed[0].absActiveMs, 31 + 31 + 16);
+assert.equal(timed[0].tcActiveMs, 31);
+assert.equal(timed[0].overlapMs, 31);
+assert.equal(zoneDurationMs(timed[0], "abs"), 78);
+const legacy = { ...timed[0], absActiveMs: undefined };
+assert.equal(zoneDurationMs(legacy, "abs"), 3 * 16);
 
 console.log("lap-recorder.selfcheck OK");

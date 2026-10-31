@@ -8,7 +8,11 @@
  */
 
 import { EventEmitter } from "events";
-import { CALIBRATION_LAPS, ZONE_SIZE_M } from "../shared/alert-types.js";
+import {
+  CALIBRATION_LAPS,
+  POLL_INTERVAL_MS,
+  ZONE_SIZE_M,
+} from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
 import { chassisCounters } from "./chassis-counters.js";
 import { ladderCounters } from "./ladder-counters.js";
@@ -69,6 +73,29 @@ const countTransitions = (
   return count;
 };
 
+// The 16ms setTimeout fires every ~31ms on Windows, so a frame lasts until the
+// next one; a gap over MAX_FRAME_MS (stall, pause) counts as one poll.
+const MAX_FRAME_MS = 100;
+const frameDurations = (frames: CompactFrame[]): Map<CompactFrame, number> =>
+  new Map(
+    frames.map((f, i) => {
+      const dt = (frames[i + 1]?.ts ?? NaN) - f.ts;
+      return [f, dt > 0 && dt <= MAX_FRAME_MS ? dt : POLL_INTERVAL_MS];
+    }),
+  );
+
+/** Zone duration in ms; zones recorded before the *Ms fields fall back to frames × 16. */
+export const zoneDurationMs = (
+  z: ZoneData,
+  kind: "tc" | "abs" | "overlap",
+): number =>
+  kind === "tc"
+    ? (z.tcActiveMs ?? (z.tcActiveFrames ?? z.tcActivations) * POLL_INTERVAL_MS)
+    : kind === "abs"
+      ? (z.absActiveMs ??
+        (z.absActiveFrames ?? z.absActivations) * POLL_INTERVAL_MS)
+      : (z.overlapMs ?? z.overlapFrames * POLL_INTERVAL_MS);
+
 export const aggregateZones = (
   frames: CompactFrame[],
   layoutLength: number,
@@ -88,6 +115,9 @@ export const aggregateZones = (
     Math.min(Math.floor(d / ZONE_SIZE_M), numZones - 1);
   const counters = ladderCounters(frames, zoneOf);
   const chassis = chassisCounters(frames, zoneOf, pitFrames);
+  const durations = frameDurations(frames);
+  const msOf = (fs: CompactFrame[]): number =>
+    fs.reduce((sum, f) => sum + (durations.get(f) ?? POLL_INTERVAL_MS), 0);
   const zones: ZoneData[] = [];
 
   for (let z = 0; z < numZones; z++) {
@@ -227,6 +257,9 @@ export const aggregateZones = (
       absActivations: countTransitions(zoneFrames, "abs"),
       tcActiveFrames: zoneFrames.filter((f) => f.tc > 0).length,
       absActiveFrames: zoneFrames.filter((f) => f.abs > 0).length,
+      tcActiveMs: msOf(zoneFrames.filter((f) => f.tc > 0)),
+      absActiveMs: msOf(zoneFrames.filter((f) => f.abs > 0)),
+      overlapMs: msOf(overlapFrames),
       brakeStartDist,
       brakeEndDist,
       throttlePickupDist,

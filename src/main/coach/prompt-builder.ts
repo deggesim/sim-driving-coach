@@ -26,6 +26,7 @@ import type {
   SessionAnalysisRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import { zoneDurationMs } from "../lap-recorder.js";
 import type { SessionStats } from "./session-stats.js";
 import type { SetupLadder } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
@@ -52,7 +53,7 @@ export const getSignificantZones = (
 
 export const SESSION_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto che analizza l'intera sessione di guida di un pilota.
 Rispondi SEMPRE in italiano con tono tecnico da ingegnere. Includi SEMPRE dati numerici specifici (durate in secondi, delta secondi, PSI/kPa, km/h, percentuali).
-I dati di telemetria riportano durate in millisecondi (1 campione = 16ms). Converti SEMPRE in secondi quando citi questi valori (es. 160ms → 0.16s).
+I dati di telemetria riportano durate in millisecondi. Converti SEMPRE in secondi quando citi questi valori (es. 160ms → 0.16s).
 
 I numeri esatti della sessione (tempi giro, ∆, convergenza, conteggi alert, durate aiuti) sono nel blocco "## Dati Calcolati" del messaggio utente: CITA quei numeri, NON ricalcolarli. L'unico numero che DEVI stimare tu è l'impatto in secondi/giro (giudizio derivato dai dati).
 
@@ -105,7 +106,7 @@ Se nei Dati Calcolati c'è la riga "Assetto telaio", questa sottosezione è OBBL
 Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Messa a punto di base" e nessun setup è caricato, e "Assetto telaio", omissibile SOLO se manca la riga "Assetto telaio".`;
 
 export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
-I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi (1 campione = 16ms). L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
+I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi. L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
 
 Output ESATTO: una sezione radice "##" con una sottosezione "###" seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
 
@@ -214,15 +215,15 @@ const summarizeLapZones = (
     if (z.steerDuringBrake > 0)
       bits.push(`sterzo in frenata ${(z.steerDuringBrake * 100).toFixed(0)}%`);
     if (z.tcActivations > 0) {
-      const durMs = ((z.tcActiveFrames ?? z.tcActivations) * 16).toFixed(0);
+      const durMs = zoneDurationMs(z, "tc").toFixed(0);
       bits.push(`TC:${z.tcActivations}ev/${durMs}ms`);
     }
     if (z.absActivations > 0) {
-      const durMs = ((z.absActiveFrames ?? z.absActivations) * 16).toFixed(0);
+      const durMs = zoneDurationMs(z, "abs").toFixed(0);
       bits.push(`ABS:${z.absActivations}ev/${durMs}ms`);
     }
     if (z.overlapFrames > 3)
-      bits.push(`overlap:${(z.overlapFrames * 16).toFixed(0)}ms`);
+      bits.push(`overlap:${zoneDurationMs(z, "overlap").toFixed(0)}ms`);
     if (z.maxGLat != null) bits.push(`G lat ${z.maxGLat.toFixed(2)}g`);
     if (z.maxGLon != null) bits.push(`G lon ${z.maxGLon.toFixed(2)}g`);
     lines.push(`  - ${label} → ${bits.join(", ")}`);

@@ -14,6 +14,7 @@ import type {
   SessionSetupRow,
 } from "../../shared/types.js";
 import { findAms2Car } from "../ams2/ams2-car-lookup.js";
+import { zoneDurationMs } from "../lap-recorder.js";
 import {
   computeSetupLadder,
   judgedLapsOfLastSegment,
@@ -24,7 +25,6 @@ import { extractSetupLevers } from "./setup-levers.js";
 import { computeSetupOverview, type SetupOverview } from "./setup-overview.js";
 import { weightDistribution } from "./weight-distribution.js";
 
-const FRAME_MS = 16;
 const FLAT_EPS = 0.05; // seconds: |lastThird - firstThird| below this ⇒ "flat"
 const SUS_ASYM_EPS_MM = 2; // ponytail: noise floor, tighten if real setups need finer resolution
 const SLIP_ASYM_EPS = 0.02; // ratio units, same rationale
@@ -282,10 +282,10 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
       c.minSpeedKmh = Math.min(c.minSpeedKmh, z.minSpeedKmh);
       c.maxBrakePct = Math.max(c.maxBrakePct, z.maxBrakePct);
       c.tcEvents += z.tcActivations;
-      c.tcMs += (z.tcActiveFrames ?? 0) * FRAME_MS;
+      c.tcMs += zoneDurationMs(z, "tc");
       c.absEvents += z.absActivations;
-      c.absMs += (z.absActiveFrames ?? 0) * FRAME_MS;
-      c.overlapMs += z.overlapFrames * FRAME_MS;
+      c.absMs += zoneDurationMs(z, "abs");
+      c.overlapMs += zoneDurationMs(z, "overlap");
       if (z.avgBrakeTempC) c.brakeTempsC = z.avgBrakeTempC;
       c.maxSteerAbs = Math.max(c.maxSteerAbs, z.maxSteerAbs);
       if (z.maxGLat != null) c.maxGLat = Math.max(c.maxGLat ?? 0, z.maxGLat);
