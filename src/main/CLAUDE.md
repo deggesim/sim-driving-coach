@@ -29,7 +29,7 @@ missing channel never reaches a prompt as a zero.
 | `rpm` | `EngineRps` (rad/s → RPM) | `rpms` | `mRpm` |
 | `gLat` / `gLon` (g) | `Player_LocalGforce_X` / `_Z` (already g) | `accG[0]` / `accG[2]` | `mLocalAcceleration[0]` / `[2]` ÷ 9.80665 |
 | `tp` (PSI, stored) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
-| `sr` | derived: `(-TireSpeed - CarSpeed) / CarSpeed` (TireSpeed is negative rolling forward, verified live), zeroed below 5 m/s | `slipRatio` | — derived from `mTyreRPS` (rad/s) with a tyre radius estimated in pure rolling (median of 100 samples, redone on every reader start); absent until estimated |
+| `sr` | derived: `(-TireSpeed - CarSpeed) / CarSpeed` (TireSpeed is negative rolling forward, verified live), zeroed below 5 m/s | `slipRatio` | — derived from `mTyreRPS` (rad/s) with a tyre radius estimated in pure rolling (median of 30 samples, redone on every reader start; 100 were never reached in 3 laps of Monza at the real ~31ms poll); absent until estimated |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `rh` (m) | `Player_RideHeight` double[4], metres (checked live 2026-10-27: 40-78 mm); a quartet with any value < 0 is dropped | `rideHeight[2]` @268, **per axle**, mapped to `[F, F, R, R]` (a touch must count once per axle, not twice) | `mRideHeight` @20636 in cm, ÷ 100. Offset checked against AMS2's `SharedMemory.h`, **not yet verified live** |
 | `wl` (N) | `TireLoad`, same dropping rule | `wheelLoad` @72 | — absent |

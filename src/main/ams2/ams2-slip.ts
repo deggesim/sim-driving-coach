@@ -7,14 +7,14 @@ export type SlipSample = {
   gLat: number;
 };
 
-const CALIBRATION_SAMPLES = 100;
+const CALIBRATION_SAMPLES = 30; // ~50 rolling samples in 3 laps of Monza at the real ~31ms poll
 
 const median = (v: number[]): number =>
   v.toSorted((a, b) => a - b)[v.length >> 1];
 
 /**
  * AMS2 has no slip channel: slip = (r * |w| - v) / v, with the tyre radius r
- * self-calibrated per wheel as the median of v / |w| over the first 100 samples
+ * self-calibrated per wheel as the median of v / |w| over the first 30 samples
  * of pure rolling (straight, no brake, off throttle, > 50 km/h).
  */
 export const createSlipEstimator = (): {
@@ -39,7 +39,7 @@ export const createSlipEstimator = (): {
           s.wheelRadS.forEach((w, i) =>
             samples[i].push(s.speedMps / Math.abs(w)),
           );
-          // ponytail: radius frozen after 100 samples, rolling median if tyre wear/pressure drift matters
+          // ponytail: radius frozen after 30 samples, rolling median if tyre wear/pressure drift matters
           if (samples[0].length >= CALIBRATION_SAMPLES)
             radius = samples.map(median);
         }

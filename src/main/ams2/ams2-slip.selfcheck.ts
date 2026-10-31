@@ -10,9 +10,9 @@ const roll = (v: number, w: number): SlipSample => ({
   steering: 0,
   gLat: 0,
 });
-for (let i = 0; i < 99; i++)
+for (let i = 0; i < 29; i++)
   assert.equal(est.slip(roll(50, 50 / 0.33)), undefined);
-est.slip(roll(50, 50 / 0.33)); // 100th sample freezes r = 0.33
+est.slip(roll(50, 50 / 0.33)); // 30th sample freezes r = 0.33
 const locked = est.slip({ ...roll(40, (40 * 0.8) / 0.33), brake: 1 })!;
 assert.ok(Math.abs(locked[0] - -0.2) < 1e-6);
 assert.deepEqual(est.slip({ ...roll(0.5, 1), brake: 1 }), [0, 0, 0, 0]);
