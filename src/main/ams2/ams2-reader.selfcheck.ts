@@ -271,6 +271,35 @@ const checkReader = async (): Promise<void> => {
     );
     assert.ok(frames.length > count);
 
+    update((buf) => {
+      buf.writeFloatLE(60, OFF.speed);
+      buf.writeFloatLE(1250, participantOffset(0, PART.currentLapDistance));
+    });
+    await waitFor(
+      () => frames.at(-1)?.lapDistance === 1250,
+      "a moving car must emit",
+    );
+    await sleep(40);
+    count = frames.length;
+    update(() => {});
+    update(() => {});
+    await sleep(80);
+    assert.equal(frames.length, count, "a frozen moving car must not emit");
+    update((buf) =>
+      buf.writeFloatLE(1300, participantOffset(0, PART.currentLapDistance)),
+    );
+    await waitFor(() => frames.length > count, "a moving car must resume");
+    count = frames.length;
+    update((buf) => {
+      buf.writeFloatLE(0, OFF.speed);
+      buf.writeUInt32LE(2, participantOffset(0, PART.lapsCompleted));
+    });
+    await waitFor(() => laps.length === 2, "second lap must complete");
+    assert.ok(
+      laps[1].frames.length <= 3,
+      `frozen samples must not reach the lap (${laps[1].frames.length})`,
+    );
+
     const rejected: [string, (buf: Buffer) => void][] = [
       ["finished race", (buf) => buf.writeUInt32LE(3, OFF.raceState)],
       ["invalid race state", (buf) => buf.writeUInt32LE(0, OFF.raceState)],

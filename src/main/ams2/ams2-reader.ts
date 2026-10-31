@@ -55,6 +55,7 @@ const GAME_INGAME_PAUSED = 3;
 const SESSION_PRACTICE = 1;
 const SESSION_TIME_ATTACK = 6;
 const RACESTATE_NOT_STARTED = 1;
+const FROZEN_MIN_KMH = 1;
 
 export const readStableAms2Snapshot = (
   readSequence: () => number,
@@ -117,6 +118,8 @@ export const createAms2Reader = (
   let hasSequenceProgress = false;
   let warnedStale = false;
   let lastBlockedState = "";
+  let lastPos: [number, number, number] | null = null;
+  let frozenLogged = false;
   const slipEstimator = createSlipEstimator();
   let radiusLogged = false; // one smoke-test line per reader start
 
@@ -157,6 +160,8 @@ export const createAms2Reader = (
     lastSeq = -1;
     lastSeqProgressAt = 0;
     hasSequenceProgress = false;
+    lastPos = null;
+    frozenLogged = false;
     if (connected) {
       connected = false;
       emitter.emit("disconnected");
@@ -333,6 +338,25 @@ export const createAms2Reader = (
       );
 
       const speed = readFloat(buf, OFF.speed); // m/s
+      // A paused AMS2 keeps bumping mSequenceNumber over a frozen car: a moving
+      // car whose position did not change is not a new sample.
+      if (
+        speed * 3.6 > FROZEN_MIN_KMH &&
+        lastPos?.[0] === lapDistance &&
+        lastPos[1] === wpos[0] &&
+        lastPos[2] === wpos[2]
+      ) {
+        if (!frozenLogged) {
+          frozenLogged = true;
+          console.warn(
+            `[AMS2] telemetria ferma a ${lapDistance.toFixed(0)}m, campioni scartati`,
+          );
+        }
+        pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
+        return;
+      }
+      lastPos = [lapDistance, wpos[0], wpos[2]];
+      frozenLogged = false;
       const throttle = readFloat(buf, OFF.throttle);
       const brake = readFloat(buf, OFF.brake);
       const steering = readFloat(buf, OFF.steering);
