@@ -57,6 +57,11 @@ assert.equal(
   OFF.tyreTemp,
   "mTyreRPS sits 32 bytes before mTyreTemp",
 );
+// AMS2's SharedMemory.h includes mNationalities[64] before the tyre block.
+assert.equal(OFF.tyreTempLeft, 20584, "mTyreTempLeft offset");
+assert.equal(OFF.tyreTempCenter, 20600, "mTyreTempCenter offset");
+assert.equal(OFF.tyreTempRight, 20616, "mTyreTempRight offset");
+assert.equal(OFF.rideHeight, 20636, "mRideHeight offset");
 assert.equal(
   OFF.tyreTempCenter - OFF.tyreTempLeft,
   16,
@@ -71,7 +76,7 @@ assert.ok(
   OFF.tyreTempRight + 16 <= AMS2_STRUCT_SIZE,
   "surface temp reads stay inside the mapped page",
 );
-// mRideHeight follows mTyreTempRight[4] and mDrsState (uint) in AMS2Page.cs.
+// mRideHeight follows mTyreTempRight[4] and mDrsState (uint).
 assert.equal(OFF.rideHeight, OFF.tyreTempRight + 16 + 4, "mRideHeight");
 assert.ok(OFF.rideHeight + 16 <= AMS2_STRUCT_SIZE);
 assert.ok(

@@ -49,7 +49,25 @@ type Kernel32 = {
 };
 
 const FILE_MAP_READ = 0x0004;
-const STALE_LIMIT = 120; // ~2s of frozen sequence number while playing → disconnect
+const STALE_TIMEOUT_MS = 2000;
+const GAME_INGAME_PLAYING = 2;
+const GAME_INGAME_PAUSED = 3;
+const SESSION_PRACTICE = 1;
+const SESSION_TIME_ATTACK = 6;
+const RACESTATE_NOT_STARTED = 1;
+
+export const readStableAms2Snapshot = (
+  readSequence: () => number,
+  copy: () => Buffer,
+): Buffer | null => {
+  const sequence = readSequence();
+  if (sequence % 2 !== 0) return null;
+  const buf = copy();
+  return readUint32(buf, OFF.sequenceNumber) === sequence &&
+    readSequence() === sequence
+    ? buf
+    : null;
+};
 
 export type Ams2SessionInfo = {
   car: string;
@@ -95,9 +113,12 @@ export const createAms2Reader = (
   let lapInvalidatedAccum = false;
   let lastSectors: [number, number, number] = [-1, -1, -1];
   let lastSeq = -1;
+  let lastSeqProgressAt = 0;
+  let hasSequenceProgress = false;
+  let warnedStale = false;
+  let lastBlockedState = "";
   const slipEstimator = createSlipEstimator();
   let radiusLogged = false; // one smoke-test line per reader start
-  let staleCount = 0;
 
   const isNullPtr = (ptr: NativePointer): boolean => {
     try {
@@ -134,7 +155,8 @@ export const createAms2Reader = (
     lapInvalidatedAccum = false;
     lastSectors = [-1, -1, -1];
     lastSeq = -1;
-    staleCount = 0;
+    lastSeqProgressAt = 0;
+    hasSequenceProgress = false;
     if (connected) {
       connected = false;
       emitter.emit("disconnected");
@@ -187,7 +209,7 @@ export const createAms2Reader = (
         return;
       }
       connected = true;
-      staleCount = 0;
+      lastSeqProgressAt = Date.now();
       emitter.emit("connected");
       poll();
     } catch (err) {
@@ -197,21 +219,9 @@ export const createAms2Reader = (
     }
   };
 
-  /** Read a stable snapshot using the sequence-number protocol (App.cpp:64-77). */
-  const readStable = (): Buffer | null => {
-    const buf = decodeBuffer(view, AMS2_STRUCT_SIZE);
-    const seq = readUint32(buf, OFF.sequenceNumber);
-    if (seq % 2 !== 0) return null; // write in progress
-    const buf2 = decodeBuffer(view, AMS2_STRUCT_SIZE);
-    if (readUint32(buf2, OFF.sequenceNumber) !== seq) return null; // torn read
-    // Stale detection: sequence frozen while we expect fresh data.
-    if (seq === lastSeq) staleCount++;
-    else {
-      staleCount = 0;
-      lastSeq = seq;
-    }
-    return buf;
-  };
+  const readSequence = (): number =>
+    koffi.decode(view, OFF.sequenceNumber, "uint32_t") as number;
+  const copySnapshot = (): Buffer => decodeBuffer(view, AMS2_STRUCT_SIZE);
 
   const updateSession = (buf: Buffer): void => {
     cachedCar = readString(buf, OFF.carName, 64) || cachedCar;
@@ -225,8 +235,26 @@ export const createAms2Reader = (
   const poll = (): void => {
     if (stopped) return;
     try {
-      const buf = readStable();
-      if (staleCount > STALE_LIMIT) {
+      const buf = readStableAms2Snapshot(readSequence, copySnapshot);
+      if (buf) {
+        const seq = readUint32(buf, OFF.sequenceNumber);
+        if (seq !== lastSeq) {
+          if (lastSeq !== -1) {
+            hasSequenceProgress = true;
+            warnedStale = false;
+          }
+          lastSeq = seq;
+          lastSeqProgressAt = Date.now();
+        }
+      }
+      if (Date.now() - lastSeqProgressAt >= STALE_TIMEOUT_MS) {
+        if (!warnedStale) {
+          console.warn(
+            `[AMS2] nessun nuovo snapshot SHM stabile per ${STALE_TIMEOUT_MS}ms ` +
+              `(ultima sequenza=${lastSeq}); riconnessione`,
+          );
+          warnedStale = true;
+        }
         cleanup();
         scheduleReconnect();
         return;
@@ -237,7 +265,19 @@ export const createAms2Reader = (
       }
 
       const version = readUint32(buf, OFF.version);
+      const gameState = readUint32(buf, OFF.gameState);
+      const sessionState = readUint32(buf, OFF.sessionState);
       const raceState = readUint32(buf, OFF.raceState);
+      let idx = readInt32(buf, OFF.viewedParticipantIndex);
+      const participants = readInt32(buf, OFF.numParticipants);
+      const participantActive =
+        idx >= 0 &&
+        idx < participants &&
+        idx < MAX_PARTICIPANTS &&
+        buf.readUInt8(participantOffset(idx, PART.isActive)) !== 0;
+      const state =
+        `gameState=${gameState} sessionState=${sessionState} raceState=${raceState} ` +
+        `participant=${idx}/${participants} active=${Number(participantActive)}`;
 
       if (!loggedOffsets) {
         loggedOffsets = true;
@@ -245,22 +285,37 @@ export const createAms2Reader = (
           `[AMS2] connected: mVersion=${version} (expected ${AMS2_VERSION}) ` +
             `speed=${(readFloat(buf, OFF.speed) * 3.6).toFixed(1)}km/h ` +
             `car="${readString(buf, OFF.carName, 64)}" ` +
-            `track="${readString(buf, OFF.trackLocation, 64)}"`,
+            `track="${readString(buf, OFF.trackLocation, 64)}" ` +
+            `${state} sequence=${lastSeq}`,
         );
       }
 
-      // Only produce coach data while actually on track. We gate on mRaceState,
-      // not mGameState: AMS2 reports mGameState=3 (nominally paused) during normal
-      // driving, so the documented GAME_INGAME_PLAYING check would drop every
-      // driving frame. RACESTATE_RACING means the car is in a live, running session.
-      if (raceState !== RACESTATE_RACING) {
+      // AMS2 can report gameState=3 during normal driving. Before the start,
+      // require an in-game session and an active viewed participant as well.
+      const prestart =
+        raceState === RACESTATE_NOT_STARTED &&
+        (gameState === GAME_INGAME_PLAYING ||
+          gameState === GAME_INGAME_PAUSED) &&
+        sessionState >= SESSION_PRACTICE &&
+        sessionState <= SESSION_TIME_ATTACK &&
+        participantActive;
+      if (raceState !== RACESTATE_RACING && !prestart) {
+        if (state !== lastBlockedState) {
+          console.warn(`[AMS2] frame sospesi: ${state}`);
+          lastBlockedState = state;
+        }
+        pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
+        return;
+      }
+      lastBlockedState = "";
+      // A mapped page may be frozen; after one update, keep the 16ms sampling cadence.
+      if (!hasSequenceProgress) {
         pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
         return;
       }
 
       updateSession(buf);
 
-      let idx = readInt32(buf, OFF.viewedParticipantIndex);
       if (idx < 0 || idx >= MAX_PARTICIPANTS) idx = 0;
 
       const lapDistance = readFloat(
@@ -470,6 +525,13 @@ export const createAms2Reader = (
   return {
     start: () => {
       stopped = false;
+      loggedOffsets = false;
+      warnedStale = false;
+      lastBlockedState = "";
+      cachedCar = "";
+      cachedTrack = "";
+      cachedLayout = "";
+      cachedTrackLength = 0;
       slipEstimator.reset();
       radiusLogged = false;
       if (isMock) startMock();

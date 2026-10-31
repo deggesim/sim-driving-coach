@@ -15,11 +15,8 @@ export const MAX_PARTICIPANTS = 64;
 export const PARTICIPANT_SIZE = 100; // sizeof(ParticipantInfo), Pack=4
 export const AMS2_STRUCT_SIZE = 20700; // sizeof(SharedMemory), Pack=4
 
-// mRaceState enum (Type#3): the car is in a live, running session.
-// NOTE: we intentionally gate coach data on mRaceState, NOT mGameState. AMS2 does
-// not honour the documented pCARS2 mGameState enum — it reports mGameState=3
-// (nominally GAME_INGAME_PAUSED) during normal driving — so gating on
-// GAME_INGAME_PLAYING (2) would drop every driving frame. mRaceState is reliable.
+// mRaceState enum (Type#3). AMS2 also reports mGameState=3 (nominally paused)
+// during normal driving, so GAME_INGAME_PLAYING alone cannot gate frames.
 export const RACESTATE_RACING = 2;
 
 // mCarFlags bits (Type#9)
@@ -83,15 +80,12 @@ export const OFF = {
   // forum + SimHub). mTyreSlipSpeed (7056) sits between it and mTyreTemp.
   tyreRPS: 7040, // float[4]  mTyreRPS (rad/s)
   tyreTemp: 7072, // float[4]  mTyreTemp (Celsius)
-  // Surface temps (Celsius), 16 bytes each. Computed from SharedMemory.h, NOT
-  // yet verified on a live sim.
-  tyreTempLeft: 20328, // float[4]  mTyreTempLeft
-  tyreTempCenter: 20344, // float[4]  mTyreTempCenter
-  tyreTempRight: 20360, // float[4]  mTyreTempRight
-  // AMS2 addition: absent from pCARS2 SharedMemory.h. Source: AMS2Page.cs of
-  // AMS2SharedMemoryNet (follows mTyreTempRight[4] and mDrsState). Not yet
-  // verified on a live sim.
-  rideHeight: 20380, // float[4]  mRideHeight (cm, not metres)
+  // The AMS2 SDK includes mNationalities[64] before this block (256 bytes).
+  // These offsets match its SharedMemory.h, but still need a live-sim check.
+  tyreTempLeft: 20584, // float[4]  mTyreTempLeft
+  tyreTempCenter: 20600, // float[4]  mTyreTempCenter
+  tyreTempRight: 20616, // float[4]  mTyreTempRight
+  rideHeight: 20636, // float[4]  mRideHeight (cm, not metres)
   brakeTempCelsius: 7184, // float[4]  mBrakeTempCelsius (Celsius)
 
   // Weather block, right before mSequenceNumber (mCrashState/mAeroDamage/

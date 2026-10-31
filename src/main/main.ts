@@ -776,7 +776,12 @@ const setupPipeline = (): void => {
       if (readerReady(game)) return "ok";
       await sleep(100);
     }
-    return isLive(game) ? "no-data" : "not-live";
+    const result = isLive(game) ? "no-data" : "not-live";
+    console.warn(
+      `[Main] reader ${game}: timeout dopo ${timeoutMs}ms (${result}), ` +
+        `auto="${currentCar}" tracciato="${currentTrack}"`,
+    );
+    return result;
   };
 
   const gameLabel = (game: GameSource): string =>
