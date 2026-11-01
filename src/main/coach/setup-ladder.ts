@@ -35,6 +35,10 @@ const NERVOUS_SHARE = 0.2; // of the downshifts
 const TYRE_BALANCE_TOL_C = 1.25; // |centre − mean(shoulders)| still ok
 const CAMBER_MIN_C = 2; // inner − outer below this: more negative camber
 const CAMBER_MAX_C = 10; // above this: less negative camber
+// AMS2 reads the tyre just under the surface (Frezza), so there is no precise
+// gap to follow: the only alarm is the three temperatures being equal.
+const AMS2_CAMBER_EQUAL_C = 1; // inner − outer below this: shoulders equal
+const AMS2_CAMBER_TARGET_C = 5; // gap to reach, not a hard value
 const DIFF_SPIN_SHARE = 0.2; // of the exit frames
 const DRIVEN_SLIP_EPS = 0.01; // front − rear throttle slip that marks fwd
 const FIXED_DIFFS = ["FIXED", "SPOOL", "OPEN"]; // AMS2 differentials with nothing to adjust
@@ -253,9 +257,10 @@ const tyreSummary = (
  * every game, but Leaderboard and Fixed Setup only exist on R3E (same rule as
  * buildSessionContext), so on ACE/AMS2 a default 1 must not switch the ladder off.
  * `camberUnreadable` is per game: ACE's inner/outer shoulder temps differ by ~1 °C
- * even at -3° camber (also seen in MoTeC); AMS2's do not follow camber (BMW M4
- * GT4 at Monza, 2026-11-01: front inner − outer +2.5/+4.9 °C at -4.0°, +2.3/+5.2
- * °C at -3.0°, same ducts and pace), so the camber step cannot be judged.
+ * even at -3° camber (also seen in MoTeC), so its camber step cannot be judged.
+ * AMS2 is judged with the Frezza rule instead (equal temperatures only, see
+ * the camber step): its gap does not follow camber precisely (BMW M4 GT4 at
+ * Monza, 2026-11-01: front +2.5/+4.9 °C at -4.0°, +2.3/+5.2 °C at -3.0°).
  */
 export const ladderFlags = (
   game: GameSource,
@@ -267,7 +272,7 @@ export const ladderFlags = (
 } => ({
   leaderboardMode: game === "r3e" && flags.leaderboardMode,
   fixedSetup: game === "r3e" && flags.fixedSetup,
-  camberUnreadable: game === "ace" || game === "ams2",
+  camberUnreadable: game === "ace",
 });
 
 /** Segments: runs of consecutive laps with the same setup_id (null included). */
@@ -579,11 +584,20 @@ export const computeSetupLadder = (
     const okWheels = W.filter((w) => pressureState[w] === "ok");
     if (!okWheels.length)
       return step(5, L, "na", "nessuna ruota con pressione a posto");
+    const equalOnly = opts.game === "ams2";
     const moves: NonNullable<LadderStep["moves"]> = [];
     const off = okWheels.flatMap((w) => {
       const dir = majority(
         tyres.perLap.map((t) =>
-          t.d[w] < CAMBER_MIN_C ? "più" : t.d[w] > CAMBER_MAX_C ? "meno" : "ok",
+          equalOnly
+            ? t.d[w] < AMS2_CAMBER_EQUAL_C
+              ? "più"
+              : "ok"
+            : t.d[w] < CAMBER_MIN_C
+              ? "più"
+              : t.d[w] > CAMBER_MAX_C
+                ? "meno"
+                : "ok",
         ),
         "ok",
       );
@@ -602,12 +616,20 @@ export const computeSetupLadder = (
           ];
     });
     return off.length
-      ? step(5, L, "fix", `interna−esterna ${off.join(", ")}`, moves)
+      ? step(
+          5,
+          L,
+          "fix",
+          `interna−esterna ${off.join(", ")}${equalOnly ? `, temperature uguali: aumentare la campanatura negativa a poco a poco fino a circa ${AMS2_CAMBER_TARGET_C} °C tra spalla interna ed esterna (se frenata o trazione perdono grip, hai esagerato)` : ""}`,
+          moves,
+        )
       : step(
           5,
           L,
           "ok",
-          `interna−esterna tra ${CAMBER_MIN_C} e ${CAMBER_MAX_C} °C su ${okWheels.map((w) => WHEELS[w]).join(", ")}`,
+          equalOnly
+            ? `interna più calda dell'esterna (≥ ${AMS2_CAMBER_EQUAL_C} °C) su ${okWheels.map((w) => WHEELS[w]).join(", ")}`
+            : `interna−esterna tra ${CAMBER_MIN_C} e ${CAMBER_MAX_C} °C su ${okWheels.map((w) => WHEELS[w]).join(", ")}`,
         );
   })();
 

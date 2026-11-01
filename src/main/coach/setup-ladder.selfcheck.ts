@@ -717,7 +717,7 @@ assert.deepEqual(ladderFlags("ace", both), {
 assert.deepEqual(ladderFlags("ams2", both), {
   leaderboardMode: false,
   fixedSetup: false,
-  camberUnreadable: true,
+  camberUnreadable: false,
 });
 assert.deepEqual(ladderFlags("r3e", both), {
   ...both,
@@ -760,8 +760,11 @@ assert.equal(
   "carcass still climbing, a flat centre does not settle it",
 );
 
-// --- camber on ACE/AMS2: the step is "na", and no inner-outer figure is handed to the prompt ---
-const flatShoulders = (flags: { camberUnreadable: boolean }): SetupLadder =>
+// --- camber on ACE: the step is "na", and no inner-outer figure is handed to the prompt ---
+const flatShoulders = (flags: {
+  camberUnreadable: boolean;
+  game?: "ams2";
+}): SetupLadder =>
   computeSetupLadder(
     stint(
       5,
@@ -788,6 +791,32 @@ assert.equal(
   "fix",
   "the same flat shoulders elsewhere are judged: more negative camber",
 );
+
+// --- camber on AMS2 (Frezza): only equal temperatures raise the alarm, never "meno" ---
+const ams2Shoulders = (inner: number, outer: number): SetupLadder =>
+  computeSetupLadder(
+    stint(
+      5,
+      okZone({
+        avgTyreTempInnerC: [inner, inner, inner, inner],
+        avgTyreTempOuterC: [outer, outer, outer, outer],
+      }),
+    ),
+    new Map(),
+    { fixedSetup: false, camberUnreadable: false, game: "ams2" },
+  );
+const ams2Equal = stepOf(ams2Shoulders(85, 85), 5);
+assert.equal(ams2Equal.status, "fix");
+assert.ok(ams2Equal.reason.includes("temperature uguali"));
+assert.ok(ams2Equal.reason.includes("5 °C"));
+assert.equal(
+  stepOf(ams2Shoulders(88, 85), 5).status,
+  "ok",
+  "3 °C gap: no precise target",
+);
+const ams2Wide = stepOf(ams2Shoulders(95, 75), 5);
+assert.equal(ams2Wide.status, "ok", "a wide gap never asks for less camber");
+assert.ok(!ams2Wide.reason.includes("meno"));
 
 // --- Step 1 on the laps after the out-lap, before the judged laps ---
 // Tyres never settle (+5 °C per lap): 0 judged laps, but brakes are judged on laps 2..n.
