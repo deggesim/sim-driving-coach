@@ -248,13 +248,26 @@ const checkReader = async (): Promise<void> => {
     );
     count = frames.length;
     update((buf) => {
+      buf.writeFloatLE(60, OFF.speed);
+      buf.writeFloatLE(1240, participantOffset(0, PART.currentLapDistance));
+    });
+    await waitFor(
+      () => frames.at(-1)?.lapDistance === 1240,
+      "a moving car must emit",
+    );
+    update((buf) => {
       buf.writeUInt32LE(1, participantOffset(0, PART.lapsCompleted));
       buf.writeFloatLE(90, OFF.lastLapTime);
+      buf.writeFloatLE(1245, participantOffset(0, PART.currentLapDistance));
     });
     await waitFor(() => laps.length === 1, "lap completion must still work");
     assert.equal(laps[0].lapNumber, 1);
     assert.equal(laps[0].lapTime, 90);
     assert.equal(laps[0].car, "BMW M4 GT4");
+    assert.ok(
+      laps[0].frames.length <= 3 && laps[0].frames.every((f) => f.spd >= 1),
+      `the standstill before the start must not reach the lap (${laps[0].frames.length})`,
+    );
     const recorded = laps[0].frames[0];
     assert.deepEqual(recorded.tti, [86, 83, 88, 85]);
     assert.deepEqual(recorded.ttc, [84, 85, 86, 87]);

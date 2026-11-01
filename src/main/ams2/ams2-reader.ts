@@ -55,7 +55,7 @@ const GAME_INGAME_PAUSED = 3;
 const SESSION_PRACTICE = 1;
 const SESSION_TIME_ATTACK = 6;
 const RACESTATE_NOT_STARTED = 1;
-const FROZEN_MIN_KMH = 1;
+const MOVING_MIN_KMH = 1;
 
 export const readStableAms2Snapshot = (
   readSequence: () => number,
@@ -341,7 +341,7 @@ export const createAms2Reader = (
       // A paused AMS2 keeps bumping mSequenceNumber over a frozen car: a moving
       // car whose position did not change is not a new sample.
       if (
-        speed * 3.6 > FROZEN_MIN_KMH &&
+        speed * 3.6 > MOVING_MIN_KMH &&
         lastPos?.[0] === lapDistance &&
         lastPos[1] === wpos[0] &&
         lastPos[2] === wpos[2]
@@ -447,44 +447,48 @@ export const createAms2Reader = (
         wz: wpos[2],
       });
 
-      // Accumulate frame + lap-invalidation over the lap.
+      // Accumulate frame + lap-invalidation over the lap. A standstill (grid,
+      // garage before the start) carries nothing for the zones: in the Monza
+      // test 264 s on the grid piled 3004 samples into zone 1 and its baseline.
       if (buf.readUInt8(OFF.lapInvalidated) !== 0) lapInvalidatedAccum = true;
-      lapFrames.push({
-        d: lapDistance,
-        spd: speed * 3.6,
-        thr: throttle,
-        brk: brake,
-        str: steering,
-        gear,
-        abs: absActive,
-        tc: tcActive,
-        bt: [...brakeTemps],
-        ts: Date.now(),
-        rpm,
-        gLat: localAcc[0] / G,
-        gLon: localAcc[2] / G,
-        tp: [...tyrePressures],
-        sus: [...suspTravel],
-        rh: rideHeight,
-        tt: [...tyreTemps],
-        // `sr` is estimated from mTyreRPS with a self-calibrated tyre radius;
-        // absent until calibrated (absent beats a floored zero).
-        ...(slipRatio && { sr: slipRatio }),
-        ...surfaceTemps(
-          innerTemps,
-          readFloatArray(buf, OFF.tyreTempCenter, 4),
-          outerTemps,
-        ),
-        at: ambientTemp,
-        rt: trackTemp,
-        rain: rainDensity,
-        wind: windSpeed,
-        cloud: cloudBrightness,
-        wx: wpos[0],
-        wy: wpos[1],
-        wz: wpos[2],
-      });
-      logChannels("AMS2", lapFrames.at(-1));
+      if (speed * 3.6 >= MOVING_MIN_KMH) {
+        lapFrames.push({
+          d: lapDistance,
+          spd: speed * 3.6,
+          thr: throttle,
+          brk: brake,
+          str: steering,
+          gear,
+          abs: absActive,
+          tc: tcActive,
+          bt: [...brakeTemps],
+          ts: Date.now(),
+          rpm,
+          gLat: localAcc[0] / G,
+          gLon: localAcc[2] / G,
+          tp: [...tyrePressures],
+          sus: [...suspTravel],
+          rh: rideHeight,
+          tt: [...tyreTemps],
+          // `sr` is estimated from mTyreRPS with a self-calibrated tyre radius;
+          // absent until calibrated (absent beats a floored zero).
+          ...(slipRatio && { sr: slipRatio }),
+          ...surfaceTemps(
+            innerTemps,
+            readFloatArray(buf, OFF.tyreTempCenter, 4),
+            outerTemps,
+          ),
+          at: ambientTemp,
+          rt: trackTemp,
+          rain: rainDensity,
+          wind: windSpeed,
+          cloud: cloudBrightness,
+          wx: wpos[0],
+          wy: wpos[1],
+          wz: wpos[2],
+        });
+        logChannels("AMS2", lapFrames.at(-1));
+      }
 
       // ── Lap completion: mLapsCompleted increment ──
       if (prevLapsCompleted >= 0 && lapsCompleted > prevLapsCompleted) {
