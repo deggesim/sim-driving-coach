@@ -23,7 +23,8 @@ import {
 import type { CompactFrame, GameFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
 import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
-import { createSlipEstimator } from "./ams2-slip.js";
+import { createSlipEstimator, drivenWheels } from "./ams2-slip.js";
+import { findAms2Car } from "./ams2-car-lookup.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -121,6 +122,8 @@ export const createAms2Reader = (
   let lastPos: [number, number, number] | null = null;
   let frozenLogged = false;
   const slipEstimator = createSlipEstimator();
+  let drivenCar: string | null = null;
+  let driven: boolean[] | undefined;
   let radiusLogged = false; // one smoke-test line per reader start
 
   const isNullPtr = (ptr: NativePointer): boolean => {
@@ -385,6 +388,10 @@ export const createAms2Reader = (
       );
       // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
       const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
+      if (cachedCar !== drivenCar) {
+        drivenCar = cachedCar;
+        driven = drivenWheels(findAms2Car(cachedCar)?.driveline);
+      }
       const slipRatio = slipEstimator.slip({
         speedMps: speed,
         wheelRadS: readFloatArray(buf, OFF.tyreRPS, 4),
@@ -392,6 +399,8 @@ export const createAms2Reader = (
         throttle,
         steering,
         gLat: localAcc[0] / G,
+        gLon: localAcc[2] / G,
+        driven,
       });
       const radius = slipEstimator.radius();
       if (radius && !radiusLogged) {
