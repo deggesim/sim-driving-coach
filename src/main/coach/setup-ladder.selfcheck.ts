@@ -707,7 +707,7 @@ assert.ok(
 );
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
-// flags only mean something on R3E; camber is unreadable on ACE only ---
+// flags only mean something on R3E; camber is unreadable on ACE and AMS2 ---
 const both = { leaderboardMode: true, fixedSetup: true };
 assert.deepEqual(ladderFlags("ace", both), {
   leaderboardMode: false,
@@ -717,7 +717,7 @@ assert.deepEqual(ladderFlags("ace", both), {
 assert.deepEqual(ladderFlags("ams2", both), {
   leaderboardMode: false,
   fixedSetup: false,
-  camberUnreadable: false,
+  camberUnreadable: true,
 });
 assert.deepEqual(ladderFlags("r3e", both), {
   ...both,
@@ -760,7 +760,7 @@ assert.equal(
   "carcass still climbing, a flat centre does not settle it",
 );
 
-// --- camber on ACE: the step is "na", and no inner-outer figure is handed to the prompt ---
+// --- camber on ACE/AMS2: the step is "na", and no inner-outer figure is handed to the prompt ---
 const flatShoulders = (flags: { camberUnreadable: boolean }): SetupLadder =>
   computeSetupLadder(
     stint(
@@ -775,7 +775,8 @@ const flatShoulders = (flags: { camberUnreadable: boolean }): SetupLadder =>
   );
 const aceLadder = flatShoulders({ camberUnreadable: true });
 assert.equal(stepOf(aceLadder, 5).status, "na");
-assert.ok(stepOf(aceLadder, 5).reason.includes("ACE"));
+assert.ok(stepOf(aceLadder, 5).reason.includes("non segue la campanatura"));
+assert.ok(!/\b(ACE|AMS2)\b/.test(stepOf(aceLadder, 5).reason), "no game name");
 assert.equal(aceLadder.tyres[0].innerMinusOuterC, null);
 assert.equal(
   stepOf(aceLadder, 4).status,

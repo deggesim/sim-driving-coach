@@ -253,7 +253,9 @@ const tyreSummary = (
  * every game, but Leaderboard and Fixed Setup only exist on R3E (same rule as
  * buildSessionContext), so on ACE/AMS2 a default 1 must not switch the ladder off.
  * `camberUnreadable` is per game: ACE's inner/outer shoulder temps differ by ~1 °C
- * even at -3° camber (also seen in MoTeC), so the camber step cannot be judged.
+ * even at -3° camber (also seen in MoTeC); AMS2's do not follow camber (BMW M4
+ * GT4 at Monza, 2026-11-01: front inner − outer +2.5/+4.9 °C at -4.0°, +2.3/+5.2
+ * °C at -3.0°, same ducts and pace), so the camber step cannot be judged.
  */
 export const ladderFlags = (
   game: GameSource,
@@ -265,7 +267,7 @@ export const ladderFlags = (
 } => ({
   leaderboardMode: game === "r3e" && flags.leaderboardMode,
   fixedSetup: game === "r3e" && flags.fixedSetup,
-  camberUnreadable: game === "ace",
+  camberUnreadable: game === "ace" || game === "ams2",
 });
 
 /** Segments: runs of consecutive laps with the same setup_id (null included). */
@@ -572,7 +574,7 @@ export const computeSetupLadder = (
         5,
         L,
         "na",
-        "su ACE la differenza tra spalla interna ed esterna è troppo piccola per giudicare (anche con campanatura estrema)",
+        "in questo simulatore la differenza tra spalla interna ed esterna non segue la campanatura, quindi non la giudica",
       );
     const okWheels = W.filter((w) => pressureState[w] === "ok");
     if (!okWheels.length)
