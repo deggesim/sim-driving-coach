@@ -424,12 +424,14 @@ export const buildStatsBlock = (
       const types = Object.entries(c.alertsByType)
         .map(([t, n]) => `${ALERT_LABELS[t as AlertType] ?? t}×${n}`)
         .join(", ");
-      const bits = [
-        `${c.alertCount} alert (${types})`,
-        `v.min ${c.minSpeedKmh.toFixed(0)}km/h`,
-        `freno ${(c.maxBrakePct * 100).toFixed(0)}%`,
-        `sterzo max ${(c.maxSteerAbs * 100).toFixed(0)}%`,
-      ];
+      const bits = [`${c.alertCount} alert (${types})`];
+      // Absent when no lap carried zone data for this corner: not a zero.
+      if (c.minSpeedKmh != null)
+        bits.push(`v.min ${c.minSpeedKmh.toFixed(0)}km/h`);
+      if (c.maxBrakePct != null)
+        bits.push(`freno ${(c.maxBrakePct * 100).toFixed(0)}%`);
+      if (c.maxSteerAbs != null)
+        bits.push(`sterzo max ${(c.maxSteerAbs * 100).toFixed(0)}%`);
       if (c.steerDuringBrake > 0)
         bits.push(
           `sterzo in frenata ${(c.steerDuringBrake * 100).toFixed(0)}%`,

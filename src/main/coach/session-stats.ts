@@ -83,9 +83,11 @@ export type CornerStat = {
   cornerName: string | null;
   alertCount: number;
   alertsByType: Record<string, number>;
-  minSpeedKmh: number;
-  maxBrakePct: number;
-  maxSteerAbs: number;
+  // null when no lap carried zone data for the corner (alerts fired on a lap
+  // that never completed) - never a floored zero.
+  minSpeedKmh: number | null;
+  maxBrakePct: number | null;
+  maxSteerAbs: number | null;
   steerDuringBrake: number; // averaged over the laps carrying this zone
   maxGLat: number | null;
   maxGLon: number | null;
@@ -210,9 +212,9 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
         cornerName: cornerNames.get(a.zone) ?? null,
         alertCount: 0,
         alertsByType: {},
-        minSpeedKmh: Infinity,
-        maxBrakePct: 0,
-        maxSteerAbs: 0,
+        minSpeedKmh: null,
+        maxBrakePct: null,
+        maxSteerAbs: null,
         steerDuringBrake: 0,
         maxGLat: null,
         maxGLon: null,
@@ -279,15 +281,15 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
 
       const c = byZone.get(z.zone);
       if (!c) continue;
-      c.minSpeedKmh = Math.min(c.minSpeedKmh, z.minSpeedKmh);
-      c.maxBrakePct = Math.max(c.maxBrakePct, z.maxBrakePct);
+      c.minSpeedKmh = Math.min(c.minSpeedKmh ?? Infinity, z.minSpeedKmh);
+      c.maxBrakePct = Math.max(c.maxBrakePct ?? 0, z.maxBrakePct);
       c.tcEvents += z.tcActivations;
       c.tcMs += zoneDurationMs(z, "tc");
       c.absEvents += z.absActivations;
       c.absMs += zoneDurationMs(z, "abs");
       c.overlapMs += zoneDurationMs(z, "overlap");
       if (z.avgBrakeTempC) c.brakeTempsC = z.avgBrakeTempC;
-      c.maxSteerAbs = Math.max(c.maxSteerAbs, z.maxSteerAbs);
+      c.maxSteerAbs = Math.max(c.maxSteerAbs ?? 0, z.maxSteerAbs);
       if (z.maxGLat != null) c.maxGLat = Math.max(c.maxGLat ?? 0, z.maxGLat);
       if (z.maxGLon != null) c.maxGLon = Math.max(c.maxGLon ?? 0, z.maxGLon);
 
@@ -312,17 +314,11 @@ export const computeSessionStats = (input: ComputeStatsInput): SessionStats => {
     }
   }
 
-  // ponytail: TODO — a corner with alerts but no zone data in any lap (P1/P2
-  // fired on a lap that never completed) is floored to 0 here and renders as
-  // "v.min 0km/h, freno 0%" in the prompt, which the model can read as a real
-  // measured zero. Upgrade path: keep it null and have buildStatsBlock omit the
-  // field instead of flooring it.
   const criticalCorners = [...byZone.values()]
     .map((c) => {
       const acc = accums.get(c.zone);
       return {
         ...c,
-        minSpeedKmh: Number.isFinite(c.minSpeedKmh) ? c.minSpeedKmh : 0,
         steerDuringBrake: acc?.laps ? acc.steerSum / acc.laps : 0,
         avgTyrePressure: meanChannel(acc?.tp),
         avgSlipRatio: meanChannel(acc?.sr),

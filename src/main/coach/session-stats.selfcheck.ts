@@ -112,6 +112,20 @@ assert.equal(ranked.criticalCorners[0].tcEvents, 2);
 assert.equal(ranked.criticalCorners[0].tcMs, 128);
 assert.equal(ranked.criticalCorners[0].overlapMs, 96);
 
+// A corner with alerts but no zone data in any lap: null, never a floored 0.
+const noData = computeSessionStats({
+  laps: [mkLap(1, 100, [zone(8)])],
+  bestLap: 100,
+  setups: [],
+  alerts: [alert(30, "LATE_BRAKE")],
+  cornerNames: new Map(),
+});
+const orphan = noData.criticalCorners.find((c) => c.zone === 30);
+assert.ok(orphan);
+assert.equal(orphan.minSpeedKmh, null);
+assert.equal(orphan.maxBrakePct, null);
+assert.equal(orphan.maxSteerAbs, null);
+
 // --- flat trend ---
 const flat = computeSessionStats({
   laps: [mkLap(1, 100, []), mkLap(2, 100.01, [])],
