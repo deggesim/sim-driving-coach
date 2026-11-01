@@ -1058,6 +1058,7 @@ const setupPipeline = (): void => {
     const text = sessionCoach.stintReady(currentSessionId, currentSessionGame);
     if (!text) return;
     stintAnnouncedKey = key;
+    console.log(`[Main] stint analizzabile annunciato: ${text}`);
     void speakText(text);
   };
 
