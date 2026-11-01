@@ -8,8 +8,14 @@
  */
 
 import { EventEmitter } from "events";
-import { CALIBRATION_LAPS, ZONE_SIZE_M } from "../shared/alert-types.js";
+import {
+  CALIBRATION_LAPS,
+  POLL_INTERVAL_MS,
+  ZONE_SIZE_M,
+} from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
+import { chassisCounters } from "./chassis-counters.js";
+import { ladderCounters } from "./ladder-counters.js";
 
 /** Minimal reader interface required by LapRecorder (duck-typed by both R3EReader and AceReader). */
 interface LapEventReader {
@@ -20,6 +26,7 @@ interface LapEventReader {
       lapTime: number;
       sectorTimes: number[];
       frames: CompactFrame[];
+      pitFrames?: CompactFrame[];
       car: string;
       track: string;
       layout: string;
@@ -66,9 +73,33 @@ const countTransitions = (
   return count;
 };
 
+// The 16ms setTimeout fires every ~31ms on Windows, so a frame lasts until the
+// next one; a gap over MAX_FRAME_MS (stall, pause) counts as one poll.
+const MAX_FRAME_MS = 100;
+const frameDurations = (frames: CompactFrame[]): Map<CompactFrame, number> =>
+  new Map(
+    frames.map((f, i) => {
+      const dt = (frames[i + 1]?.ts ?? NaN) - f.ts;
+      return [f, dt > 0 && dt <= MAX_FRAME_MS ? dt : POLL_INTERVAL_MS];
+    }),
+  );
+
+/** Zone duration in ms; zones recorded before the *Ms fields fall back to frames × 16. */
+export const zoneDurationMs = (
+  z: ZoneData,
+  kind: "tc" | "abs" | "overlap",
+): number =>
+  kind === "tc"
+    ? (z.tcActiveMs ?? (z.tcActiveFrames ?? z.tcActivations) * POLL_INTERVAL_MS)
+    : kind === "abs"
+      ? (z.absActiveMs ??
+        (z.absActiveFrames ?? z.absActivations) * POLL_INTERVAL_MS)
+      : (z.overlapMs ?? z.overlapFrames * POLL_INTERVAL_MS);
+
 export const aggregateZones = (
   frames: CompactFrame[],
   layoutLength: number,
+  pitFrames: CompactFrame[] = [],
 ): ZoneData[] => {
   const numZones = Math.ceil(layoutLength / ZONE_SIZE_M);
   const zoneMap = new Map<number, CompactFrame[]>();
@@ -80,6 +111,13 @@ export const aggregateZones = (
   }
 
   const blipSet = buildBlipSet(frames);
+  const zoneOf = (d: number) =>
+    Math.min(Math.floor(d / ZONE_SIZE_M), numZones - 1);
+  const counters = ladderCounters(frames, zoneOf);
+  const chassis = chassisCounters(frames, zoneOf, pitFrames);
+  const durations = frameDurations(frames);
+  const msOf = (fs: CompactFrame[]): number =>
+    fs.reduce((sum, f) => sum + (durations.get(f) ?? POLL_INTERVAL_MS), 0);
   const zones: ZoneData[] = [];
 
   for (let z = 0; z < numZones; z++) {
@@ -145,7 +183,7 @@ export const aggregateZones = (
 
     const quartetFrom = (
       frames: CompactFrame[],
-      key: "tp" | "sr" | "sus" | "tt",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
     ): [number, number, number, number] | undefined => {
       const byWheel = [0, 1, 2, 3].map((i) =>
         frames
@@ -157,7 +195,7 @@ export const aggregateZones = (
         : undefined;
     };
     const quartet = (
-      key: "tp" | "sr" | "sus" | "tt",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
     ): [number, number, number, number] | undefined =>
       quartetFrom(zoneFrames, key);
 
@@ -173,6 +211,9 @@ export const aggregateZones = (
     const avgSlipRatio = quartet("sr");
     const avgSuspTravel = quartet("sus");
     const avgTyreTempC = quartet("tt");
+    const avgTyreTempInnerC = quartet("tti");
+    const avgTyreTempCenterC = quartet("ttc");
+    const avgTyreTempOuterC = quartet("tto");
     // Diff diagnostics: same slip-ratio channel, split by drivetrain phase.
     const releaseFrames = zoneFrames.filter((f) => f.thr <= 0.05);
     const avgSlipRatioThrottle = quartetFrom(throttleFrames, "sr");
@@ -216,10 +257,15 @@ export const aggregateZones = (
       absActivations: countTransitions(zoneFrames, "abs"),
       tcActiveFrames: zoneFrames.filter((f) => f.tc > 0).length,
       absActiveFrames: zoneFrames.filter((f) => f.abs > 0).length,
+      tcActiveMs: msOf(zoneFrames.filter((f) => f.tc > 0)),
+      absActiveMs: msOf(zoneFrames.filter((f) => f.abs > 0)),
+      overlapMs: msOf(overlapFrames),
       brakeStartDist,
       brakeEndDist,
       throttlePickupDist,
       ...aidPreset,
+      ...counters.get(z),
+      ...chassis.get(z),
       ...(avgBrakeTempC !== undefined && { avgBrakeTempC }),
       ...(rpmValues.length > 0 && { avgRpm: avgArr(rpmValues) }),
       ...(maxGLat !== undefined && { maxGLat }),
@@ -230,6 +276,9 @@ export const aggregateZones = (
       ...(avgSlipRatioRelease && { avgSlipRatioRelease }),
       ...(avgSuspTravel && { avgSuspTravel }),
       ...(avgTyreTempC && { avgTyreTempC }),
+      ...(avgTyreTempInnerC && { avgTyreTempInnerC }),
+      ...(avgTyreTempCenterC && { avgTyreTempCenterC }),
+      ...(avgTyreTempOuterC && { avgTyreTempOuterC }),
       ...(airTempValues.length > 0 && { avgAirTempC: avgArr(airTempValues) }),
       ...(roadTempValues.length > 0 && {
         avgRoadTempC: avgArr(roadTempValues),
@@ -256,13 +305,18 @@ export const createLapRecorder = (hasExistingBaseline = false): LapRecorder => {
     lapTime: number;
     sectorTimes: number[];
     frames: CompactFrame[];
+    pitFrames?: CompactFrame[];
     car: string;
     track: string;
     layout: string;
     layoutLength: number;
     valid: boolean;
   }): void => {
-    const zones = aggregateZones(lapData.frames, lapData.layoutLength);
+    const zones = aggregateZones(
+      lapData.frames,
+      lapData.layoutLength,
+      lapData.pitFrames,
+    );
 
     const lap: LapRecord = {
       lapNumber: lapData.lapNumber,

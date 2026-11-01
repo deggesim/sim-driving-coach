@@ -22,6 +22,9 @@ import {
 } from "../../shared/alert-types.js";
 import type { CompactFrame, GameFrame } from "../../shared/types.js";
 import { logChannels } from "../channel-log.js";
+import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
+import { createSlipEstimator, drivenWheels } from "./ams2-slip.js";
+import { findAms2Car } from "./ams2-car-lookup.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -47,7 +50,26 @@ type Kernel32 = {
 };
 
 const FILE_MAP_READ = 0x0004;
-const STALE_LIMIT = 120; // ~2s of frozen sequence number while playing → disconnect
+const STALE_TIMEOUT_MS = 2000;
+const GAME_INGAME_PLAYING = 2;
+const GAME_INGAME_PAUSED = 3;
+const SESSION_PRACTICE = 1;
+const SESSION_TIME_ATTACK = 6;
+const RACESTATE_NOT_STARTED = 1;
+const MOVING_MIN_KMH = 1;
+
+export const readStableAms2Snapshot = (
+  readSequence: () => number,
+  copy: () => Buffer,
+): Buffer | null => {
+  const sequence = readSequence();
+  if (sequence % 2 !== 0) return null;
+  const buf = copy();
+  return readUint32(buf, OFF.sequenceNumber) === sequence &&
+    readSequence() === sequence
+    ? buf
+    : null;
+};
 
 export type Ams2SessionInfo = {
   car: string;
@@ -93,7 +115,16 @@ export const createAms2Reader = (
   let lapInvalidatedAccum = false;
   let lastSectors: [number, number, number] = [-1, -1, -1];
   let lastSeq = -1;
-  let staleCount = 0;
+  let lastSeqProgressAt = 0;
+  let hasSequenceProgress = false;
+  let warnedStale = false;
+  let lastBlockedState = "";
+  let lastPos: [number, number, number] | null = null;
+  let frozenLogged = false;
+  const slipEstimator = createSlipEstimator();
+  let drivenCar: string | null = null;
+  let driven: boolean[] | undefined;
+  let radiusLogged = false; // one smoke-test line per reader start
 
   const isNullPtr = (ptr: NativePointer): boolean => {
     try {
@@ -130,7 +161,10 @@ export const createAms2Reader = (
     lapInvalidatedAccum = false;
     lastSectors = [-1, -1, -1];
     lastSeq = -1;
-    staleCount = 0;
+    lastSeqProgressAt = 0;
+    hasSequenceProgress = false;
+    lastPos = null;
+    frozenLogged = false;
     if (connected) {
       connected = false;
       emitter.emit("disconnected");
@@ -183,7 +217,7 @@ export const createAms2Reader = (
         return;
       }
       connected = true;
-      staleCount = 0;
+      lastSeqProgressAt = Date.now();
       emitter.emit("connected");
       poll();
     } catch (err) {
@@ -193,21 +227,9 @@ export const createAms2Reader = (
     }
   };
 
-  /** Read a stable snapshot using the sequence-number protocol (App.cpp:64-77). */
-  const readStable = (): Buffer | null => {
-    const buf = decodeBuffer(view, AMS2_STRUCT_SIZE);
-    const seq = readUint32(buf, OFF.sequenceNumber);
-    if (seq % 2 !== 0) return null; // write in progress
-    const buf2 = decodeBuffer(view, AMS2_STRUCT_SIZE);
-    if (readUint32(buf2, OFF.sequenceNumber) !== seq) return null; // torn read
-    // Stale detection: sequence frozen while we expect fresh data.
-    if (seq === lastSeq) staleCount++;
-    else {
-      staleCount = 0;
-      lastSeq = seq;
-    }
-    return buf;
-  };
+  const readSequence = (): number =>
+    koffi.decode(view, OFF.sequenceNumber, "uint32_t") as number;
+  const copySnapshot = (): Buffer => decodeBuffer(view, AMS2_STRUCT_SIZE);
 
   const updateSession = (buf: Buffer): void => {
     cachedCar = readString(buf, OFF.carName, 64) || cachedCar;
@@ -221,8 +243,26 @@ export const createAms2Reader = (
   const poll = (): void => {
     if (stopped) return;
     try {
-      const buf = readStable();
-      if (staleCount > STALE_LIMIT) {
+      const buf = readStableAms2Snapshot(readSequence, copySnapshot);
+      if (buf) {
+        const seq = readUint32(buf, OFF.sequenceNumber);
+        if (seq !== lastSeq) {
+          if (lastSeq !== -1) {
+            hasSequenceProgress = true;
+            warnedStale = false;
+          }
+          lastSeq = seq;
+          lastSeqProgressAt = Date.now();
+        }
+      }
+      if (Date.now() - lastSeqProgressAt >= STALE_TIMEOUT_MS) {
+        if (!warnedStale) {
+          console.warn(
+            `[AMS2] nessun nuovo snapshot SHM stabile per ${STALE_TIMEOUT_MS}ms ` +
+              `(ultima sequenza=${lastSeq}); riconnessione`,
+          );
+          warnedStale = true;
+        }
         cleanup();
         scheduleReconnect();
         return;
@@ -233,7 +273,19 @@ export const createAms2Reader = (
       }
 
       const version = readUint32(buf, OFF.version);
+      const gameState = readUint32(buf, OFF.gameState);
+      const sessionState = readUint32(buf, OFF.sessionState);
       const raceState = readUint32(buf, OFF.raceState);
+      let idx = readInt32(buf, OFF.viewedParticipantIndex);
+      const participants = readInt32(buf, OFF.numParticipants);
+      const participantActive =
+        idx >= 0 &&
+        idx < participants &&
+        idx < MAX_PARTICIPANTS &&
+        buf.readUInt8(participantOffset(idx, PART.isActive)) !== 0;
+      const state =
+        `gameState=${gameState} sessionState=${sessionState} raceState=${raceState} ` +
+        `participant=${idx}/${participants} active=${Number(participantActive)}`;
 
       if (!loggedOffsets) {
         loggedOffsets = true;
@@ -241,22 +293,37 @@ export const createAms2Reader = (
           `[AMS2] connected: mVersion=${version} (expected ${AMS2_VERSION}) ` +
             `speed=${(readFloat(buf, OFF.speed) * 3.6).toFixed(1)}km/h ` +
             `car="${readString(buf, OFF.carName, 64)}" ` +
-            `track="${readString(buf, OFF.trackLocation, 64)}"`,
+            `track="${readString(buf, OFF.trackLocation, 64)}" ` +
+            `${state} sequence=${lastSeq}`,
         );
       }
 
-      // Only produce coach data while actually on track. We gate on mRaceState,
-      // not mGameState: AMS2 reports mGameState=3 (nominally paused) during normal
-      // driving, so the documented GAME_INGAME_PLAYING check would drop every
-      // driving frame. RACESTATE_RACING means the car is in a live, running session.
-      if (raceState !== RACESTATE_RACING) {
+      // AMS2 can report gameState=3 during normal driving. Before the start,
+      // require an in-game session and an active viewed participant as well.
+      const prestart =
+        raceState === RACESTATE_NOT_STARTED &&
+        (gameState === GAME_INGAME_PLAYING ||
+          gameState === GAME_INGAME_PAUSED) &&
+        sessionState >= SESSION_PRACTICE &&
+        sessionState <= SESSION_TIME_ATTACK &&
+        participantActive;
+      if (raceState !== RACESTATE_RACING && !prestart) {
+        if (state !== lastBlockedState) {
+          console.warn(`[AMS2] frame sospesi: ${state}`);
+          lastBlockedState = state;
+        }
+        pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
+        return;
+      }
+      lastBlockedState = "";
+      // A mapped page may be frozen; after one update, keep the 16ms sampling cadence.
+      if (!hasSequenceProgress) {
         pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
         return;
       }
 
       updateSession(buf);
 
-      let idx = readInt32(buf, OFF.viewedParticipantIndex);
       if (idx < 0 || idx >= MAX_PARTICIPANTS) idx = 0;
 
       const lapDistance = readFloat(
@@ -274,6 +341,25 @@ export const createAms2Reader = (
       );
 
       const speed = readFloat(buf, OFF.speed); // m/s
+      // A paused AMS2 keeps bumping mSequenceNumber over a frozen car: a moving
+      // car whose position did not change is not a new sample.
+      if (
+        speed * 3.6 > MOVING_MIN_KMH &&
+        lastPos?.[0] === lapDistance &&
+        lastPos[1] === wpos[0] &&
+        lastPos[2] === wpos[2]
+      ) {
+        if (!frozenLogged) {
+          frozenLogged = true;
+          console.warn(
+            `[AMS2] telemetria ferma a ${lapDistance.toFixed(0)}m, campioni scartati`,
+          );
+        }
+        pollTimer = setTimeout(() => poll(), POLL_INTERVAL_MS);
+        return;
+      }
+      lastPos = [lapDistance, wpos[0], wpos[2]];
+      frozenLogged = false;
       const throttle = readFloat(buf, OFF.throttle);
       const brake = readFloat(buf, OFF.brake);
       const steering = readFloat(buf, OFF.steering);
@@ -283,6 +369,11 @@ export const createAms2Reader = (
       const antiLock = buf.readUInt8(OFF.antiLockActive) !== 0;
       const brakeTemps = readFloatArray(buf, OFF.brakeTempCelsius, 4);
       const tyreTemps = readFloatArray(buf, OFF.tyreTemp, 4);
+      // Left/right orientation assumed as in R3E; offsets not yet verified live.
+      const [innerTemps, outerTemps] = leftRightToInnerOuter(
+        readFloatArray(buf, OFF.tyreTempLeft, 4),
+        readFloatArray(buf, OFF.tyreTempRight, 4),
+      );
       // mAirPressure is documented as PSI in SharedMemory.h, but the raw values
       // match the setup's cold pressure read as kPa (e.g. a 1.75 bar/175 kPa
       // setup reads ~180 here at the start of a session), not as PSI. Converted
@@ -291,8 +382,33 @@ export const createAms2Reader = (
         (v) => v * 0.145038,
       );
       const suspTravel = readFloatArray(buf, OFF.suspensionTravel, 4);
+      // mRideHeight is centimetres; stored in metres like `sus`.
+      const rideHeight = readFloatArray(buf, OFF.rideHeight, 4).map(
+        (v) => v / 100,
+      );
       // mLocalAcceleration is m/s^2; the gLat/gLon channels are in g.
       const localAcc = readFloatArray(buf, OFF.localAcceleration, 3);
+      if (cachedCar !== drivenCar) {
+        drivenCar = cachedCar;
+        driven = drivenWheels(findAms2Car(cachedCar)?.driveline);
+      }
+      const slipRatio = slipEstimator.slip({
+        speedMps: speed,
+        wheelRadS: readFloatArray(buf, OFF.tyreRPS, 4),
+        brake,
+        throttle,
+        steering,
+        gLat: localAcc[0] / G,
+        gLon: localAcc[2] / G,
+        driven,
+      });
+      const radius = slipEstimator.radius();
+      if (radius && !radiusLogged) {
+        radiusLogged = true;
+        console.log(
+          `[AMS2] raggio ruota calibrato: ${(radius.reduce((a, b) => a + b, 0) / radius.length).toFixed(2)} m, slip disponibile`,
+        );
+      }
       const ambientTemp = readFloat(buf, OFF.ambientTemp);
       const trackTemp = readFloat(buf, OFF.trackTemp);
       const rainDensity = readFloat(buf, OFF.rainDensity);
@@ -302,11 +418,11 @@ export const createAms2Reader = (
       // the track's own heading at this point, which the SHM doesn't expose.
 
       // ── Driver aids ──
-      // ponytail: AMS2 exposes NO "TC cutting now" flag. Heuristic: TCS enabled +
-      // near-full throttle. Kept conservative (0.95) to avoid P2 alert spam.
-      // Upgrade path: derive from rear-wheel slip (mTyreRPS vs mSpeed) if needed.
-      const tcsEnabled = (carFlags & CAR_TCS) !== 0;
-      const tcActive = tcsEnabled && throttle > 0.95 ? 1 : 0;
+      // CAR_TCS is the intervention, not "TC enabled": at Monza (BMW M4 GT4,
+      // 2026-11-01) it was set on ~100 of ~2400 full-throttle samples per lap,
+      // only in gears 2-5, with rear slip median 0.056 against 0.020 without it.
+      // So no throttle gate: a cut at part throttle counts too.
+      const tcActive = (carFlags & CAR_TCS) !== 0 ? 1 : 0;
       const absActive = brake > 0.05 && antiLock ? 1 : 0;
 
       const gameFrame: GameFrame = {
@@ -340,37 +456,48 @@ export const createAms2Reader = (
         wz: wpos[2],
       });
 
-      // Accumulate frame + lap-invalidation over the lap.
+      // Accumulate frame + lap-invalidation over the lap. A standstill (grid,
+      // garage before the start) carries nothing for the zones: in the Monza
+      // test 264 s on the grid piled 3004 samples into zone 1 and its baseline.
       if (buf.readUInt8(OFF.lapInvalidated) !== 0) lapInvalidatedAccum = true;
-      lapFrames.push({
-        d: lapDistance,
-        spd: speed * 3.6,
-        thr: throttle,
-        brk: brake,
-        str: steering,
-        gear,
-        abs: absActive,
-        tc: tcActive,
-        bt: [...brakeTemps],
-        ts: Date.now(),
-        rpm,
-        gLat: localAcc[0] / G,
-        gLon: localAcc[2] / G,
-        tp: [...tyrePressures],
-        sus: [...suspTravel],
-        tt: [...tyreTemps],
-        // No `sr`: AMS2 has no slip-ratio channel and mTyreRPS needs a tyre
-        // radius the SHM does not expose. Absent beats a floored zero.
-        at: ambientTemp,
-        rt: trackTemp,
-        rain: rainDensity,
-        wind: windSpeed,
-        cloud: cloudBrightness,
-        wx: wpos[0],
-        wy: wpos[1],
-        wz: wpos[2],
-      });
-      logChannels("AMS2", lapFrames.at(-1));
+      if (speed * 3.6 >= MOVING_MIN_KMH) {
+        lapFrames.push({
+          d: lapDistance,
+          spd: speed * 3.6,
+          thr: throttle,
+          brk: brake,
+          str: steering,
+          gear,
+          abs: absActive,
+          tc: tcActive,
+          bt: [...brakeTemps],
+          ts: Date.now(),
+          rpm,
+          gLat: localAcc[0] / G,
+          gLon: localAcc[2] / G,
+          tp: [...tyrePressures],
+          sus: [...suspTravel],
+          rh: rideHeight,
+          tt: [...tyreTemps],
+          // `sr` is estimated from mTyreRPS with a self-calibrated tyre radius;
+          // absent until calibrated (absent beats a floored zero).
+          ...(slipRatio && { sr: slipRatio }),
+          ...surfaceTemps(
+            innerTemps,
+            readFloatArray(buf, OFF.tyreTempCenter, 4),
+            outerTemps,
+          ),
+          at: ambientTemp,
+          rt: trackTemp,
+          rain: rainDensity,
+          wind: windSpeed,
+          cloud: cloudBrightness,
+          wx: wpos[0],
+          wy: wpos[1],
+          wz: wpos[2],
+        });
+        logChannels("AMS2", lapFrames.at(-1));
+      }
 
       // ── Lap completion: mLapsCompleted increment ──
       if (prevLapsCompleted >= 0 && lapsCompleted > prevLapsCompleted) {
@@ -435,6 +562,15 @@ export const createAms2Reader = (
   return {
     start: () => {
       stopped = false;
+      loggedOffsets = false;
+      warnedStale = false;
+      lastBlockedState = "";
+      cachedCar = "";
+      cachedTrack = "";
+      cachedLayout = "";
+      cachedTrackLength = 0;
+      slipEstimator.reset();
+      radiusLogged = false;
       if (isMock) startMock();
       else tryConnect();
     },

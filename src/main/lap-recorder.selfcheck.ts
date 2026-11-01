@@ -7,7 +7,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { aggregateZones } from "./lap-recorder.js";
+import { aggregateZones, zoneDurationMs } from "./lap-recorder.js";
 import type { CompactFrame } from "../shared/types.js";
 
 const frame = (d: number, over: Partial<CompactFrame> = {}): CompactFrame => ({
@@ -88,5 +88,45 @@ assert.equal(bare[0].avgRpm, undefined);
 assert.equal(bare[0].maxGLat, undefined);
 assert.equal(bare[0].avgSuspTravel, undefined);
 assert.ok(bare[0].avgBrakeTempC, "brake temps are outside the extended block");
+
+// Surface temps (inner shoulder here): averaged per wheel like `tt`, absent when
+// no frame carried the channel.
+const surf = aggregateZones(
+  [frame(10, { tti: [80, 80, 80, 80] }), frame(20, { tti: [82, 82, 82, 82] })],
+  100,
+);
+assert.deepEqual(surf[0].avgTyreTempInnerC, [81, 81, 81, 81]);
+assert.equal(surf[0].avgTyreTempCenterC, undefined);
+assert.equal(surf[0].avgTyreTempOuterC, undefined);
+assert.equal(bare[0].avgTyreTempInnerC, undefined);
+
+// Ladder counters: hard-brake frames are always on the zone, even at 0.
+const hard = aggregateZones(
+  [frame(10, { brk: 0.8, abs: 1 }), frame(60, { brk: 0.1 })],
+  100,
+);
+assert.equal(hard[0].hardBrakeFrames, 1);
+assert.equal(hard[0].absHardBrakeFrames, 1);
+assert.equal(hard[1].hardBrakeFrames, 0);
+assert.equal(hard[1].absHardBrakeFrames, 0);
+assert.equal(hard[0].lockFramesFront, undefined, "no sr, no lock counter");
+
+// Durations follow the timestamps (~31ms on Windows), a gap > 100ms counts 16ms,
+// and zones saved before the *Ms fields fall back to frames × 16.
+const timed = aggregateZones(
+  [
+    frame(10, { abs: 1, tc: 1, thr: 0.5, ts: 0 }),
+    frame(12, { abs: 1, thr: 0, ts: 31 }),
+    frame(14, { abs: 1, thr: 0, ts: 62 }),
+    frame(16, { thr: 0, ts: 5000 }),
+  ],
+  100,
+);
+assert.equal(timed[0].absActiveMs, 31 + 31 + 16);
+assert.equal(timed[0].tcActiveMs, 31);
+assert.equal(timed[0].overlapMs, 31);
+assert.equal(zoneDurationMs(timed[0], "abs"), 78);
+const legacy = { ...timed[0], absActiveMs: undefined };
+assert.equal(zoneDurationMs(legacy, "abs"), 3 * 16);
 
 console.log("lap-recorder.selfcheck OK");

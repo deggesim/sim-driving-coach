@@ -10,9 +10,13 @@
   // Self-checks are picked up by filename glob at runtime (scripts/run-selfchecks.mjs),
   // never statically imported — without this every one is reported as an unused file.
   "dynamicallyLoaded": ["src/**/*.selfcheck.ts"],
-  // r3e-corners.ts is generated (see .prettierignore); r3e-data.json is vendored data.
+  // r3e-corners.ts and ams2-cars.ts are generated (see .prettierignore); r3e-data.json is vendored data.
   // .claude/ holds skill docs, not app source — silences the hidden-dir warning.
-  "ignorePatterns": ["src/main/db/r3e-corners.ts", ".claude/**"],
+  "ignorePatterns": [
+    "src/main/db/r3e-corners.ts",
+    "src/main/ams2/ams2-cars.ts",
+    ".claude/**"
+  ],
   // koffi is loaded via a dynamic require() (see r3e/ace/ams2 readers + input-manager),
   // invisible to static import analysis.
   "ignoreDependencies": ["koffi"],

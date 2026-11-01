@@ -76,4 +76,44 @@ assert.throws(
 );
 assert.throws(() => parseR3eSetupJson(""));
 
+// Range limit of the raw value, from the real 2026-10-27 export.
+const lim = (item: object) =>
+  parseR3eSetupJson(JSON.stringify({ values: [item] }))[0].limit;
+const brakeP = {
+  id: "BrakePressure",
+  minValue: 80,
+  stepSize: 1,
+  maxStep: 21,
+  suffix: "%",
+  disabled: false,
+};
+// maxStep is the number of steps (BrakeBias 0.005 × 201 would pass 100 %): the last is maxStep − 1.
+assert.equal(lim({ ...brakeP, currentStep: 20 }), "max"); // 100 %
+assert.equal(lim({ ...brakeP, currentStep: 0 }), "min");
+assert.equal(lim({ ...brakeP, currentStep: 19 }), undefined);
+// Negative step: step 50 is the most negative camber, i.e. the lowest value.
+const camberFL = {
+  id: "CamberFrontLeft",
+  minValue: 0,
+  stepSize: -0.1,
+  maxStep: 51,
+  suffix: "deg",
+  disabled: false,
+};
+assert.equal(lim({ ...camberFL, currentStep: 50 }), "min"); // −5.0°
+assert.equal(lim({ ...camberFL, currentStep: 0 }), "max");
+// No range (maxStep 0) or no maxStep at all: no limit.
+assert.equal(lim({ ...brakeP, currentStep: 0, maxStep: 0 }), undefined);
+assert.equal(
+  lim({
+    id: "BrakePressure",
+    currentStep: 0,
+    minValue: 80,
+    stepSize: 1,
+    suffix: "%",
+    disabled: false,
+  }),
+  undefined,
+);
+
 console.log("r3e-setup-parse selfcheck OK");

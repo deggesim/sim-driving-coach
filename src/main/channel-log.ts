@@ -34,12 +34,26 @@ const quartet = (
 const scalar = (v: number | undefined, digits: number): string =>
   v === undefined ? "assente" : v.toFixed(digits);
 
+// Per wheel inner-centre-outer surface temps; "assente" when `tti` is missing.
+const surface = (f: CompactFrame): string =>
+  f.tti === undefined
+    ? "sup=assente"
+    : `sup(I-C-E)=${f.tti
+        .map((_, i) =>
+          [f.tti?.[i], f.ttc?.[i], f.tto?.[i]]
+            .map((v) => v?.toFixed(0) ?? "?")
+            .join("-"),
+        )
+        .join("/")}°C`;
+
 /** Pure formatter, so `channel-log.selfcheck.ts` can assert it. */
 export const formatChannels = (f: CompactFrame): string =>
   `@${f.d.toFixed(0)}m ${f.spd.toFixed(0)}km/h rpm=${scalar(f.rpm, 0)} ` +
   `gLat=${scalar(f.gLat, 2)}g gLon=${scalar(f.gLon, 2)}g ` +
   `press=${quartet(f.tp, 1, 1)}PSI temp=${quartet(f.tt, 1, 0)}°C ` +
-  `slip=${quartet(f.sr, 1, 3)} sosp=${quartet(f.sus, 1000, 1)}mm`;
+  `${surface(f)} ` +
+  `slip=${quartet(f.sr, 1, 3)} sosp=${quartet(f.sus, 1000, 1)}mm ` +
+  `alt=${quartet(f.rh, 1000, 1)}mm carico=${quartet(f.wl, 1, 0)}N`;
 
 const counters = new Map<string, number>();
 

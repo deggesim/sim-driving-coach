@@ -15,6 +15,7 @@ export type R3ESetupItem = {
   stepSize: number;
   suffix: string | string[];
   disabled: boolean;
+  maxStep?: number;
 };
 
 const categorize = (id: string): string => {
@@ -76,6 +77,19 @@ const formatValue = (item: R3ESetupItem): string => {
   return suffix ? `${rounded} ${suffix}` : String(rounded);
 };
 
+// The raw value (minValue + currentStep * stepSize) at the lowest or highest
+// end of its range: with a negative stepSize the last step is the lowest.
+// maxStep counts the steps (BrakeBias 0.005 × 201 would pass 100 %; front
+// springs 140 + 6 × 20 = 260 with maxStep 7), so the last one is maxStep − 1.
+const limitOf = (item: R3ESetupItem): SetupParam["limit"] => {
+  const last = (item.maxStep ?? 0) - 1;
+  if (last < 1 || !item.stepSize) return undefined;
+  const lowStep = item.stepSize > 0 ? 0 : last;
+  if (item.currentStep === lowStep) return "min";
+  if (item.currentStep === last - lowStep) return "max";
+  return undefined;
+};
+
 /**
  * Il throw su `values` mancante non è una rifinitura: è il modo in cui il
  * percorso clipboard distingue un setup da qualunque altro testo copiato.
@@ -87,9 +101,13 @@ export const parseR3eSetupJson = (text: string): SetupParam[] => {
   }
   return parsed.values
     .filter((item) => !item.disabled)
-    .map((item) => ({
-      category: categorize(item.id),
-      parameter: idToLabel(item.id),
-      value: formatValue(item),
-    }));
+    .map((item) => {
+      const limit = limitOf(item);
+      return {
+        category: categorize(item.id),
+        parameter: idToLabel(item.id),
+        value: formatValue(item),
+        ...(limit && { limit }),
+      };
+    });
 };

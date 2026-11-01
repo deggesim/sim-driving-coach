@@ -145,15 +145,18 @@ export const PHY = {
   steerAngle: 24,
   speedKmh: 28,
   accG: 44, // float[3] - G-forces: [0]=lateral, [1]=vertical, [2]=longitudinal
+  wheelLoad: 72, // float[4] FL,FR,RL,RR - wheel load (N)
   wheelsPressure: 88, // float[4] FL,FR,RL,RR - tyre pressures (PSI)
   wheelAngularSpeed: 104, // float[4] FL,FR,RL,RR - wheel angular speed (rad/s)
   tyreCoreTemperature: 152, // float[4] FL,FR,RL,RR - tyre core temperature (°C)
   suspensionTravel: 184, // float[4] FL,FR,RL,RR - suspension travel (m)
-  rideHeight: 268, // float[2] front,rear - aero ride height (m)
+  rideHeight: 268, // float[2] front,rear - aero ride height (mm)
   airTemp: 288, // float - ambient air temperature (°C)
   roadTemp: 292, // float - road surface temperature (°C)
   clutch: 364, // float - clutch position 0-1
   brakeTemp: 348, // float[4] FL,FR,RL,RR
+  // tyreTempI/M/O (368/384/400) read all zeros on a live 0.9.1 sim (Mazda MX-5, Ferrari 296):
+  // the per-edge temps come from the Graphic page instead, see GFX_TYRE.
   slipRatio: 640, // float[4] FL,FR,RL,RR - longitudinal tyre slip ratio
   slipAngle: 656, // float[4] FL,FR,RL,RR - tyre slip angle (rad)
   brakeTorque: 716, // float[4] FL,FR,RL,RR - brake torque (Nm)
@@ -334,6 +337,19 @@ export const GFX = {
   isValidLap: 3121, // bool (uint8)
   carCoordinates: 3124, // float[60][3] - player at index 0 in singleplayer
   carIds: 3940, // uint64[60][2] - UID↔index map for car_coordinates (added 2026-04-01, unused)
+} as const;
+
+// SMEvoTyreState (256 B, Pack=4) fields we read; its base is GFX 220 + n×256 for
+// FL,FR,RL,RR. Field order from the spec: slip f, lock bool (+3 pad), pressure,
+// tyre_temperature_c, brake_temperature_c, brake_pressure, then left/center/right.
+// Verified live (Lotus Exige, 0.9.1): +8 pressure and +12 carcass match PHY.wheelsPressure /
+// PHY.tyreCoreTemperature to 4 decimals on all four wheels, so +24/28/32 sit right too.
+// left/right are the wheel's physical sides (not inner/outer): see leftRightToInnerOuter.
+export const GFX_TYRE = {
+  base: [220, 476, 732, 988],
+  tempLeft: 24, // tyre_temperature_left
+  tempCenter: 28, // tyre_temperature_center
+  tempRight: 32, // tyre_temperature_right
 } as const;
 
 // ── SPageFileStaticEvo offsets (Pack=4) ──────────────────────────────────────
