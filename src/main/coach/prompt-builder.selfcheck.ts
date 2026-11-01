@@ -418,7 +418,10 @@ const statsBlock = buildSynthesisPrompt({
 });
 const calc = statsBlock.slice(statsBlock.indexOf("## Dati Calcolati"));
 
-assert.ok(calc.includes("Zona 3 @150m: 1 alert"), "critical corner rendered");
+assert.ok(calc.includes("  - @150m: 1 alert"), "critical corner rendered");
+// Internal zone ids are not a race engineer's vocabulary: the model copied
+// "zona 18" into a real Level-1 analysis.
+assert.ok(!/\bzona \d/i.test(statsBlock), "no zone ids in the prompt");
 assert.ok(calc.includes("sterzo max 42%"), "steer in the authoritative block");
 assert.ok(calc.includes("sterzo in frenata 21%"));
 assert.ok(calc.includes("G lat 1.85g"));

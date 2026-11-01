@@ -12,6 +12,7 @@ import {
   BRAKE_TEMP,
   WHEEL_LABELS,
   WHEEL_ORDER,
+  ZONE_SIZE_M,
 } from "../../shared/alert-types.js";
 import type {
   Alert,
@@ -438,7 +439,7 @@ export const buildStatsBlock = (
       if (c.overlapMs > 0) bits.push(`overlap ${c.overlapMs}ms`);
       if (c.maxGLat != null) bits.push(`G lat ${c.maxGLat.toFixed(2)}g`);
       if (c.maxGLon != null) bits.push(`G lon ${c.maxGLon.toFixed(2)}g`);
-      lines.push(`  - Zona ${c.zone} ${label}: ${bits.join(", ")}`);
+      lines.push(`  - ${label}: ${bits.join(", ")}`);
 
       // Per-wheel line, same shape as the lap zones. brakeTempsC was computed
       // here and never printed either; a wheel with no sensor reads -1, and the
@@ -540,7 +541,8 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   );
   if (cornerNames.size > 0) {
     const sorted = [...cornerNames.entries()].sort(([a], [b]) => a - b);
-    for (const [zone, name] of sorted) parts.push(`- Zona ${zone}: ${name}`);
+    for (const [zone, name] of sorted)
+      parts.push(`- @${zone * ZONE_SIZE_M}m: ${name}`);
   } else {
     parts.push(
       `- Nessun nome curva disponibile per questo circuito - usa SOLO "@XXXm" per tutte le posizioni.`,
@@ -678,7 +680,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     parts.push(`## Alert generati in sessione (${alerts.length})`);
     for (const a of alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
-      parts.push(`- [${prio}] @${a.dist}m zona ${a.zone}: ${a.message}`);
+      parts.push(`- [${prio}] @${Math.round(a.dist)}m: ${a.message}`);
     }
     parts.push("");
   }

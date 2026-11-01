@@ -122,7 +122,7 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     parts.push(`\n## Alert generati in sessione (${ctx.alerts.length})`);
     for (const a of ctx.alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
-      parts.push(`- [${prio}] @${a.dist}m zona ${a.zone}: ${a.message}`);
+      parts.push(`- [${prio}] @${Math.round(a.dist)}m: ${a.message}`);
     }
   }
 
