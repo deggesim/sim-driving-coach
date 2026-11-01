@@ -418,11 +418,11 @@ export const createAms2Reader = (
       // the track's own heading at this point, which the SHM doesn't expose.
 
       // ── Driver aids ──
-      // ponytail: AMS2 exposes NO "TC cutting now" flag. Heuristic: TCS enabled +
-      // near-full throttle. Kept conservative (0.95) to avoid P2 alert spam.
-      // Upgrade path: derive from rear-wheel slip (mTyreRPS vs mSpeed) if needed.
-      const tcsEnabled = (carFlags & CAR_TCS) !== 0;
-      const tcActive = tcsEnabled && throttle > 0.95 ? 1 : 0;
+      // CAR_TCS is the intervention, not "TC enabled": at Monza (BMW M4 GT4,
+      // 2026-11-01) it was set on ~100 of ~2400 full-throttle samples per lap,
+      // only in gears 2-5, with rear slip median 0.056 against 0.020 without it.
+      // So no throttle gate: a cut at part throttle counts too.
+      const tcActive = (carFlags & CAR_TCS) !== 0 ? 1 : 0;
       const absActive = brake > 0.05 && antiLock ? 1 : 0;
 
       const gameFrame: GameFrame = {

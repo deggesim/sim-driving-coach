@@ -6,6 +6,7 @@ import type { GameFrame, LapRecord } from "../../shared/types.js";
 import { createAms2Reader, readStableAms2Snapshot } from "./ams2-reader.js";
 import {
   AMS2_STRUCT_SIZE,
+  CAR_TCS,
   OFF,
   PART,
   participantOffset,
@@ -246,6 +247,16 @@ const checkReader = async (): Promise<void> => {
       () => frames.length > count,
       "racing frames must still work with gameState=3",
     );
+    update((buf) => {
+      buf.writeUInt32LE(CAR_TCS, OFF.carFlags);
+      buf.writeFloatLE(0.5, OFF.throttle);
+    });
+    await waitFor(
+      () => frames.at(-1)?.tcActive === 1,
+      "CAR_TCS is the intervention: TC active at part throttle",
+    );
+    update((buf) => buf.writeUInt32LE(0, OFF.carFlags));
+    await waitFor(() => frames.at(-1)?.tcActive === 0, "TC cut over");
     count = frames.length;
     update((buf) => {
       buf.writeFloatLE(60, OFF.speed);

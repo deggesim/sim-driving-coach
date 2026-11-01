@@ -21,7 +21,7 @@ export const RACESTATE_RACING = 2;
 
 // mCarFlags bits (Type#9)
 export const CAR_ABS = 1 << 4; // 16
-export const CAR_TCS = 1 << 6; // 64
+export const CAR_TCS = 1 << 6; // 64: set while TC is cutting (verified live), not "TC enabled"
 
 // Tyre order matches TYRE_* enum: FL=0, FR=1, RL=2, RR=3.
 
