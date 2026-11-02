@@ -15,6 +15,7 @@ import {
 } from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
 import { chassisCounters } from "./chassis-counters.js";
+import { calibrationLines } from "./calibration-log.js";
 import { ladderCounters } from "./ladder-counters.js";
 
 /** Minimal reader interface required by LapRecorder (duck-typed by both R3EReader and AceReader). */
@@ -331,6 +332,10 @@ export const createLapRecorder = (hasExistingBaseline = false): LapRecorder => {
       zones,
       recordedAt: new Date().toISOString(),
     };
+
+    if (process.env.SDC_CHANNEL_LOG === "1")
+      for (const line of calibrationLines(lap.frames))
+        console.log(`[calibrazione] giro ${lap.lapNumber} ${line}`);
 
     lapsRecorded++;
     const calibrating = !calibrationDone;

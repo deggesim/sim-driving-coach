@@ -20,6 +20,8 @@ import {
   buildSessionPrompt,
   buildStatsBlock,
   buildSynthesisPrompt,
+  capPriorDetail,
+  PRIOR_DETAIL_MAX_CHARS,
   SESSION_SYSTEM_PROMPT,
   SYNTHESIS_SYSTEM_PROMPT,
   type SessionPromptInput,
@@ -802,6 +804,31 @@ assert.equal(
   "2 (frenata tardiva) su anteriore sinistra, anomalia controllo di trazione a posteriore destra",
 );
 assert.equal(decodeAlertCodes("nessun codice"), "nessun codice");
+
+// --- capPriorDetail: short text untouched, long text keeps the setup section ---
+const shortDetail = "### Analisi telemetria\nbreve";
+assert.equal(capPriorDetail(shortDetail), shortDetail);
+const filler = "x".repeat(PRIOR_DETAIL_MAX_CHARS);
+const longDetail = [
+  "### Analisi telemetria",
+  filler,
+  "### Setup attuale vs proposto",
+  "Pressione FL: 160 -> 158 kPa",
+  "#### Dettaglio",
+  "altro",
+  "### Problemi identificati",
+  "da scartare",
+].join("\n");
+const capped = capPriorDetail(longDetail);
+assert.ok(
+  capped.startsWith("### Setup attuale vs proposto"),
+  capped.slice(0, 40),
+);
+assert.ok(capped.includes("Pressione FL: 160 -> 158 kPa"));
+assert.ok(capped.includes("#### Dettaglio"));
+assert.ok(!capped.includes("da scartare") && !capped.includes("xxx"));
+// No setup subsection: the head of the text, bounded.
+assert.ok(capPriorDetail(filler + filler).length < PRIOR_DETAIL_MAX_CHARS + 40);
 
 console.log("prompt-builder.selfcheck OK");
 

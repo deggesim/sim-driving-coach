@@ -486,6 +486,19 @@ export type SessionPromptInput = {
   currentSynthesis?: string;
 };
 
+// Over the cap, the deep-dive keeps only "Setup attuale vs proposto" (where the
+// concrete proposals live, which later analyses must confirm or update); with
+// no such subsection, the head of the text.
+export const PRIOR_DETAIL_MAX_CHARS = 12000;
+const SETUP_SECTION =
+  /^###\s+Setup attuale vs proposto[\s\S]*?(?=^###?\s|(?![\s\S]))/m;
+export const capPriorDetail = (detail: string): string => {
+  if (detail.length <= PRIOR_DETAIL_MAX_CHARS) return detail;
+  const setup = SETUP_SECTION.exec(detail)?.[0].trimEnd();
+  const kept = setup ?? detail;
+  return `${kept.slice(0, PRIOR_DETAIL_MAX_CHARS)}\n\n(approfondimento troncato)`;
+};
+
 /**
  * Push injected markdown below its wrapper heading. Analysis text carries its own
  * `## Analisi sintetica` / `## Analisi approfondita`, and injecting it verbatim
@@ -638,9 +651,8 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     // prompts ask to "confermare/aggiornare i consigli", and the concrete setup
     // proposals live in `detail`: a voice summary cannot carry them, so with
     // summaries alone the model re-derived or re-proposed them blind.
-    // ponytail: no cap on `detail`. A deep-dive that hit the 32000-token ceiling
-    // is injected whole; slice it, or keep only its "Setup attuale vs proposto"
-    // subsection, if the prompt size starts to matter.
+    // `detail` is capped (see capPriorDetail): a deep-dive that hit the
+    // 32000-token ceiling would otherwise swell every later prompt.
     const latestVersion = priorAnalyses.at(-1)?.version;
     parts.push(`## Analisi precedenti`);
     for (const a of priorAnalyses) {
@@ -651,7 +663,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
       );
       if (isLatest) {
         parts.push(nestHeadings(a.synthesis, 2));
-        if (a.detail) parts.push("", nestHeadings(a.detail, 2));
+        if (a.detail) parts.push("", nestHeadings(capPriorDetail(a.detail), 2));
       } else if (a.summary) {
         parts.push(`Sintesi: ${a.summary}`);
       } else {

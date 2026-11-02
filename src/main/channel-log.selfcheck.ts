@@ -80,5 +80,7 @@ assert.ok(
   ),
 );
 assert.ok(bare.includes("carico=assente"), bare);
+assert.ok(bare.includes("fuel=assenteL"), bare);
+assert.ok(formatChannels(frame({ fuel: 43.25 })).includes("fuel=43.3L"));
 
 console.log("channel-log.selfcheck OK");

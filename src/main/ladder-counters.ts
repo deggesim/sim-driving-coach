@@ -32,14 +32,14 @@ export type LadderCounters = Pick<
   | "kFastSum"
 >;
 
-const HARD_BRAKE = 0.3;
+export const HARD_BRAKE = 0.3;
 // Starting value, to calibrate on a live sim: peak braking slip on many tyre
 // models already sits around -0.08...-0.15, so a tighter lock flags ordinary braking.
-const LOCK_SLIP = -0.25;
+export const LOCK_SLIP = -0.25;
 // Starting value, to calibrate on a live sim (same reason as LOCK_SLIP).
-const NERVOUS_SLIP = -0.1;
-const NERVOUS_WINDOW_MS = 500;
-const LIFTED_THROTTLE = 0.05;
+export const NERVOUS_SLIP = -0.1;
+export const NERVOUS_WINDOW_MS = 500;
+export const LIFTED_THROTTLE = 0.05;
 const EXIT_THROTTLE = 0.5;
 const SPIN_ASYMMETRY = 0.15;
 const STEER_ON = 0.05;
