@@ -30,7 +30,7 @@ assert.ok(bare[1].includes("p=assente"), bare[1]);
 // a downshift 4 -> 3 with the rear dipping to -0.12 inside 500 ms is one sample.
 const frames = [
   frame({ ts: 0, brk: 0.8, sr: [-0.05, -0.05, -0.04, -0.04] }),
-  frame({ ts: 100, brk: 0.8, sr: [-0.3, -0.05, -0.04, -0.04] }),
+  frame({ ts: 100, brk: 0.8, abs: 1, sr: [-0.3, -0.05, -0.04, -0.04] }),
   frame({ ts: 200, brk: 0.8, sr: [-0.05, -0.05, -0.04, -0.04] }),
   frame({ ts: 300, brk: 0.8, gear: 3, sr: [-0.05, -0.05, -0.12, -0.04] }),
 ];
@@ -43,6 +43,7 @@ const out = calibrationLines(
     tto: [86, 86, 76, 76],
   })),
 );
+assert.ok(out[0].includes("ABS attivo 25%"), out[0]);
 assert.ok(out[0].includes("anteriore n=4 min=-0.300"), out[0]);
 assert.ok(out[0].includes("<-0.25 25.0%"), out[0]);
 assert.ok(out[1].includes("posteriore n=4 min=-0.120"), out[1]);

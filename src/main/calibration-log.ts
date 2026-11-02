@@ -44,8 +44,10 @@ const slipLines = (frames: CompactFrame[]): string[] => {
   if (!frames.some((f) => f.sr)) return ["slip: assente (nessun canale sr)"];
   const front: number[] = [];
   const rear: number[] = [];
+  let absFrames = 0;
   for (const f of frames) {
     if (!f.sr || f.brk <= HARD_BRAKE) continue;
+    if (f.abs > 0) absFrames++;
     front.push(Math.min(f.sr[0], f.sr[1]));
     rear.push(Math.min(f.sr[2], f.sr[3]));
   }
@@ -66,7 +68,7 @@ const slipLines = (frames: CompactFrame[]): string[] => {
     if (Number.isFinite(worst)) afterDownshift.push(worst);
   });
   return [
-    `slip frenata dura (brk>${HARD_BRAKE}) ${slipSummary("anteriore", front)}`,
+    `slip frenata dura (brk>${HARD_BRAKE}, ABS attivo ${front.length ? ((absFrames / front.length) * 100).toFixed(0) : 0}%) ${slipSummary("anteriore", front)}`,
     `slip frenata dura (brk>${HARD_BRAKE}) ${slipSummary("posteriore", rear)}`,
     `slip posteriore entro ${NERVOUS_WINDOW_MS}ms da una scalata ${slipSummary("scalate", afterDownshift)}`,
   ];
