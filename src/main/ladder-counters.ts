@@ -198,14 +198,17 @@ export const ladderCounters = (
       (f.brk > 0 || f.thr <= LIFTED_THROTTLE)
     ) {
       bump(c, "downshifts");
-      for (let j = i; j < frames.length; j++) {
-        if (frames[j].ts - f.ts > NERVOUS_WINDOW_MS) break;
-        const r = frames[j].sr;
-        if (r && Math.min(r[2], r[3]) < NERVOUS_SLIP) {
-          bump(c, "nervousDownshifts");
-          break;
+      // A rear already below the threshold when the gear drops is slipping from
+      // the brakes (ABS off, locked rear), not from the downshift: not nervous.
+      if (Math.min(sr[2], sr[3]) >= NERVOUS_SLIP)
+        for (let j = i; j < frames.length; j++) {
+          if (frames[j].ts - f.ts > NERVOUS_WINDOW_MS) break;
+          const r = frames[j].sr;
+          if (r && Math.min(r[2], r[3]) < NERVOUS_SLIP) {
+            bump(c, "nervousDownshifts");
+            break;
+          }
         }
-      }
     }
   });
 

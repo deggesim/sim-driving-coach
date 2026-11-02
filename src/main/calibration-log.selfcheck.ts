@@ -32,7 +32,9 @@ const frames = [
   frame({ ts: 0, brk: 0.8, sr: [-0.05, -0.05, -0.04, -0.04] }),
   frame({ ts: 100, brk: 0.8, abs: 1, sr: [-0.3, -0.05, -0.04, -0.04] }),
   frame({ ts: 200, brk: 0.8, sr: [-0.05, -0.05, -0.04, -0.04] }),
-  frame({ ts: 300, brk: 0.8, gear: 3, sr: [-0.05, -0.05, -0.12, -0.04] }),
+  frame({ ts: 300, brk: 0.8, gear: 3, sr: [-0.05, -0.05, -0.04, -0.04] }),
+  // Soft frame 100 ms after the downshift: the rear dips, not a hard-brake sample.
+  frame({ ts: 400, brk: 0, gear: 3, sr: [0, 0, -0.12, -0.04] }),
 ];
 const out = calibrationLines(
   frames.map((f) => ({
@@ -46,7 +48,7 @@ const out = calibrationLines(
 assert.ok(out[0].includes("ABS attivo 25%"), out[0]);
 assert.ok(out[0].includes("anteriore n=4 min=-0.300"), out[0]);
 assert.ok(out[0].includes("<-0.25 25.0%"), out[0]);
-assert.ok(out[1].includes("posteriore n=4 min=-0.120"), out[1]);
+assert.ok(out[1].includes("posteriore n=4 min=-0.040"), out[1]);
 assert.ok(out[2].includes("scalate n=1 min=-0.120"), out[2]);
 assert.ok(
   out[3].includes("FL 24.0PSI I/C/E 90/88/86 Δcentro=0.0°C I-E=4.0°C"),

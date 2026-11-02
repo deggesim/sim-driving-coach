@@ -53,12 +53,19 @@ const slipLines = (frames: CompactFrame[]): string[] => {
   }
   // Same downshift definition as ladder-counters: gear drop while braking or lifted.
   const afterDownshift: number[] = [];
+  let alreadySlipping = 0;
   let lastGear = 0;
   frames.forEach((f, i) => {
     const prev = lastGear;
     if (f.gear > 0) lastGear = f.gear;
     if (!f.sr || f.gear <= 0 || f.gear >= prev) return;
     if (f.brk <= 0 && f.thr > LIFTED_THROTTLE) return;
+    // Rear already below the threshold: slipping from the brakes, not counted
+    // as nervous by ladder-counters either.
+    if (Math.min(f.sr[2], f.sr[3]) < NERVOUS_SLIP) {
+      alreadySlipping++;
+      return;
+    }
     let worst = Infinity;
     for (let j = i; j < frames.length; j++) {
       if (frames[j].ts - f.ts > NERVOUS_WINDOW_MS) break;
@@ -70,7 +77,7 @@ const slipLines = (frames: CompactFrame[]): string[] => {
   return [
     `slip frenata dura (brk>${HARD_BRAKE}, ABS attivo ${front.length ? ((absFrames / front.length) * 100).toFixed(0) : 0}%) ${slipSummary("anteriore", front)}`,
     `slip frenata dura (brk>${HARD_BRAKE}) ${slipSummary("posteriore", rear)}`,
-    `slip posteriore entro ${NERVOUS_WINDOW_MS}ms da una scalata ${slipSummary("scalate", afterDownshift)}`,
+    `slip posteriore entro ${NERVOUS_WINDOW_MS}ms da una scalata ${slipSummary("scalate", afterDownshift)} (escluse perché già sotto soglia: ${alreadySlipping})`,
   ];
 };
 
