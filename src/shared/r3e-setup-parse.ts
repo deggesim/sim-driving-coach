@@ -46,9 +46,9 @@ const idToLabel = (id: string): string => {
 };
 
 const TYRE_COMPOUNDS: Record<number, string> = {
-  0: "Hard",
+  0: "Soft",
   1: "Medium",
-  2: "Soft",
+  2: "Hard",
 };
 
 const formatValue = (item: R3ESetupItem): string => {

@@ -29,8 +29,8 @@ assert.deepEqual(parse([item("BrakeBias", 0.4, 0.01, 10)]), [
 ]);
 
 // ── Compound: indice → nome, non il numero ───────────────────────────────────
-assert.equal(parse([item("TyreCompoundFront", 0, 1, 2)])[0].value, "Soft");
-assert.equal(parse([item("TyreCompoundFront", 0, 1, 0)])[0].value, "Hard");
+assert.equal(parse([item("TyreCompoundFront", 0, 1, 2)])[0].value, "Hard");
+assert.equal(parse([item("TyreCompoundFront", 0, 1, 0)])[0].value, "Soft");
 
 // ── Unità implicite per famiglia di parametro ────────────────────────────────
 assert.equal(parse([item("SpringsFrontLeft", 100, 5, 2)])[0].value, "110 N/mm");
