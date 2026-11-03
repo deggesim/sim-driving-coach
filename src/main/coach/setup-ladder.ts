@@ -83,6 +83,11 @@ export type TyreSummary = {
   innerMinusOuterC: Quartet | null; // null when the game's shoulder temps cannot judge camber
   pressureState: PressureState[]; // majority of judged laps
   driftPsi: Quartet | null; // last − first judged lap, only with ≥ 3 judged laps
+  // Wheels whose centre temperature is below the game's own cold threshold
+  // (R3E): pressures and camber are not judged on a tyre out of its window.
+  // Empty = all in window, or the game gives no threshold.
+  coldWheels: number[];
+  notWarm: string | null; // the same wheels as text, with temperatures
 };
 /** One R3E parameter a fix would move, and which way (the numeric value). */
 export type Move = { param: string; dir: "up" | "down" };
@@ -149,6 +154,7 @@ export const tyreTempsFixed = (laps: LapRow[]): boolean =>
   ).size === 1;
 
 const WHEELS = Object.keys(WHEEL_LABELS); // ANT-SX, ANT-DX, POST-SX, POST-DX
+const NOT_WARM = "gomme non in temperatura";
 const R3E_WHEELS = ["Front Left", "Front Right", "Rear Left", "Rear Right"]; // idToLabel suffixes
 const W = [0, 1, 2, 3] as const;
 
@@ -228,6 +234,12 @@ const tyreSummary = (
     .filter((q) => q != null);
   const first = press[0];
   const last = press.at(-1);
+  const zones = judged.flatMap((l) => l.zones);
+  const coldC = meanQ(zones.flatMap((z) => (z.tyreColdC ? [z.tyreColdC] : [])));
+  const centreC = meanQ(
+    zones.flatMap((z) => (z.avgTyreTempCenterC ? [z.avgTyreTempCenterC] : [])),
+  );
+  const cold = coldC && centreC ? W.filter((w) => centreC[w] < coldC[w]) : [];
   return {
     perLap,
     summary: {
@@ -247,6 +259,11 @@ const tyreSummary = (
       driftPsi:
         press.length >= 3 && first && last
           ? (W.map((w) => last[w] - first[w]) as Quartet)
+          : null,
+      coldWheels: cold,
+      notWarm:
+        coldC && centreC && cold.length
+          ? `${NOT_WARM}: ${cold.map((w) => `${WHEELS[w]} ${centreC[w].toFixed(0)} °C (soglia ${coldC[w].toFixed(0)} °C)`).join(", ")}`
           : null,
     },
   };
@@ -541,8 +558,13 @@ export const computeSetupLadder = (
   const pressures = ((): LadderStep => {
     const L = "pressioni";
     if (!tyres) return step(4, L, "na", noTemps);
-    const { deltaC, pressureState } = tyres.summary;
-    const off = W.filter((w) => pressureState[w] !== "ok");
+    const { deltaC, pressureState, coldWheels, notWarm } = tyres.summary;
+    const warm = W.filter((w) => !coldWheels.includes(w));
+    if (!warm.length)
+      return step(4, L, "na", `${notWarm} — pressioni non giudicate`);
+    // A wheel out of its window is left out of the judgement, not the step.
+    const skipped = notWarm ? ` (${notWarm}; non giudicate)` : "";
+    const off = warm.filter((w) => pressureState[w] !== "ok");
     // The axle with the largest |Δ| among the out-of-tolerance wheels; a tie
     // goes to the front.
     const axleMax = (ws: number[]): number =>
@@ -562,18 +584,27 @@ export const computeSetupLadder = (
               (w) =>
                 `Δ ${WHEELS[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "alta" ? "abbassare" : "alzare"}`,
             )
-            .join(", ")}`,
+            .join(", ")}${skipped}`,
           wheels.map((w) => ({
             param: `Tyre Pressure ${R3E_WHEELS[w]}`,
             dir: pressureState[w] === "alta" ? "down" : "up",
           })),
         )
-      : step(4, L, "ok", `Δ entro ±${TYRE_BALANCE_TOL_C} °C su tutte le ruote`);
+      : step(
+          4,
+          L,
+          "ok",
+          `Δ entro ±${TYRE_BALANCE_TOL_C} °C su ${notWarm ? warm.map((w) => WHEELS[w]).join(", ") : "tutte le ruote"}${skipped}`,
+        );
   })();
   const camber = ((): LadderStep => {
     const L = "campanatura";
     if (!tyres) return step(5, L, "na", noTemps);
-    const { innerMinusOuterC, pressureState } = tyres.summary;
+    const { innerMinusOuterC, pressureState, coldWheels, notWarm } =
+      tyres.summary;
+    if (coldWheels.length === 4)
+      return step(5, L, "na", `${notWarm} — campanatura non giudicata`);
+    const skipped = notWarm ? ` (${notWarm}; non giudicate)` : "";
     if (!innerMinusOuterC)
       return step(
         5,
@@ -581,7 +612,9 @@ export const computeSetupLadder = (
         "na",
         "in questo simulatore la differenza tra spalla interna ed esterna non segue la campanatura, quindi non la giudica",
       );
-    const okWheels = W.filter((w) => pressureState[w] === "ok");
+    const okWheels = W.filter(
+      (w) => !coldWheels.includes(w) && pressureState[w] === "ok",
+    );
     if (!okWheels.length)
       return step(5, L, "na", "nessuna ruota con pressione a posto");
     const equalOnly = opts.game === "ams2";
@@ -620,7 +653,7 @@ export const computeSetupLadder = (
           5,
           L,
           "fix",
-          `interna−esterna ${off.join(", ")}${equalOnly ? `, temperature uguali: aumentare la campanatura negativa a poco a poco fino a circa ${AMS2_CAMBER_TARGET_C} °C tra spalla interna ed esterna (se frenata o trazione perdono grip, hai esagerato)` : ""}`,
+          `interna−esterna ${off.join(", ")}${equalOnly ? `, temperature uguali: aumentare la campanatura negativa a poco a poco fino a circa ${AMS2_CAMBER_TARGET_C} °C tra spalla interna ed esterna (se frenata o trazione perdono grip, hai esagerato)` : ""}${skipped}`,
           moves,
         )
       : step(
@@ -629,7 +662,7 @@ export const computeSetupLadder = (
           "ok",
           equalOnly
             ? `interna più calda dell'esterna (≥ ${AMS2_CAMBER_EQUAL_C} °C) su ${okWheels.map((w) => WHEELS[w]).join(", ")}`
-            : `interna−esterna tra ${CAMBER_MIN_C} e ${CAMBER_MAX_C} °C su ${okWheels.map((w) => WHEELS[w]).join(", ")}`,
+            : `interna−esterna tra ${CAMBER_MIN_C} e ${CAMBER_MAX_C} °C su ${okWheels.map((w) => WHEELS[w]).join(", ")}${skipped}`,
         );
   })();
 
@@ -739,5 +772,13 @@ export const stintReadyMessage = (
     : area
       ? `Prima correzione: ${area.label}.`
       : "Nessuna correzione da fare.";
-  return `Stint analizzabile: ${counted} giri giudicati. ${verdict} Puoi metterti in pausa ed eseguire l'analisi.`;
+  // Tyres out of their window: all four = nothing judged, else just those wheels.
+  const cold = ladder.tyres.at(-1)?.coldWheels ?? [];
+  const notWarm =
+    cold.length === 4
+      ? " Gomme non in temperatura: pressioni e campanatura non giudicate."
+      : cold.length
+        ? ` Ruote non in temperatura e non giudicate: ${cold.map((w) => WHEEL_LABELS[WHEELS[w] as keyof typeof WHEEL_LABELS]).join(", ")}.`
+        : "";
+  return `Stint analizzabile: ${counted} giri giudicati. ${verdict}${notWarm} Puoi metterti in pausa ed eseguire l'analisi.`;
 };

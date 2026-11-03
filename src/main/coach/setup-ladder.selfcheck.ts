@@ -936,6 +936,76 @@ assert.equal(
   "Stint analizzabile: 2 giri giudicati. Prima correzione: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
 );
 
+// --- Tyres out of the game's window (R3E cold threshold): no verdict on 4-5 ---
+const inWindow = okZone({ tyreColdC: [57, 57, 57, 57] }); // centre 86 °C
+assert.equal(stepOf(L(stint(4, inWindow)), 4).status, "ok");
+assert.equal(L(stint(4, inWindow)).tyres[0].notWarm, null);
+// The R3E Alfa 156 (2026-11-03): the rear wheels below a 57 °C threshold, the
+// front ones settled. The cold wheels are left out, the front ones judged.
+const coldRear = okZone({
+  tyreColdC: [57, 57, 57, 57],
+  avgTyreTempCenterC: [74, 64, 56, 46],
+  avgTyreTempInnerC: [75, 65, 57, 47],
+  avgTyreTempOuterC: [73, 63, 55, 45],
+});
+const notWarm = L(stint(4, coldRear));
+assert.deepEqual(notWarm.tyres[0].coldWheels, [2, 3]);
+const p4 = stepOf(notWarm, 4);
+assert.equal(p4.status, "ok", "the warm front axle is judged");
+assert.ok(p4.reason.includes("su ANT-SX, ANT-DX"), p4.reason);
+assert.ok(p4.reason.includes("POST-SX 56 °C (soglia 57 °C)"), p4.reason);
+assert.ok(p4.reason.includes("POST-DX 46 °C (soglia 57 °C)"), p4.reason);
+assert.ok(p4.reason.includes("non giudicate"), p4.reason);
+assert.equal(stepOf(notWarm, 5).status, "ok");
+assert.ok(stepOf(notWarm, 5).reason.includes("su ANT-SX, ANT-DX"));
+// A cold wheel with a real imbalance is not proposed: only the warm one is.
+const rearOff = L(
+  stint(
+    4,
+    okZone({
+      tyreColdC: [57, 57, 57, 57],
+      avgTyreTempCenterC: [86, 86, 50, 50], // rear Δ would read "bassa"
+      avgTyreTempInnerC: [87, 87, 80, 80],
+      avgTyreTempOuterC: [83, 83, 80, 80],
+    }),
+  ),
+);
+assert.equal(stepOf(rearOff, 4).status, "ok", stepOf(rearOff, 4).reason);
+// All four below the threshold: nothing judged, both steps na.
+const allCold = L(
+  stint(
+    4,
+    okZone({
+      tyreColdC: [57, 57, 57, 57],
+      avgTyreTempCenterC: [50, 50, 50, 50],
+      avgTyreTempInnerC: [51, 51, 51, 51],
+      avgTyreTempOuterC: [49, 49, 49, 49],
+    }),
+  ),
+);
+assert.equal(stepOf(allCold, 4).status, "na");
+assert.equal(stepOf(allCold, 5).status, "na");
+assert.ok(stepOf(allCold, 4).reason.startsWith("gomme non in temperatura:"));
+assert.ok(stepOf(allCold, 5).reason.includes("campanatura non giudicata"));
+// A game without a threshold (no tyreColdC) judges as before.
+assert.equal(L(stint(4, okZone())).tyres[0].notWarm, null);
+// Spoken: which wheels, or all of them.
+const partialCue = stintReadyMessage(notWarm);
+assert.ok(
+  partialCue?.includes(
+    "Ruote non in temperatura e non giudicate: posteriore sinistra, posteriore destra.",
+  ),
+  String(partialCue),
+);
+assert.ok(
+  stintReadyMessage(allCold)?.includes(
+    "Gomme non in temperatura: pressioni e campanatura non giudicate.",
+  ),
+);
+assert.ok(
+  !stintReadyMessage(L(stint(3, okZone())))?.includes("non in temperatura"),
+);
+
 // --- A step to fix without its lever in the loaded setup is skipped ---
 const P = (...names: string[]): SetupParam[] =>
   names.map((parameter) => ({ category: "x", parameter, value: "1" }));

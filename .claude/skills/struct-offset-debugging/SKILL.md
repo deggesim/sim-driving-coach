@@ -7,8 +7,8 @@ description: Runbook for when a sim reader emits zeros, -1, or garbage — R3E, 
 
 If the reader logs all zeros or -1 (`npm run dev` with the sim running — there is no standalone reader script): struct offset mismatch. Check:
 
-1. `VersionMajor` at offset 0 must be `3` (updated to v3.x for R3E)
-2. If version OK but other fields wrong: `PlayerData` inline size differs from installed R3E version. Compare with `R3E.cs` from SecondMonitor connectors
+1. `VersionMajor` at offset 0 must be `3` (updated to v3.x for R3E; the official header is v3.6)
+2. If version OK but other fields wrong: `PlayerData` inline size differs from installed R3E version. Diff `r3e-struct.ts` against the **official** KW Studios header `sample-c/src/r3e.h` (https://github.com/kwstudios-sweden/r3e-api), whose field comments also give units and the `-1 = N/A` convention. `sample-csharp/src/R3E.cs` in the same repo is the C# mapping. Before asserting that R3E exposes (or lacks) a channel, grep the header: e.g. it has **no** air or track temperature (checked 2026-11-03, v3.6)
 3. For ACE: verify `AC_LIVE = 2` in PhysicsEvo status field; if 0, ACE is not running
 4. For AMS2: the `[AMS2] connected: ...` log line must show `mVersion=14`. If `mVersion` is wrong or speed/lapDistance/car/track are zero or garbage, the offsets in `ams2-struct.ts` (`OFF`/`PART`) don't match the installed AMS2 version — compare against `SharedMemory.h` (likely a `PARTICIPANT_SIZE` or struct-padding change), update the offsets, then re-run `npm run selfcheck`
 

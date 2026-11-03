@@ -53,7 +53,44 @@ export const formatChannels = (f: CompactFrame): string =>
   `press=${quartet(f.tp, 1, 1)}PSI temp=${quartet(f.tt, 1, 0)}°C ` +
   `${surface(f)} ` +
   `slip=${quartet(f.sr, 1, 3)} sosp=${quartet(f.sus, 1000, 1)}mm ` +
-  `alt=${quartet(f.rh, 1000, 1)}mm carico=${quartet(f.wl, 1, 0)}N`;
+  `alt=${quartet(f.rh, 1000, 1)}mm carico=${quartet(f.wl, 1, 0)}N ` +
+  `fuel=${scalar(f.fuel, 1)}L aria=${scalar(f.at, 1)}°C asfalto=${scalar(f.rt, 1)}°C`;
+
+// r3e.h: r3e_tire_type / r3e_tire_subtype; -1 = unavailable.
+const TIRE_TYPE: Record<number, string> = { 0: "option", 1: "prime" };
+const TIRE_SUBTYPE: Record<number, string> = {
+  0: "primary",
+  1: "alternate",
+  2: "soft",
+  3: "medium",
+  4: "hard",
+};
+
+export type TyreWindow = {
+  type: [number, number]; // front, rear
+  subtype: [number, number];
+  // Per wheel FL/FR/RL/RR: the game's own optimum / cold / hot thresholds and
+  // the centre-tread temperature now, all °C (r3e.h tire_temp).
+  optimal: number[];
+  cold: number[];
+  hot: number[];
+  centre: number[];
+};
+
+const compound = ([type, sub]: [number, number]): string =>
+  `${TIRE_SUBTYPE[sub] ?? `?${sub}`}/${TIRE_TYPE[type] ?? `?${type}`}`;
+
+/** Pure formatter for the one-off R3E compound line, asserted by the self-check. */
+export const formatTyreWindow = (w: TyreWindow): string => {
+  const wheels = ["FL", "FR", "RL", "RR"].map(
+    (n, i) =>
+      `${n} ott ${w.optimal[i].toFixed(0)} (freddo<${w.cold[i].toFixed(0)} caldo>${w.hot[i].toFixed(0)}) ora ${w.centre[i].toFixed(0)}`,
+  );
+  return (
+    `mescola ant=${compound([w.type[0], w.subtype[0]])} ` +
+    `post=${compound([w.type[1], w.subtype[1]])} finestra °C: ${wheels.join(" | ")}`
+  );
+};
 
 const counters = new Map<string, number>();
 

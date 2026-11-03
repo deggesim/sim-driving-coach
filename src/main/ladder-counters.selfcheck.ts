@@ -128,6 +128,22 @@ const mild = zone0(downshift(Math.round(200 / STEP_MS), -0.08));
 assert.equal(mild.downshifts, 1);
 assert.equal(mild.nervousDownshifts, 0, "-0.08 is above the -0.10 threshold");
 
+// Rear already locked by the brakes when the gear drops: not the downshift's doing.
+const locked = (): CompactFrame[] => {
+  const pre = run(5, { brk: 0.5, gear: 4, sr: [0, 0, -0.3, -0.3] });
+  return [
+    ...pre,
+    ...run(60, { brk: 0.5, gear: 3, sr: [0, 0, -0.3, -0.3] }, pre),
+  ];
+};
+const brakeLock = zone0(locked());
+assert.equal(brakeLock.downshifts, 1);
+assert.equal(
+  brakeLock.nervousDownshifts,
+  0,
+  "rear already below the threshold",
+);
+
 // A downshift with neither brake nor lifted throttle is not counted.
 const pushing = run(5, { thr: 0.9, gear: 4, sr: [0, 0, 0, 0] });
 const pushed = [

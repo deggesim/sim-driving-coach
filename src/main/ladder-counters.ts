@@ -32,14 +32,14 @@ export type LadderCounters = Pick<
   | "kFastSum"
 >;
 
-const HARD_BRAKE = 0.3;
+export const HARD_BRAKE = 0.3;
 // Starting value, to calibrate on a live sim: peak braking slip on many tyre
 // models already sits around -0.08...-0.15, so a tighter lock flags ordinary braking.
-const LOCK_SLIP = -0.25;
+export const LOCK_SLIP = -0.25;
 // Starting value, to calibrate on a live sim (same reason as LOCK_SLIP).
-const NERVOUS_SLIP = -0.1;
-const NERVOUS_WINDOW_MS = 500;
-const LIFTED_THROTTLE = 0.05;
+export const NERVOUS_SLIP = -0.1;
+export const NERVOUS_WINDOW_MS = 500;
+export const LIFTED_THROTTLE = 0.05;
 const EXIT_THROTTLE = 0.5;
 const SPIN_ASYMMETRY = 0.15;
 const STEER_ON = 0.05;
@@ -198,14 +198,17 @@ export const ladderCounters = (
       (f.brk > 0 || f.thr <= LIFTED_THROTTLE)
     ) {
       bump(c, "downshifts");
-      for (let j = i; j < frames.length; j++) {
-        if (frames[j].ts - f.ts > NERVOUS_WINDOW_MS) break;
-        const r = frames[j].sr;
-        if (r && Math.min(r[2], r[3]) < NERVOUS_SLIP) {
-          bump(c, "nervousDownshifts");
-          break;
+      // A rear already below the threshold when the gear drops is slipping from
+      // the brakes (ABS off, locked rear), not from the downshift: not nervous.
+      if (Math.min(sr[2], sr[3]) >= NERVOUS_SLIP)
+        for (let j = i; j < frames.length; j++) {
+          if (frames[j].ts - f.ts > NERVOUS_WINDOW_MS) break;
+          const r = frames[j].sr;
+          if (r && Math.min(r[2], r[3]) < NERVOUS_SLIP) {
+            bump(c, "nervousDownshifts");
+            break;
+          }
         }
-      }
     }
   });
 

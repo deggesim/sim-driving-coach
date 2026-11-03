@@ -15,6 +15,7 @@ import {
 } from "../shared/alert-types.js";
 import type { CompactFrame, LapRecord, ZoneData } from "../shared/types.js";
 import { chassisCounters } from "./chassis-counters.js";
+import { calibrationLines } from "./calibration-log.js";
 import { ladderCounters } from "./ladder-counters.js";
 
 /** Minimal reader interface required by LapRecorder (duck-typed by both R3EReader and AceReader). */
@@ -183,7 +184,7 @@ export const aggregateZones = (
 
     const quartetFrom = (
       frames: CompactFrame[],
-      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto" | "ttcold",
     ): [number, number, number, number] | undefined => {
       const byWheel = [0, 1, 2, 3].map((i) =>
         frames
@@ -195,7 +196,7 @@ export const aggregateZones = (
         : undefined;
     };
     const quartet = (
-      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto",
+      key: "tp" | "sr" | "sus" | "tt" | "tti" | "ttc" | "tto" | "ttcold",
     ): [number, number, number, number] | undefined =>
       quartetFrom(zoneFrames, key);
 
@@ -214,6 +215,7 @@ export const aggregateZones = (
     const avgTyreTempInnerC = quartet("tti");
     const avgTyreTempCenterC = quartet("ttc");
     const avgTyreTempOuterC = quartet("tto");
+    const tyreColdC = quartet("ttcold");
     // Diff diagnostics: same slip-ratio channel, split by drivetrain phase.
     const releaseFrames = zoneFrames.filter((f) => f.thr <= 0.05);
     const avgSlipRatioThrottle = quartetFrom(throttleFrames, "sr");
@@ -279,6 +281,7 @@ export const aggregateZones = (
       ...(avgTyreTempInnerC && { avgTyreTempInnerC }),
       ...(avgTyreTempCenterC && { avgTyreTempCenterC }),
       ...(avgTyreTempOuterC && { avgTyreTempOuterC }),
+      ...(tyreColdC && { tyreColdC }),
       ...(airTempValues.length > 0 && { avgAirTempC: avgArr(airTempValues) }),
       ...(roadTempValues.length > 0 && {
         avgRoadTempC: avgArr(roadTempValues),
@@ -331,6 +334,10 @@ export const createLapRecorder = (hasExistingBaseline = false): LapRecorder => {
       zones,
       recordedAt: new Date().toISOString(),
     };
+
+    if (process.env.SDC_CHANNEL_LOG === "1")
+      for (const line of calibrationLines(lap.frames))
+        console.log(`[calibrazione] giro ${lap.lapNumber} ${line}`);
 
     lapsRecorded++;
     const calibrating = !calibrationDone;
