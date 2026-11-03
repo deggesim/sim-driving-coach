@@ -29,7 +29,7 @@ import {
   RECONNECT_INTERVAL_MS,
 } from "../../shared/alert-types.js";
 import type { R3EFrame, CompactFrame } from "../../shared/types.js";
-import { logChannels } from "../channel-log.js";
+import { formatTyreWindow, logChannels } from "../channel-log.js";
 import { leftRightToInnerOuter, surfaceTemps } from "../tyre-temps.js";
 
 const _require = createRequire(import.meta.url);
@@ -118,6 +118,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
   let currentTrack = "";
   let currentLayout = "";
   let currentLayoutLength = 0;
+  let tyreWindowLogged = false; // one compound line per reader start
 
   const cleanup = (): void => {
     if (kernel32 && viewPtr) kernel32.UnmapViewOfFile(viewPtr);
@@ -457,6 +458,28 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       }
 
       const { ext, ...frame } = parseFrame(buf);
+      if (!tyreWindowLogged && frame.carSpeed > 30) {
+        tyreWindowLogged = true;
+        const w = ["FL", "FR", "RL", "RR"] as const;
+        const per = (k: "Optimal" | "Cold" | "Hot" | "Center"): number[] =>
+          w.map((x) => readFloat(buf, `TireTemp_${x}_${k}`));
+        console.log(
+          `[R3E] ${formatTyreWindow({
+            type: [
+              readInt32(buf, "TireTypeFront"),
+              readInt32(buf, "TireTypeRear"),
+            ],
+            subtype: [
+              readInt32(buf, "TireSubtypeFront"),
+              readInt32(buf, "TireSubtypeRear"),
+            ],
+            optimal: per("Optimal"),
+            cold: per("Cold"),
+            hot: per("Hot"),
+            centre: per("Center"),
+          })}`,
+        );
+      }
       emitter.emit("r3e:frame", frame);
       detectBoundaries(frame, ext);
     } catch {
@@ -664,6 +687,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
   return {
     start: () => {
       stopped = false;
+      tyreWindowLogged = false;
       if (isMock) startMock();
       else tryConnect();
     },

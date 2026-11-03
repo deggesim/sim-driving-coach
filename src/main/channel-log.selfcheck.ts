@@ -6,7 +6,7 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
-import { formatChannels } from "./channel-log.js";
+import { formatChannels, formatTyreWindow } from "./channel-log.js";
 import type { CompactFrame } from "../shared/types.js";
 
 const frame = (over: Partial<CompactFrame> = {}): CompactFrame => ({
@@ -81,6 +81,34 @@ assert.ok(
 );
 assert.ok(bare.includes("carico=assente"), bare);
 assert.ok(bare.includes("fuel=assenteL"), bare);
+assert.ok(bare.includes("aria=assente°C asfalto=assente°C"), bare);
+assert.ok(
+  formatChannels(frame({ at: 21.4, rt: 33.07 })).includes(
+    "aria=21.4°C asfalto=33.1°C",
+  ),
+);
 assert.ok(formatChannels(frame({ fuel: 43.25 })).includes("fuel=43.3L"));
+
+// R3E compound line: names from r3e.h (subtype 4 = hard, type 1 = prime).
+const win = formatTyreWindow({
+  type: [1, 1],
+  subtype: [4, 4],
+  optimal: [90, 90, 88, 88],
+  cold: [75, 75, 73, 73],
+  hot: [105, 105, 103, 103],
+  centre: [68.4, 64.2, 70.1, 65],
+});
+assert.ok(win.includes("ant=hard/prime post=hard/prime"), win);
+assert.ok(win.includes("FL ott 90 (freddo<75 caldo>105) ora 68"), win);
+assert.ok(
+  formatTyreWindow({
+    type: [-1, -1],
+    subtype: [-1, -1],
+    optimal: [0, 0, 0, 0],
+    cold: [0, 0, 0, 0],
+    hot: [0, 0, 0, 0],
+    centre: [0, 0, 0, 0],
+  }).includes("?-1/?-1"),
+);
 
 console.log("channel-log.selfcheck OK");
