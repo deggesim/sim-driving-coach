@@ -94,6 +94,7 @@ export type CompactFrame = {
   tti?: number[]; // tyre surface temp °C, inner shoulder [FL, FR, RL, RR]
   ttc?: number[]; // tyre surface temp °C, centre [FL, FR, RL, RR]
   tto?: number[]; // tyre surface temp °C, outer shoulder [FL, FR, RL, RR]
+  ttcold?: number[]; // the game's own "cold" threshold per wheel °C (R3E `TireTemp_*_Cold`)
   at?: number; // ambient air temperature °C (ACE, AMS2)
   rt?: number; // road/track surface temperature °C (ACE, AMS2)
   rain?: number; // rain density 0-1 (AMS2 only)
@@ -166,6 +167,7 @@ export type ZoneData = {
   avgTyreTempC?: [number, number, number, number]; // °C FL/FR/RL/RR
   avgTyreTempInnerC?: [number, number, number, number]; // surface °C, inner shoulder FL/FR/RL/RR
   avgTyreTempCenterC?: [number, number, number, number]; // surface °C, centre FL/FR/RL/RR
+  tyreColdC?: [number, number, number, number]; // game's "cold" threshold °C per wheel (R3E): below it the tyre is out of its window
   avgTyreTempOuterC?: [number, number, number, number]; // surface °C, outer shoulder FL/FR/RL/RR
   avgAirTempC?: number; // ambient air temp °C, averaged over the zone
   avgRoadTempC?: number; // road/track surface temp °C, averaged over the zone

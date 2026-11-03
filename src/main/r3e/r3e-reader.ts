@@ -80,7 +80,7 @@ type FrameExt = {
   sr: number[];
   sus: number[];
   tt: number[];
-} & Pick<CompactFrame, "tti" | "ttc" | "tto" | "rh" | "wl" | "fuel">;
+} & Pick<CompactFrame, "tti" | "ttc" | "tto" | "ttcold" | "rh" | "wl" | "fuel">;
 
 type ParsedFrame = R3EFrame & { ext: FrameExt };
 
@@ -162,6 +162,10 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
       surface("Left"),
       surface("Right"),
     );
+
+    // The game's own "cold" threshold per wheel (r3e.h tire_temp.cold_temp); a
+    // quartet with any value <= 0 is N/A and left out.
+    const coldTemps = wheels.map((w) => readFloat(buf, `TireTemp_${w}_Cold`));
 
     // TirePressure is kPa with -1 = N/A (r3e.h). Converted to PSI so the `tp`
     // channel carries one unit for all three games; a quartet with any -1 is
@@ -294,6 +298,7 @@ export const createR3EReader = (options: R3EReaderOptions = {}): R3EReader => {
         ...(fuelLeft >= 0 && { fuel: fuelLeft }),
         tt: tyreTemp,
         ...surfaceTemps(innerTemps, surface("Center"), outerTemps),
+        ...(coldTemps.every((v) => v > 0) && { ttcold: coldTemps }),
       },
     };
   };

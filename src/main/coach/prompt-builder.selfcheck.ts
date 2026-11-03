@@ -491,6 +491,8 @@ const ladderFixture: SetupLadder = {
       innerMinusOuterC: [5, 6, 4, 4],
       pressureState: ["alta", "alta", "ok", "ok"],
       driftPsi: null,
+      coldWheels: [],
+      notWarm: null,
     },
   ],
 };

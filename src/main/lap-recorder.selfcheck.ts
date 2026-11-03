@@ -100,6 +100,11 @@ assert.equal(surf[0].avgTyreTempCenterC, undefined);
 assert.equal(surf[0].avgTyreTempOuterC, undefined);
 assert.equal(bare[0].avgTyreTempInnerC, undefined);
 
+// The game's cold threshold (R3E) rides along per zone; absent without the channel.
+const cold = aggregateZones([frame(10, { ttcold: [57, 57, 55, 55] })], 100);
+assert.deepEqual(cold[0].tyreColdC, [57, 57, 55, 55]);
+assert.equal(bare[0].tyreColdC, undefined);
+
 // Ladder counters: hard-brake frames are always on the zone, even at 0.
 const hard = aggregateZones(
   [frame(10, { brk: 0.8, abs: 1 }), frame(60, { brk: 0.1 })],

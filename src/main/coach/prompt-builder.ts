@@ -289,7 +289,9 @@ const ladderLines = (ladder: SetupLadder, game: GameSource): string[] => {
       hot && `press. a caldo ${hot} ${pu.label}`,
       delta && `Δ centro-spalle ${delta} °C`,
       io && `interna-esterna ${io} °C`,
-      `stato ${t.pressureState.join("/")}`,
+      // Out of the tyre's window the state means nothing: say so instead.
+      `stato ${t.pressureState.map((s, w) => (t.coldWheels.includes(w) ? "n.d." : s)).join("/")}`,
+      t.notWarm,
       drift && `deriva ${drift} ${pu.label}`,
     ].filter((b) => b);
     lines.push(
