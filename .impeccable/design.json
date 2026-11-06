@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T00:00:00Z",
+  "title": "Design System: Sim Driving Coach",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Arancio muretto",
+        "canonical": "#e8451a",
+        "tonalRamp": [
+          "#3a1207",
+          "#5e1d0b",
+          "#862a10",
+          "#b53915",
+          "#e8451a",
+          "#ee7550",
+          "#f4a387",
+          "#fad3c3"
+        ]
+      },
+      "info": {
+        "role": "secondary",
+        "displayName": "Blu informativo",
+        "canonical": "#1a8ae8",
+        "tonalRamp": [
+          "#072a47",
+          "#0c3f6d",
+          "#115c9c",
+          "#1673cd",
+          "#1a8ae8",
+          "#58a9ee",
+          "#95c8f4",
+          "#d2e6fa"
+        ]
+      },
+      "surface-base": {
+        "role": "neutral",
+        "displayName": "Asfalto nero",
+        "canonical": "#0f0f0f",
+        "tonalRamp": [
+          "#0f0f0f",
+          "#1a1a1a",
+          "#242424",
+          "#2e2e2e",
+          "#4a4a4a",
+          "#888888",
+          "#c4c4c4",
+          "#e8e8e8"
+        ]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Cordolo scuro",
+        "canonical": "#1a1a1a",
+        "tonalRamp": [
+          "#0f0f0f",
+          "#1a1a1a",
+          "#242424",
+          "#2e2e2e",
+          "#4a4a4a",
+          "#888888",
+          "#c4c4c4",
+          "#e8e8e8"
+        ]
+      },
+      "surface-inset": {
+        "role": "neutral",
+        "displayName": "Gomma grafite",
+        "canonical": "#242424",
+        "tonalRamp": [
+          "#0f0f0f",
+          "#1a1a1a",
+          "#242424",
+          "#2e2e2e",
+          "#4a4a4a",
+          "#888888",
+          "#c4c4c4",
+          "#e8e8e8"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Filo di bordo",
+        "canonical": "#2e2e2e",
+        "tonalRamp": [
+          "#0f0f0f",
+          "#1a1a1a",
+          "#242424",
+          "#2e2e2e",
+          "#4a4a4a",
+          "#888888",
+          "#c4c4c4",
+          "#e8e8e8"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Bianco lavagna",
+        "canonical": "#e8e8e8",
+        "tonalRamp": [
+          "#0f0f0f",
+          "#1a1a1a",
+          "#242424",
+          "#2e2e2e",
+          "#4a4a4a",
+          "#888888",
+          "#c4c4c4",
+          "#e8e8e8"
+        ]
+      },
+      "text-dim": {
+        "role": "neutral",
+        "displayName": "Grigio sbiadito",
+        "canonical": "#888888",
+        "tonalRamp": [
+          "#0f0f0f",
+          "#1a1a1a",
+          "#242424",
+          "#2e2e2e",
+          "#4a4a4a",
+          "#888888",
+          "#c4c4c4",
+          "#e8e8e8"
+        ]
+      },
+      "ok": {
+        "role": "semantic",
+        "displayName": "Verde ok",
+        "canonical": "#2ecc71",
+        "tonalRamp": [
+          "#0b3a20",
+          "#126236",
+          "#1b8f4f",
+          "#25b665",
+          "#2ecc71",
+          "#6bdc9c",
+          "#a5ebc4",
+          "#dcf8e8"
+        ]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "Rosso errore",
+        "canonical": "#e74c3c",
+        "tonalRamp": [
+          "#3d110c",
+          "#661c14",
+          "#962b20",
+          "#c23d2f",
+          "#e74c3c",
+          "#ee7f72",
+          "#f4aea6",
+          "#fadcd9"
+        ]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Giallo avviso",
+        "canonical": "#f1c40f",
+        "tonalRamp": [
+          "#3d3203",
+          "#645206",
+          "#947a09",
+          "#c4a20c",
+          "#f1c40f",
+          "#f5d54f",
+          "#f9e48f",
+          "#fcf3cf"
+        ]
+      },
+      "game-r3e": {
+        "role": "identity",
+        "displayName": "Rosso R3E",
+        "canonical": "#e53935",
+        "tonalRamp": [
+          "#3d0f0e",
+          "#651917",
+          "#952523",
+          "#c43230",
+          "#e53935",
+          "#ec6c69",
+          "#f2a09e",
+          "#f9d3d2"
+        ]
+      },
+      "game-ace": {
+        "role": "identity",
+        "displayName": "Azzurro ACE",
+        "canonical": "#039be5",
+        "tonalRamp": [
+          "#012c41",
+          "#024a6e",
+          "#036c9f",
+          "#0485cc",
+          "#039be5",
+          "#4bb8ee",
+          "#8fd3f5",
+          "#d0ecfa"
+        ]
+      },
+      "game-ams2": {
+        "role": "identity",
+        "displayName": "Giallo AMS2",
+        "canonical": "#f5c518",
+        "tonalRamp": [
+          "#3e3205",
+          "#665209",
+          "#977a0e",
+          "#c9a314",
+          "#f5c518",
+          "#f8d658",
+          "#fbe597",
+          "#fdf4d4"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Corpo",
+        "purpose": "Testo di interfaccia a 14px."
+      },
+      "analysis": {
+        "displayName": "Analisi",
+        "purpose": "Testo markdown delle analisi, line-height 1.7."
+      },
+      "headline": {
+        "displayName": "Titolo di sezione",
+        "purpose": "h2 dell'analisi, arancio con filo inferiore."
+      },
+      "title": {
+        "displayName": "Sottotitolo",
+        "purpose": "h3 dell'analisi, arancio."
+      },
+      "label": {
+        "displayName": "Etichetta",
+        "purpose": "Etichette maiuscole sopra commenti e sezioni."
+      },
+      "mono": { "displayName": "Mono", "purpose": "Codice e valori tecnici." }
+    },
+    "shadows": [
+      {
+        "name": "status-glow",
+        "value": "0 0 4px #2ecc71",
+        "purpose": "Alone del punto 'connesso' nella barra di stato. Unica ombra del sistema."
+      }
+    ],
+    "motion": [
+      {
+        "name": "hover-fast",
+        "value": "0.15s",
+        "purpose": "Colore e sfondo di tab e controlli finestra."
+      },
+      {
+        "name": "expand",
+        "value": "grid-template-rows 0.3s ease",
+        "purpose": "Apertura della telemetria di un giro."
+      },
+      {
+        "name": "mic-pulse",
+        "value": "1s ease-in-out infinite",
+        "purpose": "Microfono in ascolto, scala 1 a 1.2."
+      },
+      {
+        "name": "alert-fade",
+        "value": "opacity 1s",
+        "purpose": "Dissolvenza dell'ultimo allarme nella barra di stato."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Tab",
+      "kind": "nav",
+      "refersTo": "tab-button",
+      "description": "Voce della barra del titolo, attiva con sfondo grafite.",
+      "html": "<button class=\"ds-tab\">Storico</button><button class=\"ds-tab ds-tab-active\">Analisi in tempo reale</button>",
+      "css": ".ds-tab{background:none;border:none;color:#888;cursor:pointer;padding:4px 12px;border-radius:6px;font:14px 'Segoe UI',system-ui,sans-serif;transition:color .15s,background .15s}.ds-tab:hover{color:#e8e8e8;background:#242424}.ds-tab:focus-visible{outline:2px solid #e8451a;outline-offset:2px}.ds-tab-active{color:#e8e8e8;background:#242424}"
+    },
+    {
+      "name": "Badge gioco",
+      "kind": "chip",
+      "refersTo": "game-badge-r3e",
+      "description": "Identifica la sorgente: R3E rosso, ACE azzurro, AMS2 giallo.",
+      "html": "<span class=\"ds-badge ds-badge-r3e\">R3E</span> <span class=\"ds-badge ds-badge-ace\">ACE</span> <span class=\"ds-badge ds-badge-ams2\">AMS2</span>",
+      "css": ".ds-badge{display:inline-block;font:600 12px 'Segoe UI',system-ui,sans-serif;padding:.35em .65em;border-radius:6px;line-height:1}.ds-badge-r3e{background:#e53935;color:#fff}.ds-badge-ace{background:#039be5;color:#fff}.ds-badge-ams2{background:#f5c518;color:#1a1a1a}"
+    },
+    {
+      "name": "Commento analisi",
+      "kind": "card",
+      "refersTo": "analysis-comment",
+      "description": "Commento dell'utente con filetto blu e risposta separata da un filo.",
+      "html": "<div class=\"ds-comment\"><div class=\"ds-comment-label\">Commento</div><div>Frenata troppo lunga alla curva 3</div></div>",
+      "css": ".ds-comment{background:#242424;border:1px solid #2e2e2e;border-left:3px solid #1a8ae8;border-radius:6px;padding:10px 12px;color:#e8e8e8;font:14px 'Segoe UI',system-ui,sans-serif}.ds-comment-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:4px}"
+    },
+    {
+      "name": "Barra di stato",
+      "kind": "custom",
+      "refersTo": "status-bar",
+      "description": "Punto di connessione, auto, circuito e ultimo allarme in giallo.",
+      "html": "<div class=\"ds-status\"><span class=\"ds-dot\"></span><span>BMW M4 GT3</span><span>Nürburgring</span><span class=\"ds-alert\">Frenata tardiva: curva 3</span></div>",
+      "css": ".ds-status{display:flex;align-items:center;gap:16px;height:30px;padding:0 14px;background:#1a1a1a;border-top:1px solid #2e2e2e;color:#888;font:14px 'Segoe UI',system-ui,sans-serif}.ds-dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 4px #2ecc71}.ds-alert{margin-left:auto;color:#f1c40f;font-weight:500}"
+    },
+    {
+      "name": "Titolo analisi",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "h2 e h3 arancio del contenuto delle analisi.",
+      "html": "<h2 class=\"ds-h2\">Analisi sintetica</h2><h3 class=\"ds-h3\">Azioni suggerite</h3>",
+      "css": ".ds-h2{color:#e8451a;font:600 17px 'Segoe UI',system-ui,sans-serif;border-bottom:1px solid #2e2e2e;padding-bottom:4px;margin:0 0 10px}.ds-h3{color:#e8451a;font:600 15px 'Segoe UI',system-ui,sans-serif;margin:16px 0 8px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Il muretto box",
+    "overview": "È la postazione dell'ingegnere di pista, non il cruscotto del pilota. Durante il giro parla solo la voce. Lo schermo si apre dopo, nei box, e deve far leggere in fretta numeri, giri e analisi senza decorazioni. Il sistema è scuro, piatto e utilitario: controlli Bootstrap ridipinti con le variabili di global.css, nessuna espressione per sé stessa.",
+    "keyCharacteristics": [
+      "Solo tema scuro: ogni componente nuovo usa le variabili :root.",
+      "Densità da strumento: testo a 14px, etichette a 11px maiuscole.",
+      "Superfici piatte a strati tonali, senza ombre.",
+      "Un accento, tre colori di gioco, quattro colori di stato."
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "body": "L'arancio marca ciò che è attivo o da leggere per primo. Non si usa per decorare riquadri né per ripetere uno stato.",
+        "section": "colors"
+      },
+      {
+        "name": "The Game Colour Rule",
+        "body": "I colori R3E/ACE/AMS2 identificano la sorgente e compaiono soltanto in .game-badge--*.",
+        "section": "colors"
+      },
+      {
+        "name": "The Heading Ladder Rule",
+        "body": "h2 e h3 dell'analisi sono arancio, h4 e oltre usano il colore del testo. Le due intestazioni radice sono le sole h2.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Layers Rule",
+        "body": "Un livello più in alto vuol dire un grigio più chiaro, non un'ombra. Per separare due superfici si usa un bordo da 1px.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do usare le variabili --bg, --bg2, --bg3, --border, --text, --text-dim, --accent per ogni colore di interfaccia.",
+      "Do aggiungere l'override scuro in global.css per ogni componente Bootstrap nuovo.",
+      "Do distinguere i livelli con un grigio più chiaro e un bordo da 1px.",
+      "Do riservare l'arancio a ciò che è attivo, ai titoli di sezione dell'analisi e al punto di attenzione.",
+      "Do mostrare sempre il dato numerico accanto alla sua etichetta."
+    ],
+    "donts": [
+      "Don't usare componenti Bootstrap chiari senza override scuro.",
+      "Don't aggiungere ombre per dare rilievo.",
+      "Don't usare i colori R3E/ACE/AMS2 fuori dal badge del gioco.",
+      "Don't introdurre un secondo colore enfatico accanto all'arancio.",
+      "Don't nominare nella UI la procedura di messa a punto (scaletta, sequenza, passo N)."
+    ]
+  }
+}
