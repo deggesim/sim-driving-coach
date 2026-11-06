@@ -336,7 +336,7 @@ const LapsTable = ({
                   <td>
                     {l.setup_id != null && setupById.has(l.setup_id) ? (
                       <Badge
-                        bg="info"
+                        bg="secondary"
                         as="button"
                         className="laps-setup-badge"
                         title="Cambia setup"
