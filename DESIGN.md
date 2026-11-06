@@ -13,8 +13,8 @@ colors:
   ok: "#2ecc71"
   danger: "#e74c3c"
   warning: "#f1c40f"
-  game-r3e: "#e53935"
-  game-ace: "#039be5"
+  game-r3e: "#d32f2f"
+  game-ace: "#0277bd"
   game-ams2: "#f5c518"
 typography:
   body:
@@ -40,6 +40,14 @@ typography:
     fontSize: "11px"
     fontWeight: 400
     letterSpacing: "0.5px"
+  small:
+    fontFamily: "Segoe UI, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+  compact:
+    fontFamily: "Segoe UI, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
   mono:
     fontFamily: "Cascadia Code, Consolas, monospace"
     fontSize: "14px"
@@ -134,7 +142,7 @@ Palette quasi monocromatica: tre grigi quasi neri, un testo chiaro con una varia
 - **Verde ok** (#2ecc71) con alone di 4px: punto "connesso".
 - **Rosso errore** (#e74c3c): punto "disconnesso", hover del pulsante di chiusura finestra.
 - **Giallo avviso** (#f1c40f): ultimo allarme nella barra di stato.
-- **Rosso R3E** (#e53935), **azzurro ACE** (#039be5), **giallo AMS2** (#f5c518): solo nel badge del gioco. Testo bianco su rosso e azzurro, scuro sul giallo.
+- **Rosso R3E** (#d32f2f), **azzurro ACE** (#0277bd), **giallo AMS2** (#f5c518): solo nel badge del gioco. Testo bianco su rosso e azzurro, scuro sul giallo.
 
 ### Named Rules
 

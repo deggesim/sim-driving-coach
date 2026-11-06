@@ -461,7 +461,7 @@ body {
 .sh-page-num.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--bg);
   font-weight: 700;
 }
 .sh-page-ellipsis {
@@ -635,7 +635,7 @@ body {
 .ace-setup-picker-modal .list-group-item.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--bg);
 }
 .ace-setup-picker-modal .form-select {
   background-color: var(--bg3) !important;
@@ -820,10 +820,10 @@ body {
   border-color: var(--accent);
 }
 .picker-thumb.already-used {
-  border-color: rgba(230, 126, 34, 0.5);
+  border-color: color-mix(in srgb, var(--yellow) 50%, transparent);
 }
 .picker-thumb.already-used:hover {
-  border-color: rgba(230, 126, 34, 0.85);
+  border-color: color-mix(in srgb, var(--yellow) 85%, transparent);
 }
 .picker-thumb.already-used.selected {
   border-color: var(--accent);
@@ -839,23 +839,23 @@ body {
   top: 4px;
   right: 4px;
   background: var(--accent);
-  color: white;
+  color: var(--bg);
   width: 18px;
   height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 11px;
 }
 .picker-used-badge {
   position: absolute;
   bottom: 22px;
   left: 0;
   right: 0;
-  background: rgba(230, 126, 34, 0.88);
-  color: #fff;
-  font-size: 10px;
+  background: var(--yellow);
+  color: var(--bg);
+  font-size: 11px;
   font-weight: 600;
   padding: 2px 5px;
   text-align: center;
@@ -863,7 +863,7 @@ body {
 }
 .picker-name {
   padding: 3px 5px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
@@ -882,7 +882,7 @@ body {
 }
 .picker-confirm-icon {
   font-size: 32px;
-  color: #e67e22;
+  color: var(--yellow);
   line-height: 1;
 }
 .picker-confirm-title {
@@ -927,7 +927,7 @@ body {
 
 /* Bootstrap Form.Text override — default #6c757d is too dark on dark bg */
 .form-text {
-  color: #aaa !important;
+  color: var(--text-dim) !important;
 }
 .setting-section-label {
   display: block;
@@ -988,11 +988,11 @@ body {
   font-weight: 600;
 }
 .game-badge--r3e {
-  background-color: #e53935 !important; /* rosso, testo chiaro */
+  background-color: #d32f2f !important; /* rosso, testo chiaro */
   color: #fff !important;
 }
 .game-badge--ace {
-  background-color: #039be5 !important; /* azzurro, testo chiaro */
+  background-color: #0277bd !important; /* azzurro, testo chiaro */
   color: #fff !important;
 }
 .game-badge--ams2 {
@@ -1112,7 +1112,7 @@ body {
   transform: rotate(90deg);
 }
 .laps-cell-best {
-  color: #ffc107 !important;
+  color: var(--yellow) !important;
 }
 .laps-cell-dim {
   color: var(--text-dim) !important;
@@ -1217,7 +1217,7 @@ body {
   margin-bottom: 4px;
 }
 .telemetry-tooltip-zone {
-  color: #aaa;
+  color: var(--text-dim);
 }
 
 /* ── Session Analyses section ── */
@@ -1239,4 +1239,24 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #444;
+}
+
+/* ── Accessibility ── */
+/* One visible focus ring for every control, including repainted Bootstrap ones */
+:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-mic-pulse,
+  .voice-cursor {
+    animation: none;
+  }
+  .lap-telemetry-wrapper,
+  .laps-chevron,
+  .tab-btn,
+  .status-alert {
+    transition: none;
+  }
 }
