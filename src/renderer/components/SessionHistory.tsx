@@ -76,7 +76,13 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
   const [filterCar, setFilterCar] = useState("");
   const [filterTrack, setFilterTrack] = useState("");
   const [sort, setSort] = useState<"desc" | "asc">("desc");
-  type DeleteTarget = { type: "single"; session: SessionRow } | { type: "all" };
+  type DeleteTarget =
+    | { type: "single"; session: SessionRow }
+    | { type: "all" }
+    | { type: "selected" };
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const loadSessions = useCallback((): void => {
@@ -167,6 +173,33 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
     );
   }, [gameSessions, filterCar, filterTrack, sort]);
 
+  // Effective selection = selected keys ∩ visible (filtered) sessions, so a
+  // filter change drops hidden ones by itself. Mock sessions are not deletable.
+  const sessionKey = (s: SessionRow): string => `${s.game}-${s.id}`;
+  const selectable = useMemo(
+    () => filtered.filter((s) => s.id >= 0),
+    [filtered],
+  );
+  const selected = useMemo(
+    () => selectable.filter((s) => selectedKeys.has(sessionKey(s))),
+    [selectable, selectedKeys],
+  );
+  const allSelected =
+    selectable.length > 0 && selected.length === selectable.length;
+
+  const toggleOne = (s: SessionRow): void =>
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      const k = sessionKey(s);
+      if (!next.delete(k)) next.add(k);
+      return next;
+    });
+
+  const toggleAll = (): void =>
+    setSelectedKeys(
+      allSelected ? new Set() : new Set(selectable.map(sessionKey)),
+    );
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -191,15 +224,16 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
         prev.filter((s) => !(s.id === session.id && s.game === session.game)),
       );
     } else {
-      const items = filtered
-        .filter((s) => s.id >= 0)
-        .map((s) => ({ id: s.id, game: s.game }));
+      const items = (
+        deleteTarget.type === "selected" ? selected : selectable
+      ).map((s) => ({ id: s.id, game: s.game }));
       await window.electronAPI.sessionDeleteAll(items);
       const keys = new Set(items.map(({ id, game }) => `${game}-${id}`));
       setAllSessions((prev) =>
         prev.filter((s) => !keys.has(`${s.game}-${s.id}`)),
       );
     }
+    setSelectedKeys(new Set());
     setDeleteTarget(null);
   };
 
@@ -281,10 +315,16 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
             variant="danger"
             size="sm"
             className="sh-filter-select"
-            onClick={() => setDeleteTarget({ type: "all" })}
+            onClick={() =>
+              setDeleteTarget({
+                type: selected.length > 0 ? "selected" : "all",
+              })
+            }
           >
             <FontAwesomeIcon icon={faTrash} className="me-1" />
-            Elimina tutti
+            {selected.length > 0
+              ? `Elimina selezionati (${selected.length})`
+              : "Elimina tutti"}
           </Button>
         )}
       </div>
@@ -298,6 +338,14 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
           <table className="sh-table w-100">
             <thead>
               <tr>
+                <th>
+                  <Form.Check
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    disabled={selectable.length === 0}
+                    aria-label="Seleziona tutte le sessioni visibili"
+                  />
+                </th>
                 <th>Sim</th>
                 <th>Auto</th>
                 <th>Circuito</th>
@@ -315,6 +363,15 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
                   className="sh-row"
                   onClick={() => handleRowClick(s)}
                 >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {s.id >= 0 && (
+                      <Form.Check
+                        checked={selectedKeys.has(sessionKey(s))}
+                        onChange={() => toggleOne(s)}
+                        aria-label="Seleziona sessione"
+                      />
+                    )}
+                  </td>
                   <td>
                     <GameBadge game={s.game} style={{ fontSize: 12 }} />
                     {s.id < 0 && (
@@ -466,10 +523,17 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
               <br />
               <span className="text-danger">L'operazione è irreversibile.</span>
             </p>
+          ) : deleteTarget?.type === "selected" ? (
+            <p className="mb-0">
+              Stai per eliminare{" "}
+              <strong>{selected.length} sessioni selezionate</strong>.
+              <br />
+              <span className="text-danger">L'operazione è irreversibile.</span>
+            </p>
           ) : (
             <p className="mb-0">
               Stai per eliminare{" "}
-              <strong>tutte le {filtered.length} sessioni</strong> della
+              <strong>tutte le {selectable.length} sessioni</strong> della
               selezione corrente.
               <br />
               <span className="text-danger">L'operazione è irreversibile.</span>
