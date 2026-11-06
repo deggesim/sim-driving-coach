@@ -33,6 +33,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         <Button
           variant="link"
           className={`tab-btn ${tab === "current-session" ? "active" : ""}`}
+          aria-current={tab === "current-session" ? "page" : undefined}
           onClick={() => onTabChange("current-session")}
         >
           Analisi in tempo reale
@@ -40,6 +41,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         <Button
           variant="link"
           className={`tab-btn ${tab === "session-list" ? "active" : ""}`}
+          aria-current={tab === "session-list" ? "page" : undefined}
           onClick={() => onTabChange("session-list")}
         >
           Elenco sessioni
@@ -47,6 +49,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         <Button
           variant="link"
           className={`tab-btn ${tab === "settings" ? "active" : ""}`}
+          aria-current={tab === "settings" ? "page" : undefined}
           onClick={() => onTabChange("settings")}
         >
           Impostazioni
@@ -58,6 +61,8 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           className={`tts-toggle ${ttsEnabled ? "on" : "off"}`}
           onClick={() => setTtsEnabled(!ttsEnabled)}
           title={ttsEnabled ? "Voce attiva" : "Voce disattiva"}
+          aria-label="Voce del coach"
+          aria-pressed={ttsEnabled}
         >
           {ttsEnabled ? (
             <FontAwesomeIcon icon={faMicrophone} />

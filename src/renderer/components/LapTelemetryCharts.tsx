@@ -354,7 +354,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
             <YAxis domain={[0, 100]} unit="%" {...axisProps} />
             <Tooltip
               content={<PedalsTooltip />}
-              cursor={{ stroke: "#555", strokeDasharray: "3 3" }}
+              cursor={{ stroke: "var(--text-dim)", strokeDasharray: "3 3" }}
             />
             <Legend
               wrapperStyle={{ fontSize: 12, color: "#e8e8e8" }}
@@ -369,8 +369,8 @@ const LapTelemetryCharts = ({ lap }: Props) => {
                 label={{
                   value: `Z${d / ZONE_SIZE_M}`,
                   position: "top",
-                  fontSize: 9,
-                  fill: "#555",
+                  fontSize: 11,
+                  fill: "var(--text-dim)",
                 }}
               />
             ))}
@@ -418,7 +418,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
             <YAxis domain={[0, "dataMax + 20"]} unit=" km/h" {...axisProps} />
             <Tooltip
               content={<SpeedTooltip />}
-              cursor={{ stroke: "#555", strokeDasharray: "3 3" }}
+              cursor={{ stroke: "var(--text-dim)", strokeDasharray: "3 3" }}
             />
             {zoneRefLines.map((d) => (
               <ReferenceLine

@@ -241,6 +241,14 @@ const LapsTable = ({
               <Fragment key={l.id}>
                 <tr
                   onClick={() => toggle(l.id, l.valid)}
+                  tabIndex={clickable ? 0 : undefined}
+                  aria-expanded={clickable ? expanded : undefined}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key !== "Enter" && e.key !== " ") return;
+                    e.preventDefault();
+                    toggle(l.id, l.valid);
+                  }}
                   className={[
                     clickable ? "laps-row-clickable" : "",
                     expanded ? "laps-row-expanded" : "",
