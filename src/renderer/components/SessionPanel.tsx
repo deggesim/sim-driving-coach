@@ -11,18 +11,26 @@ import AnalysisHeader from "./AnalysisHeader";
 import AnalysisList from "./AnalysisList";
 import { GamePickerModal } from "./GamePickerModal";
 import LapsTable from "./LapsTable";
+import { ReadinessList } from "./ReadinessList";
 import R3eSetupPicker from "./R3eSetupPicker";
 import { SetupEditorModal } from "./SetupEditorModal";
 import SetupSelectionModal from "./SetupSelectionModal";
 
 type Props = {
   mode: "live" | "historical";
-  onSessionClosed?: () => void;
+  onSessionClosed?: (closed: { id: number; game: GameSource }) => void;
   onBack?: () => void;
   onReopened?: () => void;
+  onOpenSettings?: () => void;
 };
 
-const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
+const SessionPanel = ({
+  mode,
+  onSessionClosed,
+  onBack,
+  onReopened,
+  onOpenSettings,
+}: Props) => {
   const status = useIPCStore((s) => s.status);
   const session = useSessionStore((s) => s.session);
   const analyses = useSessionStore((s) => s.analyses);
@@ -89,8 +97,10 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
   };
 
   const handleEnd = async (): Promise<void> => {
+    if (!session) return;
+    const closed = { id: session.id, game: session.game };
     await window.electronAPI.sessionEnd();
-    onSessionClosed?.();
+    onSessionClosed?.(closed);
   };
 
   const handleReopen = async (): Promise<void> => {
@@ -168,6 +178,10 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         </Toast>
       </ToastContainer>
 
+      {isLive && !session && onOpenSettings && (
+        <ReadinessList onOpenSettings={onOpenSettings} />
+      )}
+
       <div
         className="flex-grow-1 overflow-hidden p-3 d-flex flex-column"
         style={{ minHeight: 0 }}
@@ -187,7 +201,11 @@ const SessionPanel = ({ mode, onSessionClosed, onBack, onReopened }: Props) => {
         <div className="flex-grow-1 d-flex flex-column overflow-hidden mt-3 session-analyses-section">
           <h6 className="text-uppercase flex-shrink-0">Analisi</h6>
           {analyses.length === 0 && !workingVersion && (
-            <p>Nessuna analisi ancora generata.</p>
+            <p className="text-secondary">
+              Nessuna analisi. «Esegui analisi» chiama l&apos;API Claude e
+              genera la sintesi del debriefing
+              {isLive ? "; serve almeno un giro registrato." : "."}
+            </p>
           )}
           <AnalysisList workingVersion={workingVersion} startClosed={!isLive} />
         </div>

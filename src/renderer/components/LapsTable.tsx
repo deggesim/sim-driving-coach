@@ -37,6 +37,13 @@ const buildPageWindow = (current: number, total: number): (number | "…")[] => 
 
 const PAGE_SIZE = 5;
 
+// Renderer-side cell text: drops the "s" suffix and unifies the placeholder so
+// "m:ss.mmm" and "ss.mmm" end on the same decimal column (right-aligned mono).
+const lapTimeText = (seconds: number | null): string => {
+  const t = formatLapTime(seconds);
+  return t === "--:--" ? "—" : t.replace(/s$/, "");
+};
+
 type LapsTableProps = {
   setupById: Map<number, SessionSetupRow>;
   live?: boolean;
@@ -55,6 +62,7 @@ const LapsTable = ({
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hideInvalid, setHideInvalid] = useState(true);
   const [trackedLapCount, setTrackedLapCount] = useState(0);
@@ -136,14 +144,21 @@ const LapsTable = ({
   const handleDeleteClick = (e: React.MouseEvent, lapId: number) => {
     e.stopPropagation();
     setConfirmDeleteId(lapId);
+    setDeleteError(null);
     setShowDeleteModal(true);
     setExpandedId(null);
   };
 
   const handleDeleteConfirm = async () => {
     if (confirmDeleteId === null) return;
+    try {
+      await deleteLap(confirmDeleteId);
+    } catch (err) {
+      console.error("[LapsTable] deleteLap failed:", err);
+      setDeleteError("Impossibile eliminare il giro. Riprova.");
+      return;
+    }
     setShowDeleteModal(false);
-    await deleteLap(confirmDeleteId);
     setConfirmDeleteId(null);
   };
 
@@ -209,14 +224,15 @@ const LapsTable = ({
                 }}
                 onChange={toggleAll}
                 title="Seleziona tutti i giri visibili"
+                aria-label="Seleziona tutti i giri"
               />
             </th>
             <th className="col-icon"></th>
             <th>#</th>
-            <th>Tempo</th>
-            <th>S1</th>
-            <th>S2</th>
-            <th>S3</th>
+            <th className="laps-time">Tempo</th>
+            <th className="laps-time">S1</th>
+            <th className="laps-time">S2</th>
+            <th className="laps-time">S3</th>
             <th>Valido</th>
             <th>Setup</th>
             <th>Data</th>
@@ -227,7 +243,16 @@ const LapsTable = ({
           {laps.length === 0 && (
             <tr>
               <td colSpan={11} className="text-center text-muted">
-                Nessun giro
+                {live
+                  ? "Nessun giro. Compaiono qui a ogni passaggio sul traguardo."
+                  : "Nessun giro registrato in questa sessione."}
+              </td>
+            </tr>
+          )}
+          {laps.length > 0 && visibleLaps.length === 0 && (
+            <tr>
+              <td colSpan={11} className="text-center text-muted">
+                Tutti i giri sono non validi: mostrali con «Mostra non validi».
               </td>
             </tr>
           )}
@@ -266,6 +291,7 @@ const LapsTable = ({
                       checked={selected.has(l.id)}
                       onChange={() => toggleSelected(l.id)}
                       title="Seleziona giro"
+                      aria-label={`Seleziona giro ${l.lap_number}`}
                     />
                   </td>
                   <td className={iconCellClass}>
@@ -276,16 +302,23 @@ const LapsTable = ({
                       />
                     )}
                   </td>
-                  <td className={dataCellClass}>{l.lap_number}</td>
-                  <td className={dataCellClass}>{formatLapTime(l.lap_time)}</td>
                   <td className={dataCellClass}>
-                    {l.sector1 != null ? formatLapTime(l.sector1) : "--"}
+                    {l.lap_number}
+                    {isBest && (
+                      <span className="visually-hidden"> (miglior giro)</span>
+                    )}
                   </td>
-                  <td className={dataCellClass}>
-                    {l.sector2 != null ? formatLapTime(l.sector2) : "--"}
+                  <td className={`laps-time ${dataCellClass}`}>
+                    {lapTimeText(l.lap_time)}
                   </td>
-                  <td className={dataCellClass}>
-                    {l.sector3 != null ? formatLapTime(l.sector3) : "--"}
+                  <td className={`laps-time ${dataCellClass}`}>
+                    {lapTimeText(l.sector1)}
+                  </td>
+                  <td className={`laps-time ${dataCellClass}`}>
+                    {lapTimeText(l.sector2)}
+                  </td>
+                  <td className={`laps-time ${dataCellClass}`}>
+                    {lapTimeText(l.sector3)}
                   </td>
                   <td>
                     {l.valid ? (
@@ -296,6 +329,9 @@ const LapsTable = ({
                     ) : (
                       <FontAwesomeIcon icon={faXmark} className="text-danger" />
                     )}
+                    <span className="visually-hidden">
+                      {l.valid ? "Giro valido" : "Giro non valido"}
+                    </span>
                   </td>
                   <td>
                     {l.setup_id != null && setupById.has(l.setup_id) ? (
@@ -304,6 +340,7 @@ const LapsTable = ({
                         as="button"
                         className="laps-setup-badge"
                         title="Cambia setup"
+                        aria-label={`Cambia setup: ${setupById.get(l.setup_id)!.setup.name ?? `#${l.setup_id}`}`}
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           onPickSetup?.(l);
@@ -317,7 +354,8 @@ const LapsTable = ({
                         variant="link"
                         size="sm"
                         className="text-muted p-0 laps-setup-edit-btn"
-                        title="Assegna setup"
+                        title="Modifica setup del giro"
+                        aria-label="Modifica setup del giro"
                         onClick={(e) => {
                           e.stopPropagation();
                           onPickSetup?.(l);
@@ -342,6 +380,7 @@ const LapsTable = ({
                       size="sm"
                       className="text-danger"
                       title="Elimina giro"
+                      aria-label={`Elimina giro ${l.lap_number}`}
                       onClick={(e) => handleDeleteClick(e, l.id)}
                     >
                       <FontAwesomeIcon icon={faTrash} />
@@ -392,6 +431,11 @@ const LapsTable = ({
             <br />
             <span className="text-danger">L'operazione è irreversibile.</span>
           </p>
+          {deleteError && (
+            <p className="text-danger mt-2 mb-0" role="alert">
+              {deleteError}
+            </p>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" size="sm" onClick={handleDeleteCancel}>

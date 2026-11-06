@@ -13,6 +13,7 @@ docs/
 
 # Claude files
 .claude/
+.impeccable/
 CLAUDE.md
 
 # Subagent-driven-development scratch (git-ignored, tool-generated)

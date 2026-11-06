@@ -13,7 +13,7 @@
   --bg3: #242424;
   --border: #2e2e2e;
   --text: #e8e8e8;
-  --text-dim: #888;
+  --text-dim: #8c8c8c;
   --accent: #e8451a; /* R3E orange */
   --accent2: #1a8ae8; /* blue for info */
   --green: #2ecc71;
@@ -43,6 +43,111 @@ body {
 /* ── Bootstrap overrides for dark theme ── */
 .text-muted {
   color: var(--text-dim) !important;
+}
+
+/* ── Buttons ──
+   Repainted through Bootstrap's --bs-btn-* variables. Declared before the custom
+   button classes (.tab-btn, .picker-close, ...) so those win on equal specificity.
+   primary = the one accent, dark text (white on #e8451a is only 3.96:1);
+   secondary = flat grey; danger = destructive actions only; no shadows. */
+.btn {
+  --bs-btn-focus-box-shadow: none;
+  --bs-btn-box-shadow: none;
+  --bs-btn-active-shadow: none;
+}
+.btn-primary {
+  --bs-btn-color: var(--bg);
+  --bs-btn-bg: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-color: var(--bg);
+  --bs-btn-hover-bg: #ef5a2f;
+  --bs-btn-hover-border-color: #ef5a2f;
+  --bs-btn-active-color: var(--bg);
+  --bs-btn-active-bg: #f26b42;
+  --bs-btn-active-border-color: #f26b42;
+  --bs-btn-disabled-color: var(--bg);
+  --bs-btn-disabled-bg: var(--accent);
+  --bs-btn-disabled-border-color: var(--accent);
+  --bs-btn-disabled-opacity: 0.45;
+}
+.btn-secondary {
+  --bs-btn-color: var(--text);
+  --bs-btn-bg: var(--bg3);
+  --bs-btn-border-color: var(--border);
+  --bs-btn-hover-color: var(--text);
+  --bs-btn-hover-bg: #333;
+  --bs-btn-hover-border-color: #444;
+  --bs-btn-active-color: var(--text);
+  --bs-btn-active-bg: #3a3a3a;
+  --bs-btn-active-border-color: #444;
+  --bs-btn-disabled-color: var(--text);
+  --bs-btn-disabled-bg: var(--bg3);
+  --bs-btn-disabled-border-color: var(--border);
+  --bs-btn-disabled-opacity: 0.45;
+}
+.btn-danger {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #c0392b;
+  --bs-btn-border-color: #c0392b;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #a93226;
+  --bs-btn-hover-border-color: #a93226;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #922b21;
+  --bs-btn-active-border-color: #922b21;
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: #c0392b;
+  --bs-btn-disabled-border-color: #c0392b;
+  --bs-btn-disabled-opacity: 0.45;
+}
+.btn-outline-danger {
+  --bs-btn-color: var(--red);
+  --bs-btn-border-color: var(--red);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #c0392b;
+  --bs-btn-hover-border-color: #c0392b;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #a93226;
+  --bs-btn-active-border-color: #a93226;
+  --bs-btn-disabled-color: var(--red);
+  --bs-btn-disabled-border-color: var(--red);
+  --bs-btn-disabled-opacity: 0.45;
+}
+.btn-outline-light {
+  --bs-btn-color: var(--text);
+  --bs-btn-border-color: var(--border);
+  --bs-btn-hover-color: var(--text);
+  --bs-btn-hover-bg: #333;
+  --bs-btn-hover-border-color: #444;
+  --bs-btn-active-color: var(--text);
+  --bs-btn-active-bg: #3a3a3a;
+  --bs-btn-active-border-color: #444;
+  --bs-btn-disabled-color: var(--text-dim);
+  --bs-btn-disabled-border-color: var(--border);
+}
+.btn-link {
+  --bs-btn-color: var(--text-dim);
+  --bs-btn-hover-color: var(--text);
+  --bs-btn-active-color: var(--text);
+  --bs-btn-disabled-color: var(--text-dim);
+}
+
+/* The only blue is --accent2 (comment rule); links and nav carry no Bootstrap blue */
+:root {
+  --bs-link-color: var(--text);
+  --bs-link-hover-color: var(--accent);
+  --bs-link-color-rgb: 232, 232, 232;
+  --bs-link-hover-color-rgb: 232, 69, 26;
+  --bs-focus-ring-color: rgba(232, 69, 26, 0.35);
+}
+.nav-link,
+.page-link {
+  --bs-nav-link-color: var(--text-dim);
+  --bs-nav-link-hover-color: var(--text);
+  --bs-pagination-color: var(--text-dim);
+  --bs-pagination-hover-color: var(--text);
+  --bs-pagination-active-bg: var(--accent);
+  --bs-pagination-active-border-color: var(--accent);
 }
 
 /* ── App layout ── */
@@ -90,7 +195,8 @@ body {
   cursor: pointer;
   padding: 4px 12px;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   text-decoration: none;
   transition:
     color 0.15s,
@@ -104,6 +210,7 @@ body {
 .tab-btn.active {
   color: var(--text);
   background: var(--bg3);
+  font-weight: 600;
 }
 .title-bar-tts {
   margin-left: auto;
@@ -113,7 +220,7 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
   padding: 2px 6px;
   border-radius: 4px;
   text-decoration: none;
@@ -166,6 +273,101 @@ body {
   padding: 10px 16px;
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
+}
+.deb-top,
+.deb-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.deb-bottom {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.deb-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+.deb-actions,
+.deb-actions-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.deb-actions {
+  margin-left: auto;
+  gap: 8px;
+}
+.deb-actions-secondary {
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+.deb-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 0;
+}
+.deb-metric dt {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.deb-metric dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.deb-metric dd.deb-time {
+  font-family: var(--font-mono);
+}
+.deb-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.deb-flags .form-check {
+  color: var(--text-dim);
+  margin-bottom: 0;
+}
+.deb-hint {
+  display: block;
+  max-width: 280px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.readiness-list {
+  flex-shrink: 0;
+  margin: 12px 16px 0;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.readiness-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+.readiness-item span {
+  color: var(--text-dim);
+}
+.readiness-item strong {
+  color: var(--text);
+  font-weight: 600;
 }
 .deb-car {
   color: var(--accent);
@@ -392,6 +594,7 @@ body {
   opacity: 0.5;
 }
 .sh-laptime {
+  font-family: var(--font-mono);
   font-weight: 600;
 }
 .sh-date {
@@ -563,6 +766,7 @@ body {
   border-color: var(--border);
 }
 .setup-editor-row .form-control {
+  font-variant-numeric: tabular-nums;
   width: 220px;
   flex: none;
   text-align: right;
@@ -967,7 +1171,8 @@ body {
   background: var(--bg2);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-  font-size: 14px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
   color: var(--text-dim);
 }
 .status-badge {
@@ -1112,6 +1317,7 @@ body {
   transform: rotate(90deg);
 }
 .laps-cell-best {
+  font-weight: 600; /* non-colour cue for the best lap */
   color: var(--yellow) !important;
 }
 .laps-cell-dim {
@@ -1140,7 +1346,21 @@ body {
   background: var(--bg2);
 }
 .laps-modal-title {
-  font-size: 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.laps-table .laps-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.laps-table td:not(.laps-time),
+.laps-table th:not(.laps-time) {
+  font-variant-numeric: tabular-nums;
+}
+.recharts-cartesian-axis-tick-value {
+  font-variant-numeric: tabular-nums;
 }
 .laps-page-count {
   font-size: 12px;
@@ -1205,6 +1425,7 @@ body {
   display: block;
 }
 .telemetry-tooltip {
+  font-variant-numeric: tabular-nums;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 4px;

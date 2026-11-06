@@ -84,8 +84,14 @@ export const SetupEditorModal = ({
             · {base.name ?? base.carFound}
           </span>
         </Modal.Title>
-        <Button variant="link" className="picker-close" onClick={onClose}>
-          <FontAwesomeIcon icon={faXmark} />
+        <Button
+          variant="link"
+          className="picker-close"
+          title="Chiudi"
+          aria-label="Chiudi"
+          onClick={onClose}
+        >
+          <FontAwesomeIcon icon={faXmark} aria-hidden />
         </Button>
       </Modal.Header>
 
@@ -140,7 +146,7 @@ export const SetupEditorModal = ({
           Annulla
         </Button>
         <Button
-          variant="danger"
+          variant="primary"
           size="sm"
           disabled={!name.trim() || duplicate}
           onClick={handleConfirm}

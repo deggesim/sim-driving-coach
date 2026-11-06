@@ -16,7 +16,7 @@ import VoiceCoachOverlay from "./components/VoiceCoachOverlay";
 import { useIPC } from "./hooks/useIPC";
 import { useVoiceCoach } from "./hooks/useVoiceCoach";
 import { useIPCStore } from "./store/ipcStore";
-import { subscribeSessionIPC } from "./store/sessionStore";
+import { subscribeSessionIPC, useSessionStore } from "./store/sessionStore";
 import { useSettingsStore } from "./store/settingsStore";
 import { settingsLoaderPromise } from "./loaders/settingsLoader";
 
@@ -50,11 +50,20 @@ const App = () => {
   } = useSettingsStore();
 
   const [tab, setTab] = useState<Tab>("current-session");
-  const [appError, setAppError] = useState<string | null>(null);
+  // Set when the user closes a session from the button: the history opens on it.
+  const [openClosed, setOpenClosed] = useState(false);
+  const loadSessionById = useSessionStore((s) => s.loadById);
+  const changeTab = (next: Tab) => {
+    setOpenClosed(false);
+    setTab(next);
+  };
+  // Shared by main-process errors and renderer failures (`setAppError`).
+  const appError = useIPCStore((s) => s.appError);
+  const setAppError = useIPCStore((s) => s.setAppError);
 
   useEffect(() => {
     return window.electronAPI.onAppError(({ message }) => setAppError(message));
-  }, []);
+  }, [setAppError]);
 
   // Voice coach hook
   const {
@@ -85,13 +94,13 @@ const App = () => {
       />
 
       {/* Title bar (frameless Electron drag area) */}
-      <TitleBar tab={tab} onTabChange={setTab} />
+      <TitleBar tab={tab} onTabChange={changeTab} />
 
-      {/* Global error toast - credit/quota errors from Azure TTS or Claude API */}
+      {/* Global error toast - main-process errors (Azure TTS/Claude quota) and renderer failures; above modals (z-index 1055) */}
       <ToastContainer
         position="top-end"
         className="p-3"
-        style={{ position: "fixed", zIndex: 1050 }}
+        style={{ position: "fixed", zIndex: 1100 }}
       >
         <Toast show={!!appError} onClose={() => setAppError(null)} bg="danger">
           <Toast.Header
@@ -115,11 +124,21 @@ const App = () => {
               </div>
             }
           >
-            <RealtimeAnalysis onSessionClosed={() => setTab("session-list")} />
+            <RealtimeAnalysis
+              onSessionClosed={({ id, game }) => {
+                void loadSessionById(id, game);
+                setOpenClosed(true);
+                setTab("session-list");
+              }}
+              onOpenSettings={() => changeTab("settings")}
+            />
           </Suspense>
         )}
         {tab === "session-list" && (
-          <SessionHistory onSwitchToLive={() => setTab("current-session")} />
+          <SessionHistory
+            startInDetail={openClosed}
+            onSwitchToLive={() => changeTab("current-session")}
+          />
         )}
         {tab === "settings" && <SettingsPanel />}
       </div>

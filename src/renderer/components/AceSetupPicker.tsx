@@ -225,7 +225,7 @@ const AceSetupPicker = ({
 
       <Modal.Body>
         {error && (
-          <div className="text-danger mb-3">
+          <div className="text-danger mb-3" role="alert">
             <FontAwesomeIcon icon={faXmark} className="me-1" />
             {error}
           </div>
@@ -300,6 +300,13 @@ const AceSetupPicker = ({
             ) : null}
           </div>
         </div>
+
+        {!loadingCars && !error && cars.length === 0 && (
+          <p className="text-secondary">
+            Nessuna vettura con setup salvati. Salva un setup in gioco, oppure
+            controlla la cartella in Impostazioni.
+          </p>
+        )}
 
         {/* File list */}
         {loadingFiles && (

@@ -71,7 +71,10 @@ export const SetupDetailModal = ({
             <R3eSetupTabs params={row.setup.params} />
           )
         ) : (
-          <p className="text-muted mb-0">Nessun parametro disponibile.</p>
+          <p className="text-muted mb-0">
+            Nessun parametro in questo setup: la lettura non ne ha estratti.
+            Eliminalo e acquisiscilo di nuovo.
+          </p>
         )}
       </Modal.Body>
       {(onUse || onDuplicate || onEdit) && (

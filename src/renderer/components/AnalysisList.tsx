@@ -52,9 +52,10 @@ const AnalysisAccordionHeader = ({
         size="sm"
         className="p-0 px-3 rounded-0"
         title="Elimina analisi"
+        aria-label="Elimina analisi"
         onClick={onDelete}
       >
-        <FontAwesomeIcon icon={faTrash} />
+        <FontAwesomeIcon icon={faTrash} aria-hidden />
       </Button>
       <button
         type="button"
@@ -90,7 +91,10 @@ const ExpandButton = ({
     >
       Mostra analisi approfondita
     </Button>
-    {blocked && <div className="analysis-detail-blocked mt-1">{blocked}</div>}
+    <div className="analysis-detail-blocked mt-1">
+      {blocked ??
+        "Chiama l'API Claude: aggiunge l'analisi approfondita a questa versione."}
+    </div>
   </>
 );
 
