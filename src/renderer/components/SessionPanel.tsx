@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Toast, ToastContainer } from "react-bootstrap";
+import { Button, Modal, Toast, ToastContainer } from "react-bootstrap";
 import type { GameSource, SessionStartResult } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
@@ -121,7 +121,12 @@ const SessionPanel = ({
     onReopened?.();
   };
 
+  const [confirmAnalyze, setConfirmAnalyze] = useState(false);
+
+  // Only the button asks for confirmation: the voice command runs in main and
+  // calls the analysis directly, never through this handler.
   const handleAnalyze = async (): Promise<void> => {
+    setConfirmAnalyze(false);
     if (!session) return;
     const res = await window.electronAPI.sessionAnalyze(
       mode === "historical"
@@ -150,7 +155,7 @@ const SessionPanel = ({
         currentTrack={currentTrack}
         onStart={isLive ? handleStart : () => {}}
         onEnd={isLive ? handleEnd : () => {}}
-        onAnalyze={handleAnalyze}
+        onAnalyze={() => setConfirmAnalyze(true)}
         onExportPdf={handleExportPdf}
         onOpenPicker={() => setShowSetupSelection(true)}
         onBack={!isLive ? onBack : undefined}
@@ -321,6 +326,28 @@ const SessionPanel = ({
           }}
         />
       )}
+
+      <Modal
+        show={confirmAnalyze}
+        onHide={() => setConfirmAnalyze(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Esegui analisi</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Vuoi avviare l&apos;analisi della sessione? Chiama l&apos;API Claude e
+          genera un nuovo debriefing.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setConfirmAnalyze(false)}>
+            Annulla
+          </Button>
+          <Button variant="primary" onClick={() => void handleAnalyze()}>
+            Esegui analisi
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {isLive && (
         <GamePickerModal
