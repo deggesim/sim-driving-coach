@@ -25,6 +25,7 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
           size="sm"
           className="text-muted p-0"
           title="Rinomina setup"
+          aria-label="Rinomina setup"
           onClick={(e) => {
             e.stopPropagation();
             setDraft(name);
@@ -67,6 +68,7 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
         variant="primary"
         disabled={invalid}
         title={invalid && trimmed ? "Nome già in uso" : "Salva"}
+        aria-label="Salva nome"
         onClick={save}
       >
         <FontAwesomeIcon icon={faCheck} />
@@ -75,6 +77,7 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
         size="sm"
         variant="secondary"
         title="Annulla"
+        aria-label="Annulla rinomina"
         onClick={() => setDraft(null)}
       >
         <FontAwesomeIcon icon={faXmark} />

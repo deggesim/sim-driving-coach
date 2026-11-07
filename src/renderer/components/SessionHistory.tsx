@@ -60,14 +60,18 @@ const formatDate = (iso: string | null | undefined): string => {
 
 type Props = {
   onSwitchToLive?: () => void;
+  // Mount straight on the detail of the session already loaded in the store.
+  startInDetail?: boolean;
 };
 
-const SessionHistory = ({ onSwitchToLive }: Props) => {
+const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
   const loadById = useSessionStore((s) => s.loadById);
   const setDetail = useSessionStore((s) => s.setDetail);
   const mockHistoryMode = useSettingsStore((s) => s.mockHistoryMode);
 
-  const [view, setView] = useState<"list" | "detail">("list");
+  const [view, setView] = useState<"list" | "detail">(
+    startInDetail ? "detail" : "list",
+  );
 
   const [allSessions, setAllSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -332,7 +336,9 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
       <div className="overflow-y-auto flex-grow-1 px-3">
         {!loading && filtered.length === 0 ? (
           <p className="text-secondary py-2 mb-0">
-            Nessuna sessione registrata.
+            {allSessions.length === 0
+              ? "Nessuna sessione registrata. Compaiono qui dopo la prima sessione chiusa."
+              : "Nessuna sessione corrisponde ai filtri: cambia gioco, auto o circuito."}
           </p>
         ) : (
           <table className="sh-table w-100">
@@ -417,7 +423,7 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
                   </td>
                   <td>
                     {s.analysis_count != null && s.analysis_count > 0 && (
-                      <Badge bg="primary" style={{ fontSize: 12 }}>
+                      <Badge bg="secondary" style={{ fontSize: 12 }}>
                         <FontAwesomeIcon icon={faRobot} className="me-1" />
                         {s.analysis_count}
                       </Badge>
@@ -509,7 +515,7 @@ const SessionHistory = ({ onSwitchToLive }: Props) => {
         className="delete-confirm-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title style={{ fontSize: 16 }}>
+          <Modal.Title style={{ fontSize: 15 }}>
             Conferma eliminazione
           </Modal.Title>
         </Modal.Header>

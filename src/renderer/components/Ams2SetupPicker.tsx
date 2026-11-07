@@ -11,7 +11,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import type { SetupData } from "../../shared/types";
 import Ams2SetupTabs from "./Ams2SetupTabs";
@@ -49,21 +49,32 @@ export const Ams2SetupPicker = ({
   const [decodedSetup, setDecodedSetup] = useState<SetupData | null>(null);
   const [setupName, setSetupName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const loadedRef = useRef(false);
 
-  useEffect(() => {
-    if (!show || loadedRef.current) return;
-    loadedRef.current = true;
-    // eslint-disable-next-line @eslint-react/set-state-in-effect -- one-time load when the picker opens
+  /* eslint-disable @eslint-react/set-state-in-effect -- load() runs from the one-time effect below and from "Riprova" */
+  const load = useCallback((): void => {
     setLoading(true);
+    setLoadError(false);
     window.electronAPI
       .listScreenshots()
       .then((list) => {
         setScreenshots(list);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [show]);
+      .catch((e: unknown) => {
+        console.error("[Ams2SetupPicker] listScreenshots failed:", e);
+        setLoadError(true);
+        setLoading(false);
+      });
+  }, []);
+  /* eslint-enable @eslint-react/set-state-in-effect */
+
+  useEffect(() => {
+    if (!show || loadedRef.current) return;
+    loadedRef.current = true;
+    load();
+  }, [show, load]);
 
   const toggle = (name: string): void => {
     setSelected((prev) => {
@@ -142,23 +153,44 @@ export const Ams2SetupPicker = ({
           Seleziona screenshot setup
           <span className="picker-subtitle"> · {expectedCar}</span>
         </Modal.Title>
-        <Button variant="link" className="picker-close" onClick={handleClose}>
-          <FontAwesomeIcon icon={faXmark} />
+        <Button
+          variant="link"
+          className="picker-close"
+          title="Chiudi"
+          aria-label="Chiudi"
+          onClick={handleClose}
+        >
+          <FontAwesomeIcon icon={faXmark} aria-hidden />
         </Button>
       </Modal.Header>
 
       <Modal.Body className="picker-body">
         {phase === "pick" && (
           <>
-            {error && <div className="picker-error mb-3">{error}</div>}
+            {error && (
+              <div className="picker-error mb-3" role="alert">
+                {error}
+              </div>
+            )}
             {loading ? (
               <div className="picker-loading">
-                <Spinner size="sm" variant="danger" /> Caricamento screenshot...
+                <Spinner size="sm" /> Caricamento screenshot...
+              </div>
+            ) : loadError ? (
+              <div className="picker-error" role="alert">
+                Impossibile leggere gli screenshot.{" "}
+                <Button variant="link" size="sm" className="p-0" onClick={load}>
+                  Riprova
+                </Button>
               </div>
             ) : screenshots.length === 0 ? (
               <p className="text-secondary">
                 Nessuno screenshot trovato nella cartella Steam di AMS2. Cattura
-                le schermate del setup in-game con F12.
+                le schermate del setup in-game con F12, poi{" "}
+                <Button variant="link" size="sm" className="p-0" onClick={load}>
+                  Riprova
+                </Button>
+                .
               </p>
             ) : (
               <div className="picker-grid">
@@ -166,7 +198,16 @@ export const Ams2SetupPicker = ({
                   <div
                     key={s.name}
                     className={`picker-thumb ${selected.has(s.name) ? "selected" : ""} ${s.alreadyUsed ? "already-used" : ""}`}
+                    role="checkbox"
+                    aria-checked={selected.has(s.name)}
+                    aria-label={s.name}
+                    tabIndex={0}
                     onClick={() => toggle(s.name)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
+                      toggle(s.name);
+                    }}
                     title={
                       s.alreadyUsed
                         ? `Già usato nel setup "${s.alreadyUsed.setupName || "senza nome"}" (${formatDate(s.alreadyUsed.loadedAt)})`
@@ -294,7 +335,7 @@ export const Ams2SetupPicker = ({
               Annulla
             </Button>
             <Button
-              variant="danger"
+              variant="primary"
               size="sm"
               disabled={selected.size === 0}
               onClick={handleDecodeRequest}
@@ -338,7 +379,7 @@ export const Ams2SetupPicker = ({
               Riseleziona
             </Button>
             <Button
-              variant="danger"
+              variant="primary"
               size="sm"
               disabled={!setupName.trim()}
               onClick={handleConfirm}

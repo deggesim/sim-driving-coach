@@ -26,7 +26,7 @@ type ChartPoint = {
   speed: number;
 };
 
-const AXIS_COLOR = "#888";
+const AXIS_COLOR = "#8c8c8c";
 const GRID_COLOR = "#2e2e2e";
 const TRACK_STROKE = "#666";
 const MARKER_FILL = "#f1c40f";
@@ -224,6 +224,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
 
   const [frames, setFrames] = useState<CompactFrame[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [framesError, setFramesError] = useState(false);
   const [trackMap, setTrackMap] = useState<TrackMapGeometry | null>(null);
   const [hoverDist, setHoverDist] = useState<number | null>(null);
 
@@ -233,13 +234,19 @@ const LapTelemetryCharts = ({ lap }: Props) => {
     setLoading(true);
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setFrames(null);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
+    setFramesError(false);
     window.electronAPI
       .lapGetFrames({ id: lap.id, game })
       .then((f) => {
         if (!cancelled) setFrames(f ?? []);
       })
-      .catch(() => {
-        if (!cancelled) setFrames([]);
+      .catch((err: unknown) => {
+        console.error("[LapTelemetryCharts] lapGetFrames failed:", err);
+        if (!cancelled) {
+          setFrames([]);
+          setFramesError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -295,6 +302,14 @@ const LapTelemetryCharts = ({ lap }: Props) => {
   if (loading) {
     return (
       <div className="text-muted telemetry-status">Caricamento telemetria…</div>
+    );
+  }
+
+  if (data.length === 0 && framesError) {
+    return (
+      <div className="text-danger telemetry-status" role="alert">
+        Impossibile caricare la telemetria del giro.
+      </div>
     );
   }
 

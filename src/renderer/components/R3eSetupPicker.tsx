@@ -62,8 +62,14 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
           Incolla JSON setup
           <span className="picker-subtitle"> · {expectedCar}</span>
         </Modal.Title>
-        <Button variant="link" className="picker-close" onClick={handleClose}>
-          <FontAwesomeIcon icon={faXmark} />
+        <Button
+          variant="link"
+          className="picker-close"
+          title="Chiudi"
+          aria-label="Chiudi"
+          onClick={handleClose}
+        >
+          <FontAwesomeIcon icon={faXmark} aria-hidden />
         </Button>
       </Modal.Header>
 
@@ -144,7 +150,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
               Modifica JSON
             </Button>
             <Button
-              variant="danger"
+              variant="primary"
               size="sm"
               disabled={!setupName.trim()}
               onClick={handleConfirm}

@@ -52,7 +52,7 @@ const VoiceCoachOverlay = ({
 
           {state === "processing" && (
             <>
-              <Spinner variant="danger" />
+              <Spinner />
               {transcript && (
                 <p className="mb-0 fst-italic text-secondary">
                   &ldquo;{transcript}&rdquo;

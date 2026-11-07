@@ -9,7 +9,7 @@ colors:
   surface-inset: "#242424"
   hairline: "#2e2e2e"
   text: "#e8e8e8"
-  text-dim: "#888888"
+  text-dim: "#8c8c8c"
   ok: "#2ecc71"
   danger: "#e74c3c"
   warning: "#f1c40f"
@@ -135,7 +135,7 @@ Palette quasi monocromatica: tre grigi quasi neri, un testo chiaro con una varia
 - **Gomma grafite** (#242424): intestazioni di modale e accordion, hover, tab attivo, riquadri incassati.
 - **Filo di bordo** (#2e2e2e): ogni bordo e divisore da 1px.
 - **Bianco lavagna** (#e8e8e8): testo.
-- **Grigio sbiadito** (#888888): testo secondario, etichette, icone non attive.
+- **Grigio sbiadito** (#8c8c8c, 4.6:1 su #242424): testo secondario, etichette, icone non attive.
 
 ### Stato e gioco
 
@@ -147,6 +147,8 @@ Palette quasi monocromatica: tre grigi quasi neri, un testo chiaro con una varia
 ### Named Rules
 
 **The One Accent Rule.** L'arancio marca ciò che è attivo o da leggere per primo. Non si usa per decorare riquadri né per ripetere uno stato.
+
+**The Primary Button Rule.** Il pulsante `primary` è l'arancio con testo scuro e ce n'è uno per zona di vista. Il verde dei pulsanti non esiste: serve solo agli stati.
 
 **The Game Colour Rule.** I colori R3E/ACE/AMS2 identificano la sorgente e compaiono soltanto in `.game-badge--*`.
 
@@ -195,7 +197,11 @@ Controlli sobri e utilitari: Bootstrap ridipinto, senza decorazioni.
 ### Buttons
 
 - **Shape:** angoli smussati (4–6px).
-- **Primary / Secondary / Danger:** dalle varianti react-bootstrap (`secondary` e `danger` sono i più usati, poi `link` per azioni discrete).
+- **Primary:** arancio (#e8451a) con testo scuro (#0f0f0f, 4.8:1: il bianco su arancio darebbe 3.96:1 e non passa AA). Azione principale o in avanti ("Salva…", "Esegui analisi", "Carica setup", "Apri sessione", "Nuova sessione"). Al massimo uno per zona di vista. Hover più chiaro, disabilitato attenuato.
+- **Secondary:** piatto, #242424 con bordo #2e2e2e e testo chiaro; hover #333. Annulla, Chiudi, Indietro, azioni di navigazione o accessorie ("Gestione setup", "Esporta PDF", "Assegna").
+- **Danger / outline-danger:** rosso (#c0392b, testo bianco 5.4:1) solo per azioni distruttive (Elimina, Rimuovi, "Procedi comunque" se sovrascrive). Mai per un salvataggio.
+- **Link:** testo grigio sbiadito, chiaro all'hover, per azioni discrete e per i pulsanti personalizzati (tab, chiusura modale, comandi finestra). Nessun blu Bootstrap: il solo blu è il filetto dei commenti.
+- Verde e giallo non colorano pulsanti: sono per gli stati. Nessuna ombra né gradiente, anche sul focus (resta l'anello arancio da 2px).
 - **Tab (barra del titolo):** trasparente con testo grigio; hover e attivo passano a sfondo #242424 e testo chiaro, con transizione di 0.15s.
 - **Chiusura finestra:** hover rosso (#e74c3c) con testo bianco.
 

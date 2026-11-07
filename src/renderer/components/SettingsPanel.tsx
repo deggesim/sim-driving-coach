@@ -114,7 +114,7 @@ const KeyComboDisplay = ({ combo }: { combo: string }) => {
             {formatKeyPart(part)}
           </kbd>
           {i < parts.length - 1 && (
-            <span className="text-secondary" style={{ fontSize: "0.75em" }}>
+            <span className="text-secondary" style={{ fontSize: "0.8em" }}>
               +
             </span>
           )}
@@ -188,6 +188,7 @@ const SettingsPanel = () => {
   const [azureVoices, setAzureVoices] = useState<AzureVoice[]>([]);
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voicesError, setVoicesError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [isCapturingButton, setIsCapturingButton] = useState(false);
   const [isCapturingKey, setIsCapturingKey] = useState(false);
   const [telemetryLogDir, setTelemetryLogDir] = useState<string | null>(null);
@@ -195,12 +196,37 @@ const SettingsPanel = () => {
 
   // Live Claude model list, refreshed on mount (empty until loaded / on error).
   const [models, setModels] = useState<AnthropicModelInfo[]>([]);
+  const [modelsError, setModelsError] = useState(false);
   useEffect(() => {
     window.electronAPI
       .anthropicListModels()
       .then(setModels)
-      .catch((err) => console.error("anthropicListModels failed:", err));
+      .catch((err) => {
+        console.error("anthropicListModels failed:", err);
+        setModelsError(true);
+      });
   }, []);
+
+  const reportSaveError = useCallback((err: unknown) => {
+    console.error("[SettingsPanel] configSet failed:", err);
+    setSaveError("Impossibile salvare l'impostazione. Riprova.");
+  }, []);
+
+  // Writes config entries in order; false (with an inline alert) on failure so
+  // callers show "Salvata" only after a real save.
+  const persist = useCallback(
+    async (entries: [string, string][]): Promise<boolean> => {
+      setSaveError("");
+      try {
+        for (const [key, value] of entries) await configSet(key, value);
+        return true;
+      } catch (err) {
+        reportSaveError(err);
+        return false;
+      }
+    },
+    [configSet, reportSaveError],
+  );
 
   // A saved model missing from the live list is obsolete (retired by Anthropic).
   const modelObsolete =
@@ -237,38 +263,41 @@ const SettingsPanel = () => {
       : modelOptionsSorted;
 
   const handleSaveApiKey = async () => {
-    await configSet("anthropicApiKey", apiKey);
-    showSaved("apiKey");
+    if (await persist([["anthropicApiKey", apiKey]])) showSaved("apiKey");
   };
 
   const handleSaveModel = async () => {
-    await configSet("anthropicModel", anthropicModel);
-    showSaved("model");
+    if (await persist([["anthropicModel", anthropicModel]])) showSaved("model");
   };
 
   const handleSaveModelDetail = async () => {
-    await configSet("anthropicModelDetail", anthropicModelDetail);
-    showSaved("modelDetail");
+    if (await persist([["anthropicModelDetail", anthropicModelDetail]]))
+      showSaved("modelDetail");
   };
 
   const handleSaveAssistant = async () => {
-    await configSet("assistantName", assistantName);
-    await configSet(
-      "gamepadTriggerButton",
-      gamepadButton !== null ? String(gamepadButton) : "",
-    );
-    showSaved("assistant");
+    const ok = await persist([
+      ["assistantName", assistantName],
+      [
+        "gamepadTriggerButton",
+        gamepadButton !== null ? String(gamepadButton) : "",
+      ],
+    ]);
+    if (ok) showSaved("assistant");
   };
 
   const handleSaveAceSetupsPath = async () => {
-    await configSet("aceSetupsPath", aceSetupsPath);
-    showSaved("aceSetupsPath");
+    if (await persist([["aceSetupsPath", aceSetupsPath]]))
+      showSaved("aceSetupsPath");
   };
 
   const handleToggleTelemetry = async () => {
     const next = !telemetryLogEnabled;
     setTelemetryLogEnabled(next);
-    await configSet("telemetryLogEnabled", String(next));
+    if (!(await persist([["telemetryLogEnabled", String(next)]]))) {
+      setTelemetryLogEnabled(!next);
+      return;
+    }
     if (next && !telemetryDirFetchedRef.current) {
       const dir = await window.electronAPI.telemetryLogGetDir();
       setTelemetryLogDir(dir);
@@ -279,26 +308,34 @@ const SettingsPanel = () => {
   const handleToggleAzure = async () => {
     const next = !azureTtsEnabled;
     setAzureTtsEnabled(next);
-    await configSet("azureTtsEnabled", String(next));
+    if (!(await persist([["azureTtsEnabled", String(next)]])))
+      setAzureTtsEnabled(!next);
   };
 
   const handleSaveAzureKey = async () => {
-    await configSet("azureSpeechKey", azureSpeechKey);
-    await configSet("azureRegion", azureRegion);
-    showSaved("azureKey");
+    const ok = await persist([
+      ["azureSpeechKey", azureSpeechKey],
+      ["azureRegion", azureRegion],
+    ]);
+    if (ok) showSaved("azureKey");
   };
 
   const handleLoadVoices = async () => {
     setVoicesLoading(true);
     setVoicesError("");
-    await configSet("azureSpeechKey", azureSpeechKey);
-    await configSet("azureRegion", azureRegion);
     try {
+      if (
+        !(await persist([
+          ["azureSpeechKey", azureSpeechKey],
+          ["azureRegion", azureRegion],
+        ]))
+      )
+        return;
       const voices = await window.electronAPI.ttsGetVoices();
       setAzureVoices(voices);
       if (voices.length > 0 && !azureVoiceName) {
         setAzureVoiceName(voices[0].ShortName);
-        await configSet("azureVoiceName", voices[0].ShortName);
+        await persist([["azureVoiceName", voices[0].ShortName]]);
       }
     } catch (err) {
       setVoicesError(
@@ -312,7 +349,8 @@ const SettingsPanel = () => {
   const handleVoiceChange = useCallback(
     async (shortName: string) => {
       setAzureVoiceName(shortName);
-      await configSet("azureVoiceName", shortName);
+      setVoicesError("");
+      if (!(await persist([["azureVoiceName", shortName]]))) return;
       try {
         const raw = await window.electronAPI.ttsTest(shortName);
         const bytes = new Uint8Array(
@@ -327,9 +365,10 @@ const SettingsPanel = () => {
         source.onended = () => ctx.close();
       } catch (err) {
         console.error("[SettingsPanel] Voice preview error:", err);
+        setVoicesError("Anteprima della voce non riuscita.");
       }
     },
-    [configSet, setAzureVoiceName],
+    [persist, setAzureVoiceName],
   );
 
   useEffect(() => {
@@ -353,9 +392,9 @@ const SettingsPanel = () => {
         for (let i = 0; i < gp.buttons.length; i++) {
           if (gp.buttons[i]?.pressed) {
             setGamepadButton(i);
-            configSet("gamepadTriggerButton", String(i)).catch(console.error);
+            configSet("gamepadTriggerButton", String(i)).catch(reportSaveError);
             setKeyboardVoiceKey(null);
-            configSet("keyboardVoiceKey", "").catch(console.error);
+            configSet("keyboardVoiceKey", "").catch(reportSaveError);
             showSaved("gamepadButton");
             setIsCapturingButton(false);
             setCapturingVoiceInput(false);
@@ -371,6 +410,7 @@ const SettingsPanel = () => {
     setKeyboardVoiceKey,
     setCapturingVoiceInput,
     configSet,
+    reportSaveError,
     showSaved,
   ]);
 
@@ -393,9 +433,9 @@ const SettingsPanel = () => {
       );
       const combo = parts.join("+");
       setKeyboardVoiceKey(combo);
-      configSet("keyboardVoiceKey", combo).catch(console.error);
+      configSet("keyboardVoiceKey", combo).catch(reportSaveError);
       setGamepadButton(null);
-      configSet("gamepadTriggerButton", "").catch(console.error);
+      configSet("gamepadTriggerButton", "").catch(reportSaveError);
       showSaved("keyboardKey");
       setIsCapturingKey(false);
       setCapturingVoiceInput(false);
@@ -408,12 +448,19 @@ const SettingsPanel = () => {
     setGamepadButton,
     setCapturingVoiceInput,
     configSet,
+    reportSaveError,
     showSaved,
   ]);
 
   return (
     <Container fluid className="settings-panel h-100 p-4">
       <h2 className="fs-5 fw-bold mb-4">Impostazioni</h2>
+
+      {saveError && (
+        <Alert variant="danger" dismissible onClose={() => setSaveError("")}>
+          {saveError}
+        </Alert>
+      )}
 
       {/* Row 1: API Key + Azure TTS */}
       <Row className="mb-4 g-4">
@@ -436,7 +483,7 @@ const SettingsPanel = () => {
                 />
               </Col>
               <Col sm={2}>
-                <Button variant="danger" onClick={handleSaveApiKey}>
+                <Button variant="primary" onClick={handleSaveApiKey}>
                   {settingSaved === "apiKey" ? (
                     <>
                       <FontAwesomeIcon icon={faCheck} /> Salvata
@@ -471,6 +518,12 @@ const SettingsPanel = () => {
                     </option>
                   ))}
                 </Form.Select>
+                {modelsError && (
+                  <p className="text-danger mt-2 mb-0" role="alert">
+                    Elenco modelli non disponibile: controlla la chiave API e la
+                    connessione.
+                  </p>
+                )}
                 {modelObsolete && (
                   <Alert variant="warning" className="mt-2 mb-0 py-2">
                     Il modello selezionato (<code>{anthropicModel}</code>) non è
@@ -480,7 +533,7 @@ const SettingsPanel = () => {
                 )}
               </Col>
               <Col sm={2}>
-                <Button variant="danger" onClick={handleSaveModel}>
+                <Button variant="primary" onClick={handleSaveModel}>
                   {settingSaved === "model" ? (
                     <>
                       <FontAwesomeIcon icon={faCheck} /> Salvato
@@ -522,7 +575,7 @@ const SettingsPanel = () => {
                 </Form.Select>
               </Col>
               <Col sm={2}>
-                <Button variant="danger" onClick={handleSaveModelDetail}>
+                <Button variant="primary" onClick={handleSaveModelDetail}>
                   {settingSaved === "modelDetail" ? (
                     <>
                       <FontAwesomeIcon icon={faCheck} /> Salvato
@@ -578,7 +631,7 @@ const SettingsPanel = () => {
                 />
               </Col>
               <Col sm={2}>
-                <Button variant="danger" onClick={handleSaveAzureKey}>
+                <Button variant="primary" onClick={handleSaveAzureKey}>
                   {settingSaved === "azureKey" ? "✓ Salvata" : "Salva"}
                 </Button>
               </Col>
@@ -624,7 +677,9 @@ const SettingsPanel = () => {
             {voicesError && (
               <Row className="mb-2">
                 <Col sm={{ span: 9, offset: 3 }}>
-                  <p className="text-danger mb-0">{voicesError}</p>
+                  <p className="text-danger mb-0" role="alert">
+                    {voicesError}
+                  </p>
                 </Col>
               </Row>
             )}
@@ -684,7 +739,7 @@ const SettingsPanel = () => {
                 />
               </Col>
               <Col sm={2}>
-                <Button variant="danger" onClick={handleSaveAssistant}>
+                <Button variant="primary" onClick={handleSaveAssistant}>
                   {settingSaved === "assistant" ? (
                     <>
                       <FontAwesomeIcon icon={faCheck} /> Salvato
@@ -725,7 +780,7 @@ const SettingsPanel = () => {
                         : "Nessun tasto assegnato"}
                     </Badge>
                     <Button
-                      variant="light"
+                      variant="secondary"
                       onClick={() => {
                         setIsCapturingButton(true);
                         setCapturingVoiceInput(true);
@@ -739,7 +794,7 @@ const SettingsPanel = () => {
                         onClick={() => {
                           setGamepadButton(null);
                           configSet("gamepadTriggerButton", "").catch(
-                            console.error,
+                            reportSaveError,
                           );
                         }}
                       >
@@ -794,7 +849,7 @@ const SettingsPanel = () => {
                       <Badge bg="secondary">Nessun tasto assegnato</Badge>
                     )}
                     <Button
-                      variant="light"
+                      variant="secondary"
                       onClick={() => {
                         setIsCapturingKey(true);
                         setCapturingVoiceInput(true);
@@ -808,7 +863,7 @@ const SettingsPanel = () => {
                         onClick={() => {
                           setKeyboardVoiceKey(null);
                           configSet("keyboardVoiceKey", "").catch(
-                            console.error,
+                            reportSaveError,
                           );
                         }}
                       >
@@ -877,7 +932,7 @@ const SettingsPanel = () => {
                 />
               </Col>
               <Col sm={2}>
-                <Button variant="danger" onClick={handleSaveAceSetupsPath}>
+                <Button variant="primary" onClick={handleSaveAceSetupsPath}>
                   {settingSaved === "aceSetupsPath" ? (
                     <>
                       <FontAwesomeIcon icon={faCheck} /> Salvato
@@ -904,7 +959,7 @@ const SettingsPanel = () => {
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center gap-2">
                 <Button
-                  variant={mockHistoryMode ? "warning" : "secondary"}
+                  variant="secondary"
                   onClick={() => setMockHistoryMode(!mockHistoryMode)}
                 >
                   {mockHistoryMode ? "Mock attivo" : "Mock disattivo"}

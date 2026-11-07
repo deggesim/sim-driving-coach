@@ -60,7 +60,7 @@ export const GamePickerModal = ({ show, onCancel, onConfirm }: Props) => {
         <Button variant="secondary" onClick={onCancel}>
           Annulla
         </Button>
-        <Button variant="success" onClick={() => onConfirm(selected)}>
+        <Button variant="primary" onClick={() => onConfirm(selected)}>
           Apri sessione
         </Button>
       </Modal.Footer>

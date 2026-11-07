@@ -14,6 +14,7 @@ import type {
 } from "../../shared/types";
 import { SetupDetailModal } from "./SetupDetailModal";
 import { SetupNameEdit } from "./SetupNameEdit";
+import { useIPCStore } from "../store/ipcStore";
 import { useSessionStore } from "../store/sessionStore";
 
 interface Props {
@@ -65,6 +66,12 @@ const ACQUIRE: Record<GameSource, { label: string; icon: typeof faFileCode }> =
     ams2: { label: "Acquisisci screenshot", icon: faCamera },
   };
 
+const EMPTY_HINT: Record<GameSource, string> = {
+  r3e: "Copia il setup in RaceRoom con CTRL+C e incollalo qui.",
+  ace: "Scegli un file .carsetup salvato dal gioco.",
+  ams2: "Seleziona gli screenshot della schermata setup.",
+};
+
 type DeleteState =
   | { phase: "idle" }
   | { phase: "confirm"; id: number }
@@ -93,6 +100,9 @@ const SetupSelectionModal = ({
   const [crossHistory, setCrossHistory] = useState<SessionSetupRow[]>([]);
   const [allTracks, setAllTracks] = useState(false);
   const [loading, setLoading] = useState(false);
+  // A failed history load must not read as "no setups yet"; `reloadKey` re-runs the loads.
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [deleteState, setDeleteState] = useState<DeleteState>({
     phase: "idle",
@@ -127,6 +137,8 @@ const SetupSelectionModal = ({
     if (!show || !car || !track) return;
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setLoading(true);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
+    setLoadError(false);
     window.electronAPI
       .sessionGetSetupHistory({ car, track, layout, game })
       .then((rows) => {
@@ -141,14 +153,20 @@ const SetupSelectionModal = ({
         // altrimenti nasconderebbe l'unico modo di importare un setup.
         if (game === "ams2" && rows.length === 0) setAllTracks(true);
       })
-      .catch(() => setComboHistory([]))
+      .catch((e: unknown) => {
+        console.error("[SetupSelectionModal] history load failed:", e);
+        setComboHistory([]);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
-  }, [show, car, track, layout, game]);
+  }, [show, car, track, layout, game, reloadKey]);
 
   useEffect(() => {
     if (!show || !car || !allTracks) return;
     // eslint-disable-next-line @eslint-react/set-state-in-effect
     setLoading(true);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect
+    setLoadError(false);
     window.electronAPI
       .sessionGetSetupHistory({ car, game })
       .then((rows) => {
@@ -162,9 +180,13 @@ const SetupSelectionModal = ({
         }
         setCrossHistory(Array.from(seen.values()));
       })
-      .catch(() => setCrossHistory([]))
+      .catch((e: unknown) => {
+        console.error("[SetupSelectionModal] cross history load failed:", e);
+        setCrossHistory([]);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
-  }, [show, car, game, allTracks]);
+  }, [show, car, game, allTracks, reloadKey]);
 
   const history = allTracks ? crossHistory : comboHistory;
 
@@ -195,8 +217,13 @@ const SetupSelectionModal = ({
   };
 
   const handleRename = (id: number, name: string): void => {
-    void renameSetup(id, game, name);
+    const prevSetup = setupById.get(id)?.setup;
     updateRow(id, (r) => ({ ...r, setup: { ...r.setup, name } }));
+    renameSetup(id, game, name).catch((e: unknown) => {
+      console.error("[SetupSelectionModal] rename failed:", e);
+      if (prevSetup) updateRow(id, (r) => ({ ...r, setup: prevSetup }));
+      useIPCStore.getState().setAppError("Impossibile rinominare il setup.");
+    });
   };
 
   const handleDelete = async (id: number): Promise<void> => {
@@ -225,7 +252,7 @@ const SetupSelectionModal = ({
         className="setup-selection-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title style={{ fontSize: 16 }}>
+          <Modal.Title style={{ fontSize: 15 }}>
             {lapCount != null
               ? `Assegna setup a ${lapCount} ${lapCount === 1 ? "giro" : "giri"}`
               : "Gestione setup"}
@@ -248,6 +275,18 @@ const SetupSelectionModal = ({
               <Spinner size="sm" className="me-2" />
               Caricamento setup precedenti…
             </div>
+          ) : loadError ? (
+            <p className="text-danger mb-3" role="alert">
+              Impossibile caricare i setup precedenti.{" "}
+              <Button
+                variant="link"
+                size="sm"
+                className="p-0 align-baseline"
+                onClick={() => setReloadKey((k) => k + 1)}
+              >
+                Riprova
+              </Button>
+            </p>
           ) : history.length > 0 ? (
             <>
               <p className="text-muted mb-2" style={{ fontSize: 14 }}>
@@ -296,7 +335,7 @@ const SetupSelectionModal = ({
                               <Badge
                                 bg="success"
                                 className="ms-2"
-                                style={{ fontSize: 10 }}
+                                style={{ fontSize: 11 }}
                               >
                                 <FontAwesomeIcon
                                   icon={faCheck}
@@ -353,6 +392,8 @@ const SetupSelectionModal = ({
                               <Button
                                 size="sm"
                                 variant="outline-danger"
+                                title="Elimina setup"
+                                aria-label="Elimina setup"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteState({
@@ -396,11 +437,16 @@ const SetupSelectionModal = ({
             <p className="text-muted mb-3" style={{ fontSize: 14 }}>
               {allTracks
                 ? "Nessun setup precedente trovato per questa auto."
-                : "Nessun setup precedente trovato per questa combinazione auto/circuito."}
+                : "Nessun setup precedente trovato per questa combinazione auto/circuito."}{" "}
+              {EMPTY_HINT[game]}
             </p>
           )}
 
-          <Button variant="secondary" onClick={onJsonPicker} className="w-100">
+          <Button
+            variant={history.length === 0 ? "primary" : "secondary"}
+            onClick={onJsonPicker}
+            className="w-100"
+          >
             <FontAwesomeIcon icon={ACQUIRE[game].icon} className="me-2" />
             {ACQUIRE[game].label}
           </Button>

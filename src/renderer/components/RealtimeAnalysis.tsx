@@ -1,11 +1,14 @@
 import { useEffect } from "react";
+import type { GameSource } from "../../shared/types";
 import { useSessionStore } from "../store/sessionStore";
 import SessionPanel from "./SessionPanel";
 
 const RealtimeAnalysis = ({
   onSessionClosed,
+  onOpenSettings,
 }: {
-  onSessionClosed?: () => void;
+  onSessionClosed?: (closed: { id: number; game: GameSource }) => void;
+  onOpenSettings?: () => void;
 }) => {
   const loadCurrent = useSessionStore((s) => s.loadCurrent);
 
@@ -13,7 +16,13 @@ const RealtimeAnalysis = ({
     void loadCurrent();
   }, [loadCurrent]);
 
-  return <SessionPanel mode="live" onSessionClosed={onSessionClosed} />;
+  return (
+    <SessionPanel
+      mode="live"
+      onSessionClosed={onSessionClosed}
+      onOpenSettings={onOpenSettings}
+    />
+  );
 };
 
 export default RealtimeAnalysis;

@@ -23,10 +23,12 @@ export type IPCStore = {
   lastLap: LapRecord | null;
   status: GameStatus;
   announce: string | null;
+  appError: string | null;
   setFrame: (frame: R3EFrame) => void;
   setLastLap: (lap: LapRecord) => void;
   setStatus: (status: GameStatus) => void;
   setAnnounce: (text: string | null) => void;
+  setAppError: (message: string | null) => void;
 };
 
 export const useIPCStore = create<IPCStore>((set) => ({
@@ -34,8 +36,10 @@ export const useIPCStore = create<IPCStore>((set) => ({
   lastLap: null,
   status: DEFAULT_STATUS,
   announce: null,
+  appError: null,
   setFrame: (frame) => set({ frame }),
   setLastLap: (lastLap) => set({ lastLap }),
   setStatus: (status) => set({ status }),
   setAnnounce: (announce) => set({ announce }),
+  setAppError: (appError) => set({ appError }),
 }));

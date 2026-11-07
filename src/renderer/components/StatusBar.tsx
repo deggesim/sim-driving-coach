@@ -80,7 +80,7 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
           <span className="status-car">{status.car}</span>
           {status.track && (
             <>
-              <span className="status-sep"> - </span>
+              <span className="status-sep"> · </span>
               <span className="status-track">
                 {status.track}
                 {status.layout ? ` (${status.layout})` : ""}
