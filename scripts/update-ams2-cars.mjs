@@ -37,6 +37,7 @@ const [, machine, ...data] = parseCsv(await res.text());
 const col = Object.fromEntries(machine.map((h, i) => [h.trim(), i]));
 for (const h of [
   "name",
+  "class",
   "weight",
   "weight_distribution",
   "driveline",
@@ -61,6 +62,7 @@ for (const r of data) {
   const tank = num(get("tank_size"));
   cars.push({
     name: get("name"),
+    className: get("class"),
     weightKg,
     frontPct,
     driveline: get("driveline"),
@@ -79,6 +81,7 @@ const header = `// Auto-generated from the community sheet "Cars of AMS2" (ams2c
 
 export type Ams2Car = {
   name: string;
+  className: string;
   weightKg: number;
   frontPct: number;
   driveline: string;

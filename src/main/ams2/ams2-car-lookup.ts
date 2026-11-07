@@ -36,7 +36,23 @@ const ALIASES = new Map([
   ["formula vee gen1 fin", "formula vee fin"],
 ]);
 
+// The game also reports a class ("Copa Uno") where the sheet has a car ("Fiat Uno"
+// of class "Copa Uno"). Same rule as names: a class whose rows differ is ambiguous.
+const BY_CLASS = new Map<string, Ams2Car | null>();
+for (const car of AMS2_CARS) {
+  const key = norm(car.className);
+  const seen = BY_CLASS.get(key);
+  BY_CLASS.set(
+    key,
+    seen === undefined || (seen !== null && sameCar(seen, car)) ? car : null,
+  );
+}
+
 export const findAms2Car = (name: string): Ams2Car | null => {
   const key = norm(name);
-  return BY_NAME.get(ALIASES.get(key) ?? key) ?? null;
+  const nameKey = ALIASES.get(key) ?? key;
+  // A name present but ambiguous stays null: the class is only for unknown names.
+  return BY_NAME.has(nameKey)
+    ? BY_NAME.get(nameKey)!
+    : (BY_CLASS.get(key) ?? null);
 };
