@@ -470,6 +470,7 @@ assert.equal(
 // --- AMS2 car table: driveline and differential type ---
 const car = (over: Partial<Ams2Car>): Ams2Car => ({
   name: "x",
+  className: "x",
   weightKg: 1000,
   frontPct: 45,
   driveline: "RWD",

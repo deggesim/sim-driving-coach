@@ -37,14 +37,14 @@ assert.equal(findAms2Car("Kart 4-Stroke Race")?.name, "Kart GX390 Race");
 assert.equal(findAms2Car("Formula Vee Gen1")?.name, "Formula Vee");
 assert.equal(findAms2Car("Formula Vee Gen1 + Fin")?.name, "Formula Vee + Fin");
 // Two rows with different specs, or no row at all: never a variant picked at random
-for (const name of [
-  "Ginetta G40",
-  "Ginetta G40 Cup",
-  "Copa Uno",
-  "Formula Vee Gen2",
-  "Audi R8 LMS GT3",
-])
+for (const name of ["Ginetta G40", "Formula Vee Gen2", "Audi R8 LMS GT3"])
   assert.equal(findAms2Car(name), null, name);
+
+// The game reports the class where the sheet has the car
+assert.equal(findAms2Car("Copa Uno")?.name, "Fiat Uno");
+assert.equal(findAms2Car("Copa Uno")?.frontPct, 61.8);
+assert.equal(findAms2Car("Ginetta G40 Cup")?.weightKg, 925, "class, one car");
+assert.equal(findAms2Car("Copa Truck"), null, "class with different cars");
 
 // Ambiguous (same name, different specs) -> null; identical duplicates -> a car
 assert.equal(findAms2Car("MetalMoro AJR"), null);
