@@ -410,7 +410,6 @@ const LapsTable = ({
         onHide={handleDeleteCancel}
         centered
         size="sm"
-        className="delete-confirm-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title className="laps-modal-title">

@@ -512,7 +512,6 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
         onHide={() => setDeleteTarget(null)}
         centered
         size="sm"
-        className="delete-confirm-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title style={{ fontSize: 15 }}>

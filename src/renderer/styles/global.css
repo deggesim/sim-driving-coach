@@ -772,35 +772,23 @@ body {
   text-align: right;
 }
 
-/* ── Delete Confirm Modal ── */
-.delete-confirm-modal .modal-content {
+/* ── Modals: one dark shell for every react-bootstrap Modal ──
+   Per-modal classes below only add what is specific to that modal. */
+.modal .modal-content {
   background: var(--bg2);
   border: 1px solid var(--border);
   color: var(--text);
 }
-.delete-confirm-modal .modal-header,
-.delete-confirm-modal .modal-footer {
+.modal .modal-header,
+.modal .modal-footer {
   background: var(--bg3);
   border-color: var(--border);
 }
-.delete-confirm-modal .btn-close {
+.modal .btn-close {
   filter: invert(1) grayscale(1);
 }
 
 /* ── Setup Import Modal (rinomina obbligatoria da altro circuito) ── */
-.setup-import-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.setup-import-modal .modal-header,
-.setup-import-modal .modal-footer {
-  background: var(--bg3);
-  border-color: var(--border);
-}
-.setup-import-modal .btn-close {
-  filter: invert(1) grayscale(1);
-}
 .setup-import-modal .form-control {
   background: var(--bg2);
   color: var(--text);
@@ -808,25 +796,6 @@ body {
 }
 
 /* ── ACE Setup Picker Modal ── */
-.ace-setup-picker-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.ace-setup-picker-modal .modal-header {
-  background: var(--bg3);
-  border-bottom: 1px solid var(--border);
-}
-.ace-setup-picker-modal .modal-body {
-  background: var(--bg2);
-}
-.ace-setup-picker-modal .modal-footer {
-  background: var(--bg3);
-  border-top: 1px solid var(--border);
-}
-.ace-setup-picker-modal .btn-close {
-  filter: invert(1) grayscale(1);
-}
 .ace-setup-picker-modal .list-group-item {
   background: var(--bg3);
   border-color: var(--border);
@@ -851,40 +820,9 @@ body {
   color: var(--text);
 }
 
-/* ── Setup Selection Modal ── */
-.setup-selection-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.setup-selection-modal .modal-header,
-.setup-selection-modal .modal-footer {
-  background: var(--bg3);
-  border-color: var(--border);
-}
-.setup-selection-modal .modal-body {
-  background: var(--bg2);
-}
-.setup-selection-modal .btn-close {
-  filter: invert(1) grayscale(1);
-}
-
 /* ── Setup Detail Modal (lap badge click) ── */
-.setup-detail-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.setup-detail-modal .modal-header {
-  background: var(--bg3);
-  border-color: var(--border);
-}
 .setup-detail-modal .modal-body {
-  background: var(--bg2);
   max-height: 85vh;
-}
-.setup-detail-modal .btn-close {
-  filter: invert(1) grayscale(1);
 }
 
 .setup-detail-content {
@@ -892,25 +830,8 @@ body {
 }
 
 /* ── Lap Setup Picker Modal ── */
-.lap-setup-picker-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.lap-setup-picker-modal .modal-header {
-  background: var(--bg3);
-  border-color: var(--border);
-}
 .lap-setup-picker-modal .modal-body {
-  background: var(--bg2);
   padding: 0;
-}
-.lap-setup-picker-modal .modal-footer {
-  background: var(--bg3);
-  border-top: 1px solid var(--border);
-}
-.lap-setup-picker-modal .btn-close {
-  filter: invert(1) grayscale(1);
 }
 .lap-setup-picker-modal .list-group-item {
   background: var(--bg2);
@@ -926,30 +847,7 @@ body {
   overflow-y: auto;
 }
 
-/* ── Game Picker Modal ── */
-.game-picker-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.game-picker-modal .modal-header,
-.game-picker-modal .modal-footer {
-  background: var(--bg3);
-  border-color: var(--border);
-}
-.game-picker-modal .modal-body {
-  background: var(--bg2);
-}
-.game-picker-modal .btn-close {
-  filter: invert(1) grayscale(1);
-}
-
 /* ── Screenshot Picker Modal ── */
-.screenshot-picker-modal .modal-content {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text);
-}
 .picker-header {
   background: var(--bg3);
   border-bottom: 1px solid var(--border);

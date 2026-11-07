@@ -149,12 +149,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
         <FontAwesomeIcon icon={faMicrophone} aria-hidden />
       </Button>
 
-      <Modal
-        show={showModal}
-        onHide={() => setShowModal(false)}
-        centered
-        className="delete-confirm-modal"
-      >
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Commenta l&apos;analisi</Modal.Title>
         </Modal.Header>

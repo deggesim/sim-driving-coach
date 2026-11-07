@@ -312,7 +312,6 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
         show={pendingDelete !== null}
         onHide={() => setPendingDelete(null)}
         centered
-        className="delete-confirm-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>Elimina analisi</Modal.Title>

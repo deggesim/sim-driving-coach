@@ -244,13 +244,7 @@ const SetupSelectionModal = ({
 
   return (
     <>
-      <Modal
-        show={show && !suspended}
-        onHide={onClose}
-        centered
-        size="lg"
-        className="setup-selection-modal"
-      >
+      <Modal show={show && !suspended} onHide={onClose} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title style={{ fontSize: 15 }}>
             {lapCount != null
