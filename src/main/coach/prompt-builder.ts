@@ -541,7 +541,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     }
     if (fixedSetup) {
       parts.push(
-        `- **Setup Fisso attivo**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. La messa a punto di base mostra solo condotti e bilanciamento freni; i condotti non sono modificabili.`,
+        `- **Setup Fisso attivo**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. La messa a punto di base valuta solo il bilanciamento freni; condotti e ogni altra regolazione non sono modificabili.`,
       );
     }
   }

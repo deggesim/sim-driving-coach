@@ -248,8 +248,8 @@ const AnalysisHeader = ({
                   }}
                 />
                 <Form.Text id="fixed-setup-hint" className="deb-hint">
-                  Si valutano solo condotti e bilanciamento freni; i condotti
-                  non vengono proposti.
+                  Si valutano solo bilanciamento e pressione dei freni, gli
+                  unici parametri modificabili.
                 </Form.Text>
               </div>
             </div>

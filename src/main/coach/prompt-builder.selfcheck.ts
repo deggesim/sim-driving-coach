@@ -789,7 +789,7 @@ const fixedCtx = buildSessionPrompt({
 });
 assert.ok(
   fixedCtx.includes(
-    "La messa a punto di base mostra solo condotti e bilanciamento freni",
+    "La messa a punto di base valuta solo il bilanciamento freni",
   ),
   "fixed setup wording",
 );

@@ -453,7 +453,7 @@ export const computeSetupLadder = (
 
   // Laps missing: step 1 alone, current once it has 2 laps and needs a fix.
   if (lapsMissing > 0) {
-    const steps = brakeLaps.length ? [levered(ducts)] : [];
+    const steps = brakeLaps.length && !opts.fixedSetup ? [levered(ducts)] : [];
     return {
       ...base,
       steps,
@@ -714,11 +714,9 @@ export const computeSetupLadder = (
     return step(6, L, "ok", data);
   })();
 
-  // Fixed setup: only ducts and bias exist, and the ducts cannot be touched.
+  // Fixed setup: only brake bias and brake pressure can be changed, so only bias is judged.
   const steps = (
-    opts.fixedSetup
-      ? [ducts, bias]
-      : [ducts, bias, engine, pressures, camber, diff]
+    opts.fixedSetup ? [bias] : [ducts, bias, engine, pressures, camber, diff]
   ).map((s) => limited(levered(s)));
   return { ...base, steps, current: currentOf(steps) };
 };

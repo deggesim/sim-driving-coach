@@ -552,14 +552,15 @@ assert.ok(
 assert.equal(old.current, null);
 assert.equal(old.tyres.length, 0);
 
-// --- fixedSetup: steps 1-2 only, step 1 not proposable ---
+// --- fixedSetup: only the bias step (brake ducts are not judged) ---
 const fixed = ladder(
   okZone({ avgBrakeTempC: [720, 720, 400, 400], lockFramesFront: 8 }),
   true,
 );
-assert.equal(fixed.steps.length, 2);
-assert.equal(stepOf(fixed, 1).status, "fix");
-assert.equal(stepOf(fixed, 1).proposable, false);
+assert.deepEqual(
+  fixed.steps.map((s) => s.n),
+  [2],
+);
 assert.equal(fixed.current, 2);
 
 // --- leaderboardMode: tyres fixed at 85 °C, so steps 4-5 are na and no tyre lines ---
@@ -623,7 +624,7 @@ const lbFixed = computeSetupLadder(
   new Map(),
   { fixedSetup: true, leaderboardMode: true },
 );
-assert.equal(lbFixed.steps.length, 2, "Leaderboard + Fixed Setup: steps 1-2");
+assert.equal(lbFixed.steps.length, 1, "Leaderboard + Fixed Setup: bias only");
 assert.equal(lbFixed.current, 2);
 assert.equal(lbFixed.tyres.length, 0);
 assert.equal(
@@ -883,7 +884,7 @@ assert.deepEqual(
   }).steps,
   [],
 );
-// Fixed Setup: step 1 is not proposable, so never current before the judged laps.
+// Fixed Setup: ducts are not judged, so never current before the judged laps.
 assert.equal(
   computeSetupLadder(drifting(3, [720, 720, 400, 400]), new Map(), {
     fixedSetup: true,
