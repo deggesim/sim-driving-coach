@@ -22,6 +22,10 @@ See `package.json` scripts. The non-obvious parts:
 - `npm run build:electron` is the only script that produces a distributable; `npm run build` is the Vite bundle alone.
 - **There is no test runner** (`npm test` does not exist). The gate before any commit is `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck && npm run fallow:check` — five commands, all must exit zero. `fallow:check` (dead code / unused exports / unresolved imports) is also wired into the `.husky/pre-commit` hook alongside lint, gated the same way (only runs when the commit touches `.ts`/`.tsx`), see `.fallowrc.json` for project-specific suppressions (dynamic `koffi` require, Vite `public/` assets, generated `r3e-corners.ts`, etc.).
 
+## Releases
+
+Automatic via semantic-release (`.releaserc.json`, workflow `.github/workflows/semantic-release.yml`): every push to `master` runs the gate, computes the version from **Conventional Commits** (`feat` → minor, `fix`/`docs`/`style`/`refactor`/`perf`/`chore` → patch, `feat!`/`BREAKING CHANGE` → major, `test`/`build`/`ci` → no release), updates `CHANGELOG.md` + `package.json`, tags `vX.Y.Z`, creates the GitHub Release and uploads the Windows `.exe`. Merge PRs with **squash** and a conventional PR title (checked by `pr-title-validation.yml`) — the title becomes the commit analysed. Never edit `version` or `CHANGELOG.md` by hand.
+
 ## Development Tips
 
 ### Common Gotchas
