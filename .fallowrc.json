@@ -20,7 +20,13 @@
   // koffi is loaded via a dynamic require() (see r3e/ace/ams2 readers + input-manager),
   // invisible to static import analysis.
   // conventional-changelog-conventionalcommits is the `preset` named in .releaserc.json, loaded by name.
-  "ignoreDependencies": ["koffi", "conventional-changelog-conventionalcommits"],
+  // @emnapi/*: pinned so the lockfile has them at the top level — npm ci on Linux fails without them (optional peers of the rolldown wasm binding).
+  "ignoreDependencies": [
+    "koffi",
+    "conventional-changelog-conventionalcommits",
+    "@emnapi/core",
+    "@emnapi/runtime"
+  ],
   // Vite's public-dir convention, not a real module specifier — resolved at build time
   // by Vite, not by fallow's resolver.
   "ignoreUnresolvedImports": ["/icon.png"],
