@@ -1,0 +1,94 @@
+name: Semantic Release
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      # Same gate as the local pre-commit (see CLAUDE.md)
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run selfcheck
+      - run: npm run fallow:check
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Run Semantic Release
+        id: release
+        run: |
+          before=$(node -p "require('./package.json').version")
+          npx semantic-release
+          after=$(node -p "require('./package.json').version")
+          echo "version=$after" >> "$GITHUB_OUTPUT"
+          # semantic-release bumps package.json in place only when it publishes
+          if [ "$before" != "$after" ]; then echo "released=true" >> "$GITHUB_OUTPUT"; fi
+        env:
+          HUSKY: "0"
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+  build-electron:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Build Electron app
+        run: npx electron-vite build && npx electron-builder --publish never
+
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.release.outputs.version }}
+          files: release/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,7 +19,8 @@
   ],
   // koffi is loaded via a dynamic require() (see r3e/ace/ams2 readers + input-manager),
   // invisible to static import analysis.
-  "ignoreDependencies": ["koffi"],
+  // conventional-changelog-conventionalcommits is the `preset` named in .releaserc.json, loaded by name.
+  "ignoreDependencies": ["koffi", "conventional-changelog-conventionalcommits"],
   // Vite's public-dir convention, not a real module specifier — resolved at build time
   // by Vite, not by fallow's resolver.
   "ignoreUnresolvedImports": ["/icon.png"],
