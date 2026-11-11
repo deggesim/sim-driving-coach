@@ -33,6 +33,7 @@
     "axios": "^1.15.0",
     "better-sqlite3": "^12.9.0",
     "bootstrap": "^5.3.8",
+    "electron-updater": "^6.8.11",
     "koffi": "^2.16.0",
     "marked": "^18.0.1",
     "react-bootstrap": "^2.10.10",

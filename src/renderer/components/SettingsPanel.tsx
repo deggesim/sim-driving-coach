@@ -1,3 +1,4 @@
+import { UPDATE_MOCK_EVENT } from "./UpdateModals";
 import { useEffect, useCallback, useState, useRef } from "react";
 import {
   Button,
@@ -968,6 +969,25 @@ const SettingsPanel = () => {
                   {mockHistoryMode
                     ? "3 sessioni mock visibili nello storico (R3E + ACE + AMS2, 3 giri ciascuna)"
                     : "Inserisce sessioni fittizie nello storico per test UI"}
+                </span>
+              </Col>
+            </Form.Group>
+            <Form.Group as={Row} className="mb-3">
+              <Form.Label column sm={3}>
+                Aggiornamento mock
+              </Form.Label>
+              <Col sm={9} className="d-flex align-items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    window.dispatchEvent(new Event(UPDATE_MOCK_EVENT))
+                  }
+                >
+                  Simula aggiornamento
+                </Button>
+                <span className="text-secondary" style={{ fontSize: 12 }}>
+                  Apre la notifica di nuova versione e simula il download, senza
+                  installare nulla
                 </span>
               </Col>
             </Form.Group>

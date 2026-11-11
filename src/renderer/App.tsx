@@ -12,6 +12,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import StatusBar from "./components/StatusBar";
 import TitleBar from "./components/TitleBar";
 import TTSManager from "./components/TTSManager";
+import { UpdateModals } from "./components/UpdateModals";
 import VoiceCoachOverlay from "./components/VoiceCoachOverlay";
 import { useIPC } from "./hooks/useIPC";
 import { useVoiceCoach } from "./hooks/useVoiceCoach";
@@ -92,6 +93,8 @@ const App = () => {
         transcript={transcript}
         answer={answer}
       />
+
+      <UpdateModals />
 
       {/* Title bar (frameless Electron drag area) */}
       <TitleBar tab={tab} onTabChange={changeTab} />

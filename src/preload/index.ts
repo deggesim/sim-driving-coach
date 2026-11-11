@@ -197,4 +197,25 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   readerReset: (game: GameSource) =>
     ipcRenderer.invoke("reader:reset", { game }),
+
+  onUpdateAvailable: (callback: (data: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
+    ipcRenderer.on("update:available", listener);
+    return () => ipcRenderer.removeListener("update:available", listener);
+  },
+  onUpdateProgress: (callback: (data: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
+    ipcRenderer.on("update:progress", listener);
+    return () => ipcRenderer.removeListener("update:progress", listener);
+  },
+  onUpdateError: (callback: (data: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: unknown) =>
+      callback(data);
+    ipcRenderer.on("update:error", listener);
+    return () => ipcRenderer.removeListener("update:error", listener);
+  },
+  updatePending: () => ipcRenderer.invoke("update:pending"),
+  updateDownload: () => ipcRenderer.invoke("update:download"),
 });

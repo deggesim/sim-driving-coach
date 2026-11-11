@@ -33,7 +33,14 @@ win:
   # Uncomment and set to the CN of your code-signing certificate when ready:
   # certificateSubjectName: "Simone De Gennaro"
 
+publish:
+  provider: github
+  owner: deggesim
+  repo: sim-driving-coach
+
 nsis:
+  # Fixed hyphenated names: latest.yml must match the asset name GitHub stores.
+  artifactName: sim-driving-coach-setup-${version}.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
   installerIcon: build/icon.ico
@@ -98,3 +105,6 @@ asarUnpack:
   - "node_modules/koffi/build/koffi/win32_x64/koffi.node"
   - "node_modules/koffi/build/koffi/win32_arm64/koffi.node"
   - "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+
+portable:
+  artifactName: sim-driving-coach-portable-${version}.${ext}
