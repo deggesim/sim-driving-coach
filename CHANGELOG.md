@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/deggesim/sim-driving-coach/compare/v1.1.0...v1.2.0) (2026-11-11)
+
+
+### Features
+
+* notifica di aggiornamento all'avvio con download e installazione ([#24](https://github.com/deggesim/sim-driving-coach/issues/24)) ([3cc9419](https://github.com/deggesim/sim-driving-coach/commit/3cc94194582b4cb9c9f6af41f0a3cc05961464d6))
+
 # [1.1.0](https://github.com/deggesim/sim-driving-coach/compare/v1.0.0...v1.1.0) (2026-11-10)
 
 
