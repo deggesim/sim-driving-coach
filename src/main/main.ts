@@ -96,6 +96,7 @@ import {
   isCreditOrQuotaError,
 } from "./coach/session-coach.js";
 import { createZoneTracker } from "./zone-tracker.js";
+import { initUpdater } from "./updater.js";
 
 // Chromium's Native Window Occlusion (Windows) treats a window fully covered by
 // another app - the simulator running fullscreen - as hidden: it pauses the
@@ -2523,6 +2524,7 @@ app.whenReady().then(() => {
   // registrations are in place before the renderer sends its first IPC calls.
   setupPipeline();
   createWindow();
+  initUpdater(() => mainWindow);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

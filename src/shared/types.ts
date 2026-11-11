@@ -510,6 +510,12 @@ export type SessionListResult = {
   pageSize: number;
 };
 
+export type UpdateProgress = {
+  percent: number;
+  transferred: number;
+  total: number;
+};
+
 export type ElectronAPI = {
   // Push channels (Main → Renderer)
   // Each method returns a cleanup function that removes the listener.
@@ -711,6 +717,15 @@ export type ElectronAPI = {
 
   // Reader control
   readerReset: (game: GameSource) => Promise<void>;
+
+  // Auto-update
+  onUpdateAvailable: (
+    callback: (data: { version: string }) => void,
+  ) => () => void;
+  onUpdateProgress: (callback: (data: UpdateProgress) => void) => () => void;
+  onUpdateError: (callback: (data: { message: string }) => void) => () => void;
+  updatePending: () => Promise<string | null>;
+  updateDownload: () => Promise<void>;
 };
 
 declare global {
