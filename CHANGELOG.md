@@ -1,3 +1,65 @@
+# [2.0.0](https://github.com/deggesim/sim-driving-coach/compare/v1.2.0...v2.0.0) (2026-11-13)
+
+
+* feat!: interfaccia, voce e analisi in 5 lingue ([#25](https://github.com/deggesim/sim-driving-coach/issues/25)) ([6940618](https://github.com/deggesim/sim-driving-coach/commit/6940618623876d67fbb05fa8506dc1f0320a8f13))
+
+
+### BREAKING CHANGES
+
+* i setup salvati con nomi italiani non sono più riconosciuti dalla messa a punto; serve un reset del DB.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: prompt in inglese con output nella lingua scelta
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* fix: ban del gergo di procedura limitato alla procedura
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: interfaccia tradotta (impostazioni e guscio app)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: interfaccia tradotta (sessioni, giri e analisi)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* fix: ripristina il fuso orario nelle date dello storico sessioni
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: interfaccia tradotta (setup)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: voce e riconoscimento vocale nella lingua scelta
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: alert e deviazioni nella lingua scelta
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: conferme vocali, messaggi e PDF localizzati
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* feat: comandi vocali in 5 lingue
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* docs: regole i18n in CLAUDE.md
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* fix: falsi positivi dei comandi vocali e rifiniture i18n
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+* i18n Azure regions
+
 # [1.2.0](https://github.com/deggesim/sim-driving-coach/compare/v1.1.0...v1.2.0) (2026-11-11)
 
 
