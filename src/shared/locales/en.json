@@ -572,5 +572,42 @@
     "importHint": "Give a name for this car/track combination before using the imported setup.",
     "import": "Import",
     "renameError": "Unable to rename the setup."
+  },
+  "alert": {
+    "label": {
+      "BRAKE_TEMP_CRITICAL": "critical brake temperature",
+      "TC_ANOMALY": "traction control anomaly",
+      "ABS_ANOMALY": "ABS anomaly",
+      "LATE_BRAKE": "late braking",
+      "SLOW_THROTTLE": "late throttle application",
+      "TRAIL_BRAKING": "excessive trail braking",
+      "COASTING": "coasting",
+      "BRAKE_THROTTLE_OVERLAP": "brake and throttle overlap"
+    },
+    "wheel": {
+      "FL": "front left",
+      "FR": "front right",
+      "RL": "rear left",
+      "RR": "rear right"
+    },
+    "brakeWheel": {
+      "FL": "front left",
+      "FR": "front right",
+      "RL": "rear left",
+      "RR": "rear right"
+    },
+    "brakeTemp": "Brake {{wheel}} at {{temp}} degrees - critical zone",
+    "tcAnomaly": "TC active at {{location}} - unusual zone",
+    "absAnomaly": "ABS active at {{location}} - unusual zone",
+    "atMeter": "meter {{m}}",
+    "atCorner": "{{corner}}, meter {{m}}",
+    "located": "{{location}}: {{text}}",
+    "dev": {
+      "lateBrake": "braked {{delta}} meters after the reference",
+      "slowThrottle": "throttle picked up {{delta}} meters late",
+      "trailBraking": "unusual steering while braking, delta {{delta}}%",
+      "coasting": "{{delta}} more coasting frames than the reference",
+      "overlap": "{{delta}} more brake-throttle overlap frames"
+    }
   }
 }

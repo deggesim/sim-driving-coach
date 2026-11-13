@@ -572,5 +572,42 @@
     "importHint": "Vergib einen Namen für diese Auto/Strecken-Kombination, bevor du das importierte Setup verwendest.",
     "import": "Importieren",
     "renameError": "Das Setup kann nicht umbenannt werden."
+  },
+  "alert": {
+    "label": {
+      "BRAKE_TEMP_CRITICAL": "kritische Bremstemperatur",
+      "TC_ANOMALY": "Traktionskontrolle auffällig",
+      "ABS_ANOMALY": "ABS auffällig",
+      "LATE_BRAKE": "zu spätes Bremsen",
+      "SLOW_THROTTLE": "zu spätes Gasgeben",
+      "TRAIL_BRAKING": "übermäßiges Trail-Braking",
+      "COASTING": "Coasting",
+      "BRAKE_THROTTLE_OVERLAP": "Überlappung von Bremse und Gas"
+    },
+    "wheel": {
+      "FL": "vorne links",
+      "FR": "vorne rechts",
+      "RL": "hinten links",
+      "RR": "hinten rechts"
+    },
+    "brakeWheel": {
+      "FL": "vorne links",
+      "FR": "vorne rechts",
+      "RL": "hinten links",
+      "RR": "hinten rechts"
+    },
+    "brakeTemp": "Bremse {{wheel}} bei {{temp}} Grad - kritischer Bereich",
+    "tcAnomaly": "TC aktiv bei {{location}} - ungewöhnliche Stelle",
+    "absAnomaly": "ABS aktiv bei {{location}} - ungewöhnliche Stelle",
+    "atMeter": "Meter {{m}}",
+    "atCorner": "{{corner}}, Meter {{m}}",
+    "located": "{{location}}: {{text}}",
+    "dev": {
+      "lateBrake": "{{delta}} Meter nach der Referenz gebremst",
+      "slowThrottle": "Gas {{delta}} Meter zu spät aufgenommen",
+      "trailBraking": "auffälliges Lenken beim Bremsen, Delta {{delta}}%",
+      "coasting": "{{delta}} Coasting-Frames mehr als die Referenz",
+      "overlap": "{{delta}} Frames mehr Überlappung von Bremse und Gas"
+    }
   }
 }

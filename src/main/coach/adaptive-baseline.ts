@@ -55,13 +55,15 @@ const makeDeviation = (
   type: DeviationType,
   zone: ZoneData,
   delta: number,
-  message: string,
+  messageKey: string,
+  messageVars: Deviation["messageVars"],
 ): Deviation => ({
   type,
   zone: zone.zone,
   dist: zone.dist,
   delta,
-  message,
+  messageKey,
+  messageVars,
 });
 
 export const createAdaptiveBaseline = (
@@ -162,12 +164,9 @@ export const createAdaptiveBaseline = (
       ) {
         const delta = zone.brakeStartDist - base.brakeStartDist;
         deviations.push(
-          makeDeviation(
-            "LATE_BRAKE",
-            zone,
-            delta,
-            `frenato ${delta.toFixed(0)} metri dopo il riferimento`,
-          ),
+          makeDeviation("LATE_BRAKE", zone, delta, "alert.dev.lateBrake", {
+            delta: Math.round(delta),
+          }),
         );
       }
 
@@ -183,7 +182,8 @@ export const createAdaptiveBaseline = (
             "SLOW_THROTTLE",
             zone,
             delta,
-            `gas ripreso ${delta.toFixed(0)} metri in ritardo`,
+            "alert.dev.slowThrottle",
+            { delta: Math.round(delta) },
           ),
         );
       }
@@ -199,7 +199,8 @@ export const createAdaptiveBaseline = (
             "TRAIL_BRAKING",
             zone,
             delta,
-            `sterzata in frenata anomala, delta ${(delta * 100).toFixed(0)}%`,
+            "alert.dev.trailBraking",
+            { delta: Math.round(delta * 100) },
           ),
         );
       }
@@ -208,12 +209,9 @@ export const createAdaptiveBaseline = (
       if (zone.coastFrames - base.coastFrames > t.coastingExtraFrames) {
         const delta = zone.coastFrames - base.coastFrames;
         deviations.push(
-          makeDeviation(
-            "COASTING",
-            zone,
-            delta,
-            `${delta.toFixed(0)} frame di coasting in più del riferimento`,
-          ),
+          makeDeviation("COASTING", zone, delta, "alert.dev.coasting", {
+            delta: Math.round(delta),
+          }),
         );
       }
 
@@ -225,7 +223,8 @@ export const createAdaptiveBaseline = (
             "BRAKE_THROTTLE_OVERLAP",
             zone,
             delta,
-            `${delta.toFixed(0)} frame di overlap freno-gas in più`,
+            "alert.dev.overlap",
+            { delta: Math.round(delta) },
           ),
         );
       }

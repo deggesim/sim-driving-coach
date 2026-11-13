@@ -23,7 +23,11 @@ export type Alert = {
   zone: number;
   dist: number;
   lap: number;
+  // Spoken/UI text in the language active when the alert fired.
   message: string;
+  // Language-neutral source of `message`: the Claude prompt re-renders it in English.
+  messageKey: string;
+  messageVars: Record<string, string | number>;
   immediate: boolean;
   data?: Record<string, unknown>;
   timestamp: number;
@@ -43,7 +47,8 @@ export type Deviation = {
   zone: number;
   dist: number;
   delta: number;
-  message: string;
+  messageKey: string;
+  messageVars: Record<string, string | number>;
 };
 
 // --- Active game source ---

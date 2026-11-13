@@ -572,5 +572,42 @@
     "importHint": "Assegna un nome per questa combinazione auto/circuito prima di usare il setup importato.",
     "import": "Importa",
     "renameError": "Impossibile rinominare il setup."
+  },
+  "alert": {
+    "label": {
+      "BRAKE_TEMP_CRITICAL": "temperatura critica dei freni",
+      "TC_ANOMALY": "anomalia controllo di trazione",
+      "ABS_ANOMALY": "anomalia abs",
+      "LATE_BRAKE": "frenata tardiva",
+      "SLOW_THROTTLE": "accelerazione tardiva",
+      "TRAIL_BRAKING": "trail braking eccessivo",
+      "COASTING": "coasting",
+      "BRAKE_THROTTLE_OVERLAP": "sovrapposizione freno gas"
+    },
+    "wheel": {
+      "FL": "anteriore sinistra",
+      "FR": "anteriore destra",
+      "RL": "posteriore sinistra",
+      "RR": "posteriore destra"
+    },
+    "brakeWheel": {
+      "FL": "anteriore sinistro",
+      "FR": "anteriore destro",
+      "RL": "posteriore sinistro",
+      "RR": "posteriore destro"
+    },
+    "brakeTemp": "Freno {{wheel}} a {{temp}} gradi - zona critica",
+    "tcAnomaly": "TC attivo a {{location}} - zona insolita",
+    "absAnomaly": "ABS attivo a {{location}} - zona insolita",
+    "atMeter": "metro {{m}}",
+    "atCorner": "{{corner}}, metro {{m}}",
+    "located": "{{location}}: {{text}}",
+    "dev": {
+      "lateBrake": "frenato {{delta}} metri dopo il riferimento",
+      "slowThrottle": "gas ripreso {{delta}} metri in ritardo",
+      "trailBraking": "sterzata in frenata anomala, delta {{delta}}%",
+      "coasting": "{{delta}} frame di coasting in più del riferimento",
+      "overlap": "{{delta}} frame di overlap freno-gas in più"
+    }
   }
 }

@@ -30,7 +30,8 @@ import { computeSessionStats } from "./session-stats.js";
 import type { SetupLadder } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
-import { LANGUAGES, RESOURCES } from "../../shared/i18n.js";
+import { createI18n, LANGUAGES, RESOURCES } from "../../shared/i18n.js";
+import { setLanguage } from "../i18n-main.js";
 import { outputLanguageBlock } from "./output-language.js";
 
 const SYNTHESIS_SYSTEM_PROMPT = synthesisSystemPrompt("en");
@@ -432,6 +433,8 @@ const statsIn = {
       dist: 150,
       lap: 1,
       message: "x",
+      messageKey: "alert.dev.lateBrake",
+      messageVars: { delta: 18, m: 150 },
       immediate: false,
       timestamp: 0,
     } satisfies Alert,
@@ -817,16 +820,66 @@ assert.ok(
 
 // Alert codes never reach the prompt: the analysis text is rendered, exported to
 // PDF and read aloud, and "LATE_BRAKE" is unpronounceable in a spoken sentence.
-assert.ok(calc.includes("1 alert (frenata tardiva×1)"), "alert type decoded");
+assert.ok(calc.includes("1 alert (late braking×1)"), "alert type decoded");
 assert.ok(!calc.includes("LATE_BRAKE"), "no raw alert code in the prompt");
 
 // Safety net on the model output: prior analyses saved before this change are
 // injected verbatim into the next prompt and can be copied forward.
+const itT = createI18n("it").t;
 assert.equal(
-  decodeAlertCodes("2 (LATE_BRAKE) su ANT-SX, TC_ANOMALY a POST-DX"),
+  decodeAlertCodes(itT, "2 (LATE_BRAKE) su ANT-SX, TC_ANOMALY a POST-DX"),
   "2 (frenata tardiva) su anteriore sinistra, anomalia controllo di trazione a posteriore destra",
 );
-assert.equal(decodeAlertCodes("nessun codice"), "nessun codice");
+assert.equal(decodeAlertCodes(itT, "nessun codice"), "nessun codice");
+assert.equal(
+  decodeAlertCodes(createI18n("de").t, "LATE_BRAKE su ANT-DX"),
+  "zu spätes Bremsen su vorne rechts",
+);
+
+// The prompt is English whatever the active language: alert text is rendered
+// from key + vars, not from the spoken `message`.
+setLanguage("de");
+const deAlerts = buildSessionPrompt({
+  ...input,
+  alerts: [
+    {
+      type: "BRAKE_TEMP_CRITICAL",
+      priority: 1,
+      zone: 3,
+      dist: 150,
+      lap: 1,
+      message: "Bremse vorne links bei 700 Grad - kritischer Bereich",
+      messageKey: "alert.brakeTemp",
+      messageVars: { wheel: "FL", temp: 700 },
+      immediate: true,
+      timestamp: 0,
+    },
+    {
+      type: "LATE_BRAKE",
+      priority: 3,
+      zone: 3,
+      dist: 150,
+      lap: 1,
+      message: "Kurve 4, Meter 150: 18 Meter nach der Referenz gebremst",
+      messageKey: "alert.dev.lateBrake",
+      messageVars: { delta: 18, corner: "Turn 4", m: 150 },
+      immediate: false,
+      timestamp: 0,
+    },
+  ],
+});
+assert.ok(
+  deAlerts.includes(
+    "[P1] @150m: Brake front left at 700 degrees - critical zone",
+  ),
+);
+assert.ok(
+  deAlerts.includes(
+    "[P3] @150m: Turn 4, meter 150: braked 18 meters after the reference",
+  ),
+);
+assert.ok(!deAlerts.includes("Bremse") && !deAlerts.includes("Kurve"));
+setLanguage("en");
 
 // --- capPriorDetail: short text untouched, long text keeps the setup section ---
 const shortDetail = "### Analisi telemetria\nbreve";

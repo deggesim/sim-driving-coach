@@ -16,6 +16,7 @@ import type {
   SessionSetupRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import { englishT, renderMessage } from "../../shared/alert-types.js";
 import { getLanguage } from "../i18n-main.js";
 import { outputLanguageBlock } from "./output-language.js";
 import { nestHeadings } from "./prompt-builder.js";
@@ -111,7 +112,9 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     for (const d of ctx.deviations) {
       const cn = ctx.cornerMap.get(Math.floor(d.dist / 50));
       const label = cn ? ` [${cn}]` : "";
-      parts.push(`- ${d.type} @${d.dist}m${label}: ${d.message}`);
+      parts.push(
+        `- ${d.type} @${d.dist}m${label}: ${renderMessage(englishT, d.messageKey, d.messageVars)}`,
+      );
     }
   }
 
@@ -124,7 +127,9 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     parts.push(`\n## Alerts raised in the session (${ctx.alerts.length})`);
     for (const a of ctx.alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
-      parts.push(`- [${prio}] @${Math.round(a.dist)}m: ${a.message}`);
+      parts.push(
+        `- [${prio}] @${Math.round(a.dist)}m: ${renderMessage(englishT, a.messageKey, a.messageVars)}`,
+      );
     }
   }
 

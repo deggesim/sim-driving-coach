@@ -11,8 +11,10 @@
  */
 
 import {
-  ALERT_LABELS,
+  alertLabel,
   BRAKE_TEMP,
+  englishT,
+  renderMessage,
   ZONE_SIZE_M,
 } from "../../shared/alert-types.js";
 import type {
@@ -446,7 +448,7 @@ export const buildStatsBlock = (
         ? `${c.cornerName} (@${c.dist}m)`
         : `@${c.dist}m`;
       const types = Object.entries(c.alertsByType)
-        .map(([t, n]) => `${ALERT_LABELS[t as AlertType] ?? t}×${n}`)
+        .map(([t, n]) => `${alertLabel(englishT, t as AlertType)}×${n}`)
         .join(", ");
       const bits = [
         `${c.alertCount} ${c.alertCount === 1 ? "alert" : "alerts"} (${types})`,
@@ -723,7 +725,9 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     parts.push(`## Alerts raised in the session (${alerts.length})`);
     for (const a of alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
-      parts.push(`- [${prio}] @${Math.round(a.dist)}m: ${a.message}`);
+      parts.push(
+        `- [${prio}] @${Math.round(a.dist)}m: ${renderMessage(englishT, a.messageKey, a.messageVars)}`,
+      );
     }
     parts.push("");
   }

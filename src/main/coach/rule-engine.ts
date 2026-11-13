@@ -7,7 +7,12 @@
  */
 
 import { EventEmitter } from "events";
-import { BRAKE_TEMP } from "../../shared/alert-types.js";
+import {
+  BRAKE_TEMP,
+  renderMessage,
+  type MessageVars,
+} from "../../shared/alert-types.js";
+import { tm } from "../i18n-main.js";
 import type {
   Alert,
   AlertType,
@@ -37,6 +42,12 @@ export const createAlertDispatcher = (): AlertDispatcher => {
 
 // --- RuleEngine ---
 
+// Language-neutral track position: the corner as stored plus the metre.
+const position = (corner: string | null, dist: number): MessageVars => ({
+  ...(corner ? { corner } : {}),
+  m: Math.round(dist),
+});
+
 type GetCornerNameFn = (dist: number) => string | null;
 
 export type RuleEngine = {
@@ -61,10 +72,10 @@ export const createRuleEngine = (
     lap: number,
   ): void => {
     const temps = [
-      { label: "anteriore sinistro", value: frame.brakeTempFL },
-      { label: "anteriore destro", value: frame.brakeTempFR },
-      { label: "posteriore sinistro", value: frame.brakeTempRL },
-      { label: "posteriore destro", value: frame.brakeTempRR },
+      { label: "FL", value: frame.brakeTempFL },
+      { label: "FR", value: frame.brakeTempFR },
+      { label: "RL", value: frame.brakeTempRL },
+      { label: "RR", value: frame.brakeTempRR },
     ];
 
     temps.forEach((t, i) => {
@@ -75,13 +86,16 @@ export const createRuleEngine = (
       }
       if (t.value > BRAKE_TEMP.max) {
         brakeHot[i] = true;
+        const messageVars = { wheel: t.label, temp: Math.round(t.value) };
         dispatcher.dispatch({
           type: "BRAKE_TEMP_CRITICAL",
           priority: 1,
           zone,
           dist: frame.lapDistance,
           lap,
-          message: `Freno ${t.label} a ${Math.round(t.value)} gradi - zona critica`,
+          message: renderMessage(tm, "alert.brakeTemp", messageVars),
+          messageKey: "alert.brakeTemp",
+          messageVars,
           immediate: true,
           data: { temp: t.value, wheel: t.label },
           timestamp: Date.now(),
@@ -93,7 +107,7 @@ export const createRuleEngine = (
   const checkTcAbsAnomaly = (
     frame: GameFrame,
     zone: number,
-    location: string,
+    where: MessageVars,
     lap: number,
   ): void => {
     const check = baseline.checkZoneRealtime({
@@ -109,7 +123,9 @@ export const createRuleEngine = (
         zone,
         dist: frame.lapDistance,
         lap,
-        message: `TC attivo a ${location} - zona insolita`,
+        message: renderMessage(tm, "alert.tcAnomaly", where),
+        messageKey: "alert.tcAnomaly",
+        messageVars: where,
         immediate: true,
         timestamp: Date.now(),
       });
@@ -122,7 +138,9 @@ export const createRuleEngine = (
         zone,
         dist: frame.lapDistance,
         lap,
-        message: `ABS attivo a ${location} - zona insolita`,
+        message: renderMessage(tm, "alert.absAnomaly", where),
+        messageKey: "alert.absAnomaly",
+        messageVars: where,
         immediate: true,
         timestamp: Date.now(),
       });
@@ -133,21 +151,19 @@ export const createRuleEngine = (
     processFrame: (frame: GameFrame, currentLap: number) => {
       const zone = Math.floor(frame.lapDistance / 50);
       const cornerName = getCornerName(frame.lapDistance);
-      const location = cornerName
-        ? `${cornerName}, metro ${Math.round(frame.lapDistance)}`
-        : `metro ${Math.round(frame.lapDistance)}`;
+      const where = position(cornerName, frame.lapDistance);
 
       checkBrakeTemp(frame, zone, currentLap);
-      if (baseline.isReady())
-        checkTcAbsAnomaly(frame, zone, location, currentLap);
+      if (baseline.isReady()) checkTcAbsAnomaly(frame, zone, where, currentLap);
     },
 
     processLapDeviations: (deviations, lap) => {
       for (const dev of deviations) {
         const cornerName = getCornerName(dev.dist);
-        const location = cornerName
-          ? `${cornerName}, metro ${Math.round(dev.dist)}`
-          : `metro ${Math.round(dev.dist)}`;
+        const messageVars = {
+          ...dev.messageVars,
+          ...position(cornerName, dev.dist),
+        };
 
         dispatcher.dispatch({
           type: dev.type as AlertType,
@@ -155,7 +171,9 @@ export const createRuleEngine = (
           zone: dev.zone,
           dist: dev.dist,
           lap,
-          message: `${location}: ${dev.message}`,
+          message: renderMessage(tm, dev.messageKey, messageVars),
+          messageKey: dev.messageKey,
+          messageVars,
           immediate: false,
           data: { delta: dev.delta },
           timestamp: Date.now(),

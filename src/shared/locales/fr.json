@@ -572,5 +572,42 @@
     "importHint": "Donnez un nom pour cette combinaison voiture/circuit avant d'utiliser le setup importé.",
     "import": "Importer",
     "renameError": "Impossible de renommer le setup."
+  },
+  "alert": {
+    "label": {
+      "BRAKE_TEMP_CRITICAL": "température critique des freins",
+      "TC_ANOMALY": "anomalie du contrôle de traction",
+      "ABS_ANOMALY": "anomalie de l'ABS",
+      "LATE_BRAKE": "freinage tardif",
+      "SLOW_THROTTLE": "remise des gaz tardive",
+      "TRAIL_BRAKING": "trail braking excessif",
+      "COASTING": "coasting",
+      "BRAKE_THROTTLE_OVERLAP": "chevauchement frein-accélérateur"
+    },
+    "wheel": {
+      "FL": "avant gauche",
+      "FR": "avant droite",
+      "RL": "arrière gauche",
+      "RR": "arrière droite"
+    },
+    "brakeWheel": {
+      "FL": "avant gauche",
+      "FR": "avant droit",
+      "RL": "arrière gauche",
+      "RR": "arrière droit"
+    },
+    "brakeTemp": "Frein {{wheel}} à {{temp}} degrés - zone critique",
+    "tcAnomaly": "TC actif à {{location}} - zone inhabituelle",
+    "absAnomaly": "ABS actif à {{location}} - zone inhabituelle",
+    "atMeter": "mètre {{m}}",
+    "atCorner": "{{corner}}, mètre {{m}}",
+    "located": "{{location}}: {{text}}",
+    "dev": {
+      "lateBrake": "freiné {{delta}} mètres après la référence",
+      "slowThrottle": "gaz repris {{delta}} mètres trop tard",
+      "trailBraking": "braquage anormal au freinage, delta {{delta}}%",
+      "coasting": "{{delta}} images de coasting en plus par rapport à la référence",
+      "overlap": "{{delta}} images de chevauchement frein-accélérateur en plus"
+    }
   }
 }

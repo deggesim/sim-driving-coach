@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import type { Alert, GameFrame } from "../../shared/types.js";
 import type { AdaptiveBaseline } from "./adaptive-baseline.js";
+import { setLanguage } from "../i18n-main.js";
 import { createAlertDispatcher, createRuleEngine } from "./rule-engine.js";
 
 const dispatcher = createAlertDispatcher();
@@ -32,5 +33,46 @@ assert.equal(alerts.length, 2, "a new episode after cooling down");
 engine.processFrame(frame(695, 700), 2);
 assert.equal(alerts.length, 3, "the other front wheel has its own episode");
 assert.ok(alerts.every((a) => a.type === "BRAKE_TEMP_CRITICAL"));
+
+// Language is read at fire time: the next alert after a switch is in the new one.
+const switched: Alert[] = [];
+const d2 = createAlertDispatcher();
+d2.on("alert", (a) => switched.push(a));
+const e2 = createRuleEngine(d2, baseline, () => "Turn 4");
+setLanguage("de");
+e2.processFrame(frame(700), 1);
+assert.match(switched[0].message, /^Bremse vorne links bei 700 Grad/);
+assert.equal(switched[0].messageKey, "alert.brakeTemp");
+assert.deepEqual(switched[0].messageVars, { wheel: "FL", temp: 700 });
+setLanguage("it");
+e2.processFrame(frame(500, 700), 1);
+assert.equal(
+  switched[1].message,
+  "Freno anteriore destro a 700 gradi - zona critica",
+);
+
+// Baseline deviations: message in the active language, corner localised, key + neutral vars kept.
+setLanguage("de");
+e2.processLapDeviations(
+  [
+    {
+      type: "LATE_BRAKE",
+      zone: 3,
+      dist: 160,
+      delta: 18.4,
+      messageKey: "alert.dev.lateBrake",
+      messageVars: { delta: 18 },
+    },
+  ],
+  1,
+);
+const dev = switched[2];
+assert.equal(
+  dev.message,
+  "Kurve 4, Meter 160: 18 Meter nach der Referenz gebremst",
+);
+assert.equal(dev.messageKey, "alert.dev.lateBrake");
+assert.deepEqual(dev.messageVars, { delta: 18, corner: "Turn 4", m: 160 });
+setLanguage("en");
 
 console.log("rule-engine.selfcheck OK");

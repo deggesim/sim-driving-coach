@@ -572,5 +572,42 @@
     "importHint": "Asigna un nombre para esta combinación coche/circuito antes de usar el setup importado.",
     "import": "Importar",
     "renameError": "No se puede renombrar el setup."
+  },
+  "alert": {
+    "label": {
+      "BRAKE_TEMP_CRITICAL": "temperatura crítica de los frenos",
+      "TC_ANOMALY": "anomalía del control de tracción",
+      "ABS_ANOMALY": "anomalía del ABS",
+      "LATE_BRAKE": "frenada tardía",
+      "SLOW_THROTTLE": "aceleración tardía",
+      "TRAIL_BRAKING": "trail braking excesivo",
+      "COASTING": "coasting",
+      "BRAKE_THROTTLE_OVERLAP": "solapamiento de freno y gas"
+    },
+    "wheel": {
+      "FL": "delantera izquierda",
+      "FR": "delantera derecha",
+      "RL": "trasera izquierda",
+      "RR": "trasera derecha"
+    },
+    "brakeWheel": {
+      "FL": "delantero izquierdo",
+      "FR": "delantero derecho",
+      "RL": "trasero izquierdo",
+      "RR": "trasero derecho"
+    },
+    "brakeTemp": "Freno {{wheel}} a {{temp}} grados - zona crítica",
+    "tcAnomaly": "TC activo en {{location}} - zona inusual",
+    "absAnomaly": "ABS activo en {{location}} - zona inusual",
+    "atMeter": "metro {{m}}",
+    "atCorner": "{{corner}}, metro {{m}}",
+    "located": "{{location}}: {{text}}",
+    "dev": {
+      "lateBrake": "frenada {{delta}} metros después de la referencia",
+      "slowThrottle": "gas retomado {{delta}} metros tarde",
+      "trailBraking": "giro anómalo al frenar, delta {{delta}}%",
+      "coasting": "{{delta}} fotogramas más de coasting que la referencia",
+      "overlap": "{{delta}} fotogramas más de solapamiento freno-gas"
+    }
   }
 }

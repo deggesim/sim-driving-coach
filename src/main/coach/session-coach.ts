@@ -345,6 +345,7 @@ export const createSessionCoachEngine = (
         // Decoded here, before stripVoiceTag/extractVoiceSummary: the codes must
         // not reach the saved text nor the summary the TTS reads.
         fullText = decodeAlertCodes(
+          tm,
           msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
         );
 
@@ -486,6 +487,7 @@ export const createSessionCoachEngine = (
             messages: [{ role: "user", content: prompt }],
           });
         fullText = decodeAlertCodes(
+          tm,
           finalMsg.content
             .map((b) => (b.type === "text" ? b.text : ""))
             .join(""),
@@ -593,6 +595,7 @@ export const createSessionCoachEngine = (
           messages: [{ role: "user", content: prompt }],
         });
         responseText = decodeAlertCodes(
+          tm,
           msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
         );
       } catch (err) {

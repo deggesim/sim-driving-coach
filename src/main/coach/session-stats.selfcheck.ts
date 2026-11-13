@@ -63,6 +63,8 @@ const alert = (z: number, type: string): Alert => ({
   dist: z * 50,
   lap: 2,
   message: "x",
+  messageKey: "alert.dev.lateBrake",
+  messageVars: {},
   immediate: false,
   timestamp: 0,
 });
