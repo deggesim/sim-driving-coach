@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/deggesim/sim-driving-coach/compare/v2.0.0...v2.1.0) (2026-11-13)
+
+
+### Features
+
+* step in punti per i parametri percentuali del setup ([#26](https://github.com/deggesim/sim-driving-coach/issues/26)) ([547d403](https://github.com/deggesim/sim-driving-coach/commit/547d403cd3f2278331f4839ec0d17ca58904dc92))
+
 # [2.0.0](https://github.com/deggesim/sim-driving-coach/compare/v1.2.0...v2.0.0) (2026-11-13)
 
 

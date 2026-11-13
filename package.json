@@ -1,6 +1,6 @@
 {
   "name": "sim-driving-coach",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "author": "Simone De Gennaro",
   "description": "Sim Racing Driving Coach — real-time driving coach for Sim racing games, supports RaceRoom Racing Experience (R3E), Assetto Corsa EVO (ACE) and Automobilista 2 (AMS2).",
