@@ -4,6 +4,7 @@ import type {
   SessionSetupRow,
   SetupData,
 } from "../../shared/types";
+import { rendererI18n } from "../i18n";
 import { useSessionStore } from "../store/sessionStore";
 
 type Options = {
@@ -12,7 +13,10 @@ type Options = {
   explicit?: boolean;
 };
 
-const lapsLabel = (n: number): string => `${n} ${n === 1 ? "giro" : "giri"}`;
+const lapsLabel = (n: number): string =>
+  rendererI18n.t(n === 1 ? "count.lap.one" : "count.lap.other", { n });
+
+const tr = rendererI18n.t.bind(rendererI18n);
 
 export const useSetupPicker = ({ showFlash, explicit }: Options) => {
   const session = useSessionStore((s) => s.session);
@@ -70,11 +74,14 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
         showFlash(
           "success",
           targets.length
-            ? `Setup ${named.name} caricato e assegnato a ${lapsLabel(targets.length)}.`
-            : `Setup caricato: ${named.name}`,
+            ? tr("setupPicker.loadedAssigned", {
+                name: named.name,
+                laps: lapsLabel(targets.length),
+              })
+            : tr("setupPicker.loaded", { name: named.name }),
         );
       } else {
-        showFlash("success", `Setup caricato: ${named.name}`);
+        showFlash("success", tr("setupPicker.loaded", { name: named.name }));
       }
     } catch (err) {
       // Anche il caricamento fallito consuma la lista: restare valorizzata
@@ -90,7 +97,8 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     setup: SetupData,
   ): Promise<void> => {
     const res = await updateSetup(id, game, setup);
-    if (res.ok) showFlash("success", `Setup aggiornato: ${setup.name}`);
+    if (res.ok)
+      showFlash("success", tr("setupPicker.updated", { name: setup.name }));
     else showFlash("danger", res.reason);
   };
 
@@ -99,7 +107,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
     try {
       if (explicit && session) {
         if (setupById.has(row.id)) {
-          showFlash("success", "Setup già presente nella sessione.");
+          showFlash("success", tr("setupPicker.alreadyInSession"));
           return;
         }
         const named: SetupData = row.setup.name
@@ -110,7 +118,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
           sessionId: session.id,
           game: session.game,
         });
-        showFlash("success", `Setup caricato: ${named.name}`);
+        showFlash("success", tr("setupPicker.loaded", { name: named.name }));
       } else if (!explicit) {
         let targetSetupId = row.id;
         if (!setupById.has(row.id)) {
@@ -126,7 +134,7 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
         }
         await window.electronAPI.sessionReuseSetup({ setupId: targetSetupId });
         setActiveSetup(targetSetupId);
-        showFlash("success", "Setup attivo aggiornato.");
+        showFlash("success", tr("setupPicker.activeUpdated"));
       }
     } catch (err) {
       showFlash("danger", String(err));
@@ -159,7 +167,10 @@ export const useSetupPicker = ({ showFlash, explicit }: Options) => {
         targetSetupId = result.setupId;
       }
       for (const lapId of lapIds) await assignLapSetup(lapId, targetSetupId);
-      showFlash("success", `Setup assegnato a ${lapsLabel(lapIds.length)}.`);
+      showFlash(
+        "success",
+        tr("setupPicker.assigned", { laps: lapsLabel(lapIds.length) }),
+      );
     } catch (err) {
       showFlash("danger", String(err));
     }

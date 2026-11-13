@@ -67,5 +67,235 @@
       "synthesisTruncated": "Synthesis truncated: token limit reached. The partial text was saved; run the analysis again.",
       "detailTruncated": "In-depth analysis truncated: token limit reached. The partial text was saved; try again."
     }
+  },
+  "setup": {
+    "param": {
+      "Spring Rate": "Spring Rate",
+      "Springs": "Springs",
+      "Spring": "Spring",
+      "Ride Height": "Ride Height",
+      "Front Ride Height": "Front Ride Height",
+      "Rear Ride Height": "Rear Ride Height",
+      "Bumpstop Travel": "Bumpstop Travel",
+      "Bumpstop Rate": "Bumpstop Rate",
+      "Travel": "Travel",
+      "Travel 2": "Travel 2",
+      "Aux Spring": "Aux Spring",
+      "Aux Spring 2": "Aux Spring 2",
+      "Front Anti-Roll Bar": "Front Anti-Roll Bar",
+      "Rear Anti-Roll Bar": "Rear Anti-Roll Bar",
+      "Anti Roll Bar Front": "Front Anti-Roll Bar",
+      "Anti Roll Bar Rear": "Rear Anti-Roll Bar",
+      "Differential Preload": "Differential Preload",
+      "Preload": "Preload",
+      "Coast Locking (0–1)": "Coast Locking (0–1)",
+      "Power Locking (0–1)": "Power Locking (0–1)",
+      "Coast Ramp": "Coast Ramp",
+      "Power Ramp": "Power Ramp",
+      "Slow Bump": "Slow Bump",
+      "Slow Rebound": "Slow Rebound",
+      "Fast Bump": "Fast Bump",
+      "Fast Rebound": "Fast Rebound",
+      "Bump": "Bump",
+      "Rebound": "Rebound",
+      "Tyre Pressure": "Tyre Pressure",
+      "Tyre Compound Front": "Tyre Compound Front",
+      "Tyre Compound Rear": "Tyre Compound Rear",
+      "Compound": "Compound",
+      "Toe": "Toe",
+      "Toe In": "Toe In",
+      "Camber": "Camber",
+      "Effective Camber": "Effective Camber",
+      "Caster": "Caster",
+      "Brake Ducts": "Brake Ducts",
+      "Brake Bias": "Brake Bias",
+      "Front Brake Bias": "Front Brake Bias",
+      "Brake Pressure": "Brake Pressure",
+      "Brake Torque Multiplier": "Brake Torque Multiplier",
+      "Engine Braking": "Engine Braking",
+      "Steering Ratio": "Steering Ratio",
+      "Rear Wing": "Rear Wing",
+      "Fuel": "Fuel",
+      "Telemetry Logging": "Telemetry Logging"
+    },
+    "category": {
+      "Brakes": "Brakes",
+      "Tyres": "Tyres",
+      "Steering": "Steering",
+      "ARB": "ARB",
+      "Geometry": "Geometry",
+      "Aero": "Aero",
+      "Suspension": "Suspension",
+      "Traction Control": "Traction Control",
+      "Engine": "Engine",
+      "Transmission": "Transmission",
+      "Differential": "Differential",
+      "Hybrid": "Hybrid",
+      "Other": "Other",
+      "Dampers": "Dampers",
+      "Electronics": "Electronics",
+      "Chassis": "Chassis",
+      "Front": "Front",
+      "Rear": "Rear",
+      "Active Suspension": "Active Suspension",
+      "Engine/Electronics": "Engine/Electronics",
+      "Gear Ratios": "Gear Ratios"
+    },
+    "wheel": {
+      "Front Left": "Front Left",
+      "Front Right": "Front Right",
+      "Rear Left": "Rear Left",
+      "Rear Right": "Rear Right"
+    }
+  },
+  "count": {
+    "lap": {
+      "one": "{{n}} lap",
+      "other": "{{n}} laps"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "save": "Save",
+    "savedF": "Saved",
+    "savedM": "Saved",
+    "saveError": "Could not save the setting. Try again.",
+    "on": "On",
+    "off": "Off",
+    "key": "Key",
+    "cancel": "Cancel",
+    "assign": "Assign",
+    "remove": "Remove",
+    "noButton": "No key assigned",
+    "anthropic": {
+      "title": "Anthropic API key",
+      "hint": "Required for the post-lap debrief and the voice coach via the Claude API."
+    },
+    "model": {
+      "label": "Model",
+      "error": "Model list unavailable: check the API key and the connection.",
+      "obsolete": "The selected model (<code>{{model}}</code>) is no longer available: pick an up-to-date one from the list and save.",
+      "obsoleteTag": "obsolete",
+      "hint": "Used for the short analysis, comments and the voice coach. Changes take effect on next use."
+    },
+    "modelDetail": {
+      "label": "Deep-dive model",
+      "default": "Same as base model (default)",
+      "hint": "Model used only for the deep-dive analysis (on demand). Empty = same base model."
+    },
+    "azure": {
+      "title": "Azure Text-to-Speech",
+      "status": "Status",
+      "keyPlaceholder": "Azure Speech key",
+      "region": "Region",
+      "loadVoices": "Load voices",
+      "loading": "Loading...",
+      "voicesError": "Error loading voices",
+      "previewError": "Voice preview failed.",
+      "voice": "Voice",
+      "hint": "Selecting a voice plays a preview: \"{{intro}}\" Requires an Azure Cognitive Services subscription."
+    },
+    "assistant": {
+      "title": "Voice assistant",
+      "name": "Name"
+    },
+    "controller": {
+      "label": "Controller",
+      "press": "Press a button on the controller…",
+      "hint": "Press the configured controller button to activate the microphone and ask the coach questions. Button 0 is the A button on an Xbox controller."
+    },
+    "keyboard": {
+      "label": "Keyboard",
+      "press": "Press a key on the keyboard…",
+      "hint": "Keyboard key, alternative to the controller, to activate the microphone. Useful when using the keyboard instead of a gamepad."
+    },
+    "voiceOutput": {
+      "label": "Voice output",
+      "hint": "Turns all voice output on or off (alerts, debrief, coach)."
+    },
+    "keys": {
+      "Delete": "Del",
+      "End": "End",
+      "PageUp": "PgUp",
+      "PageDown": "PgDn",
+      "Pause": "Pause"
+    },
+    "pad": {
+      "up": "Up (D-pad)",
+      "down": "Down (D-pad)",
+      "left": "Left (D-pad)",
+      "right": "Right (D-pad)",
+      "button": "Button {{n}}"
+    },
+    "dev": {
+      "title": "Test & development",
+      "aceSetups": "ACE setups",
+      "aceSetupsHint": "Base folder of the ACE setups (<code>.carsetup</code> files). Leave empty to use the default path: <code>D:\\Salvataggi\\ACE\\Car Setups</code>.",
+      "mockSessions": "Mock sessions",
+      "mockOn": "Mock on",
+      "mockOff": "Mock off",
+      "mockOnHint": "3 mock sessions visible in the history (R3E + ACE + AMS2, 3 laps each)",
+      "mockOffHint": "Adds fake sessions to the history for UI testing",
+      "mockUpdate": "Mock update",
+      "simulateUpdate": "Simulate update",
+      "simulateUpdateHint": "Opens the new-version prompt and simulates the download, without installing anything",
+      "mockHint": "When on, adds to the history an R3E session (BMW M4 GT3 - Nürburgring), an ACE one (Porsche 718 GT4 - Monza) and an AMS2 one (Formula Ultimate - Interlagos), each with 3 laps and a prefilled analysis. The R3E and ACE sessions also have the deep-dive analysis saved, the AMS2 one does not: it lets you try the \"Show deep-dive analysis\" button. Useful to test the UI without a real session running.",
+      "telemetryLog": "Telemetry log",
+      "telemetryHint": "Writes all available telemetry (R3E and ACE) to JSONL files, one record per line. Each connection creates a new file: <code>{{pattern}}</code>.",
+      "telemetryPattern": "<timestamp>-<game>-<car>-<track>-<layout>.jsonl",
+      "telemetryDir": "Directory: <code>{{dir}}</code>"
+    },
+    "debugFrame": "Debug - Last frame"
+  },
+  "status": {
+    "calibratingOne": "Calibration: {{n}} lap remaining",
+    "calibratingMany": "Calibration: {{n}} laps remaining",
+    "coachActive": "Coach active",
+    "connected": "{{game}} connected",
+    "disconnected": "{{game}} disconnected",
+    "forceReconnect": "Force reconnect {{game}}"
+  },
+  "gamePicker": {
+    "title": "New session",
+    "question": "Which simulator are you using? Start it and get on track before confirming.",
+    "cancel": "Cancel",
+    "open": "Open session"
+  },
+  "update": {
+    "failedTitle": "Update failed",
+    "newTitle": "New version available",
+    "body": "Version {{version}} is available. Do you want to download and install it now? The app will close and the update installer will start.",
+    "close": "Close",
+    "later": "Later",
+    "install": "Download and install",
+    "downloading": "Downloading update"
+  },
+  "readiness": {
+    "label": "Missing configuration",
+    "set": "Set up",
+    "apiKey": {
+      "label": "Claude API key",
+      "effect": "Without it, “Run analysis” does not produce the debrief."
+    },
+    "azure": {
+      "label": "Azure voice (key and region)",
+      "effect": "Without it, no voice commands or dictation; in-lap alerts use the system voice."
+    }
+  },
+  "voiceOverlay": {
+    "listening": "Listening...",
+    "processing": "Processing..."
+  },
+  "setupPicker": {
+    "loadedAssigned": "Setup {{name}} loaded and assigned to {{laps}}.",
+    "loaded": "Setup loaded: {{name}}",
+    "updated": "Setup updated: {{name}}",
+    "alreadyInSession": "Setup already in the session.",
+    "activeUpdated": "Active setup updated.",
+    "assigned": "Setup assigned to {{laps}}."
+  },
+  "session": {
+    "commentError": "Error while integrating the comment.",
+    "expandError": "Error during the deep-dive."
   }
 }

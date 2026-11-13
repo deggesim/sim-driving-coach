@@ -11,6 +11,7 @@
 import { faMicrophone } from "@fortawesome/free-solid-svg-icons/faMicrophone";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Card, Spinner } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { stripMarkdown } from "../../shared/format";
 import type { VoiceCoachState } from "../hooks/useVoiceCoach";
 
@@ -25,6 +26,7 @@ const VoiceCoachOverlay = ({
   transcript,
   answer,
 }: VoiceCoachOverlayProps) => {
+  const { t } = useTranslation();
   if (state === "idle") return null;
 
   return (
@@ -46,7 +48,9 @@ const VoiceCoachOverlay = ({
               <div className="voice-mic-pulse fs-1">
                 <FontAwesomeIcon icon={faMicrophone} />
               </div>
-              <p className="mb-0 text-secondary">In ascolto...</p>
+              <p className="mb-0 text-secondary">
+                {t("voiceOverlay.listening")}
+              </p>
             </>
           )}
 
@@ -58,7 +62,9 @@ const VoiceCoachOverlay = ({
                   &ldquo;{transcript}&rdquo;
                 </p>
               )}
-              <p className="mb-0 text-secondary">Elaborazione in corso...</p>
+              <p className="mb-0 text-secondary">
+                {t("voiceOverlay.processing")}
+              </p>
             </>
           )}
 

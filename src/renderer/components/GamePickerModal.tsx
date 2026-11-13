@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import type { GameSource } from "../../shared/types";
 import { GameBadge } from "./GameBadge";
 
@@ -21,18 +22,16 @@ type Props = {
 // for data); a "non connesso / entra in pista" error comes back via the start
 // result and is surfaced by the caller.
 export const GamePickerModal = ({ show, onCancel, onConfirm }: Props) => {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<GameSource>("r3e");
 
   return (
     <Modal show={show} onHide={onCancel} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Nuova sessione</Modal.Title>
+        <Modal.Title>{t("gamePicker.title")}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <p className="text-muted">
-          Quale simulatore stai usando? Avvialo ed entra in pista prima di
-          confermare.
-        </p>
+        <p className="text-muted">{t("gamePicker.question")}</p>
         {GAMES.map(({ game, label }) => (
           <Form.Check
             key={game}
@@ -53,10 +52,10 @@ export const GamePickerModal = ({ show, onCancel, onConfirm }: Props) => {
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onCancel}>
-          Annulla
+          {t("gamePicker.cancel")}
         </Button>
         <Button variant="primary" onClick={() => onConfirm(selected)}>
-          Apri sessione
+          {t("gamePicker.open")}
         </Button>
       </Modal.Footer>
     </Modal>

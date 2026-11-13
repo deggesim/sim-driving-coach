@@ -67,5 +67,235 @@
       "synthesisTruncated": "Sintesi troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riesegui l'analisi.",
       "detailTruncated": "Analisi approfondita troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riprova."
     }
+  },
+  "setup": {
+    "param": {
+      "Spring Rate": "Rigidità molla",
+      "Springs": "Molle",
+      "Spring": "Molla",
+      "Ride Height": "Altezza da terra",
+      "Front Ride Height": "Altezza da terra anteriore",
+      "Rear Ride Height": "Altezza da terra posteriore",
+      "Bumpstop Travel": "Escursione bumpstop",
+      "Bumpstop Rate": "Rigidità bumpstop",
+      "Travel": "Corsa",
+      "Travel 2": "Corsa 2",
+      "Aux Spring": "Molla ausiliaria",
+      "Aux Spring 2": "Molla ausiliaria 2",
+      "Front Anti-Roll Bar": "Barra antirollio anteriore",
+      "Rear Anti-Roll Bar": "Barra antirollio posteriore",
+      "Anti Roll Bar Front": "Barra antirollio anteriore",
+      "Anti Roll Bar Rear": "Barra antirollio posteriore",
+      "Differential Preload": "Precarico differenziale",
+      "Preload": "Precarico",
+      "Coast Locking (0–1)": "Bloccaggio in rilascio (0–1)",
+      "Power Locking (0–1)": "Bloccaggio in accelerazione (0–1)",
+      "Coast Ramp": "Rampa in rilascio",
+      "Power Ramp": "Rampa in accelerazione",
+      "Slow Bump": "Compressione lenta",
+      "Slow Rebound": "Estensione lenta",
+      "Fast Bump": "Compressione veloce",
+      "Fast Rebound": "Estensione veloce",
+      "Bump": "Compressione",
+      "Rebound": "Estensione",
+      "Tyre Pressure": "Pressione",
+      "Tyre Compound Front": "Mescola anteriore",
+      "Tyre Compound Rear": "Mescola posteriore",
+      "Compound": "Mescola",
+      "Toe": "Convergenza",
+      "Toe In": "Convergenza",
+      "Camber": "Campanatura",
+      "Effective Camber": "Campanatura effettiva",
+      "Caster": "Caster",
+      "Brake Ducts": "Condotti freni",
+      "Brake Bias": "Bilanciamento freni",
+      "Front Brake Bias": "Ripartizione frenata anteriore",
+      "Brake Pressure": "Pressione freni",
+      "Brake Torque Multiplier": "Moltiplicatore coppia frenante",
+      "Engine Braking": "Freno motore",
+      "Steering Ratio": "Rapporto sterzo",
+      "Rear Wing": "Ala posteriore",
+      "Fuel": "Carburante",
+      "Telemetry Logging": "Registrazione telemetria"
+    },
+    "category": {
+      "Brakes": "Freni",
+      "Tyres": "Gomme",
+      "Steering": "Sterzo",
+      "ARB": "Barre antirollio",
+      "Geometry": "Geometria",
+      "Aero": "Aerodinamica",
+      "Suspension": "Sospensioni",
+      "Traction Control": "Controllo trazione",
+      "Engine": "Motore",
+      "Transmission": "Trasmissione",
+      "Differential": "Differenziale",
+      "Hybrid": "Ibrido",
+      "Other": "Altro",
+      "Dampers": "Ammortizzatori",
+      "Electronics": "Elettronica",
+      "Chassis": "Assetto",
+      "Front": "Anteriore",
+      "Rear": "Posteriore",
+      "Active Suspension": "Sospensioni attive",
+      "Engine/Electronics": "Motore/Elettronica",
+      "Gear Ratios": "Rapporti del cambio"
+    },
+    "wheel": {
+      "Front Left": "Anteriore sinistra",
+      "Front Right": "Anteriore destra",
+      "Rear Left": "Posteriore sinistra",
+      "Rear Right": "Posteriore destra"
+    }
+  },
+  "count": {
+    "lap": {
+      "one": "{{n}} giro",
+      "other": "{{n}} giri"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "save": "Salva",
+    "savedF": "Salvata",
+    "savedM": "Salvato",
+    "saveError": "Impossibile salvare l'impostazione. Riprova.",
+    "on": "Attivo",
+    "off": "Disattivo",
+    "key": "Chiave",
+    "cancel": "Annulla",
+    "assign": "Assegna",
+    "remove": "Rimuovi",
+    "noButton": "Nessun tasto assegnato",
+    "anthropic": {
+      "title": "API Key Anthropic",
+      "hint": "Necessaria per il debriefing post-giro e il coach vocale via Claude API."
+    },
+    "model": {
+      "label": "Modello",
+      "error": "Elenco modelli non disponibile: controlla la chiave API e la connessione.",
+      "obsolete": "Il modello selezionato (<code>{{model}}</code>) non è più disponibile: selezionane uno aggiornato dall'elenco e salva.",
+      "obsoleteTag": "obsoleto",
+      "hint": "Usato per l'analisi sintetica, i commenti e il coach vocale. Le modifiche hanno effetto al prossimo utilizzo."
+    },
+    "modelDetail": {
+      "label": "Modello analisi approfondita",
+      "default": "Come modello base (default)",
+      "hint": "Modello usato solo per l'analisi approfondita (on-demand). Vuoto = stesso modello base."
+    },
+    "azure": {
+      "title": "Azure Text-to-Speech",
+      "status": "Stato",
+      "keyPlaceholder": "Chiave Azure Speech",
+      "region": "Regione",
+      "loadVoices": "Carica voci",
+      "loading": "Caricamento...",
+      "voicesError": "Errore nel caricamento voci",
+      "previewError": "Anteprima della voce non riuscita.",
+      "voice": "Voce",
+      "hint": "Selezionando una voce viene riprodotta un'anteprima: \"{{intro}}\" Richiede una sottoscrizione Azure Cognitive Services."
+    },
+    "assistant": {
+      "title": "Assistente Vocale",
+      "name": "Nome"
+    },
+    "controller": {
+      "label": "Controller",
+      "press": "Premi un tasto sul controller…",
+      "hint": "Premi il tasto configurato sul controller per attivare il microfono e fare domande al coach. Il tasto 0 corrisponde al tasto A su controller Xbox."
+    },
+    "keyboard": {
+      "label": "Tastiera",
+      "press": "Premi un tasto sulla tastiera…",
+      "hint": "Tasto da tastiera alternativo al controller per attivare il microfono. Utile quando si usa la tastiera anziché un gamepad."
+    },
+    "voiceOutput": {
+      "label": "Output vocale",
+      "hint": "Attiva/disattiva tutti gli output vocali (alert, debriefing, coach)."
+    },
+    "keys": {
+      "Delete": "Canc",
+      "End": "Fine",
+      "PageUp": "PgSu",
+      "PageDown": "PgGiù",
+      "Pause": "Pausa"
+    },
+    "pad": {
+      "up": "Su (D-pad)",
+      "down": "Giù (D-pad)",
+      "left": "Sinistra (D-pad)",
+      "right": "Destra (D-pad)",
+      "button": "Tasto {{n}}"
+    },
+    "dev": {
+      "title": "Test & sviluppo",
+      "aceSetups": "Setup ACE",
+      "aceSetupsHint": "Cartella di base dei setup ACE (file <code>.carsetup</code>). Lascia vuoto per usare il percorso predefinito: <code>D:\\Salvataggi\\ACE\\Car Setups</code>.",
+      "mockSessions": "Sessioni mock",
+      "mockOn": "Mock attivo",
+      "mockOff": "Mock disattivo",
+      "mockOnHint": "3 sessioni mock visibili nello storico (R3E + ACE + AMS2, 3 giri ciascuna)",
+      "mockOffHint": "Inserisce sessioni fittizie nello storico per test UI",
+      "mockUpdate": "Aggiornamento mock",
+      "simulateUpdate": "Simula aggiornamento",
+      "simulateUpdateHint": "Apre la notifica di nuova versione e simula il download, senza installare nulla",
+      "mockHint": "Quando attivo, aggiunge nello storico una sessione R3E (BMW M4 GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una AMS2 (Formula Ultimate - Interlagos), ognuna con 3 giri e un'analisi precompilata. Le sessioni R3E e ACE hanno anche l'analisi approfondita salvata, la AMS2 no: serve a provare il pulsante \"Mostra analisi approfondita\". Utile per testare la UI senza una sessione reale in corso.",
+      "telemetryLog": "Log telemetria",
+      "telemetryHint": "Scrive tutta la telemetria disponibile (R3E e ACE) su file JSONL in formato riga-per-riga. Ogni connessione crea un nuovo file: <code>{{pattern}}</code>.",
+      "telemetryPattern": "<timestamp>-<gioco>-<auto>-<circuito>-<layout>.jsonl",
+      "telemetryDir": "Directory: <code>{{dir}}</code>"
+    },
+    "debugFrame": "Debug - Ultimo frame"
+  },
+  "status": {
+    "calibratingOne": "Calibrazione: {{n}} giro rimanente",
+    "calibratingMany": "Calibrazione: {{n}} giri rimanenti",
+    "coachActive": "Coach attivo",
+    "connected": "{{game}} connesso",
+    "disconnected": "{{game}} disconnesso",
+    "forceReconnect": "Forza riconnessione {{game}}"
+  },
+  "gamePicker": {
+    "title": "Nuova sessione",
+    "question": "Quale simulatore stai usando? Avvialo ed entra in pista prima di confermare.",
+    "cancel": "Annulla",
+    "open": "Apri sessione"
+  },
+  "update": {
+    "failedTitle": "Aggiornamento non riuscito",
+    "newTitle": "Nuova versione disponibile",
+    "body": "È disponibile la versione {{version}}. Vuoi scaricarla e installarla ora? L'app si chiuderà e partirà il setup di aggiornamento.",
+    "close": "Chiudi",
+    "later": "Più tardi",
+    "install": "Scarica e installa",
+    "downloading": "Download aggiornamento"
+  },
+  "readiness": {
+    "label": "Configurazione mancante",
+    "set": "Imposta",
+    "apiKey": {
+      "label": "Chiave API Claude",
+      "effect": "Senza, «Esegui analisi» non produce il debriefing."
+    },
+    "azure": {
+      "label": "Voce Azure (chiave e regione)",
+      "effect": "Senza, niente comandi a voce né dettatura; gli avvisi in giro usano la voce del sistema."
+    }
+  },
+  "voiceOverlay": {
+    "listening": "In ascolto...",
+    "processing": "Elaborazione in corso..."
+  },
+  "setupPicker": {
+    "loadedAssigned": "Setup {{name}} caricato e assegnato a {{laps}}.",
+    "loaded": "Setup caricato: {{name}}",
+    "updated": "Setup aggiornato: {{name}}",
+    "alreadyInSession": "Setup già presente nella sessione.",
+    "activeUpdated": "Setup attivo aggiornato.",
+    "assigned": "Setup assegnato a {{laps}}."
+  },
+  "session": {
+    "commentError": "Errore durante l'integrazione del commento.",
+    "expandError": "Errore durante l'approfondimento."
   }
 }

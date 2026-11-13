@@ -67,5 +67,235 @@
       "synthesisTruncated": "Resumen truncado: se alcanzó el límite de tokens. El texto parcial se guardó; vuelve a ejecutar el análisis.",
       "detailTruncated": "Análisis detallado truncado: se alcanzó el límite de tokens. El texto parcial se guardó; inténtalo de nuevo."
     }
+  },
+  "setup": {
+    "param": {
+      "Spring Rate": "Rigidez del muelle",
+      "Springs": "Muelles",
+      "Spring": "Muelle",
+      "Ride Height": "Altura al suelo",
+      "Front Ride Height": "Altura al suelo delantera",
+      "Rear Ride Height": "Altura al suelo trasera",
+      "Bumpstop Travel": "Recorrido del tope",
+      "Bumpstop Rate": "Rigidez del tope",
+      "Travel": "Recorrido",
+      "Travel 2": "Recorrido 2",
+      "Aux Spring": "Muelle auxiliar",
+      "Aux Spring 2": "Muelle auxiliar 2",
+      "Front Anti-Roll Bar": "Barra estabilizadora delantera",
+      "Rear Anti-Roll Bar": "Barra estabilizadora trasera",
+      "Anti Roll Bar Front": "Barra estabilizadora delantera",
+      "Anti Roll Bar Rear": "Barra estabilizadora trasera",
+      "Differential Preload": "Precarga del diferencial",
+      "Preload": "Precarga",
+      "Coast Locking (0–1)": "Bloqueo en retención (0–1)",
+      "Power Locking (0–1)": "Bloqueo en aceleración (0–1)",
+      "Coast Ramp": "Rampa en retención",
+      "Power Ramp": "Rampa en aceleración",
+      "Slow Bump": "Compresión lenta",
+      "Slow Rebound": "Extensión lenta",
+      "Fast Bump": "Compresión rápida",
+      "Fast Rebound": "Extensión rápida",
+      "Bump": "Compresión",
+      "Rebound": "Extensión",
+      "Tyre Pressure": "Presión de neumáticos",
+      "Tyre Compound Front": "Compuesto delantero",
+      "Tyre Compound Rear": "Compuesto trasero",
+      "Compound": "Compuesto",
+      "Toe": "Convergencia",
+      "Toe In": "Convergencia",
+      "Camber": "Caída",
+      "Effective Camber": "Caída efectiva",
+      "Caster": "Avance",
+      "Brake Ducts": "Conductos de freno",
+      "Brake Bias": "Reparto de frenada",
+      "Front Brake Bias": "Reparto de frenada delantero",
+      "Brake Pressure": "Presión de frenos",
+      "Brake Torque Multiplier": "Multiplicador del par de frenada",
+      "Engine Braking": "Freno motor",
+      "Steering Ratio": "Relación de dirección",
+      "Rear Wing": "Alerón trasero",
+      "Fuel": "Combustible",
+      "Telemetry Logging": "Registro de telemetría"
+    },
+    "category": {
+      "Brakes": "Frenos",
+      "Tyres": "Neumáticos",
+      "Steering": "Dirección",
+      "ARB": "Barras estabilizadoras",
+      "Geometry": "Geometría",
+      "Aero": "Aerodinámica",
+      "Suspension": "Suspensión",
+      "Traction Control": "Control de tracción",
+      "Engine": "Motor",
+      "Transmission": "Transmisión",
+      "Differential": "Diferencial",
+      "Hybrid": "Híbrido",
+      "Other": "Otros",
+      "Dampers": "Amortiguadores",
+      "Electronics": "Electrónica",
+      "Chassis": "Chasis",
+      "Front": "Delantero",
+      "Rear": "Trasero",
+      "Active Suspension": "Suspensión activa",
+      "Engine/Electronics": "Motor/Electrónica",
+      "Gear Ratios": "Relaciones de cambio"
+    },
+    "wheel": {
+      "Front Left": "Delantera izquierda",
+      "Front Right": "Delantera derecha",
+      "Rear Left": "Trasera izquierda",
+      "Rear Right": "Trasera derecha"
+    }
+  },
+  "count": {
+    "lap": {
+      "one": "{{n}} vuelta",
+      "other": "{{n}} vueltas"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "save": "Guardar",
+    "savedF": "Guardada",
+    "savedM": "Guardado",
+    "saveError": "No se pudo guardar el ajuste. Inténtalo de nuevo.",
+    "on": "Activo",
+    "off": "Inactivo",
+    "key": "Clave",
+    "cancel": "Cancelar",
+    "assign": "Asignar",
+    "remove": "Quitar",
+    "noButton": "Ninguna tecla asignada",
+    "anthropic": {
+      "title": "Clave de API de Anthropic",
+      "hint": "Necesaria para el debriefing posterior a la vuelta y el coach de voz a través de la API de Claude."
+    },
+    "model": {
+      "label": "Modelo",
+      "error": "Lista de modelos no disponible: comprueba la clave de API y la conexión.",
+      "obsolete": "El modelo seleccionado (<code>{{model}}</code>) ya no está disponible: elige uno actualizado de la lista y guarda.",
+      "obsoleteTag": "obsoleto",
+      "hint": "Se usa para el análisis sintético, los comentarios y el coach de voz. Los cambios surten efecto en el siguiente uso."
+    },
+    "modelDetail": {
+      "label": "Modelo del análisis en profundidad",
+      "default": "Como el modelo base (predeterminado)",
+      "hint": "Modelo usado solo para el análisis en profundidad (bajo demanda). Vacío = el mismo modelo base."
+    },
+    "azure": {
+      "title": "Azure Text-to-Speech",
+      "status": "Estado",
+      "keyPlaceholder": "Clave de Azure Speech",
+      "region": "Región",
+      "loadVoices": "Cargar voces",
+      "loading": "Cargando...",
+      "voicesError": "Error al cargar las voces",
+      "previewError": "La vista previa de la voz ha fallado.",
+      "voice": "Voz",
+      "hint": "Al seleccionar una voz se reproduce una vista previa: «{{intro}}» Requiere una suscripción a Azure Cognitive Services."
+    },
+    "assistant": {
+      "title": "Asistente de voz",
+      "name": "Nombre"
+    },
+    "controller": {
+      "label": "Mando",
+      "press": "Pulsa un botón del mando…",
+      "hint": "Pulsa el botón configurado del mando para activar el micrófono y hacer preguntas al coach. El botón 0 corresponde al botón A de un mando de Xbox."
+    },
+    "keyboard": {
+      "label": "Teclado",
+      "press": "Pulsa una tecla del teclado…",
+      "hint": "Tecla del teclado, alternativa al mando, para activar el micrófono. Útil cuando se usa el teclado en lugar de un mando."
+    },
+    "voiceOutput": {
+      "label": "Salida de voz",
+      "hint": "Activa o desactiva toda la salida de voz (alertas, debriefing, coach)."
+    },
+    "keys": {
+      "Delete": "Supr",
+      "End": "Fin",
+      "PageUp": "RePág",
+      "PageDown": "AvPág",
+      "Pause": "Pausa"
+    },
+    "pad": {
+      "up": "Arriba (cruceta)",
+      "down": "Abajo (cruceta)",
+      "left": "Izquierda (cruceta)",
+      "right": "Derecha (cruceta)",
+      "button": "Botón {{n}}"
+    },
+    "dev": {
+      "title": "Pruebas y desarrollo",
+      "aceSetups": "Setups de ACE",
+      "aceSetupsHint": "Carpeta base de los setups de ACE (archivos <code>.carsetup</code>). Déjala vacía para usar la ruta predeterminada: <code>D:\\Salvataggi\\ACE\\Car Setups</code>.",
+      "mockSessions": "Sesiones simuladas",
+      "mockOn": "Simulación activa",
+      "mockOff": "Simulación inactiva",
+      "mockOnHint": "3 sesiones simuladas visibles en el historial (R3E + ACE + AMS2, 3 vueltas cada una)",
+      "mockOffHint": "Añade sesiones ficticias al historial para probar la interfaz",
+      "mockUpdate": "Actualización simulada",
+      "simulateUpdate": "Simular actualización",
+      "simulateUpdateHint": "Abre el aviso de nueva versión y simula la descarga, sin instalar nada",
+      "mockHint": "Cuando está activo, añade al historial una sesión de R3E (BMW M4 GT3 - Nürburgring), una de ACE (Porsche 718 GT4 - Monza) y una de AMS2 (Formula Ultimate - Interlagos), cada una con 3 vueltas y un análisis precargado. Las sesiones de R3E y ACE tienen también el análisis en profundidad guardado, la de AMS2 no: sirve para probar el botón «Mostrar análisis en profundidad». Útil para probar la interfaz sin una sesión real en curso.",
+      "telemetryLog": "Registro de telemetría",
+      "telemetryHint": "Escribe toda la telemetría disponible (R3E y ACE) en archivos JSONL, un registro por línea. Cada conexión crea un archivo nuevo: <code>{{pattern}}</code>.",
+      "telemetryPattern": "<timestamp>-<juego>-<coche>-<circuito>-<layout>.jsonl",
+      "telemetryDir": "Directorio: <code>{{dir}}</code>"
+    },
+    "debugFrame": "Depuración - Último frame"
+  },
+  "status": {
+    "calibratingOne": "Calibración: queda {{n}} vuelta",
+    "calibratingMany": "Calibración: quedan {{n}} vueltas",
+    "coachActive": "Coach activo",
+    "connected": "{{game}} conectado",
+    "disconnected": "{{game}} desconectado",
+    "forceReconnect": "Forzar reconexión de {{game}}"
+  },
+  "gamePicker": {
+    "title": "Nueva sesión",
+    "question": "¿Qué simulador estás usando? Inícialo y sal a pista antes de confirmar.",
+    "cancel": "Cancelar",
+    "open": "Abrir sesión"
+  },
+  "update": {
+    "failedTitle": "La actualización ha fallado",
+    "newTitle": "Nueva versión disponible",
+    "body": "Hay una versión {{version}} disponible. ¿Quieres descargarla e instalarla ahora? La aplicación se cerrará y se iniciará el instalador de la actualización.",
+    "close": "Cerrar",
+    "later": "Más tarde",
+    "install": "Descargar e instalar",
+    "downloading": "Descargando actualización"
+  },
+  "readiness": {
+    "label": "Configuración pendiente",
+    "set": "Configurar",
+    "apiKey": {
+      "label": "Clave de API de Claude",
+      "effect": "Sin ella, «Ejecutar análisis» no genera el debriefing."
+    },
+    "azure": {
+      "label": "Voz de Azure (clave y región)",
+      "effect": "Sin ella, no hay comandos de voz ni dictado; las alertas en pista usan la voz del sistema."
+    }
+  },
+  "voiceOverlay": {
+    "listening": "Escuchando...",
+    "processing": "Procesando..."
+  },
+  "setupPicker": {
+    "loadedAssigned": "Setup {{name}} cargado y asignado a {{laps}}.",
+    "loaded": "Setup cargado: {{name}}",
+    "updated": "Setup actualizado: {{name}}",
+    "alreadyInSession": "El setup ya está en la sesión.",
+    "activeUpdated": "Setup activo actualizado.",
+    "assigned": "Setup asignado a {{laps}}."
+  },
+  "session": {
+    "commentError": "Error al integrar el comentario.",
+    "expandError": "Error durante el análisis en profundidad."
   }
 }

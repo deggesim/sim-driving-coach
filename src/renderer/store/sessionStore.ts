@@ -4,6 +4,7 @@
  */
 
 import { create } from "zustand";
+import { rendererI18n } from "../i18n";
 import { useIPCStore } from "./ipcStore";
 import type {
   GameSource,
@@ -188,7 +189,7 @@ export const useSessionStore = create<State>((set, get) => ({
       });
     } else {
       set({
-        error: res.reason ?? "Errore durante l'integrazione del commento.",
+        error: res.reason ?? rendererI18n.t("session.commentError"),
       });
     }
   },
@@ -207,7 +208,7 @@ export const useSessionStore = create<State>((set, get) => ({
     if (!res.ok) {
       set({
         working: null,
-        error: res.reason ?? "Errore durante l'approfondimento.",
+        error: res.reason ?? rendererI18n.t("session.expandError"),
       });
     }
   },
