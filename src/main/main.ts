@@ -2179,7 +2179,7 @@ const setupPipeline = (): void => {
     // treated as absent instead of eating a later, unrelated command.
     if (pendingGame && Date.now() - pendingGameAt < PENDING_ANSWER_TTL_MS) {
       pendingGame = false;
-      const answered = matchGame(question);
+      const answered = matchGame(question, getLanguage());
       if (!answered) {
         await speakText(tm("voice.whichGameUnclear"));
         return;
@@ -2198,6 +2198,7 @@ const setupPipeline = (): void => {
           pendingSetupAt,
           Date.now(),
           PENDING_ANSWER_TTL_MS,
+          getLanguage(),
         )
       : null;
     if (pendingSetup && pendingName && pendingName.kind !== "expired") {
@@ -2213,7 +2214,7 @@ const setupPipeline = (): void => {
     pendingSetup = null;
 
     const assistantName = getConfig("assistantName") ?? "Aria";
-    const intent = classifyVoiceIntent(question, assistantName);
+    const intent = classifyVoiceIntent(question, assistantName, getLanguage());
     console.log("[VoiceCoach] intent:", intent);
 
     if (intent.kind === "newSession") {

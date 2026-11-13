@@ -161,7 +161,7 @@ export const decodeAms2Setup = async ({
           ...imageContents,
           {
             type: "text" as const,
-            text: `Analizza queste ${filenames.length} schermate del setup e restituisci il JSON.`,
+            text: `Analyze these ${filenames.length} setup screenshots and return the JSON.`,
           },
         ],
       },
