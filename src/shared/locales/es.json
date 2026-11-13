@@ -152,6 +152,10 @@
     "lap": {
       "one": "{{n}} vuelta",
       "other": "{{n}} vueltas"
+    },
+    "session": {
+      "one": "{{n}} sesión",
+      "other": "{{n}} sesiones"
     }
   },
   "settings": {
@@ -297,5 +301,143 @@
   "session": {
     "commentError": "Error al integrar el comentario.",
     "expandError": "Error durante el análisis en profundidad."
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "confirmDelete": "Confirmar eliminación",
+    "irreversible": "Esta operación es irreversible.",
+    "prev": "‹ Ant",
+    "next": "Sig ›",
+    "range": "{{from}}–{{to}} de {{total}}",
+    "date": "Fecha"
+  },
+  "history": {
+    "title": "Lista de sesiones",
+    "allGames": "Todos los juegos",
+    "allCars": "Todos los coches",
+    "allTracks": "Todos los circuitos",
+    "sortDesc": "Fecha descendente",
+    "sortAsc": "Fecha ascendente",
+    "deleteSelected": "Eliminar seleccionadas ({{n}})",
+    "deleteAll": "Eliminar todas",
+    "emptyAll": "Ninguna sesión registrada. Aparecen aquí tras la primera sesión cerrada.",
+    "emptyFiltered": "Ninguna sesión coincide con los filtros: cambia juego, coche o circuito.",
+    "selectAll": "Seleccionar todas las sesiones visibles",
+    "selectOne": "Seleccionar sesión",
+    "col": {
+      "sim": "Sim",
+      "car": "Coche",
+      "track": "Circuito",
+      "laps": "Vueltas",
+      "best": "Mejor",
+      "analysis": "Análisis"
+    },
+    "deleteSession": "Eliminar sesión",
+    "deleteOne": "Vas a eliminar la sesión del {{date}} ({{car}} — {{track}}).",
+    "deleteSelectedBody": "Vas a eliminar las sesiones seleccionadas: <strong>{{sessions}}</strong>.",
+    "deleteAllBody": "Vas a eliminar todas las sesiones de la selección actual: <strong>{{sessions}}</strong>."
+  },
+  "laps": {
+    "title": "Vueltas",
+    "assignSetup": "Asignar setup ({{n}})",
+    "showInvalid": "Mostrar no válidas",
+    "hideInvalid": "Ocultar no válidas",
+    "selectAllTitle": "Seleccionar todas las vueltas visibles",
+    "selectAllAria": "Seleccionar todas las vueltas",
+    "col": {
+      "time": "Tiempo",
+      "valid": "Válida",
+      "setup": "Setup"
+    },
+    "emptyLive": "Ninguna vuelta. Aparecen aquí en cada paso por meta.",
+    "emptyHistorical": "Ninguna vuelta registrada en esta sesión.",
+    "allInvalid": "Todas las vueltas son no válidas: muéstralas con «{{action}}».",
+    "showTelemetry": "Mostrar telemetría",
+    "invalidLap": "Vuelta no válida",
+    "validLap": "Vuelta válida",
+    "selectLap": "Seleccionar vuelta",
+    "selectLapAria": "Seleccionar vuelta {{n}}",
+    "bestLap": "(mejor vuelta)",
+    "changeSetup": "Cambiar setup",
+    "changeSetupAria": "Cambiar setup: {{name}}",
+    "editSetup": "Editar el setup de la vuelta",
+    "deleteLap": "Eliminar vuelta",
+    "deleteLapAria": "Eliminar vuelta {{n}}",
+    "deleteError": "No se pudo eliminar la vuelta. Inténtalo de nuevo.",
+    "deleteBody": "Vas a eliminar la vuelta <strong>#{{n}}</strong>."
+  },
+  "header": {
+    "aria": "Cabecera de la sesión",
+    "active": "Activa",
+    "closed": "Cerrada",
+    "noSession": "Ninguna sesión abierta: elige el juego con «{{action}}» para registrar las vueltas.",
+    "loading": "Cargando sesión…",
+    "newSession": "Nueva sesión",
+    "analyze": "Ejecutar análisis",
+    "analyzeHint": "Llama a la API de Claude: genera una nueva versión del análisis sintético.",
+    "manageSetup": "Gestión de setups",
+    "exportPdf": "Exportar PDF",
+    "reopen": "Reabrir sesión",
+    "back": "Atrás",
+    "endSession": "Cerrar sesión",
+    "endTitle": "Cierra la sesión en curso: las vueltas registradas permanecen en el historial",
+    "endAria": "Cerrar la sesión en curso",
+    "laps": "Vueltas",
+    "bestLap": "Mejor vuelta",
+    "setup": "Setup",
+    "leaderboard": "Leaderboard",
+    "leaderboardHint": "Neumáticos fijos a 85 °C: presiones y caída no evaluables.",
+    "fixedSetup": "Setup fijo",
+    "fixedSetupHint": "Solo se evalúan el reparto y la presión de frenos, los únicos parámetros modificables.",
+    "flagsError": "No se pudieron guardar las opciones de la sesión."
+  },
+  "panel": {
+    "opened": "Sesión abierta.",
+    "reopenError": "Error al reabrir",
+    "analyzeError": "Error durante el análisis",
+    "analyzing": "Análisis en curso…",
+    "pdfSaved": "PDF guardado: {{path}}",
+    "analyses": "Análisis",
+    "noAnalysesLive": "Ningún análisis. «{{action}}» llama a la API de Claude y genera la síntesis del debriefing; hace falta al menos una vuelta registrada.",
+    "noAnalysesHistorical": "Ningún análisis. «{{action}}» llama a la API de Claude y genera la síntesis del debriefing.",
+    "confirmAnalyze": "¿Iniciar el análisis de la sesión? Llama a la API de Claude y genera un nuevo debriefing."
+  },
+  "analysisList": {
+    "title": "Análisis #{{version}}",
+    "delete": "Eliminar análisis",
+    "deleteBody": "¿Eliminar el análisis #{{version}}?",
+    "expand": "Mostrar análisis detallado",
+    "expandHint": "Llama a la API de Claude: añade el análisis detallado a esta versión.",
+    "detailRunning": "{{heading}} en curso…",
+    "blockedMock": "No disponible en modo mock: este análisis no existe en la base de datos.",
+    "blockedWorking": "Espera a que termine el análisis en curso.",
+    "comment": "Comentario",
+    "workingTitle": "Análisis #{{version}} (en curso…)",
+    "processing": "Procesando…"
+  },
+  "comment": {
+    "add": "Añadir comentario",
+    "voice": "Comentario de voz",
+    "stop": "Detener grabación",
+    "sttOff": "Azure STT no configurado",
+    "modalTitle": "Comentar el análisis",
+    "placeholder": "Sugiere un cambio o corrige una valoración…",
+    "send": "Enviar",
+    "sttError": "La transcripción ha fallado, inténtalo de nuevo.",
+    "micError": "Micrófono no disponible: comprueba los permisos."
+  },
+  "telemetry": {
+    "zone": "zona {{n}}",
+    "pedals": "Freno / Acelerador (%)",
+    "brake": "Freno",
+    "throttle": "Acelerador",
+    "speedLabel": "Velocidad (km/h)",
+    "speed": "Velocidad",
+    "map": "Trazado",
+    "loading": "Cargando telemetría…",
+    "loadError": "No se pudo cargar la telemetría de la vuelta.",
+    "noData": "No hay datos de telemetría para esta vuelta."
   }
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Modal, Toast, ToastContainer } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import type { GameSource, SessionStartResult } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
@@ -31,6 +32,7 @@ const SessionPanel = ({
   onReopened,
   onOpenSettings,
 }: Props) => {
+  const { t } = useTranslation();
   const status = useIPCStore((s) => s.status);
   const session = useSessionStore((s) => s.session);
   const analyses = useSessionStore((s) => s.analyses);
@@ -92,7 +94,7 @@ const SessionPanel = ({
     if (!res.ok) {
       showFlash("danger", res.reason);
     } else {
-      showFlash("success", "Sessione aperta.");
+      showFlash("success", t("panel.opened"));
     }
   };
 
@@ -113,8 +115,7 @@ const SessionPanel = ({
     if (!res.ok) {
       showFlash(
         "danger",
-        (res as { ok: false; reason: string }).reason ??
-          "Errore nella riapertura",
+        (res as { ok: false; reason: string }).reason ?? t("panel.reopenError"),
       );
       return;
     }
@@ -133,8 +134,8 @@ const SessionPanel = ({
         ? { sessionId: session.id, game: session.game }
         : undefined,
     );
-    if (!res.ok) showFlash("danger", res.reason ?? "Errore durante l'analisi");
-    else showFlash("info", "Analisi in corso…");
+    if (!res.ok) showFlash("danger", res.reason ?? t("panel.analyzeError"));
+    else showFlash("info", t("panel.analyzing"));
   };
 
   const handleExportPdf = async (): Promise<void> => {
@@ -143,7 +144,7 @@ const SessionPanel = ({
       id: session.id,
       game: session.game,
     });
-    if (path) showFlash("success", `PDF salvato: ${path}`);
+    if (path) showFlash("success", t("panel.pdfSaved", { path }));
   };
 
   return (
@@ -204,12 +205,15 @@ const SessionPanel = ({
         </div>
 
         <div className="flex-grow-1 d-flex flex-column overflow-hidden mt-3 session-analyses-section">
-          <h6 className="text-uppercase flex-shrink-0">Analisi</h6>
+          <h6 className="text-uppercase flex-shrink-0">
+            {t("panel.analyses")}
+          </h6>
           {analyses.length === 0 && !workingVersion && (
             <p className="text-secondary">
-              Nessuna analisi. «Esegui analisi» chiama l&apos;API Claude e
-              genera la sintesi del debriefing
-              {isLive ? "; serve almeno un giro registrato." : "."}
+              {t(
+                isLive ? "panel.noAnalysesLive" : "panel.noAnalysesHistorical",
+                { action: t("header.analyze") },
+              )}
             </p>
           )}
           <AnalysisList workingVersion={workingVersion} startClosed={!isLive} />
@@ -333,18 +337,15 @@ const SessionPanel = ({
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>Esegui analisi</Modal.Title>
+          <Modal.Title>{t("header.analyze")}</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          Vuoi avviare l&apos;analisi della sessione? Chiama l&apos;API Claude e
-          genera un nuovo debriefing.
-        </Modal.Body>
+        <Modal.Body>{t("panel.confirmAnalyze")}</Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setConfirmAnalyze(false)}>
-            Annulla
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" onClick={() => void handleAnalyze()}>
-            Esegui analisi
+            {t("header.analyze")}
           </Button>
         </Modal.Footer>
       </Modal>

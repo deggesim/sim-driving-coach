@@ -2,6 +2,7 @@ import { faComment, faMicrophone } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useRef, useState } from "react";
 import { Button, Form, Modal, Spinner } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { convertToWav, pickMimeType } from "../lib/audio";
 import { useIPCStore } from "../store/ipcStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -16,6 +17,7 @@ const notifyError = (message: string): void =>
   useIPCStore.getState().setAppError(message);
 
 const AnalysisCommentControls = ({ analysisId }: Props) => {
+  const { t } = useTranslation();
   const commentAnalysis = useSessionStore((s) => s.commentAnalysis);
   const azureSpeechKey = useSettingsStore((s) => s.azureSpeechKey);
   const azureRegion = useSettingsStore((s) => s.azureRegion);
@@ -86,7 +88,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
             })
             .catch((err: unknown) => {
               console.error("[CommentControls] STT error:", err);
-              notifyError("Trascrizione non riuscita, riprova.");
+              notifyError(t("comment.sttError"));
             })
             .finally(() => setBusy(false));
         };
@@ -100,7 +102,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
       .catch((err: unknown) => {
         console.error("[CommentControls] mic error:", err);
         setRecording(false);
-        notifyError("Microfono non disponibile: controlla le autorizzazioni.");
+        notifyError(t("comment.micError"));
       });
   };
 
@@ -111,8 +113,8 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
         variant="secondary"
         size="sm"
         className="p-0 px-3 rounded-0"
-        title="Aggiungi commento"
-        aria-label="Aggiungi commento"
+        title={t("comment.add")}
+        aria-label={t("comment.add")}
         disabled={busy}
         onClick={(e) => {
           e.stopPropagation();
@@ -134,11 +136,11 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
         title={
           sttReady
             ? recording
-              ? "Ferma registrazione"
-              : "Commento vocale"
-            : "Azure STT non configurato"
+              ? t("comment.stop")
+              : t("comment.voice")
+            : t("comment.sttOff")
         }
-        aria-label={recording ? "Ferma registrazione" : "Commento vocale"}
+        aria-label={recording ? t("comment.stop") : t("comment.voice")}
         disabled={busy || !sttReady}
         onClick={(e) => {
           e.stopPropagation();
@@ -151,7 +153,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
 
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Commenta l&apos;analisi</Modal.Title>
+          <Modal.Title>{t("comment.modalTitle")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Control
@@ -159,20 +161,20 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
             rows={4}
             value={text}
             autoFocus
-            placeholder="Suggerisci una modifica o correggi una valutazione…"
+            placeholder={t("comment.placeholder")}
             onChange={(e) => setText(e.target.value)}
           />
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Annulla
+            {t("common.cancel")}
           </Button>
           <Button
             variant="primary"
             onClick={handleTextConfirm}
             disabled={text.trim() === ""}
           >
-            Invia
+            {t("comment.send")}
           </Button>
         </Modal.Footer>
       </Modal>

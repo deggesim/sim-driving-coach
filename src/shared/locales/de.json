@@ -152,6 +152,10 @@
     "lap": {
       "one": "{{n}} Runde",
       "other": "{{n}} Runden"
+    },
+    "session": {
+      "one": "{{n}} Sitzung",
+      "other": "{{n}} Sitzungen"
     }
   },
   "settings": {
@@ -297,5 +301,143 @@
   "session": {
     "commentError": "Fehler beim Einarbeiten des Kommentars.",
     "expandError": "Fehler bei der Vertiefung."
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "delete": "Löschen",
+    "confirmDelete": "Löschen bestätigen",
+    "irreversible": "Dieser Vorgang kann nicht rückgängig gemacht werden.",
+    "prev": "‹ Zurück",
+    "next": "Weiter ›",
+    "range": "{{from}}–{{to}} von {{total}}",
+    "date": "Datum"
+  },
+  "history": {
+    "title": "Sitzungsliste",
+    "allGames": "Alle Spiele",
+    "allCars": "Alle Autos",
+    "allTracks": "Alle Strecken",
+    "sortDesc": "Datum absteigend",
+    "sortAsc": "Datum aufsteigend",
+    "deleteSelected": "Auswahl löschen ({{n}})",
+    "deleteAll": "Alle löschen",
+    "emptyAll": "Keine Sitzungen aufgezeichnet. Sie erscheinen hier nach der ersten beendeten Sitzung.",
+    "emptyFiltered": "Keine Sitzung entspricht den Filtern: Spiel, Auto oder Strecke ändern.",
+    "selectAll": "Alle sichtbaren Sitzungen auswählen",
+    "selectOne": "Sitzung auswählen",
+    "col": {
+      "sim": "Sim",
+      "car": "Auto",
+      "track": "Strecke",
+      "laps": "Runden",
+      "best": "Beste",
+      "analysis": "Analyse"
+    },
+    "deleteSession": "Sitzung löschen",
+    "deleteOne": "Die Sitzung vom {{date}} ({{car}} — {{track}}) wird gelöscht.",
+    "deleteSelectedBody": "Die ausgewählten Sitzungen werden gelöscht: <strong>{{sessions}}</strong>.",
+    "deleteAllBody": "Alle Sitzungen der aktuellen Auswahl werden gelöscht: <strong>{{sessions}}</strong>."
+  },
+  "laps": {
+    "title": "Runden",
+    "assignSetup": "Setup zuweisen ({{n}})",
+    "showInvalid": "Ungültige anzeigen",
+    "hideInvalid": "Ungültige ausblenden",
+    "selectAllTitle": "Alle sichtbaren Runden auswählen",
+    "selectAllAria": "Alle Runden auswählen",
+    "col": {
+      "time": "Zeit",
+      "valid": "Gültig",
+      "setup": "Setup"
+    },
+    "emptyLive": "Noch keine Runden. Sie erscheinen hier bei jeder Zieldurchfahrt.",
+    "emptyHistorical": "In dieser Sitzung wurden keine Runden aufgezeichnet.",
+    "allInvalid": "Alle Runden sind ungültig: mit «{{action}}» einblenden.",
+    "showTelemetry": "Telemetrie anzeigen",
+    "invalidLap": "Ungültige Runde",
+    "validLap": "Gültige Runde",
+    "selectLap": "Runde auswählen",
+    "selectLapAria": "Runde {{n}} auswählen",
+    "bestLap": "(beste Runde)",
+    "changeSetup": "Setup ändern",
+    "changeSetupAria": "Setup ändern: {{name}}",
+    "editSetup": "Setup der Runde bearbeiten",
+    "deleteLap": "Runde löschen",
+    "deleteLapAria": "Runde {{n}} löschen",
+    "deleteError": "Die Runde konnte nicht gelöscht werden. Erneut versuchen.",
+    "deleteBody": "Runde <strong>#{{n}}</strong> wird gelöscht."
+  },
+  "header": {
+    "aria": "Sitzungskopf",
+    "active": "Aktiv",
+    "closed": "Beendet",
+    "noSession": "Keine Sitzung offen: Spiel mit «{{action}}» wählen, um Runden aufzuzeichnen.",
+    "loading": "Sitzung wird geladen…",
+    "newSession": "Neue Sitzung",
+    "analyze": "Analyse starten",
+    "analyzeHint": "Ruft die Claude-API auf: erzeugt eine neue Version der Kurzanalyse.",
+    "manageSetup": "Setups verwalten",
+    "exportPdf": "PDF exportieren",
+    "reopen": "Sitzung wieder öffnen",
+    "back": "Zurück",
+    "endSession": "Sitzung beenden",
+    "endTitle": "Beendet die laufende Sitzung: aufgezeichnete Runden bleiben im Verlauf",
+    "endAria": "Laufende Sitzung beenden",
+    "laps": "Runden",
+    "bestLap": "Beste Runde",
+    "setup": "Setup",
+    "leaderboard": "Leaderboard",
+    "leaderboardHint": "Reifen fest bei 85 °C: Drücke und Sturz nicht bewertbar.",
+    "fixedSetup": "Festes Setup",
+    "fixedSetupHint": "Bewertet werden nur Bremsbalance und Bremsdruck, die einzigen einstellbaren Parameter.",
+    "flagsError": "Die Sitzungsoptionen konnten nicht gespeichert werden."
+  },
+  "panel": {
+    "opened": "Sitzung geöffnet.",
+    "reopenError": "Fehler beim Wiedereröffnen",
+    "analyzeError": "Fehler bei der Analyse",
+    "analyzing": "Analyse läuft…",
+    "pdfSaved": "PDF gespeichert: {{path}}",
+    "analyses": "Analyse",
+    "noAnalysesLive": "Noch keine Analyse. «{{action}}» ruft die Claude-API auf und erzeugt die Zusammenfassung des Debriefings; mindestens eine aufgezeichnete Runde ist nötig.",
+    "noAnalysesHistorical": "Noch keine Analyse. «{{action}}» ruft die Claude-API auf und erzeugt die Zusammenfassung des Debriefings.",
+    "confirmAnalyze": "Analyse der Sitzung starten? Sie ruft die Claude-API auf und erzeugt ein neues Debriefing."
+  },
+  "analysisList": {
+    "title": "Analyse #{{version}}",
+    "delete": "Analyse löschen",
+    "deleteBody": "Analyse #{{version}} löschen?",
+    "expand": "Detaillierte Analyse anzeigen",
+    "expandHint": "Ruft die Claude-API auf: ergänzt diese Version um die detaillierte Analyse.",
+    "detailRunning": "{{heading}} läuft…",
+    "blockedMock": "Im Mock-Modus nicht verfügbar: Diese Analyse existiert nicht in der Datenbank.",
+    "blockedWorking": "Warten, bis die laufende Analyse abgeschlossen ist.",
+    "comment": "Kommentar",
+    "workingTitle": "Analyse #{{version}} (läuft…)",
+    "processing": "Verarbeitung läuft…"
+  },
+  "comment": {
+    "add": "Kommentar hinzufügen",
+    "voice": "Sprachkommentar",
+    "stop": "Aufnahme stoppen",
+    "sttOff": "Azure STT nicht konfiguriert",
+    "modalTitle": "Analyse kommentieren",
+    "placeholder": "Änderung vorschlagen oder eine Bewertung korrigieren…",
+    "send": "Senden",
+    "sttError": "Transkription fehlgeschlagen, erneut versuchen.",
+    "micError": "Mikrofon nicht verfügbar: Berechtigungen prüfen."
+  },
+  "telemetry": {
+    "zone": "Zone {{n}}",
+    "pedals": "Bremse / Gas (%)",
+    "brake": "Bremse",
+    "throttle": "Gas",
+    "speedLabel": "Geschwindigkeit (km/h)",
+    "speed": "Geschwindigkeit",
+    "map": "Streckenverlauf",
+    "loading": "Telemetrie wird geladen…",
+    "loadError": "Die Telemetrie der Runde konnte nicht geladen werden.",
+    "noData": "Keine Telemetriedaten für diese Runde verfügbar."
   }
 }

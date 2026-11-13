@@ -15,7 +15,9 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Container, Form, Modal } from "react-bootstrap";
+import { Trans, useTranslation } from "react-i18next";
 import { formatLapTime } from "../../shared/format";
+import { localeOf, type Language } from "../../shared/i18n";
 import type { GameSource, SessionRow } from "../../shared/types";
 import { MOCK_DETAILS, MOCK_SESSIONS } from "../mocks/mockData";
 import { useSessionStore } from "../store/sessionStore";
@@ -45,11 +47,13 @@ const buildPageWindow = (current: number, total: number): (number | "…")[] => 
   return pages;
 };
 
-const formatDate = (iso: string | null | undefined): string => {
+const formatDate = (
+  iso: string | null | undefined,
+  language: Language,
+): string => {
   if (!iso) return "—";
   const normalized = iso.includes("T") ? iso : iso.replace(" ", "T") + "Z";
-  return new Date(normalized).toLocaleString("it-IT", {
-    timeZone: "Europe/Rome",
+  return new Date(normalized).toLocaleString(localeOf(language), {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -65,6 +69,10 @@ type Props = {
 };
 
 const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
+  const { t } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
+  const sessions = (n: number): string =>
+    t(n === 1 ? "count.session.one" : "count.session.other", { n });
   const loadById = useSessionStore((s) => s.loadById);
   const setDetail = useSessionStore((s) => s.setDetail);
   const mockHistoryMode = useSettingsStore((s) => s.mockHistoryMode);
@@ -256,7 +264,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
 
   return (
     <Container fluid className="session-history p-4">
-      <h2 className="fs-5 fw-bold mb-4">Elenco sessioni</h2>
+      <h2 className="fs-5 fw-bold mb-4">{t("history.title")}</h2>
       <div className="sh-filter-bar d-flex gap-2 align-items-center flex-shrink-0">
         <Form.Select
           size="sm"
@@ -265,7 +273,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           onChange={(e) => setFilterGame(e.target.value as "" | GameSource)}
           style={{ maxWidth: 120 }}
         >
-          <option value="">Tutti i giochi</option>
+          <option value="">{t("history.allGames")}</option>
           <option value="r3e">RaceRoom</option>
           <option value="ace">AC Evo</option>
           <option value="ams2">Automobilista 2</option>
@@ -278,7 +286,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           onChange={(e) => setFilterCar(e.target.value)}
           style={{ maxWidth: 260 }}
         >
-          <option value="">Tutte le auto</option>
+          <option value="">{t("history.allCars")}</option>
           {carOptions.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -293,7 +301,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           onChange={(e) => setFilterTrack(e.target.value)}
           style={{ maxWidth: 260 }}
         >
-          <option value="">Tutti i circuiti</option>
+          <option value="">{t("history.allTracks")}</option>
           {trackOptions.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
@@ -306,12 +314,12 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           size="sm"
           className="sh-filter-select ms-auto d-flex align-items-center gap-1"
           onClick={() => setSort((s) => (s === "desc" ? "asc" : "desc"))}
-          title={sort === "desc" ? "Data decrescente" : "Data crescente"}
+          title={sort === "desc" ? t("history.sortDesc") : t("history.sortAsc")}
         >
           <FontAwesomeIcon
             icon={sort === "desc" ? faArrowDownWideShort : faArrowUpWideShort}
           />
-          Data
+          {t("common.date")}
         </Button>
 
         {filtered.length > 0 && (
@@ -327,8 +335,8 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           >
             <FontAwesomeIcon icon={faTrash} className="me-1" />
             {selected.length > 0
-              ? `Elimina selezionati (${selected.length})`
-              : "Elimina tutti"}
+              ? t("history.deleteSelected", { n: selected.length })
+              : t("history.deleteAll")}
           </Button>
         )}
       </div>
@@ -337,8 +345,8 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
         {!loading && filtered.length === 0 ? (
           <p className="text-secondary py-2 mb-0">
             {allSessions.length === 0
-              ? "Nessuna sessione registrata. Compaiono qui dopo la prima sessione chiusa."
-              : "Nessuna sessione corrisponde ai filtri: cambia gioco, auto o circuito."}
+              ? t("history.emptyAll")
+              : t("history.emptyFiltered")}
           </p>
         ) : (
           <table className="sh-table w-100">
@@ -349,16 +357,16 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                     checked={allSelected}
                     onChange={toggleAll}
                     disabled={selectable.length === 0}
-                    aria-label="Seleziona tutte le sessioni visibili"
+                    aria-label={t("history.selectAll")}
                   />
                 </th>
-                <th>Sim</th>
-                <th>Auto</th>
-                <th>Circuito</th>
-                <th>Giri</th>
-                <th>Best</th>
-                <th>Data</th>
-                <th>Analisi</th>
+                <th>{t("history.col.sim")}</th>
+                <th>{t("history.col.car")}</th>
+                <th>{t("history.col.track")}</th>
+                <th>{t("history.col.laps")}</th>
+                <th>{t("history.col.best")}</th>
+                <th>{t("common.date")}</th>
+                <th>{t("history.col.analysis")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -374,7 +382,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                       <Form.Check
                         checked={selectedKeys.has(sessionKey(s))}
                         onChange={() => toggleOne(s)}
-                        aria-label="Seleziona sessione"
+                        aria-label={t("history.selectOne")}
                       />
                     )}
                   </td>
@@ -419,7 +427,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                     {s.best_lap != null ? formatLapTime(s.best_lap) : "—"}
                   </td>
                   <td className="sh-date">
-                    {formatDate(s.ended_at ?? s.started_at)}
+                    {formatDate(s.ended_at ?? s.started_at, language)}
                   </td>
                   <td>
                     {s.analysis_count != null && s.analysis_count > 0 && (
@@ -441,7 +449,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                         onClick={() =>
                           setDeleteTarget({ type: "single", session: s })
                         }
-                        aria-label="Elimina sessione"
+                        aria-label={t("history.deleteSession")}
                       >
                         <FontAwesomeIcon icon={faTrash} />
                       </Button>
@@ -458,8 +466,12 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
             style={{ fontSize: 12, whiteSpace: "nowrap" }}
           >
             {filtered.length === 0
-              ? "0 sessioni"
-              : `${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, filtered.length)} di ${filtered.length}`}
+              ? sessions(0)
+              : t("common.range", {
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: Math.min(page * PAGE_SIZE, filtered.length),
+                  total: filtered.length,
+                })}
           </span>
           {totalPages > 1 && (
             <>
@@ -470,7 +482,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
               >
-                ‹ Prec
+                {t("common.prev")}
               </Button>
               <div className="d-flex gap-1">
                 {buildPageWindow(page, totalPages).map((entry, i, arr) =>
@@ -500,7 +512,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Succ ›
+                {t("common.next")}
               </Button>
             </>
           )}
@@ -515,33 +527,40 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
       >
         <Modal.Header closeButton>
           <Modal.Title style={{ fontSize: 15 }}>
-            Conferma eliminazione
+            {t("common.confirmDelete")}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {deleteTarget?.type === "single" ? (
             <p className="mb-0">
-              Stai per eliminare la sessione del{" "}
-              {formatDate(deleteTarget.session.started_at)} (
-              {deleteTarget.session.car_name ?? deleteTarget.session.car} —{" "}
-              {deleteTarget.session.track_name ?? deleteTarget.session.track}).
+              {t("history.deleteOne", {
+                date: formatDate(deleteTarget.session.started_at, language),
+                car: deleteTarget.session.car_name ?? deleteTarget.session.car,
+                track:
+                  deleteTarget.session.track_name ?? deleteTarget.session.track,
+              })}
               <br />
-              <span className="text-danger">L'operazione è irreversibile.</span>
+              <span className="text-danger">{t("common.irreversible")}</span>
             </p>
           ) : deleteTarget?.type === "selected" ? (
             <p className="mb-0">
-              Stai per eliminare{" "}
-              <strong>{selected.length} sessioni selezionate</strong>.
+              <Trans
+                i18nKey="history.deleteSelectedBody"
+                values={{ sessions: sessions(selected.length) }}
+                components={{ strong: <strong /> }}
+              />
               <br />
-              <span className="text-danger">L'operazione è irreversibile.</span>
+              <span className="text-danger">{t("common.irreversible")}</span>
             </p>
           ) : (
             <p className="mb-0">
-              Stai per eliminare{" "}
-              <strong>tutte le {selectable.length} sessioni</strong> della
-              selezione corrente.
+              <Trans
+                i18nKey="history.deleteAllBody"
+                values={{ sessions: sessions(selectable.length) }}
+                components={{ strong: <strong /> }}
+              />
               <br />
-              <span className="text-danger">L'operazione è irreversibile.</span>
+              <span className="text-danger">{t("common.irreversible")}</span>
             </p>
           )}
         </Modal.Body>
@@ -551,10 +570,10 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
             size="sm"
             onClick={() => setDeleteTarget(null)}
           >
-            Annulla
+            {t("common.cancel")}
           </Button>
           <Button variant="danger" size="sm" onClick={executeDelete}>
-            Conferma
+            {t("common.confirm")}
           </Button>
         </Modal.Footer>
       </Modal>

@@ -152,6 +152,10 @@
     "lap": {
       "one": "{{n}} lap",
       "other": "{{n}} laps"
+    },
+    "session": {
+      "one": "{{n}} session",
+      "other": "{{n}} sessions"
     }
   },
   "settings": {
@@ -297,5 +301,143 @@
   "session": {
     "commentError": "Error while integrating the comment.",
     "expandError": "Error during the deep-dive."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "confirmDelete": "Confirm deletion",
+    "irreversible": "This cannot be undone.",
+    "prev": "‹ Prev",
+    "next": "Next ›",
+    "range": "{{from}}–{{to}} of {{total}}",
+    "date": "Date"
+  },
+  "history": {
+    "title": "Session list",
+    "allGames": "All games",
+    "allCars": "All cars",
+    "allTracks": "All tracks",
+    "sortDesc": "Date, newest first",
+    "sortAsc": "Date, oldest first",
+    "deleteSelected": "Delete selected ({{n}})",
+    "deleteAll": "Delete all",
+    "emptyAll": "No sessions recorded. They appear here after the first closed session.",
+    "emptyFiltered": "No session matches the filters: change game, car or track.",
+    "selectAll": "Select all visible sessions",
+    "selectOne": "Select session",
+    "col": {
+      "sim": "Sim",
+      "car": "Car",
+      "track": "Track",
+      "laps": "Laps",
+      "best": "Best",
+      "analysis": "Analysis"
+    },
+    "deleteSession": "Delete session",
+    "deleteOne": "You are about to delete the session of {{date}} ({{car}} — {{track}}).",
+    "deleteSelectedBody": "You are about to delete the selected sessions: <strong>{{sessions}}</strong>.",
+    "deleteAllBody": "You are about to delete all sessions in the current selection: <strong>{{sessions}}</strong>."
+  },
+  "laps": {
+    "title": "Laps",
+    "assignSetup": "Assign setup ({{n}})",
+    "showInvalid": "Show invalid",
+    "hideInvalid": "Hide invalid",
+    "selectAllTitle": "Select all visible laps",
+    "selectAllAria": "Select all laps",
+    "col": {
+      "time": "Time",
+      "valid": "Valid",
+      "setup": "Setup"
+    },
+    "emptyLive": "No laps yet. They appear here each time you cross the finish line.",
+    "emptyHistorical": "No laps recorded in this session.",
+    "allInvalid": "All laps are invalid: show them with «{{action}}».",
+    "showTelemetry": "Show telemetry",
+    "invalidLap": "Invalid lap",
+    "validLap": "Valid lap",
+    "selectLap": "Select lap",
+    "selectLapAria": "Select lap {{n}}",
+    "bestLap": "(best lap)",
+    "changeSetup": "Change setup",
+    "changeSetupAria": "Change setup: {{name}}",
+    "editSetup": "Edit lap setup",
+    "deleteLap": "Delete lap",
+    "deleteLapAria": "Delete lap {{n}}",
+    "deleteError": "Could not delete the lap. Try again.",
+    "deleteBody": "You are about to delete lap <strong>#{{n}}</strong>."
+  },
+  "header": {
+    "aria": "Session header",
+    "active": "Active",
+    "closed": "Closed",
+    "noSession": "No session open: pick the game with «{{action}}» to record laps.",
+    "loading": "Loading session…",
+    "newSession": "New session",
+    "analyze": "Run analysis",
+    "analyzeHint": "Calls the Claude API: generates a new version of the summary analysis.",
+    "manageSetup": "Manage setups",
+    "exportPdf": "Export PDF",
+    "reopen": "Reopen session",
+    "back": "Back",
+    "endSession": "End session",
+    "endTitle": "Ends the current session: recorded laps stay in the history",
+    "endAria": "End current session",
+    "laps": "Laps",
+    "bestLap": "Best lap",
+    "setup": "Setup",
+    "leaderboard": "Leaderboard",
+    "leaderboardHint": "Tyres fixed at 85 °C: pressures and camber cannot be assessed.",
+    "fixedSetup": "Fixed setup",
+    "fixedSetupHint": "Only brake bias and brake pressure are assessed, the only adjustable parameters.",
+    "flagsError": "Could not save the session options."
+  },
+  "panel": {
+    "opened": "Session opened.",
+    "reopenError": "Error while reopening",
+    "analyzeError": "Error during the analysis",
+    "analyzing": "Analysis in progress…",
+    "pdfSaved": "PDF saved: {{path}}",
+    "analyses": "Analysis",
+    "noAnalysesLive": "No analysis yet. «{{action}}» calls the Claude API and generates the debriefing summary; at least one recorded lap is needed.",
+    "noAnalysesHistorical": "No analysis yet. «{{action}}» calls the Claude API and generates the debriefing summary.",
+    "confirmAnalyze": "Start the session analysis? It calls the Claude API and generates a new debriefing."
+  },
+  "analysisList": {
+    "title": "Analysis #{{version}}",
+    "delete": "Delete analysis",
+    "deleteBody": "Delete analysis #{{version}}?",
+    "expand": "Show deep-dive analysis",
+    "expandHint": "Calls the Claude API: adds the deep-dive analysis to this version.",
+    "detailRunning": "{{heading}} in progress…",
+    "blockedMock": "Not available in mock mode: this analysis does not exist in the database.",
+    "blockedWorking": "Wait for the running analysis to finish.",
+    "comment": "Comment",
+    "workingTitle": "Analysis #{{version}} (in progress…)",
+    "processing": "Processing…"
+  },
+  "comment": {
+    "add": "Add comment",
+    "voice": "Voice comment",
+    "stop": "Stop recording",
+    "sttOff": "Azure STT not configured",
+    "modalTitle": "Comment on the analysis",
+    "placeholder": "Suggest a change or correct an assessment…",
+    "send": "Send",
+    "sttError": "Transcription failed, try again.",
+    "micError": "Microphone unavailable: check the permissions."
+  },
+  "telemetry": {
+    "zone": "zone {{n}}",
+    "pedals": "Brake / Throttle (%)",
+    "brake": "Brake",
+    "throttle": "Throttle",
+    "speedLabel": "Speed (km/h)",
+    "speed": "Speed",
+    "map": "Track map",
+    "loading": "Loading telemetry…",
+    "loadError": "Could not load the lap telemetry.",
+    "noData": "No telemetry data available for this lap."
   }
 }

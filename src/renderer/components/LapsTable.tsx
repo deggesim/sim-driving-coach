@@ -11,9 +11,12 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useEffect, useState } from "react";
 import { Badge, Button, Form, Modal, Table } from "react-bootstrap";
+import { Trans, useTranslation } from "react-i18next";
 import { formatLapTime } from "../../shared/format";
+import { localeOf } from "../../shared/i18n";
 import type { LapRow, SessionSetupRow } from "../../shared/types";
 import { useSessionStore } from "../store/sessionStore";
+import { useSettingsStore } from "../store/settingsStore";
 import LapTelemetryCharts from "./LapTelemetryCharts";
 
 const buildPageWindow = (current: number, total: number): (number | "…")[] => {
@@ -57,6 +60,8 @@ const LapsTable = ({
   onPickSetup,
   onAssignSetup,
 }: LapsTableProps) => {
+  const { t } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
   const laps = useSessionStore((s) => s.laps);
   const deleteLap = useSessionStore((s) => s.deleteLap);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -155,7 +160,7 @@ const LapsTable = ({
       await deleteLap(confirmDeleteId);
     } catch (err) {
       console.error("[LapsTable] deleteLap failed:", err);
-      setDeleteError("Impossibile eliminare il giro. Riprova.");
+      setDeleteError(t("laps.deleteError"));
       return;
     }
     setShowDeleteModal(false);
@@ -177,7 +182,7 @@ const LapsTable = ({
   return (
     <>
       <div className="d-flex justify-content-between align-items-center mb-1">
-        <h6 className="text-uppercase mb-1">Giri</h6>
+        <h6 className="text-uppercase mb-1">{t("laps.title")}</h6>
         <div className="d-flex gap-2">
           {selectedIds.length > 0 && (
             <Button
@@ -189,7 +194,7 @@ const LapsTable = ({
               size="sm"
             >
               <FontAwesomeIcon icon={faGear} className="me-1" />
-              Assegna setup ({selectedIds.length})
+              {t("laps.assignSetup", { n: selectedIds.length })}
             </Button>
           )}
           {laps.length > 0 && (
@@ -198,7 +203,7 @@ const LapsTable = ({
                 icon={hideInvalid ? faEye : faEyeSlash}
                 className="me-1"
               />
-              {hideInvalid ? "Mostra non validi" : "Nascondi non validi"}
+              {hideInvalid ? t("laps.showInvalid") : t("laps.hideInvalid")}
             </Button>
           )}
         </div>
@@ -223,19 +228,19 @@ const LapsTable = ({
                       selectedIds.length < visibleLaps.length;
                 }}
                 onChange={toggleAll}
-                title="Seleziona tutti i giri visibili"
-                aria-label="Seleziona tutti i giri"
+                title={t("laps.selectAllTitle")}
+                aria-label={t("laps.selectAllAria")}
               />
             </th>
             <th className="col-icon"></th>
             <th>#</th>
-            <th className="laps-time">Tempo</th>
+            <th className="laps-time">{t("laps.col.time")}</th>
             <th className="laps-time">S1</th>
             <th className="laps-time">S2</th>
             <th className="laps-time">S3</th>
-            <th>Valido</th>
-            <th>Setup</th>
-            <th>Data</th>
+            <th>{t("laps.col.valid")}</th>
+            <th>{t("laps.col.setup")}</th>
+            <th>{t("common.date")}</th>
             <th className="col-actions"></th>
           </tr>
         </thead>
@@ -243,16 +248,14 @@ const LapsTable = ({
           {laps.length === 0 && (
             <tr>
               <td colSpan={11} className="text-center text-muted">
-                {live
-                  ? "Nessun giro. Compaiono qui a ogni passaggio sul traguardo."
-                  : "Nessun giro registrato in questa sessione."}
+                {live ? t("laps.emptyLive") : t("laps.emptyHistorical")}
               </td>
             </tr>
           )}
           {laps.length > 0 && visibleLaps.length === 0 && (
             <tr>
               <td colSpan={11} className="text-center text-muted">
-                Tutti i giri sono non validi: mostrali con «Mostra non validi».
+                {t("laps.allInvalid", { action: t("laps.showInvalid") })}
               </td>
             </tr>
           )}
@@ -280,7 +283,9 @@ const LapsTable = ({
                   ]
                     .filter(Boolean)
                     .join(" ")}
-                  title={clickable ? "Mostra telemetria" : "Giro non valido"}
+                  title={
+                    clickable ? t("laps.showTelemetry") : t("laps.invalidLap")
+                  }
                 >
                   <td
                     className="laps-select-cell"
@@ -290,8 +295,8 @@ const LapsTable = ({
                       type="checkbox"
                       checked={selected.has(l.id)}
                       onChange={() => toggleSelected(l.id)}
-                      title="Seleziona giro"
-                      aria-label={`Seleziona giro ${l.lap_number}`}
+                      title={t("laps.selectLap")}
+                      aria-label={t("laps.selectLapAria", { n: l.lap_number })}
                     />
                   </td>
                   <td className={iconCellClass}>
@@ -305,7 +310,10 @@ const LapsTable = ({
                   <td className={dataCellClass}>
                     {l.lap_number}
                     {isBest && (
-                      <span className="visually-hidden"> (miglior giro)</span>
+                      <span className="visually-hidden">
+                        {" "}
+                        {t("laps.bestLap")}
+                      </span>
                     )}
                   </td>
                   <td className={`laps-time ${dataCellClass}`}>
@@ -330,7 +338,7 @@ const LapsTable = ({
                       <FontAwesomeIcon icon={faXmark} className="text-danger" />
                     )}
                     <span className="visually-hidden">
-                      {l.valid ? "Giro valido" : "Giro non valido"}
+                      {l.valid ? t("laps.validLap") : t("laps.invalidLap")}
                     </span>
                   </td>
                   <td>
@@ -339,8 +347,12 @@ const LapsTable = ({
                         bg="secondary"
                         as="button"
                         className="laps-setup-badge"
-                        title="Cambia setup"
-                        aria-label={`Cambia setup: ${setupById.get(l.setup_id)!.setup.name ?? `#${l.setup_id}`}`}
+                        title={t("laps.changeSetup")}
+                        aria-label={t("laps.changeSetupAria", {
+                          name:
+                            setupById.get(l.setup_id)!.setup.name ??
+                            `#${l.setup_id}`,
+                        })}
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           onPickSetup?.(l);
@@ -354,8 +366,8 @@ const LapsTable = ({
                         variant="link"
                         size="sm"
                         className="text-muted p-0 laps-setup-edit-btn"
-                        title="Modifica setup del giro"
-                        aria-label="Modifica setup del giro"
+                        title={t("laps.editSetup")}
+                        aria-label={t("laps.editSetup")}
                         onClick={(e) => {
                           e.stopPropagation();
                           onPickSetup?.(l);
@@ -369,7 +381,9 @@ const LapsTable = ({
                     )}
                   </td>
                   <td className={dataCellClass}>
-                    {parseLocalDate(l.recorded_at).toLocaleString("it-IT")}
+                    {parseLocalDate(l.recorded_at).toLocaleString(
+                      localeOf(language),
+                    )}
                   </td>
                   <td
                     onClick={(e) => e.stopPropagation()}
@@ -379,8 +393,8 @@ const LapsTable = ({
                       variant="link"
                       size="sm"
                       className="text-danger"
-                      title="Elimina giro"
-                      aria-label={`Elimina giro ${l.lap_number}`}
+                      title={t("laps.deleteLap")}
+                      aria-label={t("laps.deleteLapAria", { n: l.lap_number })}
                       onClick={(e) => handleDeleteClick(e, l.id)}
                     >
                       <FontAwesomeIcon icon={faTrash} />
@@ -413,22 +427,24 @@ const LapsTable = ({
       >
         <Modal.Header closeButton>
           <Modal.Title className="laps-modal-title">
-            Conferma eliminazione
+            {t("common.confirmDelete")}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <p className="mb-0">
-            Stai per eliminare il giro{" "}
-            <strong>
-              #
-              {confirmDeleteId !== null
-                ? (laps.find((l) => l.id === confirmDeleteId)?.lap_number ??
-                  "—")
-                : "—"}
-            </strong>
-            .
+            <Trans
+              i18nKey="laps.deleteBody"
+              values={{
+                n:
+                  confirmDeleteId !== null
+                    ? (laps.find((l) => l.id === confirmDeleteId)?.lap_number ??
+                      "—")
+                    : "—",
+              }}
+              components={{ strong: <strong /> }}
+            />
             <br />
-            <span className="text-danger">L'operazione è irreversibile.</span>
+            <span className="text-danger">{t("common.irreversible")}</span>
           </p>
           {deleteError && (
             <p className="text-danger mt-2 mb-0" role="alert">
@@ -438,10 +454,10 @@ const LapsTable = ({
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" size="sm" onClick={handleDeleteCancel}>
-            Annulla
+            {t("common.cancel")}
           </Button>
           <Button variant="danger" size="sm" onClick={handleDeleteConfirm}>
-            Elimina
+            {t("common.delete")}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -449,8 +465,12 @@ const LapsTable = ({
       <div className="sh-pagination d-flex align-items-center gap-2 px-0 py-1">
         <span className="sh-page-count text-secondary laps-page-count">
           {visibleLaps.length === 0
-            ? "0 giri"
-            : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, visibleLaps.length)} di ${visibleLaps.length}`}
+            ? t("count.lap.other", { n: 0 })
+            : t("common.range", {
+                from: (page - 1) * PAGE_SIZE + 1,
+                to: Math.min(page * PAGE_SIZE, visibleLaps.length),
+                total: visibleLaps.length,
+              })}
         </span>
         {pageCount > 1 && (
           <>
@@ -461,7 +481,7 @@ const LapsTable = ({
               disabled={page === 1}
               onClick={() => goToPage(page - 1)}
             >
-              ‹ Prec
+              {t("common.prev")}
             </Button>
             <div className="d-flex gap-1">
               {buildPageWindow(page, pageCount).map((entry, i, arr) =>
@@ -491,7 +511,7 @@ const LapsTable = ({
               disabled={page === pageCount}
               onClick={() => goToPage(page + 1)}
             >
-              Succ ›
+              {t("common.next")}
             </Button>
           </>
         )}

@@ -152,6 +152,10 @@
     "lap": {
       "one": "{{n}} tour",
       "other": "{{n}} tours"
+    },
+    "session": {
+      "one": "{{n}} session",
+      "other": "{{n}} sessions"
     }
   },
   "settings": {
@@ -297,5 +301,143 @@
   "session": {
     "commentError": "Erreur lors de l'intégration du commentaire.",
     "expandError": "Erreur lors de l'approfondissement."
+  },
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "confirmDelete": "Confirmer la suppression",
+    "irreversible": "Cette opération est irréversible.",
+    "prev": "‹ Préc",
+    "next": "Suiv ›",
+    "range": "{{from}}–{{to}} sur {{total}}",
+    "date": "Date"
+  },
+  "history": {
+    "title": "Liste des sessions",
+    "allGames": "Tous les jeux",
+    "allCars": "Toutes les voitures",
+    "allTracks": "Tous les circuits",
+    "sortDesc": "Date décroissante",
+    "sortAsc": "Date croissante",
+    "deleteSelected": "Supprimer la sélection ({{n}})",
+    "deleteAll": "Tout supprimer",
+    "emptyAll": "Aucune session enregistrée. Elles apparaissent ici après la première session clôturée.",
+    "emptyFiltered": "Aucune session ne correspond aux filtres : changez de jeu, de voiture ou de circuit.",
+    "selectAll": "Sélectionner toutes les sessions visibles",
+    "selectOne": "Sélectionner la session",
+    "col": {
+      "sim": "Sim",
+      "car": "Voiture",
+      "track": "Circuit",
+      "laps": "Tours",
+      "best": "Meilleur",
+      "analysis": "Analyse"
+    },
+    "deleteSession": "Supprimer la session",
+    "deleteOne": "Vous allez supprimer la session du {{date}} ({{car}} — {{track}}).",
+    "deleteSelectedBody": "Vous allez supprimer les sessions sélectionnées : <strong>{{sessions}}</strong>.",
+    "deleteAllBody": "Vous allez supprimer toutes les sessions de la sélection actuelle : <strong>{{sessions}}</strong>."
+  },
+  "laps": {
+    "title": "Tours",
+    "assignSetup": "Assigner le setup ({{n}})",
+    "showInvalid": "Afficher les invalides",
+    "hideInvalid": "Masquer les invalides",
+    "selectAllTitle": "Sélectionner tous les tours visibles",
+    "selectAllAria": "Sélectionner tous les tours",
+    "col": {
+      "time": "Temps",
+      "valid": "Valide",
+      "setup": "Setup"
+    },
+    "emptyLive": "Aucun tour. Ils apparaissent ici à chaque passage sur la ligne.",
+    "emptyHistorical": "Aucun tour enregistré dans cette session.",
+    "allInvalid": "Tous les tours sont invalides : affichez-les avec « {{action}} ».",
+    "showTelemetry": "Afficher la télémétrie",
+    "invalidLap": "Tour invalide",
+    "validLap": "Tour valide",
+    "selectLap": "Sélectionner le tour",
+    "selectLapAria": "Sélectionner le tour {{n}}",
+    "bestLap": "(meilleur tour)",
+    "changeSetup": "Changer de setup",
+    "changeSetupAria": "Changer de setup : {{name}}",
+    "editSetup": "Modifier le setup du tour",
+    "deleteLap": "Supprimer le tour",
+    "deleteLapAria": "Supprimer le tour {{n}}",
+    "deleteError": "Impossible de supprimer le tour. Réessayez.",
+    "deleteBody": "Vous allez supprimer le tour <strong>#{{n}}</strong>."
+  },
+  "header": {
+    "aria": "En-tête de la session",
+    "active": "Active",
+    "closed": "Clôturée",
+    "noSession": "Aucune session ouverte : choisissez le jeu avec « {{action}} » pour enregistrer les tours.",
+    "loading": "Chargement de la session…",
+    "newSession": "Nouvelle session",
+    "analyze": "Lancer l'analyse",
+    "analyzeHint": "Appelle l'API Claude : génère une nouvelle version de l'analyse synthétique.",
+    "manageSetup": "Gestion des setups",
+    "exportPdf": "Exporter en PDF",
+    "reopen": "Rouvrir la session",
+    "back": "Retour",
+    "endSession": "Clôturer la session",
+    "endTitle": "Clôture la session en cours : les tours enregistrés restent dans l'historique",
+    "endAria": "Clôturer la session en cours",
+    "laps": "Tours",
+    "bestLap": "Meilleur tour",
+    "setup": "Setup",
+    "leaderboard": "Leaderboard",
+    "leaderboardHint": "Pneus fixes à 85 °C : pressions et carrossage non évaluables.",
+    "fixedSetup": "Setup fixe",
+    "fixedSetupHint": "Seuls l'équilibre et la pression de freinage sont évalués, les seuls paramètres réglables.",
+    "flagsError": "Impossible d'enregistrer les options de la session."
+  },
+  "panel": {
+    "opened": "Session ouverte.",
+    "reopenError": "Erreur lors de la réouverture",
+    "analyzeError": "Erreur pendant l'analyse",
+    "analyzing": "Analyse en cours…",
+    "pdfSaved": "PDF enregistré : {{path}}",
+    "analyses": "Analyse",
+    "noAnalysesLive": "Aucune analyse. « {{action}} » appelle l'API Claude et génère la synthèse du débriefing ; il faut au moins un tour enregistré.",
+    "noAnalysesHistorical": "Aucune analyse. « {{action}} » appelle l'API Claude et génère la synthèse du débriefing.",
+    "confirmAnalyze": "Lancer l'analyse de la session ? Elle appelle l'API Claude et génère un nouveau débriefing."
+  },
+  "analysisList": {
+    "title": "Analyse #{{version}}",
+    "delete": "Supprimer l'analyse",
+    "deleteBody": "Supprimer l'analyse #{{version}} ?",
+    "expand": "Afficher l'analyse approfondie",
+    "expandHint": "Appelle l'API Claude : ajoute l'analyse approfondie à cette version.",
+    "detailRunning": "{{heading}} en cours…",
+    "blockedMock": "Indisponible en mode mock : cette analyse n'existe pas dans la base de données.",
+    "blockedWorking": "Attendez la fin de l'analyse en cours.",
+    "comment": "Commentaire",
+    "workingTitle": "Analyse #{{version}} (en cours…)",
+    "processing": "Traitement en cours…"
+  },
+  "comment": {
+    "add": "Ajouter un commentaire",
+    "voice": "Commentaire vocal",
+    "stop": "Arrêter l'enregistrement",
+    "sttOff": "Azure STT non configuré",
+    "modalTitle": "Commenter l'analyse",
+    "placeholder": "Suggérez une modification ou corrigez une évaluation…",
+    "send": "Envoyer",
+    "sttError": "Échec de la transcription, réessayez.",
+    "micError": "Microphone indisponible : vérifiez les autorisations."
+  },
+  "telemetry": {
+    "zone": "zone {{n}}",
+    "pedals": "Frein / Accélérateur (%)",
+    "brake": "Frein",
+    "throttle": "Accélérateur",
+    "speedLabel": "Vitesse (km/h)",
+    "speed": "Vitesse",
+    "map": "Tracé",
+    "loading": "Chargement de la télémétrie…",
+    "loadError": "Impossible de charger la télémétrie du tour.",
+    "noData": "Aucune donnée de télémétrie disponible pour ce tour."
   }
 }

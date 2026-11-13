@@ -45,8 +45,6 @@
     //   "**/generated/**"     // OpenAPI, Protobuf codegen
     // ]
   },
-  // i18n foundation: localeOf is consumed from the main/renderer wiring tasks onwards.
-  "ignoreExports": [{ "file": "src/shared/i18n.ts", "exports": ["localeOf"] }],
   "rules": {
     // react/react-dom are devDependencies by design: bundled into the renderer by Vite,
     // never resolved from node_modules at runtime by the packaged app.
