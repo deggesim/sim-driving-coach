@@ -108,7 +108,7 @@ For each parameter set "category" to EXACTLY one of these values:
 - "Gear Ratios": final drive and individual gears
 - "Differential": preload, power/coast ramps, plates, front and rear differential
 For per-wheel parameters (categories "Tyres" and "Suspension") create one parameter per wheel and append the wheel code at the end of the parameter name: " FL", " FR", " RL", " RR" (e.g. "Tyre Pressure FL"). Do not use categories other than those listed.
-For these parameters use EXACTLY these names (always in English, whatever the game language): ${AMS2_CANONICAL_PARAMS.join(", ")}. Report springs with the unit shown in the game (e.g. "220 N/mm").
+For these parameters use EXACTLY these names (always in English, whatever the game language): ${AMS2_CANONICAL_PARAMS.join(", ")}. Write every other parameter name and every category in English too, whatever the language of the game UI. Report springs with the unit shown in the game (e.g. "220 N/mm").
 IMPORTANT - numeric precision: read every digit of every value with the greatest care. UI sliders and other graphic elements may appear next to the numbers: ignore them and transcribe only the digits of the numeric text shown on screen.
 Return only the JSON, with no additional text.`;
 

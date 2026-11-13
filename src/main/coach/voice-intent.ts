@@ -109,6 +109,8 @@ const wordCount = (text: string): number => {
 /** Session/analysis commands. Returns null when the text is not a command. */
 const classifyCommand = (s: string, lang: Language): VoiceIntent | null => {
   const lex = LEXICONS[lang];
+  // "how do I stop losing time this session" mentions commands but asks a question.
+  if (lex.question.test(s)) return null;
   const hasSession = lex.session.test(s);
   if (hasSession && lex.open.test(s))
     return { kind: "newSession", game: matchGame(s, lang) };

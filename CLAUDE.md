@@ -81,15 +81,15 @@ picked game (no reader emitting → no live mirroring). No auto-priority selecti
                              → track_maps table      |
                                                 [User clicks "Run analysis"]
                                                      |
-                                       SessionCoachEngine → Claude API → Livello 1
+                                       SessionCoachEngine → Claude API → Level 1
                                                      |             (Summary analysis +
-                                                     |              Azioni suggerite)
+                                                     |              Suggested actions)
                                               session_analyses_*
                                               (versioned, multiple)
                                                      |
-                                     [User clicks "Mostra analisi approfondita"]
+                                     [User clicks "Show deep-dive analysis"]
                                                      |
-                                     expandAnalysis → Claude API → Livello 2
+                                     expandAnalysis → Claude API → Level 2
                                                      |         (In-depth analysis,
                                                      |          written to `detail`)
                                                 PdfGenerator (renders both levels)

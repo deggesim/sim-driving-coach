@@ -86,7 +86,7 @@ type SettingsStore = {
 };
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  language: "it",
+  language: "en",
   apiKey: "",
   assistantName: "Aria",
   gamepadButton: null,

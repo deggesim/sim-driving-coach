@@ -307,6 +307,21 @@ for (const [lang, cases] of Object.entries(PER_LANG) as [
       expected,
       `${lang}: "${phrase}"`,
     );
+// Questions that merely mention a command word stay free questions
+for (const [lang, q] of [
+  ["en", "how do I stop losing time this session"],
+  ["en", "why does the car lose grip before the end of the session"],
+  ["en", "what did the analysis say"],
+  ["de", "wie höre ich auf, in dieser Sitzung Zeit zu verlieren"],
+  ["fr", "comment arrêter de perdre du temps dans cette session"],
+  ["es", "¿cómo dejo de perder tiempo en esta sesión? termina"],
+  ["it", "come evito di perdere tempo in questa sessione, fine"],
+] as const)
+  assert.deepEqual(
+    classifyVoiceIntent(q, NAME, lang),
+    ff(q),
+    `${lang}: "${q}"`,
+  );
 // Game names spoken in each language
 assert.equal(matchGame("R drei E", "de"), "r3e");
 assert.equal(matchGame("automobilista zwei", "de"), "ams2");

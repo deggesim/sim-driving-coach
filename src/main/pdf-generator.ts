@@ -97,7 +97,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
         )
         .join("");
       return `
-        <h3>${escapeHtml(tm("pdf.setupN", { n: i + 1, car: s.setup.carFound || "" }))} <span class="muted">(${s.loaded_at})</span></h3>
+        <h3>${escapeHtml(tm("pdf.setupN", { n: i + 1, car: s.setup.carFound || "" }))} <span class="muted">(${new Date(s.loaded_at).toLocaleString(locale)})</span></h3>
         <table class="params"><thead><tr><th>${tm("pdf.colCategory")}</th><th>${tm("pdf.colParameter")}</th><th>${tm("pdf.colValue")}</th></tr></thead><tbody>${paramsRows}</tbody></table>`;
     })
     .join("");

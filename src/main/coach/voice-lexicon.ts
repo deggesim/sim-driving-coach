@@ -20,6 +20,8 @@ export type VoiceLexicon = {
   setup: RegExp;
   /** Verbs/adjectives of the four acquire triggers (acquire/load/fetch/new setup). */
   acquire: RegExp;
+  /** Question words opening the sentence: the text is a question, never a command. */
+  question: RegExp;
   /** Words that drop a pending setup-name prompt. Matched on the normalized name. */
   cancel: RegExp;
 };
@@ -30,6 +32,7 @@ const NA = "(?![\\p{L}\\p{N}])";
 const words = (alts: string): RegExp =>
   new RegExp(`${NB}(?:${alts})${NA}`, "u");
 const stem = (alts: string): RegExp => new RegExp(`${NB}(?:${alts})`, "u");
+const opening = (alts: string): RegExp => new RegExp(`^(?:${alts})${NA}`, "u");
 const cancel = (alts: string): RegExp => new RegExp(`^(?:${alts})$`, "iu");
 const games = (
   r3e: string[],
@@ -71,6 +74,9 @@ export const LEXICONS: Record<Language, VoiceLexicon> = {
     acquire: words(
       "acquisisci|acquisire|acquisisce|carica|caricare|caricami|preleva|prelevare|nuovo|nuova",
     ),
+    question: opening(
+      "come|cosa|che|perché|perche|quando|dove|quale|quali|devo|posso|è|chi",
+    ),
     cancel: cancel("annulla|annullo|lascia stare|lascia perdere|niente|no"),
   },
   en: {
@@ -96,6 +102,9 @@ export const LEXICONS: Record<Language, VoiceLexicon> = {
     analyze: words("analy[sz]e|analysis|evaluate|evaluation|assess"),
     setup: words("set ?up"),
     acquire: words("acquire|load|fetch|retrieve|import|new"),
+    question: opening(
+      "how|what|why|when|where|which|who|should|do|does|is|are",
+    ),
     cancel: cancel(
       "cancel|never ?mind|forget it|forget about it|nothing|no|skip",
     ),
@@ -132,6 +141,9 @@ export const LEXICONS: Record<Language, VoiceLexicon> = {
     acquire: words(
       "erfasse|erfassen|lade|laden|hole|holen|abrufen|rufe ab|importiere|neues|neuen|neue",
     ),
+    question: opening(
+      "wie|was|warum|wann|wo|welche|welcher|welches|soll|kann|ist|wer",
+    ),
     cancel: cancel(
       "abbrechen|abbruch|abbrechen bitte|vergiss es|lass es|lass gut sein|nichts|nein|egal",
     ),
@@ -163,6 +175,9 @@ export const LEXICONS: Record<Language, VoiceLexicon> = {
     setup: words("set ?up"),
     acquire: words(
       "acquiers|acquérir|acquière|charge|charger|chargez|récupère|récupérer|importe|nouveau|nouvelle",
+    ),
+    question: opening(
+      "comment|que|qu|quoi|pourquoi|quand|où|quel|quelle|quels|est ce|dois|peux|qui",
     ),
     cancel: cancel(
       "annuler|annule|annulez|laisse tomber|laisse|oublie|oublie ça|rien|non|peu importe",
@@ -201,6 +216,9 @@ export const LEXICONS: Record<Language, VoiceLexicon> = {
     setup: words("set ?up"),
     acquire: words(
       "adquiere|adquirir|carga|cargar|cárgame|recupera|recuperar|importa|nuevo|nueva",
+    ),
+    question: opening(
+      "cómo|como|qué|que|por qué|cuándo|dónde|cuál|cuáles|debo|puedo|es|quién",
     ),
     cancel: cancel(
       "cancelar|cancela|olvídalo|olvidalo|déjalo|dejalo|nada|no|da igual",
