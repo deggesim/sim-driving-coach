@@ -21,64 +21,65 @@ import type { AzureVoice, AnthropicModelInfo } from "../../shared/types";
 import { assistantIntro } from "../../shared/format";
 import { resolveVoice, voiceConfigKey } from "../../shared/azure-voice";
 
+// Azure region codes; display names are in the locale files (settings.azure.regions).
 const AZURE_REGIONS = [
-  { value: "australiacentral", label: "Australia Central" },
-  { value: "australiacentral2", label: "Australia Central 2" },
-  { value: "australiaeast", label: "Australia East" },
-  { value: "australiasoutheast", label: "Australia Southeast" },
-  { value: "austriaeast", label: "Austria East" },
-  { value: "belgiocentral", label: "Belgium Central" },
-  { value: "brazilsouth", label: "Brazil South" },
-  { value: "brazilsoutheast", label: "Brazil Southeast" },
-  { value: "canadacentral", label: "Canada Central" },
-  { value: "canadaeast", label: "Canada East" },
-  { value: "centralindia", label: "Central India" },
-  { value: "centralus", label: "Central US" },
-  { value: "chilecentral", label: "Chile Central" },
-  { value: "denmarkeast", label: "Denmark East" },
-  { value: "eastasia", label: "East Asia" },
-  { value: "eastus", label: "East US" },
-  { value: "eastus2", label: "East US 2" },
-  { value: "francecentral", label: "France Central" },
-  { value: "francesouth", label: "France South" },
-  { value: "germanynorth", label: "Germany North" },
-  { value: "germanywestcentral", label: "Germany West Central" },
-  { value: "indonesiacentral", label: "Indonesia Central" },
-  { value: "israelcentral", label: "Israel Central" },
-  { value: "italynorth", label: "Italy North" },
-  { value: "japaneast", label: "Japan East" },
-  { value: "japanwest", label: "Japan West" },
-  { value: "koreacentral", label: "Korea Central" },
-  { value: "koreasouth", label: "Korea South" },
-  { value: "malaysiawest", label: "Malaysia West" },
-  { value: "mexicocentral", label: "Mexico Central" },
-  { value: "newzealandnorth", label: "New Zealand North" },
-  { value: "northcentralus", label: "North Central US" },
-  { value: "northeurope", label: "North Europe" },
-  { value: "norwayeast", label: "Norway East" },
-  { value: "norwaywest", label: "Norway West" },
-  { value: "polandcentral", label: "Poland Central" },
-  { value: "qatarcentral", label: "Qatar Central" },
-  { value: "southafricanorth", label: "South Africa North" },
-  { value: "southafricawest", label: "South Africa West" },
-  { value: "southcentralus", label: "South Central US" },
-  { value: "southindia", label: "South India" },
-  { value: "southeastasia", label: "Southeast Asia" },
-  { value: "spaincentral", label: "Spain Central" },
-  { value: "swedencentral", label: "Sweden Central" },
-  { value: "switzerlandnorth", label: "Switzerland North" },
-  { value: "switzerlandwest", label: "Switzerland West" },
-  { value: "uaecentral", label: "UAE Central" },
-  { value: "uaenorth", label: "UAE North" },
-  { value: "uksouth", label: "UK South" },
-  { value: "ukwest", label: "UK West" },
-  { value: "westcentralus", label: "West Central US" },
-  { value: "westeurope", label: "West Europe" },
-  { value: "westindia", label: "West India" },
-  { value: "westus", label: "West US" },
-  { value: "westus2", label: "West US 2" },
-  { value: "westus3", label: "West US 3" },
-];
+  "australiacentral",
+  "australiacentral2",
+  "australiaeast",
+  "australiasoutheast",
+  "austriaeast",
+  "belgiumcentral",
+  "brazilsouth",
+  "brazilsoutheast",
+  "canadacentral",
+  "canadaeast",
+  "centralindia",
+  "centralus",
+  "chilecentral",
+  "denmarkeast",
+  "eastasia",
+  "eastus",
+  "eastus2",
+  "francecentral",
+  "francesouth",
+  "germanynorth",
+  "germanywestcentral",
+  "indonesiacentral",
+  "israelcentral",
+  "italynorth",
+  "japaneast",
+  "japanwest",
+  "koreacentral",
+  "koreasouth",
+  "malaysiawest",
+  "mexicocentral",
+  "newzealandnorth",
+  "northcentralus",
+  "northeurope",
+  "norwayeast",
+  "norwaywest",
+  "polandcentral",
+  "qatarcentral",
+  "southafricanorth",
+  "southafricawest",
+  "southcentralus",
+  "southindia",
+  "southeastasia",
+  "spaincentral",
+  "swedencentral",
+  "switzerlandnorth",
+  "switzerlandwest",
+  "uaecentral",
+  "uaenorth",
+  "uksouth",
+  "ukwest",
+  "westcentralus",
+  "westeurope",
+  "westindia",
+  "westus",
+  "westus2",
+  "westus3",
+] as const;
 
 const KEY_LABELS: Record<string, string> = {
   " ": "Space",
@@ -664,11 +665,18 @@ const SettingsPanel = () => {
                   value={azureRegion}
                   onChange={(e) => setAzureRegion(e.target.value)}
                 >
-                  {AZURE_REGIONS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
+                  {AZURE_REGIONS.map((r) => ({
+                    value: r,
+                    label: t(`settings.azure.regions.${r}`),
+                  }))
+                    .toSorted((a, b) =>
+                      a.label.localeCompare(b.label, language),
+                    )
+                    .map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
                 </Form.Select>
               </Col>
             </Form.Group>
