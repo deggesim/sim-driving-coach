@@ -242,6 +242,13 @@ assert.equal(noBrakeTemps.current, 2, "a na step is skipped, never current");
 const frontLock = ladder(okZone({ lockFramesFront: 8, lockFramesRear: 2 }));
 assert.equal(stepOf(frontLock, 2).status, "fix");
 assert.ok(stepOf(frontLock, 2).reason.includes("toward the rear"));
+// Size of the percentage move by symptom ÷ threshold (5 %): ≥ 3× → 5, ≥ 1.5× → 2, else 1.
+const biasReason = (front: number) =>
+  stepOf(ladder(okZone({ lockFramesFront: front, lockFramesRear: 0 })), 2)
+    .reason;
+assert.ok(biasReason(15).includes("by 5 points"), "15 % = 3×: 5");
+assert.ok(biasReason(8).includes("by 2 points"), "8 % = 1.6×: 2");
+assert.ok(biasReason(6).includes("by 1 point "), "6 % = 1.2×: 1");
 // Both axles lock, neither twice the other: brake pressure, not bias.
 const bothLock = stepOf(
   ladder(okZone({ lockFramesFront: 8, lockFramesRear: 6 })),

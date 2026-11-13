@@ -31,6 +31,12 @@ const BRAKE_MAX_C = 687.5;
 const LOCK_SHARE = 0.05; // of the hard-brake frames carrying slip
 const LOCK_RATIO = 2; // one axle locks at least this many times the other
 export const ABS_SHARE = 0.2; // of the hard-brake frames; the overview's rake reuses it
+// Size of a percentage move (brake bias, brake pressure) by symptom ÷ threshold.
+const PCT_FAR_RATIO = 3; // from here: PCT_STEP_FAR points
+const PCT_NEAR_RATIO = 1.5; // from here: PCT_STEP_NEAR points, below: PCT_STEP_CLOSE
+const PCT_STEP_FAR = 5;
+const PCT_STEP_NEAR = 2;
+const PCT_STEP_CLOSE = 1;
 const NERVOUS_SHARE = 0.2; // of the downshifts
 const TYRE_BALANCE_TOL_C = 1.25; // |centre − mean(shoulders)| still ok
 const CAMBER_MIN_C = 2; // inner − outer below this: more negative camber
@@ -501,6 +507,19 @@ export const computeSetupLadder = (
     : slipT != null &&
       (slipT[0] + slipT[1]) / 2 - (slipT[2] + slipT[3]) / 2 > DRIVEN_SLIP_EPS;
 
+  // Points of a percentage move, by how far the symptom (share ÷ its threshold)
+  // is: 5 from 3× the threshold up, 2 from 1.5×, else 1.
+  const pctPoints = (share: number, threshold: number): string => {
+    const ratio = share / threshold + 1e-9; // 0.15 / 0.05 is 2.9999…
+    const n =
+      ratio >= PCT_FAR_RATIO
+        ? PCT_STEP_FAR
+        : ratio >= PCT_NEAR_RATIO
+          ? PCT_STEP_NEAR
+          : PCT_STEP_CLOSE;
+    return `by ${n} ${n === 1 ? "point" : "points"}`;
+  };
+
   // 2 - brake bias
   const bias = ((): LadderStep => {
     const L = "brake bias";
@@ -515,9 +534,13 @@ export const computeSetupLadder = (
       const under = sum("cornersEntryUnder") ?? 0;
       const data = `ABS in ${pct(share)} of the hard braking, understeer on entry in ${under}/${entry} corners`;
       return share > ABS_SHARE && under > entry / 2
-        ? step(2, L, "fix", `${data} → bias toward the rear`, [
-            { param: "Brake Bias", dir: "up" },
-          ])
+        ? step(
+            2,
+            L,
+            "fix",
+            `${data} → bias toward the rear ${pctPoints(share, ABS_SHARE)}`,
+            [{ param: "Brake Bias", dir: "up" }],
+          )
         : step(2, L, "ok", data);
     }
     const srHard = sum("srHardBrakeFrames");
@@ -530,7 +553,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → bias toward the rear (the car goes straight on)`,
+        `${data} → bias toward the rear ${pctPoints(f, LOCK_SHARE)} (the car goes straight on)`,
         [{ param: "Brake Bias", dir: "up" }],
       );
     if (r > LOCK_SHARE && r >= LOCK_RATIO * f)
@@ -538,7 +561,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → bias toward the front (the rear steps out)`,
+        `${data} → bias toward the front ${pctPoints(r, LOCK_SHARE)} (the rear steps out)`,
         [{ param: "Brake Bias", dir: "down" }],
       );
     // Both axles lock and neither dominates: no bias fixes it (guide: "forza
@@ -548,7 +571,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → both axles lock: reduce the braking force (brake pressure), then redo the bias`,
+        `${data} → both axles lock: reduce the braking force (brake pressure) ${pctPoints(Math.min(f, r), LOCK_SHARE)}, then redo the bias`,
         [{ param: "Brake Pressure", dir: "down" }],
       );
     return step(2, L, "ok", data);
