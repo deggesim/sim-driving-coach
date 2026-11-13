@@ -337,7 +337,8 @@
     "deleteSession": "Elimina sessione",
     "deleteOne": "Stai per eliminare la sessione del {{date}} ({{car}} — {{track}}).",
     "deleteSelectedBody": "Stai per eliminare le sessioni selezionate: <strong>{{sessions}}</strong>.",
-    "deleteAllBody": "Stai per eliminare tutte le sessioni della selezione corrente: <strong>{{sessions}}</strong>."
+    "deleteAllBody": "Stai per eliminare tutte le sessioni della selezione corrente: <strong>{{sessions}}</strong>.",
+    "range": "{{from}}-{{to}} di {{total}}"
   },
   "laps": {
     "title": "Giri",

@@ -337,7 +337,8 @@
     "deleteSession": "Sitzung löschen",
     "deleteOne": "Die Sitzung vom {{date}} ({{car}} — {{track}}) wird gelöscht.",
     "deleteSelectedBody": "Die ausgewählten Sitzungen werden gelöscht: <strong>{{sessions}}</strong>.",
-    "deleteAllBody": "Alle Sitzungen der aktuellen Auswahl werden gelöscht: <strong>{{sessions}}</strong>."
+    "deleteAllBody": "Alle Sitzungen der aktuellen Auswahl werden gelöscht: <strong>{{sessions}}</strong>.",
+    "range": "{{from}}-{{to}} von {{total}}"
   },
   "laps": {
     "title": "Runden",

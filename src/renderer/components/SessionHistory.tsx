@@ -54,6 +54,7 @@ const formatDate = (
   if (!iso) return "—";
   const normalized = iso.includes("T") ? iso : iso.replace(" ", "T") + "Z";
   return new Date(normalized).toLocaleString(localeOf(language), {
+    timeZone: "Europe/Rome",
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -467,7 +468,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           >
             {filtered.length === 0
               ? sessions(0)
-              : t("common.range", {
+              : t("history.range", {
                   from: (page - 1) * PAGE_SIZE + 1,
                   to: Math.min(page * PAGE_SIZE, filtered.length),
                   total: filtered.length,

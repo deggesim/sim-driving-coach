@@ -337,7 +337,8 @@
     "deleteSession": "Delete session",
     "deleteOne": "You are about to delete the session of {{date}} ({{car}} — {{track}}).",
     "deleteSelectedBody": "You are about to delete the selected sessions: <strong>{{sessions}}</strong>.",
-    "deleteAllBody": "You are about to delete all sessions in the current selection: <strong>{{sessions}}</strong>."
+    "deleteAllBody": "You are about to delete all sessions in the current selection: <strong>{{sessions}}</strong>.",
+    "range": "{{from}}-{{to}} of {{total}}"
   },
   "laps": {
     "title": "Laps",

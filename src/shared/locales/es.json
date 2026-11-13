@@ -337,7 +337,8 @@
     "deleteSession": "Eliminar sesión",
     "deleteOne": "Vas a eliminar la sesión del {{date}} ({{car}} — {{track}}).",
     "deleteSelectedBody": "Vas a eliminar las sesiones seleccionadas: <strong>{{sessions}}</strong>.",
-    "deleteAllBody": "Vas a eliminar todas las sesiones de la selección actual: <strong>{{sessions}}</strong>."
+    "deleteAllBody": "Vas a eliminar todas las sesiones de la selección actual: <strong>{{sessions}}</strong>.",
+    "range": "{{from}}-{{to}} de {{total}}"
   },
   "laps": {
     "title": "Vueltas",

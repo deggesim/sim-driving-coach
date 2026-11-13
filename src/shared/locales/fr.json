@@ -337,7 +337,8 @@
     "deleteSession": "Supprimer la session",
     "deleteOne": "Vous allez supprimer la session du {{date}} ({{car}} — {{track}}).",
     "deleteSelectedBody": "Vous allez supprimer les sessions sélectionnées : <strong>{{sessions}}</strong>.",
-    "deleteAllBody": "Vous allez supprimer toutes les sessions de la sélection actuelle : <strong>{{sessions}}</strong>."
+    "deleteAllBody": "Vous allez supprimer toutes les sessions de la sélection actuelle : <strong>{{sessions}}</strong>.",
+    "range": "{{from}}-{{to}} sur {{total}}"
   },
   "laps": {
     "title": "Tours",
