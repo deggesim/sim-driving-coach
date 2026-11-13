@@ -216,6 +216,26 @@ const unbalanced = ladder(okZone({ avgBrakeTempC: [450, 450, 250, 250] }));
 assert.equal(stepOf(unbalanced, 1).status, "fix");
 assert.ok(stepOf(unbalanced, 1).reason.includes("44 %"));
 assert.ok(stepOf(unbalanced, 1).reason.includes(", or close"));
+// AMS2 ducts are a percentage: sized by deviation ÷ 20 % (≥ 3× → 5, ≥ 1.5× → 2, else 1).
+const ductsAms2 = (t: number[]) =>
+  stepOf(
+    computeSetupLadder(
+      stint(5, okZone({ avgBrakeTempC: t as never })),
+      new Map(),
+      {
+        fixedSetup: false,
+        game: "ams2",
+      },
+    ),
+    1,
+  ).reason;
+assert.ok(ductsAms2([1400, 1400, 500, 500]).includes("by 5 points"), "64 %: 5");
+assert.ok(ductsAms2([450, 450, 250, 250]).includes("by 2 points"), "44 %: 2");
+assert.ok(ductsAms2([450, 450, 340, 340]).includes("by 1 point"), "24 %: 1");
+assert.ok(
+  !unbalanced.steps[0].reason.includes("point"),
+  "other games: no size",
+);
 // Both axles under the window (live Monza: 362/280 °C): only close the colder.
 const bothCold = stepOf(
   ladder(okZone({ avgBrakeTempC: [362, 362, 280, 280] })),
