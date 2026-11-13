@@ -19,6 +19,7 @@ import { useIPCStore } from "../store/ipcStore";
 import { useSettingsStore } from "../store/settingsStore";
 import type { AzureVoice, AnthropicModelInfo } from "../../shared/types";
 import { assistantIntro } from "../../shared/format";
+import { resolveVoice, voiceConfigKey } from "../../shared/azure-voice";
 
 const AZURE_REGIONS = [
   { value: "australiacentral", label: "Australia Central" },
@@ -183,8 +184,9 @@ const SettingsPanel = () => {
     setAzureSpeechKey,
     azureRegion,
     setAzureRegion,
-    azureVoiceName,
+    azureVoiceNames,
     setAzureVoiceName,
+    language,
     mockHistoryMode,
     setMockHistoryMode,
     telemetryLogEnabled,
@@ -197,7 +199,11 @@ const SettingsPanel = () => {
 
   const { set: configSet } = useConfig();
 
+  // Voice of the active language; the list below is filtered to that language too.
+  const azureVoiceName = resolveVoice(language, azureVoiceNames[language]);
+
   const [azureVoices, setAzureVoices] = useState<AzureVoice[]>([]);
+  useEffect(() => setAzureVoices([]), [language]); // list was for the old language
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voicesError, setVoicesError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -348,9 +354,12 @@ const SettingsPanel = () => {
         return;
       const voices = await window.electronAPI.ttsGetVoices();
       setAzureVoices(voices);
-      if (voices.length > 0 && !azureVoiceName) {
-        setAzureVoiceName(voices[0].ShortName);
-        await persist([["azureVoiceName", voices[0].ShortName]]);
+      if (
+        voices.length > 0 &&
+        !voices.some((v) => v.ShortName === azureVoiceName)
+      ) {
+        setAzureVoiceName(language, voices[0].ShortName);
+        await persist([[voiceConfigKey(language), voices[0].ShortName]]);
       }
     } catch (err) {
       setVoicesError(
@@ -363,9 +372,9 @@ const SettingsPanel = () => {
 
   const handleVoiceChange = useCallback(
     async (shortName: string) => {
-      setAzureVoiceName(shortName);
+      setAzureVoiceName(language, shortName);
       setVoicesError("");
-      if (!(await persist([["azureVoiceName", shortName]]))) return;
+      if (!(await persist([[voiceConfigKey(language), shortName]]))) return;
       try {
         const raw = await window.electronAPI.ttsTest(shortName);
         const bytes = new Uint8Array(
@@ -383,7 +392,7 @@ const SettingsPanel = () => {
         setVoicesError(t("settings.azure.previewError"));
       }
     },
-    [persist, setAzureVoiceName, t],
+    [persist, setAzureVoiceName, language, t],
   );
 
   useEffect(() => {

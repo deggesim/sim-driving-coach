@@ -97,8 +97,9 @@ import {
 } from "./coach/session-coach.js";
 import { createZoneTracker } from "./zone-tracker.js";
 import { initUpdater } from "./updater.js";
-import { setLanguage } from "./i18n-main.js";
-import { isLanguage, resolveSystemLanguage } from "../shared/i18n.js";
+import { getLanguage, setLanguage } from "./i18n-main.js";
+import { resolveVoice, voiceConfigKey } from "../shared/azure-voice.js";
+import { isLanguage, localeOf, resolveSystemLanguage } from "../shared/i18n.js";
 
 // Chromium's Native Window Occlusion (Windows) treats a window fully covered by
 // another app - the simulator running fullscreen - as hidden: it pauses the
@@ -1948,17 +1949,18 @@ const setupPipeline = (): void => {
     const region = getConfig("azureRegion");
     if (!key || !region)
       throw new Error("Azure Speech Key e Region non configurati");
-    return getAzureVoices(key, region);
+    return getAzureVoices(key, region, localeOf(getLanguage()));
   });
 
   ipcMain.handle("tts:synthesize", async (_event, text: string) => {
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
-    const voice = getConfig("azureVoiceName");
-    if (!key || !region || !voice)
+    if (!key || !region)
       throw new Error("Azure TTS non completamente configurato");
+    const lang = getLanguage();
+    const voice = resolveVoice(lang, getConfig(voiceConfigKey(lang)));
     try {
-      return await synthesizeAzure(text, key, region, voice);
+      return await synthesizeAzure(text, key, region, voice, lang);
     } catch (err) {
       if (isCreditOrQuotaError(err)) pushAppError(buildAzureErrorMessage(err));
       throw err;
@@ -1972,7 +1974,7 @@ const setupPipeline = (): void => {
       throw new Error("Azure Speech Key e Region non configurati");
     const assistantName = getConfig("assistantName") ?? "Aria";
     const testPhrase = assistantIntro(assistantName);
-    return synthesizeAzure(testPhrase, key, region, voiceName);
+    return synthesizeAzure(testPhrase, key, region, voiceName, getLanguage());
   });
 
   // Live list of Claude models for the analysis model selector.
@@ -2002,7 +2004,13 @@ const setupPipeline = (): void => {
       const region = getConfig("azureRegion");
       if (!key || !region)
         throw new Error("Azure Speech Key e Region non configurati");
-      return transcribeAzure(Buffer.from(audioBuffer), key, region, mimeType);
+      return transcribeAzure(
+        Buffer.from(audioBuffer),
+        key,
+        region,
+        localeOf(getLanguage()),
+        mimeType,
+      );
     },
   );
 
@@ -2021,10 +2029,11 @@ const setupPipeline = (): void => {
     if (getConfig("azureTtsEnabled") !== "true") return;
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
-    const voice = getConfig("azureVoiceName");
-    if (!key || !region || !voice) return;
+    if (!key || !region) return;
+    const lang = getLanguage();
+    const voice = resolveVoice(lang, getConfig(voiceConfigKey(lang)));
     try {
-      const audio = await synthesizeAzure(text, key, region, voice);
+      const audio = await synthesizeAzure(text, key, region, voice, lang);
       pushToRenderer("coach:voiceAudio", { audio });
     } catch (err) {
       console.error("[VoiceCoach] TTS synthesis error:", err);

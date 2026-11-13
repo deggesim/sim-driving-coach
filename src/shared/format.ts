@@ -1,3 +1,5 @@
+import type { Language } from "./i18n.js";
+
 /**
  * Drop markdown marks from voice-coach text: Azure TTS reads `**` as
  * "asterisco asterisco", and the overlay renders the answer as plain text.
@@ -248,7 +250,8 @@ const lapTimeToItalian = (
 };
 
 /**
- * Expand track-position markers and lap-time deltas into spoken Italian.
+ * Expand track-position markers and lap-time deltas into spoken Italian (other
+ * languages: see the early return below).
  *
  * Rules applied (before XML escaping):
  *   @1352m      →  "milletrecentocinquantadue metri"
@@ -262,9 +265,16 @@ const lapTimeToItalian = (
  * Shared because both TTS paths need it: `synthesizeAzure` applies it before SSML
  * escaping, `TTSManager` before handing the text to the Web Speech fallback.
  */
-export const preprocessTTSText = (text: string): string => {
+export const preprocessTTSText = (text: string, lang: Language): string => {
   // Claude answers in markdown even when told not to; the TTS would spell the marks out
   text = stripMarkdown(text);
+
+  // Other languages: Azure neural voices read digits natively, so only the
+  // position marker and the decimal sign (comma languages) need care.
+  if (lang !== "it") {
+    text = text.replace(/@(\d+)m\b/g, "$1 m");
+    return lang === "en" ? text : text.replace(/(\d)\.(\d)/g, "$1,$2");
+  }
 
   // Track position: @<meters>m
   text = text.replace(/@(\d+)m\b/g, (_m, digits) => {

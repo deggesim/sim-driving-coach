@@ -21,38 +21,50 @@ assert.equal(stripMarkdown("sposta il **brake bi"), "sposta il brake bi");
 // an Italian comma. Both TTS paths call this: Azure in main, Web Speech in the
 // renderer (TTSManager, useVoiceCoach).
 assert.equal(
-  preprocessTTSText("da 55.020 secondi a 47.980 secondi"),
+  preprocessTTSText("da 55.020 secondi a 47.980 secondi", "it"),
   "da cinquantacinque secondi e due centesimi a quarantasette secondi e novantotto centesimi",
 );
 assert.equal(
-  preprocessTTSText("guadagnare circa 0.23 secondi"),
+  preprocessTTSText("guadagnare circa 0.23 secondi", "it"),
   "guadagnare circa ventitre centesimi",
 );
 assert.equal(
-  preprocessTTSText("un margine di 1.0 secondo"),
+  preprocessTTSText("un margine di 1.0 secondo", "it"),
   "un margine di un secondo",
 );
 
 // Abbreviated unit, ranges and distances keep working
 assert.equal(
-  preprocessTTSText("~0.35s/giro"),
+  preprocessTTSText("~0.35s/giro", "it"),
   "trentacinque centesimi al giro",
 );
-assert.equal(preprocessTTSText("0.2-0.3 s"), "due o tre decimi");
-assert.equal(preprocessTTSText("0.2–0.3 secondi"), "due o tre decimi");
+assert.equal(preprocessTTSText("0.2-0.3 s", "it"), "due o tre decimi");
+assert.equal(preprocessTTSText("0.2–0.3 secondi", "it"), "due o tre decimi");
 assert.equal(
-  preprocessTTSText("stacca a @450m"),
+  preprocessTTSText("stacca a @450m", "it"),
   "stacca a quattrocentocinquanta metri",
 );
 
 // Catch-all: decimals no unit rule claims must at least get an Italian comma
 assert.equal(
-  preprocessTTSText("delta del 9.5 percento"),
+  preprocessTTSText("delta del 9.5 percento", "it"),
   "delta del 9,5 percento",
 );
-assert.equal(preprocessTTSText("gomme a 1.85 bar"), "gomme a 1,85 bar");
+assert.equal(preprocessTTSText("gomme a 1.85 bar", "it"), "gomme a 1,85 bar");
 
 // Nothing to expand → text untouched
-assert.equal(preprocessTTSText("delta del 9 percento"), "delta del 9 percento");
+assert.equal(
+  preprocessTTSText("delta del 9 percento", "it"),
+  "delta del 9 percento",
+);
+
+// Other languages: digits are read natively, only markdown, @Nm and the decimal sign
+assert.equal(preprocessTTSText("9.5 °C", "de"), "9,5 °C");
+assert.equal(preprocessTTSText("9.5 °C", "es"), "9,5 °C");
+assert.equal(preprocessTTSText("9.5 °C", "fr"), "9,5 °C");
+assert.equal(preprocessTTSText("9.5 °C", "en"), "9.5 °C");
+assert.equal(preprocessTTSText("brake at @450m", "en"), "brake at 450 m");
+assert.equal(preprocessTTSText("**bremse** @450m", "de"), "bremse 450 m");
+assert.equal(preprocessTTSText("1:16.322 and 0.2s", "en"), "1:16.322 and 0.2s");
 
 console.log("format.selfcheck OK");

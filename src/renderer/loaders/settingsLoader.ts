@@ -11,6 +11,8 @@
  * causing infinite re-suspension.
  */
 
+import { LANGUAGES } from "../../shared/i18n";
+import { voiceConfigKey } from "../../shared/azure-voice";
 import { useSettingsStore } from "../store/settingsStore";
 
 const configGet = async (key: string): Promise<string | null> => {
@@ -27,7 +29,6 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     azureTtsEnabled,
     azureSpeechKey,
     azureRegion,
-    azureVoiceName,
     assistantName,
     gamepadButton,
     anthropicModel,
@@ -35,13 +36,13 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     telemetryLogEnabled,
     keyboardVoiceKey,
     aceSetupsPath,
+    ...voices
   ] = await Promise.all([
     configGet("language"),
     configGet("anthropicApiKey"),
     configGet("azureTtsEnabled"),
     configGet("azureSpeechKey"),
     configGet("azureRegion"),
-    configGet("azureVoiceName"),
     configGet("assistantName"),
     configGet("gamepadTriggerButton"),
     configGet("anthropicModel"),
@@ -49,6 +50,7 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     configGet("telemetryLogEnabled"),
     configGet("keyboardVoiceKey"),
     configGet("aceSetupsPath"),
+    ...LANGUAGES.map((l) => configGet(voiceConfigKey(l.code))),
   ]);
 
   useSettingsStore.getState().initFromConfig({
@@ -57,7 +59,9 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     azureTtsEnabled,
     azureSpeechKey,
     azureRegion,
-    azureVoiceName,
+    azureVoiceNames: Object.fromEntries(
+      LANGUAGES.map((l, i) => [l.code, voices[i]]),
+    ),
     assistantName,
     gamepadButton,
     anthropicModel,

@@ -2,7 +2,7 @@
  * TTSManager - Headless component that manages TTS output.
  *
  * When azureEnabled: routes through Azure Cognitive Services TTS (MP3 via IPC).
- * When not: uses Web Speech API (SpeechSynthesisUtterance, it-IT).
+ * When not: uses Web Speech API (SpeechSynthesisUtterance, active language).
  *
  * Priority queue: P1 interrupts current speech, P2/P3 are queued.
  * The <sintesi-vocale> extract of a Level-1 analysis arrives through the same
@@ -12,6 +12,18 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useIPCStore } from "../store/ipcStore";
 import { assistantIntro, preprocessTTSText } from "../../shared/format";
+import { localeOf } from "../../shared/i18n";
+import { useSettingsStore } from "../store/settingsStore";
+
+// Read at call time so a language switch applies to the very next utterance.
+const speechVoice = (utterance: SpeechSynthesisUtterance): void => {
+  const lang = useSettingsStore.getState().language;
+  utterance.lang = localeOf(lang);
+  const voice = window.speechSynthesis
+    .getVoices()
+    .find((v) => v.lang.startsWith(lang));
+  if (voice) utterance.voice = voice;
+};
 
 type TTSManagerProps = {
   enabled?: boolean;
@@ -86,17 +98,13 @@ const TTSManager = ({
     }
 
     // The Azure path preprocesses in the main process (synthesizeAzure); here the
-    // renderer does it, else the it-IT voice reads "55.020" as a thousands group.
+    // renderer does it, else the voice reads "55.020" as a thousands group.
     const utterance = new SpeechSynthesisUtterance(
-      preprocessTTSText(item.text),
+      preprocessTTSText(item.text, useSettingsStore.getState().language),
     );
-    utterance.lang = "it-IT";
+    speechVoice(utterance);
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
-
-    const voices = window.speechSynthesis.getVoices();
-    const itVoice = voices.find((v) => v.lang.startsWith("it"));
-    if (itVoice) utterance.voice = itVoice;
 
     utterance.onend = () => {
       speakingRef.current = false;
@@ -167,12 +175,9 @@ const TTSManager = ({
 
     const speakWelcomeWebSpeech = () => {
       const utterance = new SpeechSynthesisUtterance(welcomeText);
-      utterance.lang = "it-IT";
+      speechVoice(utterance);
       utterance.rate = 0.9;
       utterance.pitch = 1.0;
-      const voices = window.speechSynthesis.getVoices();
-      const itVoice = voices.find((v) => v.lang.startsWith("it"));
-      if (itVoice) utterance.voice = itVoice;
       window.speechSynthesis.speak(utterance);
     };
 
