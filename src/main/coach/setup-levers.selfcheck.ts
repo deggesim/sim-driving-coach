@@ -42,7 +42,7 @@ assert.deepEqual(r3eD.fastRebound, [13, 14, 15, 16]);
 // ACE
 const ace = extractSetupLevers(
   wheels(
-    "Rigidità Molla",
+    "Spring Rate",
     ["95000 N/m", "95000 N/m", "110000 N/m", "110000 N/m"],
     AX,
   ),
@@ -55,11 +55,11 @@ assert.deepEqual(ace.springs, {
 const aceD = extractSetupLevers(
   [
     ...wheels(
-      "Lento Estensione",
+      "Slow Rebound",
       ["5000 Ns/m", "5000 Ns/m", "6000 Ns/m", "6000 Ns/m"],
       AX,
     ),
-    ...wheels("Veloce Compressione", ["1", "2", "3", "4"], AX),
+    ...wheels("Fast Bump", ["1", "2", "3", "4"], AX),
   ],
   "ace",
 );
@@ -70,14 +70,14 @@ assert.equal(aceD.slowBump, undefined);
 // AMS2: decimal comma, partial set, mixed units
 assert.deepEqual(
   extractSetupLevers(
-    wheels("Molla", ["225,5 N/mm", "225 N/mm", "180 N/mm", "180 N/mm"], AX),
+    wheels("Spring", ["225,5 N/mm", "225 N/mm", "180 N/mm", "180 N/mm"], AX),
     "ams2",
   ).springs,
   { values: [225.5, 225, 180, 180], unit: "N/mm" },
 );
 assert.equal(
   extractSetupLevers(
-    [p("Molla FL", "225 N/mm"), p("Molla FR", "225 N/mm")],
+    [p("Spring FL", "225 N/mm"), p("Spring FR", "225 N/mm")],
     "ams2",
   ).springs,
   undefined,
@@ -85,14 +85,14 @@ assert.equal(
 );
 assert.equal(
   extractSetupLevers(
-    wheels("Molla", ["225 N/mm", "225 N/mm", "180000 N/m", "180000 N/m"], AX),
+    wheels("Spring", ["225 N/mm", "225 N/mm", "180000 N/m", "180000 N/m"], AX),
     "ams2",
   ).springs,
   undefined,
   "mixed units",
 );
 assert.equal(
-  extractSetupLevers(wheels("Molla", ["n/d", "1", "2", "3"], AX), "ams2")
+  extractSetupLevers(wheels("Spring", ["n/d", "1", "2", "3"], AX), "ams2")
     .springs,
   undefined,
   "no number",
@@ -102,7 +102,7 @@ assert.deepEqual(extractSetupLevers([], "r3e"), {});
 // A name of one game is not read as another game's
 assert.equal(
   extractSetupLevers(
-    wheels("Molla", ["1 N/mm", "1 N/mm", "1 N/mm", "1 N/mm"], AX),
+    wheels("Spring", ["1 N/mm", "1 N/mm", "1 N/mm", "1 N/mm"], AX),
     "ace",
   ).springs,
   undefined,
@@ -111,7 +111,7 @@ assert.equal(
 // AMS2 prompt <-> extractor stay in step
 const prompt = buildAms2SetupSystemPrompt("Porsche 992 GT3 R");
 assert.equal(AMS2_CANONICAL_PARAMS.length, 35);
-assert.ok(AMS2_CANONICAL_PARAMS.includes("Condotti freni"));
+assert.ok(AMS2_CANONICAL_PARAMS.includes("Brake Ducts"));
 assert.ok(AMS2_CANONICAL_PARAMS.includes("Camber RR"));
 assert.ok(AMS2_CANONICAL_PARAMS.every((name) => prompt.includes(name)));
 assert.ok(prompt.includes("Porsche 992 GT3 R"));

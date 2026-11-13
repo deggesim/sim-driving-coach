@@ -29,21 +29,21 @@ type Section =
 
 const getTab = (p: SetupParam): TabId => {
   const { category, parameter } = p;
-  if (category === "Sterzo") return "Volante";
-  if (category === "ABS" || category === "Controllo Trazione")
+  if (category === "Steering") return "Volante";
+  if (category === "ABS" || category === "Traction Control")
     return "Elettronica";
   if (
-    category === "Motore" ||
-    category === "Trasmissione" ||
-    category === "Differenziale" ||
-    category === "Ibrido"
+    category === "Engine" ||
+    category === "Transmission" ||
+    category === "Differential" ||
+    category === "Hybrid"
   )
     return "Trasmissione";
-  if (category === "Freni" || category === "Carburante") return "Generale";
-  if (category === "Gomme" && parameter.includes("Compound")) return "Generale";
+  if (category === "Brakes" || category === "Fuel") return "Generale";
+  if (category === "Tyres" && parameter.includes("Compound")) return "Generale";
   if (parameter.includes("Front")) return "Anteriore";
   if (parameter.includes("Rear")) return "Posteriore";
-  if (category === "Aerodinamica") return "Anteriore"; // Splitter (no axle suffix)
+  if (category === "Aero") return "Anteriore"; // Splitter (no axle suffix)
   return "Generale";
 };
 
@@ -62,10 +62,10 @@ const getSection = (p: SetupParam, tab: TabId): Section => {
     return "tc_cut";
   }
   if (tab === "Trasmissione") {
-    if (category === "Motore") return "engine";
-    if (category === "Trasmissione") return "gears";
-    if (category === "Differenziale") return "diff";
-    if (category === "Ibrido") return "hybrid";
+    if (category === "Engine") return "engine";
+    if (category === "Transmission") return "gears";
+    if (category === "Differential") return "diff";
+    if (category === "Hybrid") return "hybrid";
   }
   return "default";
 };

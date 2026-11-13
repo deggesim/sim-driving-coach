@@ -64,52 +64,52 @@ export const listAms2Screenshots = (
  */
 export const AMS2_CANONICAL_PARAMS = [
   ...[
-    "Molla",
+    "Spring",
     "Slow Bump",
     "Slow Rebound",
     "Fast Bump",
     "Fast Rebound",
-    "Pressione",
+    "Tyre Pressure",
     "Camber",
   ].flatMap((name) => ["FL", "FR", "RL", "RR"].map((w) => `${name} ${w}`)),
   // The setup-ladder levers (setup-ladder.ts LEVERS matches these names).
-  "Condotti freni",
-  "Bilanciamento freni",
-  "Pressione freni",
-  "Freno motore",
-  "Coast ramp",
-  "Power ramp",
-  "Precarico",
+  "Brake Ducts",
+  "Brake Bias",
+  "Brake Pressure",
+  "Engine Braking",
+  "Coast Ramp",
+  "Power Ramp",
+  "Preload",
 ];
 
 export const buildAms2SetupSystemPrompt = (expectedCar: string): string =>
-  `Sei un esperto di setup per il simulatore di guida Automobilista 2 (AMS2).
-Analizza le schermate del setup dell'auto e restituisci un JSON con questa struttura esatta:
+  `You are a setup expert for the racing simulator Automobilista 2 (AMS2).
+Analyse the car setup screenshots and return a JSON with exactly this structure:
 {
   "carVerified": boolean,
-  "carFound": "nome auto trovato nelle schermate",
-  "setupText": "riepilogo markdown del setup",
+  "carFound": "car name found in the screenshots",
+  "setupText": "markdown summary of the setup, in English",
   "params": [
-{ "category": "categoria", "parameter": "nome parametro", "value": "valore" }
+{ "category": "category", "parameter": "parameter name", "value": "value" }
   ]
 }
-Devi verificare se l'auto nelle schermate corrisponde a: "${expectedCar}".
-Estrai TUTTI i parametri di setup visibili.
-Per ogni parametro assegna "category" ESATTAMENTE uno di questi valori:
-- "Gomme": parametri gomma per singola ruota (pressioni, ecc.)
-- "Freni": pressione/bilanciamento freni, condotti freni
-- "Chassis": parametri telaio non per-ruota (zavorra, ripartizione pesi, sterzo)
-- "Sospensioni": parametri sospensione per singola ruota (altezza, molla, camber, convergenza, ammortizzatori bump/rebound, ecc.)
-- "Anteriore": parametri sospensione assale anteriore non per-ruota (es. barra antirollio anteriore)
-- "Posteriore": parametri sospensione assale posteriore non per-ruota (es. barra antirollio posteriore)
-- "Sospensioni attive": parametri di sospensione attiva, se presenti
-- "Motore/Elettronica": mappa motore, freno motore, boost, TC, ABS, ecc.
-- "Rapporti del cambio": rapporto finale e singole marce
-- "Differenziale": precarico, rampe power/coast, dischi, differenziale anteriore e posteriore
-Per i parametri per singola ruota (category "Gomme" e "Sospensioni") crea un parametro per ruota e aggiungi il codice ruota in fondo al nome del parametro: " FL", " FR", " RL", " RR" (es. "Pressione FL"). Non usare categorie diverse da quelle elencate.
-Per questi parametri usa ESATTAMENTE questi nomi: ${AMS2_CANONICAL_PARAMS.join(", ")}. Riporta le molle con l'unità mostrata nel gioco (es. "220 N/mm").
-IMPORTANTE — precisione numerica: leggi ogni cifra di ogni valore con la massima attenzione. Gli slider e altri elementi grafici dell'UI possono apparire adiacenti ai numeri: ignorali e trascrivi solo le cifre del testo numerico visualizzato sullo schermo.
-Restituisci solo il JSON, senza testo aggiuntivo.`;
+Check whether the car in the screenshots matches: "${expectedCar}".
+Extract ALL the visible setup parameters.
+For each parameter set "category" to EXACTLY one of these values:
+- "Tyres": per-wheel tyre parameters (pressures, etc.)
+- "Brakes": brake pressure/bias, brake ducts
+- "Chassis": non-per-wheel chassis parameters (ballast, weight distribution, steering)
+- "Suspension": per-wheel suspension parameters (ride height, spring, camber, toe, bump/rebound dampers, etc.)
+- "Front": front-axle suspension parameters that are not per-wheel (e.g. front anti-roll bar)
+- "Rear": rear-axle suspension parameters that are not per-wheel (e.g. rear anti-roll bar)
+- "Active Suspension": active suspension parameters, if present
+- "Engine/Electronics": engine map, engine braking, boost, TC, ABS, etc.
+- "Gear Ratios": final drive and individual gears
+- "Differential": preload, power/coast ramps, plates, front and rear differential
+For per-wheel parameters (categories "Tyres" and "Suspension") create one parameter per wheel and append the wheel code at the end of the parameter name: " FL", " FR", " RL", " RR" (e.g. "Tyre Pressure FL"). Do not use categories other than those listed.
+For these parameters use EXACTLY these names (always in English, whatever the game language): ${AMS2_CANONICAL_PARAMS.join(", ")}. Report springs with the unit shown in the game (e.g. "220 N/mm").
+IMPORTANT - numeric precision: read every digit of every value with the greatest care. UI sliders and other graphic elements may appear next to the numbers: ignore them and transcribe only the digits of the numeric text shown on screen.
+Return only the JSON, with no additional text.`;
 
 export const decodeAms2Setup = async ({
   screenshotsDir,

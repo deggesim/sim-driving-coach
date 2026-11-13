@@ -25,7 +25,7 @@ const parse = (values: unknown[]) =>
 
 // ── Brake bias: l'unico valore che diventa una coppia front/rear ──────────────
 assert.deepEqual(parse([item("BrakeBias", 0.4, 0.01, 10)]), [
-  { category: "Freni", parameter: "Brake Bias", value: "50.00/50.00%" },
+  { category: "Brakes", parameter: "Brake Bias", value: "50.00/50.00%" },
 ]);
 
 // ── Compound: indice → nome, non il numero ───────────────────────────────────
@@ -55,11 +55,11 @@ assert.deepEqual(parse([item("AntiRollBarFront", 1, 1, 4)])[0], {
   value: "5",
 });
 assert.deepEqual(parse([item("ToeinFrontLeft", -0.2, 0.05, 4)])[0], {
-  category: "Geometria",
+  category: "Geometry",
   parameter: "Toe In Front Left",
   value: "0",
 });
-assert.equal(parse([item("QualcosaDiIgnoto", 0, 1, 1)])[0].category, "Altro");
+assert.equal(parse([item("QualcosaDiIgnoto", 0, 1, 1)])[0].category, "Other");
 
 // ── Gli item disabilitati non entrano nel setup ─────────────────────────────
 assert.deepEqual(

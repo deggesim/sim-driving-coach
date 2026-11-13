@@ -33,14 +33,14 @@ const FAMILIES: Family[] = [
 const PREFIXES: Record<GameSource, string[]> = {
   r3e: ["Springs", "Bump", "Rebound", "Fast Bump", "Fast Rebound"],
   ace: [
-    "Rigidità Molla",
-    "Lento Compressione",
-    "Lento Estensione",
-    "Veloce Compressione",
-    "Veloce Estensione",
+    "Spring Rate",
+    "Slow Bump",
+    "Slow Rebound",
+    "Fast Bump",
+    "Fast Rebound",
   ],
   // Canonical names imposed on the Vision prompt (AMS2_CANONICAL_PARAMS).
-  ams2: ["Molla", "Slow Bump", "Slow Rebound", "Fast Bump", "Fast Rebound"],
+  ams2: ["Spring", "Slow Bump", "Slow Rebound", "Fast Bump", "Fast Rebound"],
 };
 
 // Wheel order FL, FR, RL, RR.

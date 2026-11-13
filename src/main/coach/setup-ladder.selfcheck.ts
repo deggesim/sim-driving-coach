@@ -5,15 +5,19 @@
  */
 import assert from "node:assert/strict";
 import {
+  LEVERS,
   computeSetupLadder,
   judgedLapsOfLastSegment,
   ladderFlags,
   stintReadyMessage,
   tyreTempsFixed,
   verdictKey,
+  type LadderStep,
   type SetupLadder,
 } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
+import { parseR3eSetupJson } from "../../shared/r3e-setup-parse.js";
+import { AMS2_CANONICAL_PARAMS } from "../ams2/ams2-setup-vision.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type {
   GameSource,
@@ -1039,14 +1043,11 @@ assert.ok(
 assert.equal(noDucts.current, null);
 // ACE never exports ducts either.
 assert.equal(
-  withParams(
-    unbalancedLaps,
-    P("Ripartizione Frenata Anteriore", "Pressione FL"),
-  ).current,
+  withParams(unbalancedLaps, P("Front Brake Bias", "Tyre Pressure FL")).current,
   null,
 );
 // The lever exists → unchanged.
-assert.equal(withParams(unbalancedLaps, P("Condotti freni")).current, 1);
+assert.equal(withParams(unbalancedLaps, P("Brake Ducts")).current, 1);
 // No setup loaded → unchanged.
 assert.equal(withParams(unbalancedLaps, null).current, 1);
 // Early step 1 (`drifting`) without the lever: not current.
@@ -1058,11 +1059,11 @@ assert.equal(
 assert.equal(stepOf(withParams(stint(5, okZone()), P()), 1).status, "ok");
 // Brake pressure is not a tyre-pressure lever.
 assert.equal(
-  stepOf(withParams(stint(5, lowPress), P("Pressione freni")), 4).status,
+  stepOf(withParams(stint(5, lowPress), P("Brake Pressure")), 4).status,
   "na",
 );
 assert.equal(
-  stepOf(withParams(stint(5, lowPress), P("Pressione RL")), 4).status,
+  stepOf(withParams(stint(5, lowPress), P("Tyre Pressure RL")), 4).status,
   "fix",
 );
 
@@ -1150,12 +1151,9 @@ const page = (category: string, parameter: string): SetupParam => ({
   value: "1",
 });
 // Only the suspension page captured: the brakes are unknown, step 1 stays.
-assert.equal(ams2With([page("Sospensioni", "Camber FL")]).current, 1);
+assert.equal(ams2With([page("Suspension", "Camber FL")]).current, 1);
 // Brakes page read and no duct among them: the lever is really missing.
-assert.equal(
-  stepOf(ams2With([page("Freni", "Bilanciamento freni")]), 1).status,
-  "na",
-);
+assert.equal(stepOf(ams2With([page("Brakes", "Brake Bias")]), 1).status, "na");
 
 // --- Levers named by the steps' own fixes ---
 // G-LSD (AMS2): the diff is tuned by bias ratio only.
@@ -1185,3 +1183,75 @@ for (const m of [
   stintReadyMessage(ladderComplete, overviewCurrent6),
 ])
   assert.ok(m && !/scalett|sequenz|quadro|passo|area/i.test(m), m ?? "null");
+
+// --- English setup names: every game's lever names are matched by the ladder ---
+const r3eItem = (id: string) => ({
+  id,
+  minValue: 0,
+  stepSize: 1,
+  currentStep: 1,
+  suffix: "",
+  disabled: false,
+});
+const r3eFixture = parseR3eSetupJson(
+  JSON.stringify({
+    values: [
+      "BrakeBias",
+      "TyrePressureFrontLeft",
+      "CamberFrontLeft",
+      "DifferentialPreload",
+      "EngineBraking",
+    ].map(r3eItem),
+  }),
+);
+// ACE labels as ace-setup-reader.ts pushes them (no brake ducts there either).
+const aceFixture = P(
+  "Front Brake Bias",
+  "Brake Torque Multiplier",
+  "Tyre Pressure FL",
+  "Camber FL",
+  "Effective Camber FL",
+  "Coast Locking (0–1)",
+  "Power Locking (0–1)",
+  "Differential Preload",
+);
+const ams2Category = (name: string): string =>
+  /^Brake/.test(name)
+    ? "Brakes"
+    : /^Tyre/.test(name)
+      ? "Tyres"
+      : /^Engine/.test(name)
+        ? "Engine/Electronics"
+        : /^(Coast|Power|Preload)/.test(name)
+          ? "Differential"
+          : "Suspension";
+const ams2Fixture = AMS2_CANONICAL_PARAMS.map((parameter) => ({
+  category: ams2Category(parameter),
+  parameter,
+  value: "1",
+}));
+const covered = (params: SetupParam[], steps: LadderStep["n"][]) =>
+  steps.every((n) => params.some((q) => LEVERS[n].test(q.parameter)));
+assert.ok(covered(r3eFixture, [2, 3, 4, 5, 6]), "R3E levers");
+assert.ok(covered(aceFixture, [2, 3, 4, 5, 6]), "ACE levers");
+assert.ok(covered(ams2Fixture, [1, 2, 3, 4, 5, 6]), "AMS2 levers");
+// Brake pressure is not a tyre-pressure lever (and the reverse).
+assert.ok(!LEVERS[4].test("Brake Pressure"));
+assert.ok(LEVERS[2].test("Brake Pressure"));
+assert.ok(!LEVERS[2].test("Tyre Pressure FL"));
+// Behaviour unchanged: step 1 stays current with the duct lever, and na on a
+// read brakes page without it; step 4 is a fix only with a tyre-pressure lever.
+assert.equal(ams2With(ams2Fixture).current, 1);
+assert.equal(
+  stepOf(ams2With(ams2Fixture.filter((q) => q.parameter !== "Brake Ducts")), 1)
+    .status,
+  "na",
+);
+assert.equal(
+  stepOf(withParams(stint(5, lowPress), aceFixture), 4).status,
+  "fix",
+);
+assert.equal(
+  stepOf(withParams(stint(5, lowPress), r3eFixture), 4).status,
+  "fix",
+);

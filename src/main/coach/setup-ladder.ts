@@ -43,22 +43,22 @@ const DIFF_SPIN_SHARE = 0.2; // of the exit frames
 const DRIVEN_SLIP_EPS = 0.01; // front − rear throttle slip that marks fwd
 const FIXED_DIFFS = ["FIXED", "SPOOL", "OPEN"]; // AMS2 differentials with nothing to adjust
 // Lever per step, by setup parameter name (R3E idToLabel, ACE labels, AMS2 canonical names).
-const LEVERS: Record<LadderStep["n"], RegExp> = {
-  1: /duct|condott/i,
-  2: /brake bias|ripartizione frenata|bilanciamento fren|brake pressure|pressione freni/i,
-  3: /coast|freno motore|engine brak/i,
-  4: /tyre pressure|^pressione (fl|fr|rl|rr)\b/i, // not "Pressione freni"
-  5: /camber|campanatura/i,
-  6: /differential (power|preload)|power locking|power ramp|precarico|preload|bias ratio/i,
+export const LEVERS: Record<LadderStep["n"], RegExp> = {
+  1: /duct/i,
+  2: /brake bias|brake pressure/i,
+  3: /coast|engine brak/i,
+  4: /tyre pressure/i, // not "Brake Pressure"
+  5: /camber/i,
+  6: /differential (power|preload)|power locking|power ramp|preload|bias ratio/i,
 };
 // AMS2 Vision categories (buildAms2SetupSystemPrompt) holding each step's lever.
 const AMS2_LEVER_PAGES: Record<LadderStep["n"], string[]> = {
-  1: ["Freni"],
-  2: ["Freni"],
-  3: ["Motore/Elettronica", "Differenziale"],
-  4: ["Gomme"],
-  5: ["Sospensioni"],
-  6: ["Differenziale"],
+  1: ["Brakes"],
+  2: ["Brakes"],
+  3: ["Engine/Electronics", "Differential"],
+  4: ["Tyres"],
+  5: ["Suspension"],
+  6: ["Differential"],
 };
 const GEARED_DIFFS = ["G-LSD", "GC-LSD"]; // AMS2 differentials tuned by bias ratio, not ramps
 

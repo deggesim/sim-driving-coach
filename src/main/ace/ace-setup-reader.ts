@@ -173,8 +173,8 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
     const f1f1 = getFirst(f1, 1);
     if (f1f1?.lenVal && f1f1.lenVal.length >= 8) {
       push(
-        "Sospensioni",
-        "Barra Stabilizzatrice Anteriore",
+        "Suspension",
+        "Front Anti-Roll Bar",
         fmt(f1f1.lenVal.readFloatLE(0), 0),
         "N/m",
       );
@@ -187,23 +187,18 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
       const brakeFields = parseFields(f1f3.lenVal);
       const brakePressMax = getFloat(brakeFields, 2);
       if (brakePressMax !== undefined) {
-        push(
-          "Freni",
-          "Moltiplicatore Coppia Frenante",
-          fmt(brakePressMax, 1),
-          "%",
-        );
+        push("Brakes", "Brake Torque Multiplier", fmt(brakePressMax, 1), "%");
       }
       const brakeBias = getFloat(brakeFields, 1);
       if (brakeBias !== undefined) {
-        push("Freni", "Ripartizione Frenata Anteriore", fmt(brakeBias, 1), "%");
+        push("Brakes", "Front Brake Bias", fmt(brakeBias, 1), "%");
       }
     }
 
     // f1.f2 - Rapporto Sterzo (float)
     const steeringRatio = getFloat(f1, 2);
     if (steeringRatio !== undefined) {
-      push("Sterzo", "Rapporto Sterzo", fmt(steeringRatio, 1));
+      push("Steering", "Steering Ratio", fmt(steeringRatio, 1));
     }
 
     // f1.f4 - Differenziale sub-block (LEN)
@@ -236,7 +231,7 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
 
     const spring = getFloat(sub, 1);
     if (spring !== undefined) {
-      push("Sospensioni", `Rigidità Molla ${label}`, fmt(spring, 0), "N/m");
+      push("Suspension", `Spring Rate ${label}`, fmt(spring, 0), "N/m");
     }
 
     // f2.f2 - Bump-stop
@@ -245,20 +240,11 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
       const bs = parseFields(bumpStopBlock.lenVal);
       const bsEscursione = getFloat(bs, 1);
       if (bsEscursione !== undefined) {
-        push(
-          "Sospensioni",
-          `Bump-Stop Escursione ${label}`,
-          fmt(bsEscursione, 4),
-        );
+        push("Suspension", `Bumpstop Travel ${label}`, fmt(bsEscursione, 4));
       }
       const bsRigidita = getFloat(bs, 2);
       if (bsRigidita !== undefined) {
-        push(
-          "Sospensioni",
-          `Rigidità Bumpstop ${label}`,
-          fmt(bsRigidita, 0),
-          "N",
-        );
+        push("Suspension", `Bumpstop Rate ${label}`, fmt(bsRigidita, 0), "N");
       }
     }
 
@@ -268,41 +254,36 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
       const corsa = parseFields(corsaBlock.lenVal);
       const corsa2 = getFloat(corsa, 1);
       if (corsa2 !== undefined) {
-        push("Sospensioni", `Corsa 2 ${label}`, fmt(corsa2, 4));
+        push("Suspension", `Travel 2 ${label}`, fmt(corsa2, 4));
       }
       const corsaMain = getFloat(corsa, 2);
       if (corsaMain !== undefined) {
-        push("Sospensioni", `Corsa ${label}`, fmt(corsaMain, 1), "mm");
+        push("Suspension", `Travel ${label}`, fmt(corsaMain, 1), "mm");
       }
     }
 
     const mollaAux = getFloat(sub, 4);
     if (mollaAux !== undefined) {
-      push("Sospensioni", `Molla Aux ${label}`, fmt(mollaAux, 4));
+      push("Suspension", `Aux Spring ${label}`, fmt(mollaAux, 4));
     }
     const mollaAux2 = getFloat(sub, 5);
     if (mollaAux2 !== undefined) {
-      push("Sospensioni", `Molla Aux2 ${label}`, fmt(mollaAux2, 4));
+      push("Suspension", `Aux Spring 2 ${label}`, fmt(mollaAux2, 4));
     }
   });
 
   // Parametri differiti: vanno in sharedBottom (dopo i parametri per ruota)
   if (deferredArbPost !== undefined) {
-    push(
-      "Sospensioni",
-      "Barra Stabilizzatrice Posteriore",
-      deferredArbPost,
-      "N/m",
-    );
+    push("Suspension", "Rear Anti-Roll Bar", deferredArbPost, "N/m");
   }
   if (deferredPrecarico !== undefined) {
-    push("Sospensioni", "Precarico Differenziale", deferredPrecarico, "Nm");
+    push("Suspension", "Differential Preload", deferredPrecarico, "Nm");
   }
   if (deferredCoast !== undefined) {
-    push("Sospensioni", "Coast Locking (0–1)", deferredCoast);
+    push("Suspension", "Coast Locking (0–1)", deferredCoast);
   }
   if (deferredPower !== undefined) {
-    push("Sospensioni", "Power Locking (0–1)", deferredPower);
+    push("Suspension", "Power Locking (0–1)", deferredPower);
   }
 
   // ── f3 - Ammortizzatori (×4: FL, FR, RL, RR) ─────────────────────────────
@@ -315,39 +296,19 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
 
     const bumpSlow = getFloat(damp, 1);
     if (bumpSlow !== undefined) {
-      push(
-        "Ammortizzatori",
-        `Lento Compressione ${label}`,
-        fmt(bumpSlow, 0),
-        "Ns/m",
-      );
+      push("Dampers", `Slow Bump ${label}`, fmt(bumpSlow, 0), "Ns/m");
     }
     const rebSlow = getFloat(damp, 3);
     if (rebSlow !== undefined) {
-      push(
-        "Ammortizzatori",
-        `Lento Estensione ${label}`,
-        fmt(rebSlow, 0),
-        "Ns/m",
-      );
+      push("Dampers", `Slow Rebound ${label}`, fmt(rebSlow, 0), "Ns/m");
     }
     const bumpFast = getFloat(damp, 2);
     if (bumpFast !== undefined) {
-      push(
-        "Ammortizzatori",
-        `Veloce Compressione ${label}`,
-        fmt(bumpFast, 0),
-        "Ns/m",
-      );
+      push("Dampers", `Fast Bump ${label}`, fmt(bumpFast, 0), "Ns/m");
     }
     const rebFast = getFloat(damp, 4);
     if (rebFast !== undefined) {
-      push(
-        "Ammortizzatori",
-        `Veloce Estensione ${label}`,
-        fmt(rebFast, 0),
-        "Ns/m",
-      );
+      push("Dampers", `Fast Rebound ${label}`, fmt(rebFast, 0), "Ns/m");
     }
   });
 
@@ -362,28 +323,23 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
 
     const pressure = getFloat(geo, 1);
     if (pressure !== undefined) {
-      push("Pneumatici", `Pressione ${label}`, fmt(pressure, 1), "PSI");
+      push("Tyres", `Tyre Pressure ${label}`, fmt(pressure, 1), "PSI");
     }
     const toe = getFloat(geo, 3);
     if (toe !== undefined) {
-      push("Geometria", `Convergenza ${label}`, fmt(toe, 3), "°");
+      push("Geometry", `Toe ${label}`, fmt(toe, 3), "°");
     }
     const camber = getFloat(geo, 2);
     if (camber !== undefined) {
-      push("Geometria", `Campanatura ${label}`, fmt(camber, 2), "°");
+      push("Geometry", `Camber ${label}`, fmt(camber, 2), "°");
     }
     const caster = getFloat(geo, 4);
     if (caster !== undefined) {
-      push("Geometria", `Caster ${label}`, fmt(caster, 4));
+      push("Geometry", `Caster ${label}`, fmt(caster, 4));
     }
     const camberEff = getFloat(geo, 5);
     if (camberEff !== undefined) {
-      push(
-        "Geometria",
-        `Campanatura Effettiva ${label}`,
-        fmt(camberEff, 2),
-        "°",
-      );
+      push("Geometry", `Effective Camber ${label}`, fmt(camberEff, 2), "°");
     }
     // f4.f7 - mescola: letto dalla prima ruota che lo contiene
     if (mescolaVal === undefined) {
@@ -392,7 +348,7 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
   });
 
   if (mescolaVal !== undefined) {
-    push("Carburante", "Mescola", mescolaName(mescolaVal));
+    push("Fuel", "Compound", mescolaName(mescolaVal));
   }
 
   // ── f5 - Elettronica ───────────────────────────────────────────────────────
@@ -402,24 +358,19 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
     const elec = parseFields(f5Field.lenVal);
     const tc1 = getFloat(elec, 1);
     if (tc1 !== undefined) {
-      push("Elettronica", "TC1", fmt(tc1, 0), "click");
+      push("Electronics", "TC1", fmt(tc1, 0), "click");
     }
     const tc2 = getFloat(elec, 2);
     if (tc2 !== undefined) {
-      push("Elettronica", "TC2", fmt(tc2, 0), "click");
+      push("Electronics", "TC2", fmt(tc2, 0), "click");
     }
     const abs = getFloat(elec, 3);
     if (abs !== undefined) {
-      push("Elettronica", "ABS", fmt(abs, 0), "click");
+      push("Electronics", "ABS", fmt(abs, 0), "click");
     }
     const telemetry = getFloat(elec, 5);
     if (telemetry !== undefined) {
-      push(
-        "Elettronica",
-        "Registrazione Telemetria",
-        fmt(telemetry, 0),
-        "giri",
-      );
+      push("Electronics", "Telemetry Logging", fmt(telemetry, 0), "laps");
     }
   }
 
@@ -435,8 +386,8 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
       wheelLabels.forEach((wLabel, j) => {
         const press = f6f1.lenVal!.readFloatLE(j * 4);
         push(
-          "Pneumatici",
-          `Pressione Set ${wLabel} (incerta)`,
+          "Tyres",
+          `Set Pressure ${wLabel} (uncertain)`,
           fmt(press, 1),
           "PSI",
         );
@@ -445,15 +396,15 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
 
     const rhFront = getFloat(aero, 2);
     if (rhFront !== undefined) {
-      push("Assetto", "Altezza da Terra Anteriore", fmt(rhFront, 1), "mm");
+      push("Chassis", "Front Ride Height", fmt(rhFront, 1), "mm");
     }
     const rhRear = getFloat(aero, 3);
     if (rhRear !== undefined) {
-      push("Assetto", "Altezza da Terra Posteriore", fmt(rhRear, 1), "mm");
+      push("Chassis", "Rear Ride Height", fmt(rhRear, 1), "mm");
     }
     const wing = getFloat(aero, 5);
     if (wing !== undefined) {
-      push("Aerodinamica", "Ala Posteriore", fmt(wing, 0), "click");
+      push("Aero", "Rear Wing", fmt(wing, 0), "click");
     }
   }
 
@@ -464,7 +415,7 @@ export const decodeCarSetup = (buf: Buffer, carId: string): SetupData => {
     const fuel = parseFields(f7Field.lenVal);
     const fuelLitres = getFloat(fuel, 1);
     if (fuelLitres !== undefined) {
-      push("Carburante", "Carburante", fmt(fuelLitres, 1), "L");
+      push("Fuel", "Fuel", fmt(fuelLitres, 1), "L");
     }
   }
 

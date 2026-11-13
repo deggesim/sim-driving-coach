@@ -4,36 +4,32 @@ import type { SetupParam } from "../../shared/types";
 import { ParamTable, FourCornerGrid, getWheelKey } from "./SetupTabsCommon";
 
 const ACE_TAB_ORDER = [
-  "Pneumatici",
-  "Elettronica",
-  "Carburante e Strategia",
-  "Sospensioni",
-  "Ammortizzatori",
-  "Aerodinamica",
+  "Tyres",
+  "Electronics",
+  "Fuel and Strategy",
+  "Suspension",
+  "Dampers",
+  "Aero",
 ] as const;
 type AceTabId = (typeof ACE_TAB_ORDER)[number];
 
 const getAceTab = (p: SetupParam): AceTabId => {
   switch (p.category) {
-    case "Pneumatici":
-    case "Geometria":
-      return "Pneumatici";
-    case "Elettronica":
-      return "Elettronica";
-    case "Carburante":
-    case "Identificazione":
-      return "Carburante e Strategia";
-    case "Sospensioni":
-    case "Sterzo":
-    case "Freni":
-      return "Sospensioni";
-    case "Ammortizzatori":
-      return "Ammortizzatori";
-    case "Aerodinamica":
-    case "Assetto":
-      return "Aerodinamica";
+    case "Tyres":
+    case "Geometry":
+      return "Tyres";
+    case "Electronics":
+      return "Electronics";
+    case "Fuel":
+      return "Fuel and Strategy";
+    case "Suspension":
+    case "Steering":
+    case "Brakes":
+      return "Suspension";
+    case "Dampers":
+      return "Dampers";
     default:
-      return "Aerodinamica";
+      return "Aero";
   }
 };
 
@@ -94,9 +90,7 @@ const AceSetupTabs = ({ params }: { params: SetupParam[] }) => {
   }
 
   const available = ACE_TAB_ORDER.filter((t) => (byTab[t]?.length ?? 0) > 0);
-  const [active, setActive] = useState<AceTabId>(
-    () => available[0] ?? "Pneumatici",
-  );
+  const [active, setActive] = useState<AceTabId>(() => available[0] ?? "Tyres");
 
   if (available.length === 0) return null;
 
@@ -118,24 +112,20 @@ const AceSetupTabs = ({ params }: { params: SetupParam[] }) => {
         ))}
       </Nav>
       <div className="setup-tab-body">
-        {active === "Pneumatici" && (
-          <FourCornerGrid params={byTab["Pneumatici"] ?? []} />
+        {active === "Tyres" && <FourCornerGrid params={byTab["Tyres"] ?? []} />}
+        {active === "Electronics" && (
+          <ParamTable rows={flatRows("Electronics")} />
         )}
-        {active === "Elettronica" && (
-          <ParamTable rows={flatRows("Elettronica")} />
+        {active === "Fuel and Strategy" && (
+          <ParamTable rows={flatRows("Fuel and Strategy")} />
         )}
-        {active === "Carburante e Strategia" && (
-          <ParamTable rows={flatRows("Carburante e Strategia")} />
+        {active === "Suspension" && (
+          <SuspensionTab params={byTab["Suspension"] ?? []} />
         )}
-        {active === "Sospensioni" && (
-          <SuspensionTab params={byTab["Sospensioni"] ?? []} />
+        {active === "Dampers" && (
+          <FourCornerGrid params={byTab["Dampers"] ?? []} />
         )}
-        {active === "Ammortizzatori" && (
-          <FourCornerGrid params={byTab["Ammortizzatori"] ?? []} />
-        )}
-        {active === "Aerodinamica" && (
-          <ParamTable rows={flatRows("Aerodinamica")} />
-        )}
+        {active === "Aero" && <ParamTable rows={flatRows("Aero")} />}
       </div>
     </div>
   );
