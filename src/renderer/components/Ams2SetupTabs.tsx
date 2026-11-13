@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Nav } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import type { SetupParam } from "../../shared/types";
+import { localizeSetupName } from "../../shared/setup-labels";
 import { ParamTable, FourCornerGrid } from "./SetupTabsCommon";
 import {
   AMS2_TABS,
@@ -12,6 +14,7 @@ import {
 } from "./ams2-setup-sections";
 
 const Ams2SetupTabs = ({ params }: { params: SetupParam[] }) => {
+  const { t } = useTranslation();
   const bySection: Partial<Record<Ams2Section, SetupParam[]>> = {};
   for (const p of params) {
     const section = sectionForCategory(p.category);
@@ -38,9 +41,9 @@ const Ams2SetupTabs = ({ params }: { params: SetupParam[] }) => {
         activeKey={activeTab}
         onSelect={(k) => k && setActive(k as Ams2Tab)}
       >
-        {availableTabs.map((t) => (
-          <Nav.Item key={t}>
-            <Nav.Link eventKey={t}>{t}</Nav.Link>
+        {availableTabs.map((tab) => (
+          <Nav.Item key={tab}>
+            <Nav.Link eventKey={tab}>{localizeSetupName(t, tab)}</Nav.Link>
           </Nav.Item>
         ))}
       </Nav>
@@ -51,7 +54,9 @@ const Ams2SetupTabs = ({ params }: { params: SetupParam[] }) => {
             const sectionParams = bySection[section] ?? [];
             return (
               <div key={section} className="mb-3">
-                <div className="setup-subsection-title">{section}</div>
+                <div className="setup-subsection-title">
+                  {localizeSetupName(t, section)}
+                </div>
                 {GRID_SECTIONS.has(section) ? (
                   <FourCornerGrid params={sectionParams} />
                 ) : (

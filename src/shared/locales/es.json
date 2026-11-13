@@ -139,13 +139,35 @@
       "Rear": "Trasero",
       "Active Suspension": "Suspensión activa",
       "Engine/Electronics": "Motor/Electrónica",
-      "Gear Ratios": "Relaciones de cambio"
+      "Gear Ratios": "Relaciones de cambio",
+      "Fuel": "Combustible",
+      "Fuel and Strategy": "Combustible y estrategia",
+      "Tyres/Brakes/Chassis": "Neumáticos/Frenos/Chasis",
+      "Drivetrain": "Transmisión",
+      "General": "General"
     },
     "wheel": {
       "Front Left": "Delantera izquierda",
       "Front Right": "Delantera derecha",
       "Rear Left": "Trasera izquierda",
       "Rear Right": "Trasera derecha"
+    },
+    "tab": {
+      "shared": "Compartido"
+    },
+    "section": {
+      "absFront": "ABS delantero",
+      "absRear": "ABS trasero",
+      "tcCut": "TC Cut",
+      "tcSlip": "TC Slip",
+      "tcLat": "TC lateral",
+      "gears": "Marchas"
+    },
+    "wheelShort": {
+      "FL": "Del. izquierda",
+      "FR": "Del. derecha",
+      "RL": "Tras. izquierda",
+      "RR": "Tras. derecha"
     }
   },
   "count": {
@@ -440,5 +462,115 @@
     "loading": "Cargando telemetría…",
     "loadError": "No se pudo cargar la telemetría de la vuelta.",
     "noData": "No hay datos de telemetría para esta vuelta."
+  },
+  "setupCommon": {
+    "nameLabel": "Nombre del setup",
+    "nameTaken": "Ya existe un setup con este nombre para este coche/circuito.",
+    "save": "Guardar setup",
+    "close": "Cerrar",
+    "retry": "Reintentar"
+  },
+  "setupName": {
+    "rename": "Renombrar setup",
+    "taken": "Nombre ya en uso",
+    "save": "Guardar",
+    "saveAria": "Guardar nombre",
+    "cancelAria": "Cancelar renombrado"
+  },
+  "setupDetail": {
+    "empty": "Este setup no tiene parámetros: la lectura no extrajo ninguno. Elimínalo y vuelve a capturarlo.",
+    "edit": "Editar setup",
+    "duplicate": "Crear setup desde existente",
+    "use": "Usar este setup"
+  },
+  "setupEditor": {
+    "namePlaceholder": "p. ej. Clasificación Interlagos rev2",
+    "saveChanges": "Guardar cambios"
+  },
+  "r3ePicker": {
+    "title": "Pegar JSON del setup",
+    "pasteLabel": "Pega el JSON exportado por RaceRoom (CTRL+C en la pantalla del setup)",
+    "namePlaceholder": "p. ej. Clasificación Monza baseline",
+    "parse": "Analizar JSON",
+    "editJson": "Editar JSON",
+    "errInvalid": "JSON no válido",
+    "errFormat": "Formato JSON no válido: falta el campo 'values'"
+  },
+  "acePicker": {
+    "title": "Seleccionar setup de ACE",
+    "car": "Coche",
+    "track": "Circuito",
+    "loading": "Cargando...",
+    "mismatch": "Distinto de la vuelta seleccionada",
+    "match": "Coche/circuito correctos",
+    "noCars": "Ningún coche con setups guardados. Guarda un setup en el juego o revisa la carpeta en Ajustes.",
+    "loadingFiles": "Cargando archivos de setup...",
+    "noFiles": "No se encontró ningún archivo .carsetup para",
+    "load": "Cargar setup",
+    "error": {
+      "cars": "No se puede leer la carpeta Car Setups.",
+      "tracks": "No se pueden leer los circuitos de este coche.",
+      "files": "No se pueden leer los archivos de setup.",
+      "decode": "Error al decodificar el archivo."
+    }
+  },
+  "ams2Picker": {
+    "title": "Seleccionar capturas del setup",
+    "loading": "Cargando capturas...",
+    "readError": "No se pueden leer las capturas.",
+    "empty": "No se encontraron capturas en la carpeta de Steam de AMS2. Captura las pantallas del setup en el juego con F12 y luego <retry>Reintentar</retry>.",
+    "unnamed": "sin nombre",
+    "usedTitle": "Ya usado en el setup \"{{name}}\" ({{date}})",
+    "alreadyScanned": "Ya escaneado",
+    "dupTitle": "Capturas ya escaneadas",
+    "dupOne": "1 captura seleccionada ya está en un setup anterior:",
+    "dupOther": "{{n}} capturas seleccionadas ya están en setups anteriores:",
+    "dupItem": "setup \"{{name}}\" del {{date}}",
+    "dupQuestion": "¿Quieres continuar con la decodificación de todos modos?",
+    "decoding": "Analizando el setup con Claude Vision...",
+    "carOk": "Coche verificado: {{car}}",
+    "carWarn": "Atención: coche detectado \"{{found}}\" — podría no coincidir con \"{{expected}}\"",
+    "namePlaceholder": "p. ej. Clasificación Interlagos baseline",
+    "selected": "{{n}} capturas seleccionadas",
+    "selectedDup": "{{n}} capturas seleccionadas ({{dup}} ya escaneadas)",
+    "prompt": "Selecciona las pantallas del setup",
+    "decode": "Decodificar setup",
+    "back": "Volver a la selección",
+    "proceed": "Continuar de todos modos",
+    "reselect": "Volver a seleccionar",
+    "decodeError": "Error durante la decodificación"
+  },
+  "setupSelect": {
+    "acquire": {
+      "r3e": "Cargar desde JSON",
+      "ace": "Seleccionar archivo",
+      "ams2": "Capturar capturas"
+    },
+    "hint": {
+      "r3e": "Copia el setup en RaceRoom con CTRL+C y pégalo aquí.",
+      "ace": "Elige un archivo .carsetup guardado por el juego.",
+      "ams2": "Selecciona las capturas de la pantalla del setup."
+    },
+    "assignTitle": "Asignar setup a {{laps}}",
+    "title": "Gestión de setups",
+    "allTracks": "Buscar en todos los circuitos (mismo coche)",
+    "loading": "Cargando setups anteriores…",
+    "loadError": "No se pueden cargar los setups anteriores.",
+    "listAll": "Setups ya cargados para este coche (todos los circuitos):",
+    "listCombo": "Setups ya cargados para esta combinación coche/circuito:",
+    "colName": "Nombre del setup",
+    "colTrack": "Circuito",
+    "colDate": "Fecha de carga",
+    "verified": "verificado",
+    "deleteTitle": "Eliminar setup",
+    "blockedOne": "No se puede eliminar: {{n}} vuelta usa este setup",
+    "blockedOther": "No se puede eliminar: {{n}} vueltas usan este setup",
+    "emptyAll": "No se encontró ningún setup anterior para este coche.",
+    "emptyCombo": "No se encontró ningún setup anterior para esta combinación coche/circuito.",
+    "importTitle": "Importar setup de {{track}}",
+    "otherTrack": "otro circuito",
+    "importHint": "Asigna un nombre para esta combinación coche/circuito antes de usar el setup importado.",
+    "import": "Importar",
+    "renameError": "No se puede renombrar el setup."
   }
 }

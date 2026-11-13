@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useTranslation } from "react-i18next";
 import {
   faCamera,
   faCheck,
@@ -14,7 +15,10 @@ import type {
 } from "../../shared/types";
 import { SetupDetailModal } from "./SetupDetailModal";
 import { SetupNameEdit } from "./SetupNameEdit";
+import { localeOf } from "../../shared/i18n";
+import { rendererI18n } from "../i18n";
 import { useIPCStore } from "../store/ipcStore";
+import { useSettingsStore } from "../store/settingsStore";
 import { useSessionStore } from "../store/sessionStore";
 
 interface Props {
@@ -41,9 +45,9 @@ interface Props {
   onEditSetup: (row: SessionSetupRow, takenNames: string[]) => void;
 }
 
-const formatDate = (iso: string): string => {
+const formatDate = (iso: string, locale: string): string => {
   const normalized = iso.includes("T") ? iso : iso.replace(" ", "T") + "Z";
-  return new Date(normalized).toLocaleString("it-IT", {
+  return new Date(normalized).toLocaleString(locale, {
     timeZone: "Europe/Rome",
     day: "2-digit",
     month: "2-digit",
@@ -59,17 +63,10 @@ const displayName = (row: SessionSetupRow): string =>
 const isSameName = (a: string, b: string): boolean =>
   a.trim().toLowerCase() === b.trim().toLowerCase();
 
-const ACQUIRE: Record<GameSource, { label: string; icon: typeof faFileCode }> =
-  {
-    r3e: { label: "Carica da JSON", icon: faFileCode },
-    ace: { label: "Seleziona file", icon: faFileCode },
-    ams2: { label: "Acquisisci screenshot", icon: faCamera },
-  };
-
-const EMPTY_HINT: Record<GameSource, string> = {
-  r3e: "Copia il setup in RaceRoom con CTRL+C e incollalo qui.",
-  ace: "Scegli un file .carsetup salvato dal gioco.",
-  ams2: "Seleziona gli screenshot della schermata setup.",
+const ACQUIRE_ICON: Record<GameSource, typeof faFileCode> = {
+  r3e: faFileCode,
+  ace: faFileCode,
+  ams2: faCamera,
 };
 
 type DeleteState =
@@ -92,6 +89,8 @@ const SetupSelectionModal = ({
   onDuplicateSetup,
   onEditSetup,
 }: Props) => {
+  const { t } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
   // Storico per la combinazione auto/circuito corrente — sempre caricato:
   // serve anche a validare i nomi quando si importa da un altro circuito.
   const [comboHistory, setComboHistory] = useState<SessionSetupRow[]>([]);
@@ -222,7 +221,9 @@ const SetupSelectionModal = ({
     renameSetup(id, game, name).catch((e: unknown) => {
       console.error("[SetupSelectionModal] rename failed:", e);
       if (prevSetup) updateRow(id, (r) => ({ ...r, setup: prevSetup }));
-      useIPCStore.getState().setAppError("Impossibile rinominare il setup.");
+      useIPCStore
+        .getState()
+        .setAppError(rendererI18n.t("setupSelect.renameError"));
     });
   };
 
@@ -248,8 +249,13 @@ const SetupSelectionModal = ({
         <Modal.Header closeButton>
           <Modal.Title style={{ fontSize: 15 }}>
             {lapCount != null
-              ? `Assegna setup a ${lapCount} ${lapCount === 1 ? "giro" : "giri"}`
-              : "Gestione setup"}
+              ? t("setupSelect.assignTitle", {
+                  laps: t(
+                    lapCount === 1 ? "count.lap.one" : "count.lap.other",
+                    { n: lapCount },
+                  ),
+                })
+              : t("setupSelect.title")}
           </Modal.Title>
         </Modal.Header>
 
@@ -259,7 +265,7 @@ const SetupSelectionModal = ({
               type="checkbox"
               id="setup-history-all-tracks"
               className="mb-2"
-              label="Cerca su tutti i circuiti (stessa auto)"
+              label={t("setupSelect.allTracks")}
               checked={allTracks}
               onChange={(e) => setAllTracks(e.target.checked)}
             />
@@ -267,33 +273,37 @@ const SetupSelectionModal = ({
           {loading ? (
             <div className="text-center py-3">
               <Spinner size="sm" className="me-2" />
-              Caricamento setup precedenti…
+              {t("setupSelect.loading")}
             </div>
           ) : loadError ? (
             <p className="text-danger mb-3" role="alert">
-              Impossibile caricare i setup precedenti.{" "}
+              {t("setupSelect.loadError")}{" "}
               <Button
                 variant="link"
                 size="sm"
                 className="p-0 align-baseline"
                 onClick={() => setReloadKey((k) => k + 1)}
               >
-                Riprova
+                {t("setupCommon.retry")}
               </Button>
             </p>
           ) : history.length > 0 ? (
             <>
               <p className="text-muted mb-2" style={{ fontSize: 14 }}>
                 {allTracks
-                  ? "Setup già caricati per questa auto (tutti i circuiti):"
-                  : "Setup già caricati per questa combinazione auto/circuito:"}
+                  ? t("setupSelect.listAll")
+                  : t("setupSelect.listCombo")}
               </p>
               <table className="sh-table mb-3">
                 <thead>
                   <tr>
-                    <th>Nome setup</th>
-                    {allTracks && <th style={{ width: 140 }}>Circuito</th>}
-                    <th style={{ width: 160 }}>Data caricamento</th>
+                    <th>{t("setupSelect.colName")}</th>
+                    {allTracks && (
+                      <th style={{ width: 140 }}>
+                        {t("setupSelect.colTrack")}
+                      </th>
+                    )}
+                    <th style={{ width: 160 }}>{t("setupSelect.colDate")}</th>
                     <th style={{ width: 110 }}></th>
                   </tr>
                 </thead>
@@ -335,7 +345,7 @@ const SetupSelectionModal = ({
                                   icon={faCheck}
                                   className="me-1"
                                 />
-                                verificato
+                                {t("setupSelect.verified")}
                               </Badge>
                             )}
                           </td>
@@ -343,7 +353,7 @@ const SetupSelectionModal = ({
                             <td className="text-muted">{row.track ?? "—"}</td>
                           )}
                           <td className="text-muted">
-                            {formatDate(row.loaded_at)}
+                            {formatDate(row.loaded_at, localeOf(language))}
                           </td>
                           <td
                             style={{ textAlign: "right", whiteSpace: "nowrap" }}
@@ -358,7 +368,7 @@ const SetupSelectionModal = ({
                                     void handleDelete(row.id);
                                   }}
                                 >
-                                  Elimina
+                                  {t("common.delete")}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -368,7 +378,7 @@ const SetupSelectionModal = ({
                                     setDeleteState({ phase: "idle" });
                                   }}
                                 >
-                                  Annulla
+                                  {t("common.cancel")}
                                 </Button>
                               </span>
                             )}
@@ -378,7 +388,7 @@ const SetupSelectionModal = ({
                                   <Spinner size="sm" />
                                 </Button>
                                 <Button size="sm" variant="secondary" disabled>
-                                  Annulla
+                                  {t("common.cancel")}
                                 </Button>
                               </span>
                             )}
@@ -386,8 +396,8 @@ const SetupSelectionModal = ({
                               <Button
                                 size="sm"
                                 variant="outline-danger"
-                                title="Elimina setup"
-                                aria-label="Elimina setup"
+                                title={t("setupSelect.deleteTitle")}
+                                aria-label={t("setupSelect.deleteTitle")}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteState({
@@ -412,11 +422,12 @@ const SetupSelectionModal = ({
                                 paddingBottom: 6,
                               }}
                             >
-                              Impossibile eliminare: {errorForRow.lapCount}{" "}
-                              {errorForRow.lapCount === 1
-                                ? "giro usa"
-                                : "giri usano"}{" "}
-                              questo setup
+                              {t(
+                                errorForRow.lapCount === 1
+                                  ? "setupSelect.blockedOne"
+                                  : "setupSelect.blockedOther",
+                                { n: errorForRow.lapCount },
+                              )}
                             </td>
                           </tr>
                         )}
@@ -430,9 +441,9 @@ const SetupSelectionModal = ({
           ) : (
             <p className="text-muted mb-3" style={{ fontSize: 14 }}>
               {allTracks
-                ? "Nessun setup precedente trovato per questa auto."
-                : "Nessun setup precedente trovato per questa combinazione auto/circuito."}{" "}
-              {EMPTY_HINT[game]}
+                ? t("setupSelect.emptyAll")
+                : t("setupSelect.emptyCombo")}{" "}
+              {t(`setupSelect.hint.${game}`)}
             </p>
           )}
 
@@ -441,14 +452,14 @@ const SetupSelectionModal = ({
             onClick={onJsonPicker}
             className="w-100"
           >
-            <FontAwesomeIcon icon={ACQUIRE[game].icon} className="me-2" />
-            {ACQUIRE[game].label}
+            <FontAwesomeIcon icon={ACQUIRE_ICON[game]} className="me-2" />
+            {t(`setupSelect.acquire.${game}`)}
           </Button>
         </Modal.Body>
 
         <Modal.Footer>
           <Button variant="secondary" size="sm" onClick={onClose}>
-            Chiudi
+            {t("setupCommon.close")}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -505,17 +516,19 @@ const SetupSelectionModal = ({
         >
           <Modal.Header closeButton>
             <Modal.Title style={{ fontSize: 15 }}>
-              Importa setup da {importState.row.track ?? "altro circuito"}
+              {t("setupSelect.importTitle", {
+                track: importState.row.track ?? t("setupSelect.otherTrack"),
+              })}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <p className="text-muted" style={{ fontSize: 14 }}>
-              Assegna un nome per questa combinazione auto/circuito prima di
-              usare il setup importato.
+              {t("setupSelect.importHint")}
             </p>
             <Form.Group>
               <Form.Label className="text-muted" style={{ fontSize: 14 }}>
-                Nome setup <span className="text-danger">*</span>
+                {t("setupCommon.nameLabel")}{" "}
+                <span className="text-danger">*</span>
               </Form.Label>
               <Form.Control
                 size="sm"
@@ -528,7 +541,7 @@ const SetupSelectionModal = ({
               />
               {importDuplicate && (
                 <Form.Text className="text-danger">
-                  Esiste già un setup con questo nome per questa auto/circuito.
+                  {t("setupCommon.nameTaken")}
                 </Form.Text>
               )}
             </Form.Group>
@@ -539,7 +552,7 @@ const SetupSelectionModal = ({
               size="sm"
               onClick={() => setImportState(null)}
             >
-              Annulla
+              {t("common.cancel")}
             </Button>
             <Button
               variant="primary"
@@ -557,7 +570,7 @@ const SetupSelectionModal = ({
               }}
             >
               <FontAwesomeIcon icon={faCheck} className="me-1" />
-              Importa
+              {t("setupSelect.import")}
             </Button>
           </Modal.Footer>
         </Modal>

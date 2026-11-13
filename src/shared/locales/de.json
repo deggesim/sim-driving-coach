@@ -139,13 +139,35 @@
       "Rear": "Hinterachse",
       "Active Suspension": "Aktive Radaufhängung",
       "Engine/Electronics": "Motor/Elektronik",
-      "Gear Ratios": "Getriebeübersetzungen"
+      "Gear Ratios": "Getriebeübersetzungen",
+      "Fuel": "Kraftstoff",
+      "Fuel and Strategy": "Kraftstoff und Strategie",
+      "Tyres/Brakes/Chassis": "Reifen/Bremsen/Fahrwerk",
+      "Drivetrain": "Antriebsstrang",
+      "General": "Allgemein"
     },
     "wheel": {
       "Front Left": "Vorne links",
       "Front Right": "Vorne rechts",
       "Rear Left": "Hinten links",
       "Rear Right": "Hinten rechts"
+    },
+    "tab": {
+      "shared": "Gemeinsam"
+    },
+    "section": {
+      "absFront": "ABS vorne",
+      "absRear": "ABS hinten",
+      "tcCut": "TC Cut",
+      "tcSlip": "TC Slip",
+      "tcLat": "TC lateral",
+      "gears": "Gänge"
+    },
+    "wheelShort": {
+      "FL": "Vorne links",
+      "FR": "Vorne rechts",
+      "RL": "Hinten links",
+      "RR": "Hinten rechts"
     }
   },
   "count": {
@@ -440,5 +462,115 @@
     "loading": "Telemetrie wird geladen…",
     "loadError": "Die Telemetrie der Runde konnte nicht geladen werden.",
     "noData": "Keine Telemetriedaten für diese Runde verfügbar."
+  },
+  "setupCommon": {
+    "nameLabel": "Setup-Name",
+    "nameTaken": "Für dieses Auto/diese Strecke existiert bereits ein Setup mit diesem Namen.",
+    "save": "Setup speichern",
+    "close": "Schließen",
+    "retry": "Erneut versuchen"
+  },
+  "setupName": {
+    "rename": "Setup umbenennen",
+    "taken": "Name bereits vergeben",
+    "save": "Speichern",
+    "saveAria": "Namen speichern",
+    "cancelAria": "Umbenennen abbrechen"
+  },
+  "setupDetail": {
+    "empty": "Dieses Setup enthält keine Parameter: beim Auslesen wurden keine extrahiert. Löschen und erneut erfassen.",
+    "edit": "Setup bearbeiten",
+    "duplicate": "Setup aus bestehendem erstellen",
+    "use": "Dieses Setup verwenden"
+  },
+  "setupEditor": {
+    "namePlaceholder": "z. B. Qualifying Interlagos rev2",
+    "saveChanges": "Änderungen speichern"
+  },
+  "r3ePicker": {
+    "title": "Setup-JSON einfügen",
+    "pasteLabel": "Füge das von RaceRoom exportierte JSON ein (STRG+C im Setup-Bildschirm)",
+    "namePlaceholder": "z. B. Qualifying Monza Baseline",
+    "parse": "JSON analysieren",
+    "editJson": "JSON bearbeiten",
+    "errInvalid": "Ungültiges JSON",
+    "errFormat": "Ungültiges JSON-Format: Das Feld 'values' fehlt"
+  },
+  "acePicker": {
+    "title": "ACE-Setup auswählen",
+    "car": "Fahrzeug",
+    "track": "Strecke",
+    "loading": "Wird geladen...",
+    "mismatch": "Weicht von der gewählten Runde ab",
+    "match": "Auto/Strecke stimmen",
+    "noCars": "Kein Fahrzeug mit gespeicherten Setups. Speichere ein Setup im Spiel oder prüfe den Ordner in den Einstellungen.",
+    "loadingFiles": "Setup-Dateien werden geladen...",
+    "noFiles": "Keine .carsetup-Datei gefunden für",
+    "load": "Setup laden",
+    "error": {
+      "cars": "Der Ordner Car Setups kann nicht gelesen werden.",
+      "tracks": "Die Strecken für dieses Fahrzeug können nicht gelesen werden.",
+      "files": "Die Setup-Dateien können nicht gelesen werden.",
+      "decode": "Fehler beim Dekodieren der Datei."
+    }
+  },
+  "ams2Picker": {
+    "title": "Setup-Screenshots auswählen",
+    "loading": "Screenshots werden geladen...",
+    "readError": "Die Screenshots können nicht gelesen werden.",
+    "empty": "Keine Screenshots im Steam-Ordner von AMS2 gefunden. Erfasse die Setup-Bildschirme im Spiel mit F12, dann <retry>Erneut versuchen</retry>.",
+    "unnamed": "ohne Namen",
+    "usedTitle": "Bereits im Setup \"{{name}}\" verwendet ({{date}})",
+    "alreadyScanned": "Bereits gescannt",
+    "dupTitle": "Screenshots bereits gescannt",
+    "dupOne": "1 ausgewählter Screenshot ist bereits in einem früheren Setup enthalten:",
+    "dupOther": "{{n}} ausgewählte Screenshots sind bereits in früheren Setups enthalten:",
+    "dupItem": "Setup \"{{name}}\" vom {{date}}",
+    "dupQuestion": "Trotzdem mit der Dekodierung fortfahren?",
+    "decoding": "Setup wird mit Claude Vision analysiert...",
+    "carOk": "Auto verifiziert: {{car}}",
+    "carWarn": "Achtung: erkanntes Auto \"{{found}}\" — stimmt möglicherweise nicht mit \"{{expected}}\" überein",
+    "namePlaceholder": "z. B. Qualifying Interlagos Baseline",
+    "selected": "{{n}} Screenshots ausgewählt",
+    "selectedDup": "{{n}} Screenshots ausgewählt ({{dup}} bereits gescannt)",
+    "prompt": "Wähle die Setup-Bildschirme aus",
+    "decode": "Setup dekodieren",
+    "back": "Zurück zur Auswahl",
+    "proceed": "Trotzdem fortfahren",
+    "reselect": "Neu auswählen",
+    "decodeError": "Fehler beim Dekodieren"
+  },
+  "setupSelect": {
+    "acquire": {
+      "r3e": "Aus JSON laden",
+      "ace": "Datei auswählen",
+      "ams2": "Screenshots erfassen"
+    },
+    "hint": {
+      "r3e": "Kopiere das Setup in RaceRoom mit STRG+C und füge es hier ein.",
+      "ace": "Wähle eine vom Spiel gespeicherte .carsetup-Datei.",
+      "ams2": "Wähle die Screenshots des Setup-Bildschirms aus."
+    },
+    "assignTitle": "Setup {{laps}} zuweisen",
+    "title": "Setup-Verwaltung",
+    "allTracks": "Alle Strecken durchsuchen (gleiches Auto)",
+    "loading": "Frühere Setups werden geladen…",
+    "loadError": "Frühere Setups können nicht geladen werden.",
+    "listAll": "Bereits geladene Setups für dieses Auto (alle Strecken):",
+    "listCombo": "Bereits geladene Setups für diese Auto/Strecken-Kombination:",
+    "colName": "Setup-Name",
+    "colTrack": "Strecke",
+    "colDate": "Ladedatum",
+    "verified": "verifiziert",
+    "deleteTitle": "Setup löschen",
+    "blockedOne": "Löschen nicht möglich: {{n}} Runde verwendet dieses Setup",
+    "blockedOther": "Löschen nicht möglich: {{n}} Runden verwenden dieses Setup",
+    "emptyAll": "Kein früheres Setup für dieses Auto gefunden.",
+    "emptyCombo": "Kein früheres Setup für diese Auto/Strecken-Kombination gefunden.",
+    "importTitle": "Setup von {{track}} importieren",
+    "otherTrack": "einer anderen Strecke",
+    "importHint": "Vergib einen Namen für diese Auto/Strecken-Kombination, bevor du das importierte Setup verwendest.",
+    "import": "Importieren",
+    "renameError": "Das Setup kann nicht umbenannt werden."
   }
 }

@@ -25,7 +25,10 @@ import {
   Modal,
   Spinner,
 } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
+import { localeOf } from "../../shared/i18n";
 import type { SetupData } from "../../shared/types";
+import { useSettingsStore } from "../store/settingsStore";
 
 type SetupFileEntry = {
   filename: string;
@@ -41,8 +44,14 @@ type Props = {
   onConfirm: (setup: SetupData) => void;
 };
 
-const formatDate = (iso: string): string =>
-  new Date(iso).toLocaleString("it-IT", {
+// Message kind, not text: translated at render. `raw` is a main-process message.
+type PickerError = {
+  key: "cars" | "tracks" | "files" | "decode";
+  raw?: string;
+};
+
+const formatDate = (iso: string, locale: string): string =>
+  new Date(iso).toLocaleString(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
@@ -57,6 +66,8 @@ const AceSetupPicker = ({
   onClose,
   onConfirm,
 }: Props) => {
+  const { t } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
   const [cars, setCars] = useState<string[]>([]);
   const [tracks, setTracks] = useState<string[]>([]);
   const [files, setFiles] = useState<SetupFileEntry[]>([]);
@@ -69,7 +80,7 @@ const AceSetupPicker = ({
   const [loadingTracks, setLoadingTracks] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [decoding, setDecoding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PickerError | null>(null);
 
   const initializedRef = useRef(false);
 
@@ -92,7 +103,7 @@ const AceSetupPicker = ({
         setSelectedCar(pre);
       })
       .catch(() => {
-        if (!cancelled) setError("Impossibile leggere la cartella Car Setups.");
+        if (!cancelled) setError({ key: "cars" });
       })
       .finally(() => {
         if (!cancelled) setLoadingCars(false);
@@ -130,8 +141,7 @@ const AceSetupPicker = ({
         setSelectedTrack(pre);
       })
       .catch(() => {
-        if (!cancelled)
-          setError("Impossibile leggere le tracce per questo veicolo.");
+        if (!cancelled) setError({ key: "tracks" });
       })
       .finally(() => {
         if (!cancelled) setLoadingTracks(false);
@@ -157,7 +167,7 @@ const AceSetupPicker = ({
         if (!cancelled) setFiles(list);
       })
       .catch(() => {
-        if (!cancelled) setError("Impossibile leggere i file setup.");
+        if (!cancelled) setError({ key: "files" });
       })
       .finally(() => {
         if (!cancelled) setLoadingFiles(false);
@@ -194,11 +204,10 @@ const AceSetupPicker = ({
       onConfirm({ ...setup, name });
       handleClose();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Errore nella decodifica del file.",
-      );
+      setError({
+        key: "decode",
+        raw: err instanceof Error ? err.message : undefined,
+      });
     } finally {
       setDecoding(false);
     }
@@ -219,7 +228,7 @@ const AceSetupPicker = ({
       <Modal.Header closeButton>
         <Modal.Title>
           <FontAwesomeIcon icon={faGear} className="me-2" />
-          Seleziona Setup ACE
+          {t("acePicker.title")}
         </Modal.Title>
       </Modal.Header>
 
@@ -227,17 +236,17 @@ const AceSetupPicker = ({
         {error && (
           <div className="text-danger mb-3" role="alert">
             <FontAwesomeIcon icon={faXmark} className="me-1" />
-            {error}
+            {error.raw ?? t(`acePicker.error.${error.key}`)}
           </div>
         )}
 
         {/* Car / Track selectors */}
         <div className="d-flex gap-3 mb-3 align-items-end">
           <Form.Group style={{ flex: 1 }}>
-            <Form.Label className="mb-1">Vettura</Form.Label>
+            <Form.Label className="mb-1">{t("acePicker.car")}</Form.Label>
             {loadingCars ? (
               <div className="d-flex align-items-center gap-2">
-                <Spinner size="sm" /> Caricamento...
+                <Spinner size="sm" /> {t("acePicker.loading")}
               </div>
             ) : (
               <Form.Select
@@ -255,10 +264,10 @@ const AceSetupPicker = ({
           </Form.Group>
 
           <Form.Group style={{ flex: 1 }}>
-            <Form.Label className="mb-1">Circuito</Form.Label>
+            <Form.Label className="mb-1">{t("acePicker.track")}</Form.Label>
             {loadingTracks ? (
               <div className="d-flex align-items-center gap-2">
-                <Spinner size="sm" /> Caricamento...
+                <Spinner size="sm" /> {t("acePicker.loading")}
               </div>
             ) : (
               <Form.Select
@@ -267,9 +276,9 @@ const AceSetupPicker = ({
                 onChange={(e) => setSelectedTrack(e.target.value)}
                 disabled={tracks.length === 0}
               >
-                {tracks.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {tracks.map((tr) => (
+                  <option key={tr} value={tr}>
+                    {tr}
                   </option>
                 ))}
               </Form.Select>
@@ -286,7 +295,7 @@ const AceSetupPicker = ({
                 style={{ fontSize: 12 }}
               >
                 <FontAwesomeIcon icon={faTriangleExclamation} />
-                Diverso dal giro selezionato
+                {t("acePicker.mismatch")}
               </Badge>
             ) : selectedCar && selectedTrack ? (
               <Badge
@@ -295,24 +304,21 @@ const AceSetupPicker = ({
                 style={{ fontSize: 12 }}
               >
                 <FontAwesomeIcon icon={faCheck} />
-                Auto/circuito corretti
+                {t("acePicker.match")}
               </Badge>
             ) : null}
           </div>
         </div>
 
         {!loadingCars && !error && cars.length === 0 && (
-          <p className="text-secondary">
-            Nessuna vettura con setup salvati. Salva un setup in gioco, oppure
-            controlla la cartella in Impostazioni.
-          </p>
+          <p className="text-secondary">{t("acePicker.noCars")}</p>
         )}
 
         {/* File list */}
         {loadingFiles && (
           <div className="d-flex justify-content-center py-3">
             <Spinner size="sm" className="me-2" />
-            <span>Caricamento file setup...</span>
+            <span>{t("acePicker.loadingFiles")}</span>
           </div>
         )}
 
@@ -321,7 +327,7 @@ const AceSetupPicker = ({
           selectedCar &&
           selectedTrack && (
             <div className="text-secondary text-center py-3">
-              Nessun file .carsetup trovato per
+              {t("acePicker.noFiles")}
               <br />
               <code>
                 {selectedCar} / {selectedTrack}
@@ -341,7 +347,7 @@ const AceSetupPicker = ({
               >
                 <span className="fw-medium">{f.filename}</span>
                 <span className="text-secondary">
-                  {formatDate(f.modifiedAt)}
+                  {formatDate(f.modifiedAt, localeOf(language))}
                 </span>
               </ListGroup.Item>
             ))}
@@ -352,7 +358,7 @@ const AceSetupPicker = ({
       <Modal.Footer>
         <Button variant="secondary" onClick={handleClose} disabled={decoding}>
           <FontAwesomeIcon icon={faXmark} className="me-1" />
-          Annulla
+          {t("common.cancel")}
         </Button>
         <Button
           variant="primary"
@@ -364,7 +370,7 @@ const AceSetupPicker = ({
           ) : (
             <FontAwesomeIcon icon={faCheck} className="me-1" />
           )}
-          Carica Setup
+          {t("acePicker.load")}
         </Button>
       </Modal.Footer>
     </Modal>

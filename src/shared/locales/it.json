@@ -139,13 +139,35 @@
       "Rear": "Posteriore",
       "Active Suspension": "Sospensioni attive",
       "Engine/Electronics": "Motore/Elettronica",
-      "Gear Ratios": "Rapporti del cambio"
+      "Gear Ratios": "Rapporti del cambio",
+      "Fuel": "Carburante",
+      "Fuel and Strategy": "Carburante e strategia",
+      "Tyres/Brakes/Chassis": "Gomme/Freni/Assetto",
+      "Drivetrain": "Trasmissione",
+      "General": "Generale"
     },
     "wheel": {
       "Front Left": "Anteriore sinistra",
       "Front Right": "Anteriore destra",
       "Rear Left": "Posteriore sinistra",
       "Rear Right": "Posteriore destra"
+    },
+    "tab": {
+      "shared": "Condiviso"
+    },
+    "section": {
+      "absFront": "ABS Anteriore",
+      "absRear": "ABS Posteriore",
+      "tcCut": "TC Cut",
+      "tcSlip": "TC Slip",
+      "tcLat": "TC Laterale",
+      "gears": "Marce"
+    },
+    "wheelShort": {
+      "FL": "Ant. Sinistro",
+      "FR": "Ant. Destro",
+      "RL": "Post. Sinistro",
+      "RR": "Post. Destro"
     }
   },
   "count": {
@@ -440,5 +462,115 @@
     "loading": "Caricamento telemetria…",
     "loadError": "Impossibile caricare la telemetria del giro.",
     "noData": "Nessun dato di telemetria disponibile per questo giro."
+  },
+  "setupCommon": {
+    "nameLabel": "Nome setup",
+    "nameTaken": "Esiste già un setup con questo nome per questa auto/circuito.",
+    "save": "Salva setup",
+    "close": "Chiudi",
+    "retry": "Riprova"
+  },
+  "setupName": {
+    "rename": "Rinomina setup",
+    "taken": "Nome già in uso",
+    "save": "Salva",
+    "saveAria": "Salva nome",
+    "cancelAria": "Annulla rinomina"
+  },
+  "setupDetail": {
+    "empty": "Nessun parametro in questo setup: la lettura non ne ha estratti. Eliminalo e acquisiscilo di nuovo.",
+    "edit": "Modifica setup",
+    "duplicate": "Crea setup da esistente",
+    "use": "Usa questo setup"
+  },
+  "setupEditor": {
+    "namePlaceholder": "es. Qualifica Interlagos rev2",
+    "saveChanges": "Salva modifiche"
+  },
+  "r3ePicker": {
+    "title": "Incolla JSON setup",
+    "pasteLabel": "Incolla il JSON esportato da RaceRoom (CTRL+C nella schermata del setup)",
+    "namePlaceholder": "es. Qualifica Monza baseline",
+    "parse": "Analizza JSON",
+    "editJson": "Modifica JSON",
+    "errInvalid": "JSON non valido",
+    "errFormat": "Formato JSON non valido: manca il campo 'values'"
+  },
+  "acePicker": {
+    "title": "Seleziona Setup ACE",
+    "car": "Vettura",
+    "track": "Circuito",
+    "loading": "Caricamento...",
+    "mismatch": "Diverso dal giro selezionato",
+    "match": "Auto/circuito corretti",
+    "noCars": "Nessuna vettura con setup salvati. Salva un setup in gioco, oppure controlla la cartella in Impostazioni.",
+    "loadingFiles": "Caricamento file setup...",
+    "noFiles": "Nessun file .carsetup trovato per",
+    "load": "Carica Setup",
+    "error": {
+      "cars": "Impossibile leggere la cartella Car Setups.",
+      "tracks": "Impossibile leggere le tracce per questo veicolo.",
+      "files": "Impossibile leggere i file setup.",
+      "decode": "Errore nella decodifica del file."
+    }
+  },
+  "ams2Picker": {
+    "title": "Seleziona screenshot setup",
+    "loading": "Caricamento screenshot...",
+    "readError": "Impossibile leggere gli screenshot.",
+    "empty": "Nessuno screenshot trovato nella cartella Steam di AMS2. Cattura le schermate del setup in-game con F12, poi <retry>Riprova</retry>.",
+    "unnamed": "senza nome",
+    "usedTitle": "Già usato nel setup \"{{name}}\" ({{date}})",
+    "alreadyScanned": "Già scansionato",
+    "dupTitle": "Screenshot già scansionati",
+    "dupOne": "1 screenshot selezionato è già presente in un setup precedente:",
+    "dupOther": "{{n}} screenshot selezionati sono già presenti in setup precedenti:",
+    "dupItem": "setup \"{{name}}\" del {{date}}",
+    "dupQuestion": "Vuoi procedere comunque con il decode?",
+    "decoding": "Analisi setup in corso con Claude Vision...",
+    "carOk": "Auto verificata: {{car}}",
+    "carWarn": "Attenzione: auto rilevata \"{{found}}\" — potrebbe non corrispondere a \"{{expected}}\"",
+    "namePlaceholder": "es. Qualifica Interlagos baseline",
+    "selected": "{{n}} screenshot selezionati",
+    "selectedDup": "{{n}} screenshot selezionati ({{dup}} già scansionati)",
+    "prompt": "Seleziona le schermate del setup",
+    "decode": "Decodifica setup",
+    "back": "Torna alla selezione",
+    "proceed": "Procedi comunque",
+    "reselect": "Riseleziona",
+    "decodeError": "Errore durante il decoding"
+  },
+  "setupSelect": {
+    "acquire": {
+      "r3e": "Carica da JSON",
+      "ace": "Seleziona file",
+      "ams2": "Acquisisci screenshot"
+    },
+    "hint": {
+      "r3e": "Copia il setup in RaceRoom con CTRL+C e incollalo qui.",
+      "ace": "Scegli un file .carsetup salvato dal gioco.",
+      "ams2": "Seleziona gli screenshot della schermata setup."
+    },
+    "assignTitle": "Assegna setup a {{laps}}",
+    "title": "Gestione setup",
+    "allTracks": "Cerca su tutti i circuiti (stessa auto)",
+    "loading": "Caricamento setup precedenti…",
+    "loadError": "Impossibile caricare i setup precedenti.",
+    "listAll": "Setup già caricati per questa auto (tutti i circuiti):",
+    "listCombo": "Setup già caricati per questa combinazione auto/circuito:",
+    "colName": "Nome setup",
+    "colTrack": "Circuito",
+    "colDate": "Data caricamento",
+    "verified": "verificato",
+    "deleteTitle": "Elimina setup",
+    "blockedOne": "Impossibile eliminare: {{n}} giro usa questo setup",
+    "blockedOther": "Impossibile eliminare: {{n}} giri usano questo setup",
+    "emptyAll": "Nessun setup precedente trovato per questa auto.",
+    "emptyCombo": "Nessun setup precedente trovato per questa combinazione auto/circuito.",
+    "importTitle": "Importa setup da {{track}}",
+    "otherTrack": "altro circuito",
+    "importHint": "Assegna un nome per questa combinazione auto/circuito prima di usare il setup importato.",
+    "import": "Importa",
+    "renameError": "Impossibile rinominare il setup."
   }
 }

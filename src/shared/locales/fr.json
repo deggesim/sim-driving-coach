@@ -139,13 +139,35 @@
       "Rear": "Arrière",
       "Active Suspension": "Suspension active",
       "Engine/Electronics": "Moteur/Électronique",
-      "Gear Ratios": "Rapports de boîte"
+      "Gear Ratios": "Rapports de boîte",
+      "Fuel": "Carburant",
+      "Fuel and Strategy": "Carburant et stratégie",
+      "Tyres/Brakes/Chassis": "Pneus/Freins/Châssis",
+      "Drivetrain": "Transmission",
+      "General": "Général"
     },
     "wheel": {
       "Front Left": "Avant gauche",
       "Front Right": "Avant droite",
       "Rear Left": "Arrière gauche",
       "Rear Right": "Arrière droite"
+    },
+    "tab": {
+      "shared": "Commun"
+    },
+    "section": {
+      "absFront": "ABS avant",
+      "absRear": "ABS arrière",
+      "tcCut": "TC Cut",
+      "tcSlip": "TC Slip",
+      "tcLat": "TC latéral",
+      "gears": "Rapports"
+    },
+    "wheelShort": {
+      "FL": "Avant gauche",
+      "FR": "Avant droite",
+      "RL": "Arrière gauche",
+      "RR": "Arrière droite"
     }
   },
   "count": {
@@ -440,5 +462,115 @@
     "loading": "Chargement de la télémétrie…",
     "loadError": "Impossible de charger la télémétrie du tour.",
     "noData": "Aucune donnée de télémétrie disponible pour ce tour."
+  },
+  "setupCommon": {
+    "nameLabel": "Nom du setup",
+    "nameTaken": "Un setup portant ce nom existe déjà pour cette voiture/ce circuit.",
+    "save": "Enregistrer le setup",
+    "close": "Fermer",
+    "retry": "Réessayer"
+  },
+  "setupName": {
+    "rename": "Renommer le setup",
+    "taken": "Nom déjà utilisé",
+    "save": "Enregistrer",
+    "saveAria": "Enregistrer le nom",
+    "cancelAria": "Annuler le renommage"
+  },
+  "setupDetail": {
+    "empty": "Aucun paramètre dans ce setup : la lecture n'en a extrait aucun. Supprimez-le et capturez-le à nouveau.",
+    "edit": "Modifier le setup",
+    "duplicate": "Créer un setup à partir d'un existant",
+    "use": "Utiliser ce setup"
+  },
+  "setupEditor": {
+    "namePlaceholder": "p. ex. Qualification Interlagos rev2",
+    "saveChanges": "Enregistrer les modifications"
+  },
+  "r3ePicker": {
+    "title": "Coller le JSON du setup",
+    "pasteLabel": "Collez le JSON exporté par RaceRoom (CTRL+C dans l'écran du setup)",
+    "namePlaceholder": "p. ex. Qualification Monza baseline",
+    "parse": "Analyser le JSON",
+    "editJson": "Modifier le JSON",
+    "errInvalid": "JSON invalide",
+    "errFormat": "Format JSON invalide : le champ 'values' est manquant"
+  },
+  "acePicker": {
+    "title": "Sélectionner un setup ACE",
+    "car": "Voiture",
+    "track": "Circuit",
+    "loading": "Chargement...",
+    "mismatch": "Différent du tour sélectionné",
+    "match": "Voiture/circuit corrects",
+    "noCars": "Aucune voiture avec des setups enregistrés. Enregistrez un setup en jeu ou vérifiez le dossier dans les Paramètres.",
+    "loadingFiles": "Chargement des fichiers de setup...",
+    "noFiles": "Aucun fichier .carsetup trouvé pour",
+    "load": "Charger le setup",
+    "error": {
+      "cars": "Impossible de lire le dossier Car Setups.",
+      "tracks": "Impossible de lire les circuits de cette voiture.",
+      "files": "Impossible de lire les fichiers de setup.",
+      "decode": "Erreur lors du décodage du fichier."
+    }
+  },
+  "ams2Picker": {
+    "title": "Sélectionner les captures du setup",
+    "loading": "Chargement des captures...",
+    "readError": "Impossible de lire les captures.",
+    "empty": "Aucune capture trouvée dans le dossier Steam d'AMS2. Capturez les écrans du setup en jeu avec F12, puis <retry>Réessayer</retry>.",
+    "unnamed": "sans nom",
+    "usedTitle": "Déjà utilisé dans le setup \"{{name}}\" ({{date}})",
+    "alreadyScanned": "Déjà analysé",
+    "dupTitle": "Captures déjà analysées",
+    "dupOne": "1 capture sélectionnée figure déjà dans un setup précédent :",
+    "dupOther": "{{n}} captures sélectionnées figurent déjà dans des setups précédents :",
+    "dupItem": "setup \"{{name}}\" du {{date}}",
+    "dupQuestion": "Voulez-vous quand même poursuivre le décodage ?",
+    "decoding": "Analyse du setup avec Claude Vision...",
+    "carOk": "Voiture vérifiée : {{car}}",
+    "carWarn": "Attention : voiture détectée \"{{found}}\" — elle peut ne pas correspondre à \"{{expected}}\"",
+    "namePlaceholder": "p. ex. Qualification Interlagos baseline",
+    "selected": "{{n}} captures sélectionnées",
+    "selectedDup": "{{n}} captures sélectionnées ({{dup}} déjà analysées)",
+    "prompt": "Sélectionnez les écrans du setup",
+    "decode": "Décoder le setup",
+    "back": "Retour à la sélection",
+    "proceed": "Continuer quand même",
+    "reselect": "Resélectionner",
+    "decodeError": "Erreur pendant le décodage"
+  },
+  "setupSelect": {
+    "acquire": {
+      "r3e": "Charger depuis un JSON",
+      "ace": "Sélectionner un fichier",
+      "ams2": "Capturer des captures"
+    },
+    "hint": {
+      "r3e": "Copiez le setup dans RaceRoom avec CTRL+C et collez-le ici.",
+      "ace": "Choisissez un fichier .carsetup enregistré par le jeu.",
+      "ams2": "Sélectionnez les captures de l'écran du setup."
+    },
+    "assignTitle": "Affecter le setup à {{laps}}",
+    "title": "Gestion des setups",
+    "allTracks": "Chercher sur tous les circuits (même voiture)",
+    "loading": "Chargement des setups précédents…",
+    "loadError": "Impossible de charger les setups précédents.",
+    "listAll": "Setups déjà chargés pour cette voiture (tous les circuits) :",
+    "listCombo": "Setups déjà chargés pour cette combinaison voiture/circuit :",
+    "colName": "Nom du setup",
+    "colTrack": "Circuit",
+    "colDate": "Date de chargement",
+    "verified": "vérifié",
+    "deleteTitle": "Supprimer le setup",
+    "blockedOne": "Suppression impossible : {{n}} tour utilise ce setup",
+    "blockedOther": "Suppression impossible : {{n}} tours utilisent ce setup",
+    "emptyAll": "Aucun setup précédent trouvé pour cette voiture.",
+    "emptyCombo": "Aucun setup précédent trouvé pour cette combinaison voiture/circuit.",
+    "importTitle": "Importer le setup de {{track}}",
+    "otherTrack": "un autre circuit",
+    "importHint": "Donnez un nom pour cette combinaison voiture/circuit avant d'utiliser le setup importé.",
+    "import": "Importer",
+    "renameError": "Impossible de renommer le setup."
   }
 }

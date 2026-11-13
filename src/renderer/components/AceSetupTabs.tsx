@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Nav } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import type { SetupParam } from "../../shared/types";
+import { localizeSetupName } from "../../shared/setup-labels";
 import { ParamTable, FourCornerGrid, getWheelKey } from "./SetupTabsCommon";
 
 const ACE_TAB_ORDER = [
@@ -82,6 +84,7 @@ const SuspensionTab = ({ params }: { params: SetupParam[] }) => {
 };
 
 const AceSetupTabs = ({ params }: { params: SetupParam[] }) => {
+  const { t } = useTranslation();
   const byTab: Partial<Record<AceTabId, SetupParam[]>> = {};
   for (const p of params) {
     const tab = getAceTab(p);
@@ -105,9 +108,9 @@ const AceSetupTabs = ({ params }: { params: SetupParam[] }) => {
         activeKey={active}
         onSelect={(k) => k && setActive(k as AceTabId)}
       >
-        {available.map((t) => (
-          <Nav.Item key={t}>
-            <Nav.Link eventKey={t}>{t}</Nav.Link>
+        {available.map((tab) => (
+          <Nav.Item key={tab}>
+            <Nav.Link eventKey={tab}>{localizeSetupName(t, tab)}</Nav.Link>
           </Nav.Item>
         ))}
       </Nav>

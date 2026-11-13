@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Form } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faPen, faXmark } from "@fortawesome/free-solid-svg-icons";
 
@@ -14,6 +15,7 @@ type Props = {
 /** Nome setup con matita per la modifica in linea. Usato nella lista setup e
  *  nel titolo del dettaglio. */
 export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<string | null>(null);
 
   if (draft == null)
@@ -24,8 +26,8 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
           variant="link"
           size="sm"
           className="text-muted p-0"
-          title="Rinomina setup"
-          aria-label="Rinomina setup"
+          title={t("setupName.rename")}
+          aria-label={t("setupName.rename")}
           onClick={(e) => {
             e.stopPropagation();
             setDraft(name);
@@ -67,8 +69,8 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
         size="sm"
         variant="primary"
         disabled={invalid}
-        title={invalid && trimmed ? "Nome già in uso" : "Salva"}
-        aria-label="Salva nome"
+        title={invalid && trimmed ? t("setupName.taken") : t("setupName.save")}
+        aria-label={t("setupName.saveAria")}
         onClick={save}
       >
         <FontAwesomeIcon icon={faCheck} />
@@ -76,8 +78,8 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
       <Button
         size="sm"
         variant="secondary"
-        title="Annulla"
-        aria-label="Annulla rinomina"
+        title={t("common.cancel")}
+        aria-label={t("setupName.cancelAria")}
         onClick={() => setDraft(null)}
       >
         <FontAwesomeIcon icon={faXmark} />

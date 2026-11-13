@@ -139,13 +139,35 @@
       "Rear": "Rear",
       "Active Suspension": "Active Suspension",
       "Engine/Electronics": "Engine/Electronics",
-      "Gear Ratios": "Gear Ratios"
+      "Gear Ratios": "Gear Ratios",
+      "Fuel": "Fuel",
+      "Fuel and Strategy": "Fuel and strategy",
+      "Tyres/Brakes/Chassis": "Tyres/Brakes/Chassis",
+      "Drivetrain": "Drivetrain",
+      "General": "General"
     },
     "wheel": {
       "Front Left": "Front Left",
       "Front Right": "Front Right",
       "Rear Left": "Rear Left",
       "Rear Right": "Rear Right"
+    },
+    "tab": {
+      "shared": "Shared"
+    },
+    "section": {
+      "absFront": "ABS front",
+      "absRear": "ABS rear",
+      "tcCut": "TC Cut",
+      "tcSlip": "TC Slip",
+      "tcLat": "TC lateral",
+      "gears": "Gears"
+    },
+    "wheelShort": {
+      "FL": "Front left",
+      "FR": "Front right",
+      "RL": "Rear left",
+      "RR": "Rear right"
     }
   },
   "count": {
@@ -440,5 +462,115 @@
     "loading": "Loading telemetry…",
     "loadError": "Could not load the lap telemetry.",
     "noData": "No telemetry data available for this lap."
+  },
+  "setupCommon": {
+    "nameLabel": "Setup name",
+    "nameTaken": "A setup with this name already exists for this car/track.",
+    "save": "Save setup",
+    "close": "Close",
+    "retry": "Retry"
+  },
+  "setupName": {
+    "rename": "Rename setup",
+    "taken": "Name already in use",
+    "save": "Save",
+    "saveAria": "Save name",
+    "cancelAria": "Cancel rename"
+  },
+  "setupDetail": {
+    "empty": "No parameters in this setup: the read extracted none. Delete it and capture it again.",
+    "edit": "Edit setup",
+    "duplicate": "Create setup from existing",
+    "use": "Use this setup"
+  },
+  "setupEditor": {
+    "namePlaceholder": "e.g. Interlagos qualifying rev2",
+    "saveChanges": "Save changes"
+  },
+  "r3ePicker": {
+    "title": "Paste setup JSON",
+    "pasteLabel": "Paste the JSON exported by RaceRoom (CTRL+C in the setup screen)",
+    "namePlaceholder": "e.g. Monza qualifying baseline",
+    "parse": "Parse JSON",
+    "editJson": "Edit JSON",
+    "errInvalid": "Invalid JSON",
+    "errFormat": "Invalid JSON format: the 'values' field is missing"
+  },
+  "acePicker": {
+    "title": "Select ACE setup",
+    "car": "Car",
+    "track": "Track",
+    "loading": "Loading...",
+    "mismatch": "Differs from the selected lap",
+    "match": "Car/track match",
+    "noCars": "No car with saved setups. Save a setup in the game, or check the folder in Settings.",
+    "loadingFiles": "Loading setup files...",
+    "noFiles": "No .carsetup file found for",
+    "load": "Load setup",
+    "error": {
+      "cars": "Unable to read the Car Setups folder.",
+      "tracks": "Unable to read the tracks for this car.",
+      "files": "Unable to read the setup files.",
+      "decode": "Error decoding the file."
+    }
+  },
+  "ams2Picker": {
+    "title": "Select setup screenshots",
+    "loading": "Loading screenshots...",
+    "readError": "Unable to read the screenshots.",
+    "empty": "No screenshots found in the AMS2 Steam folder. Capture the setup screens in-game with F12, then <retry>Retry</retry>.",
+    "unnamed": "unnamed",
+    "usedTitle": "Already used in setup \"{{name}}\" ({{date}})",
+    "alreadyScanned": "Already scanned",
+    "dupTitle": "Screenshots already scanned",
+    "dupOne": "1 selected screenshot is already part of a previous setup:",
+    "dupOther": "{{n}} selected screenshots are already part of previous setups:",
+    "dupItem": "setup \"{{name}}\" of {{date}}",
+    "dupQuestion": "Do you want to proceed with the decode anyway?",
+    "decoding": "Analysing setup with Claude Vision...",
+    "carOk": "Car verified: {{car}}",
+    "carWarn": "Warning: detected car \"{{found}}\" — it may not match \"{{expected}}\"",
+    "namePlaceholder": "e.g. Interlagos qualifying baseline",
+    "selected": "{{n}} screenshots selected",
+    "selectedDup": "{{n}} screenshots selected ({{dup}} already scanned)",
+    "prompt": "Select the setup screens",
+    "decode": "Decode setup",
+    "back": "Back to selection",
+    "proceed": "Proceed anyway",
+    "reselect": "Reselect",
+    "decodeError": "Error during decoding"
+  },
+  "setupSelect": {
+    "acquire": {
+      "r3e": "Load from JSON",
+      "ace": "Select file",
+      "ams2": "Capture screenshots"
+    },
+    "hint": {
+      "r3e": "Copy the setup in RaceRoom with CTRL+C and paste it here.",
+      "ace": "Choose a .carsetup file saved by the game.",
+      "ams2": "Select the screenshots of the setup screen."
+    },
+    "assignTitle": "Assign setup to {{laps}}",
+    "title": "Setup management",
+    "allTracks": "Search all tracks (same car)",
+    "loading": "Loading previous setups…",
+    "loadError": "Unable to load the previous setups.",
+    "listAll": "Setups already loaded for this car (all tracks):",
+    "listCombo": "Setups already loaded for this car/track combination:",
+    "colName": "Setup name",
+    "colTrack": "Track",
+    "colDate": "Load date",
+    "verified": "verified",
+    "deleteTitle": "Delete setup",
+    "blockedOne": "Cannot delete: {{n}} lap uses this setup",
+    "blockedOther": "Cannot delete: {{n}} laps use this setup",
+    "emptyAll": "No previous setup found for this car.",
+    "emptyCombo": "No previous setup found for this car/track combination.",
+    "importTitle": "Import setup from {{track}}",
+    "otherTrack": "another track",
+    "importHint": "Give a name for this car/track combination before using the imported setup.",
+    "import": "Import",
+    "renameError": "Unable to rename the setup."
   }
 }

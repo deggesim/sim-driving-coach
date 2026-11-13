@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { SetupData, SetupParam } from "../../shared/types";
@@ -14,17 +15,19 @@ type Props = {
 };
 
 const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
+  const { t } = useTranslation();
   const [jsonText, setJsonText] = useState("");
   const [setupName, setSetupName] = useState("");
   const [params, setParams] = useState<SetupParam[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Kind, not text: the message is translated at render.
+  const [error, setError] = useState<"invalid" | "format" | null>(null);
 
   const handleParse = (): void => {
     setError(null);
     try {
       setParams(parseR3eSetupJson(jsonText));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "JSON non valido");
+      setError(e instanceof SyntaxError ? "invalid" : "format");
       setParams(null);
     }
   };
@@ -59,14 +62,14 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
     >
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
-          Incolla JSON setup
+          {t("r3ePicker.title")}
           <span className="picker-subtitle"> · {expectedCar}</span>
         </Modal.Title>
         <Button
           variant="link"
           className="picker-close"
-          title="Chiudi"
-          aria-label="Chiudi"
+          title={t("setupCommon.close")}
+          aria-label={t("setupCommon.close")}
           onClick={handleClose}
         >
           <FontAwesomeIcon icon={faXmark} aria-hidden />
@@ -74,13 +77,20 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
       </Modal.Header>
 
       <Modal.Body className="picker-body">
-        {error && <div className="picker-error mb-3">{error}</div>}
+        {error && (
+          <div className="picker-error mb-3">
+            {t(
+              error === "invalid"
+                ? "r3ePicker.errInvalid"
+                : "r3ePicker.errFormat",
+            )}
+          </div>
+        )}
 
         {!params ? (
           <Form.Group>
             <Form.Label className="text-muted" style={{ fontSize: 14 }}>
-              Incolla il JSON esportato da RaceRoom (CTRL+C nella schermata del
-              setup)
+              {t("r3ePicker.pasteLabel")}
             </Form.Label>
             <Form.Control
               as="textarea"
@@ -103,12 +113,13 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
           <>
             <Form.Group className="mb-3" style={{ maxWidth: 360 }}>
               <Form.Label className="text-muted" style={{ fontSize: 14 }}>
-                Nome setup <span className="text-danger">*</span>
+                {t("setupCommon.nameLabel")}{" "}
+                <span className="text-danger">*</span>
               </Form.Label>
               <Form.Control
                 size="sm"
                 type="text"
-                placeholder="es. Qualifica Monza baseline"
+                placeholder={t("r3ePicker.namePlaceholder")}
                 value={setupName}
                 onChange={(e) => setSetupName(e.target.value)}
                 autoFocus
@@ -126,7 +137,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
         {!params ? (
           <>
             <Button variant="secondary" size="sm" onClick={handleClose}>
-              Annulla
+              {t("common.cancel")}
             </Button>
             <Button
               variant="danger"
@@ -134,7 +145,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
               disabled={!jsonText.trim()}
               onClick={handleParse}
             >
-              Analizza JSON
+              {t("r3ePicker.parse")}
             </Button>
           </>
         ) : (
@@ -147,7 +158,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
                 setSetupName("");
               }}
             >
-              Modifica JSON
+              {t("r3ePicker.editJson")}
             </Button>
             <Button
               variant="primary"
@@ -156,7 +167,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
               onClick={handleConfirm}
             >
               <FontAwesomeIcon icon={faCheck} className="me-1" />
-              Salva setup
+              {t("setupCommon.save")}
             </Button>
           </>
         )}

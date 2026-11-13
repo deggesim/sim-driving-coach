@@ -12,6 +12,8 @@ import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
+import { localizeSetupName } from "../../shared/setup-labels";
 import type { SetupData, SetupParam } from "../../shared/types";
 
 type Props = {
@@ -33,6 +35,7 @@ export const SetupEditorModal = ({
   onClose,
   onConfirm,
 }: Props) => {
+  const { t } = useTranslation();
   const editing = mode === "edit";
   const [name, setName] = useState(editing ? (base.name ?? "") : "");
   const duplicate = takenNames.some(
@@ -78,7 +81,7 @@ export const SetupEditorModal = ({
     <Modal show onHide={onClose} size="xl" className="screenshot-picker-modal">
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
-          {editing ? "Modifica setup" : "Crea setup da esistente"}
+          {editing ? t("setupDetail.edit") : t("setupDetail.duplicate")}
           <span className="picker-subtitle">
             {" "}
             · {base.name ?? base.carFound}
@@ -87,8 +90,8 @@ export const SetupEditorModal = ({
         <Button
           variant="link"
           className="picker-close"
-          title="Chiudi"
-          aria-label="Chiudi"
+          title={t("setupCommon.close")}
+          aria-label={t("setupCommon.close")}
           onClick={onClose}
         >
           <FontAwesomeIcon icon={faXmark} aria-hidden />
@@ -101,19 +104,19 @@ export const SetupEditorModal = ({
           style={{ maxWidth: 360 }}
         >
           <Form.Label className="text-muted" style={{ fontSize: 14 }}>
-            Nome setup <span className="text-danger">*</span>
+            {t("setupCommon.nameLabel")} <span className="text-danger">*</span>
           </Form.Label>
           <Form.Control
             size="sm"
             type="text"
-            placeholder="es. Qualifica Interlagos rev2"
+            placeholder={t("setupEditor.namePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus
           />
           {duplicate && (
             <Form.Text className="text-danger">
-              Esiste già un setup con questo nome per questa auto/circuito.
+              {t("setupCommon.nameTaken")}
             </Form.Text>
           )}
         </Form.Group>
@@ -121,13 +124,17 @@ export const SetupEditorModal = ({
         <div className="picker-params">
           {groups.map((g) => (
             <div key={g.category} className="setup-editor-section">
-              <div className="setup-subsection-title">{g.category}</div>
+              <div className="setup-subsection-title">
+                {localizeSetupName(t, g.category)}
+              </div>
               {g.items.map(({ p, index }) => (
                 <div
                   key={`${p.category}|${p.parameter}`}
                   className="setup-editor-row"
                 >
-                  <span className="text-muted">{p.parameter}</span>
+                  <span className="text-muted">
+                    {localizeSetupName(t, p.parameter)}
+                  </span>
                   <Form.Control
                     size="sm"
                     type="text"
@@ -143,7 +150,7 @@ export const SetupEditorModal = ({
 
       <Modal.Footer className="picker-footer">
         <Button variant="secondary" size="sm" onClick={onClose}>
-          Annulla
+          {t("common.cancel")}
         </Button>
         <Button
           variant="primary"
@@ -152,7 +159,7 @@ export const SetupEditorModal = ({
           onClick={handleConfirm}
         >
           <FontAwesomeIcon icon={faCheck} className="me-1" />
-          {editing ? "Salva modifiche" : "Salva setup"}
+          {editing ? t("setupEditor.saveChanges") : t("setupCommon.save")}
         </Button>
       </Modal.Footer>
     </Modal>
