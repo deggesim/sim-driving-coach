@@ -31,6 +31,12 @@ const BRAKE_MAX_C = 687.5;
 const LOCK_SHARE = 0.05; // of the hard-brake frames carrying slip
 const LOCK_RATIO = 2; // one axle locks at least this many times the other
 export const ABS_SHARE = 0.2; // of the hard-brake frames; the overview's rake reuses it
+// Size of a percentage move (brake bias, brake pressure) by symptom ÷ threshold.
+const PCT_FAR_RATIO = 3; // from here: PCT_STEP_FAR points
+const PCT_NEAR_RATIO = 1.5; // from here: PCT_STEP_NEAR points, below: PCT_STEP_CLOSE
+const PCT_STEP_FAR = 5;
+const PCT_STEP_NEAR = 2;
+const PCT_STEP_CLOSE = 1;
 const NERVOUS_SHARE = 0.2; // of the downshifts
 const TYRE_BALANCE_TOL_C = 1.25; // |centre − mean(shoulders)| still ok
 const CAMBER_MIN_C = 2; // inner − outer below this: more negative camber
@@ -410,6 +416,19 @@ export const computeSetupLadder = (
     ...(moves && { moves }),
   });
 
+  // Points of a percentage move, by how far the symptom (share ÷ its threshold)
+  // is: 5 from 3× the threshold up, 2 from 1.5×, else 1.
+  const pctPoints = (share: number, threshold: number): string => {
+    const ratio = share / threshold + 1e-9; // 0.15 / 0.05 is 2.9999…
+    const n =
+      ratio >= PCT_FAR_RATIO
+        ? PCT_STEP_FAR
+        : ratio >= PCT_NEAR_RATIO
+          ? PCT_STEP_NEAR
+          : PCT_STEP_CLOSE;
+    return `by ${n} ${n === 1 ? "point" : "points"}`;
+  };
+
   // 1 - brake ducts, on its own laps: brake temperatures need no tyre plateau.
   const ducts = ((): LadderStep => {
     const L = "brake ducts";
@@ -425,15 +444,26 @@ export const computeSetupLadder = (
     if (front == null || rear == null)
       return step(1, L, "na", "brake temperatures not available");
     const imbalance = Math.abs(front - rear) / Math.max(front, rear);
+    // AMS2 ducts are a percentage: the move is sized by the larger relative
+    // deviation (front over its limit, or axle imbalance) against DUCT_IMBALANCE.
+    // Other games give no unit we trust, so no size.
+    const deviation = Math.max(
+      front > DUCT_FRONT_MAX_C
+        ? (front - DUCT_FRONT_MAX_C) / DUCT_FRONT_MAX_C
+        : 0,
+      imbalance > DUCT_IMBALANCE ? imbalance : 0,
+    );
+    const by =
+      opts.game === "ams2" ? ` ${pctPoints(deviation, DUCT_IMBALANCE)}` : "";
     const fixes = [
-      front > DUCT_FRONT_MAX_C ? "open the front ducts" : null,
+      front > DUCT_FRONT_MAX_C ? `open the front ducts${by}` : null,
       imbalance <= DUCT_IMBALANCE
         ? null
         : Math.max(front, rear) < BRAKE_MIN_C
-          ? "close the ducts of the colder axle"
+          ? `close the ducts of the colder axle${by}`
           : Math.min(front, rear) > BRAKE_MAX_C
-            ? "open the ducts of the hotter axle"
-            : "open the ducts of the hotter axle, or close those of the colder axle",
+            ? `open the ducts of the hotter axle${by}`
+            : `open the ducts of the hotter axle${by}, or close those of the colder axle${by}`,
     ].filter((f) => f != null);
     const data = `front ${Math.round(front)} °C, rear ${Math.round(rear)} °C, imbalance ${pct(imbalance)}`;
     return fixes.length
@@ -442,7 +472,7 @@ export const computeSetupLadder = (
   })();
 
   // A step to fix whose lever the loaded setup lacks cannot be acted on: na,
-  // skipped like the others (R3E/ACE often have no brake ducts).
+  // skipped like the others (R3E/ACE never have brake ducts).
   const params = opts.setupParams;
   // AMS2 setups come from the screenshots the user picked: a lever is missing
   // only if its page was read (a category of the step is present).
@@ -515,9 +545,13 @@ export const computeSetupLadder = (
       const under = sum("cornersEntryUnder") ?? 0;
       const data = `ABS in ${pct(share)} of the hard braking, understeer on entry in ${under}/${entry} corners`;
       return share > ABS_SHARE && under > entry / 2
-        ? step(2, L, "fix", `${data} → bias toward the rear`, [
-            { param: "Brake Bias", dir: "up" },
-          ])
+        ? step(
+            2,
+            L,
+            "fix",
+            `${data} → bias toward the rear ${pctPoints(share, ABS_SHARE)}`,
+            [{ param: "Brake Bias", dir: "up" }],
+          )
         : step(2, L, "ok", data);
     }
     const srHard = sum("srHardBrakeFrames");
@@ -530,7 +564,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → bias toward the rear (the car goes straight on)`,
+        `${data} → bias toward the rear ${pctPoints(f, LOCK_SHARE)} (the car goes straight on)`,
         [{ param: "Brake Bias", dir: "up" }],
       );
     if (r > LOCK_SHARE && r >= LOCK_RATIO * f)
@@ -538,7 +572,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → bias toward the front (the rear steps out)`,
+        `${data} → bias toward the front ${pctPoints(r, LOCK_SHARE)} (the rear steps out)`,
         [{ param: "Brake Bias", dir: "down" }],
       );
     // Both axles lock and neither dominates: no bias fixes it (guide: "forza
@@ -548,7 +582,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → both axles lock: reduce the braking force (brake pressure), then redo the bias`,
+        `${data} → both axles lock: reduce the braking force (brake pressure) ${pctPoints(Math.min(f, r), LOCK_SHARE)}, then redo the bias`,
         [{ param: "Brake Pressure", dir: "down" }],
       );
     return step(2, L, "ok", data);
