@@ -15,5 +15,57 @@
     "maximizeLabel": "Maximize window",
     "close": "Close",
     "closeLabel": "Close window"
+  },
+  "analysis": {
+    "heading": {
+      "synthesis": "Summary analysis",
+      "actions": "Suggested actions",
+      "detail": "In-depth analysis",
+      "telemetry": "Telemetry analysis",
+      "problems": "Problems identified",
+      "setupCompare": "Current vs proposed setup",
+      "chassis": "Chassis setup"
+    },
+    "forbidden": "ladder, sequence, overview, step, area, Base setup, Chassis setup, do now, Frezza",
+    "glossary": "brake ducts; camber; ride height; rake; bumpstop; third spring; anti-roll bar; toe; caster; understeer; oversteer; preload; trail braking"
+  },
+  "coach": {
+    "stintReady": "Stint ready for analysis: {{laps}} judged laps.",
+    "firstFix": "First correction: {{label}}.",
+    "noFix": "No correction to make.",
+    "tyresNotWarm": "Tyres not up to temperature: pressures and camber not judged.",
+    "wheelsNotWarm": "Wheels not up to temperature and not judged: {{wheels}}.",
+    "stintReadyTail": "You can pause and run the analysis.",
+    "wheel": {
+      "fl": "front left",
+      "fr": "front right",
+      "rl": "rear left",
+      "rr": "rear right"
+    },
+    "step": {
+      "ducts": "brake ducts",
+      "bias": "brake bias",
+      "engine": "engine braking",
+      "pressures": "tyre pressures",
+      "camber": "camber",
+      "differential": "differential"
+    },
+    "area": {
+      "springs": "springs",
+      "heights": "ride heights and rake",
+      "bumpstops": "bumpstops",
+      "thirds": "third springs",
+      "dampers": "dampers",
+      "bars": "anti-roll bars",
+      "toe": "toe",
+      "aero": "aerodynamics"
+    },
+    "error": {
+      "invalidKey": "Anthropic API: invalid key. Check it in the settings.",
+      "rateLimit": "Anthropic API: rate limit exceeded. Try again in a few moments.",
+      "quota": "Anthropic API: insufficient credit or quota exhausted. Check your balance at console.anthropic.com.",
+      "synthesisTruncated": "Synthesis truncated: token limit reached. The partial text was saved; run the analysis again.",
+      "detailTruncated": "In-depth analysis truncated: token limit reached. The partial text was saved; try again."
+    }
   }
 }

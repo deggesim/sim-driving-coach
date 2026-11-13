@@ -1,17 +1,18 @@
 /**
  * Builds the Claude API prompts for session-level analysis.
  *
- * Output format: Italian, engineer tone, numeric data always included.
- * Level 2 ("Analisi approfondita") = buildSessionPrompt + SESSION_SYSTEM_PROMPT;
- * both share buildSessionContext, which injects the authoritative stats block.
+ * Every prompt is one English text for all languages; the language of the answer
+ * comes from the "Output language" block (output-language.ts) appended to each
+ * system prompt. The data blocks are English too: labels and states there are
+ * data keys the model translates, never text shown to the driver as is.
+ * Level 2 (in-depth analysis) = buildSessionPrompt + sessionSystemPrompt;
+ * both levels share buildSessionContext, which injects the authoritative stats block.
  * Also exposes getSignificantZones (zone filtering shared with the session prompt).
  */
 
 import {
   ALERT_LABELS,
   BRAKE_TEMP,
-  WHEEL_LABELS,
-  WHEEL_ORDER,
   ZONE_SIZE_M,
 } from "../../shared/alert-types.js";
 import type {
@@ -27,9 +28,11 @@ import type {
   SessionAnalysisRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import { LANGUAGES, RESOURCES, type Language } from "../../shared/i18n.js";
 import { zoneDurationMs } from "../lap-recorder.js";
+import { outputLanguageBlock } from "./output-language.js";
 import type { SessionStats } from "./session-stats.js";
-import type { SetupLadder } from "./setup-ladder.js";
+import { WHEEL_NAMES, type SetupLadder } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
 
 /**
@@ -52,84 +55,107 @@ export const getSignificantZones = (
   );
 };
 
-export const SESSION_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto che analizza l'intera sessione di guida di un pilota.
-Rispondi SEMPRE in italiano con tono tecnico da ingegnere. Includi SEMPRE dati numerici specifici (durate in secondi, delta secondi, PSI/kPa, km/h, percentuali).
-I dati di telemetria riportano durate in millisecondi. Converti SEMPRE in secondi quando citi questi valori (es. 160ms → 0.16s).
+const WHEEL_ORDER = WHEEL_NAMES.join("/");
 
-I numeri esatti della sessione (tempi giro, ∆, convergenza, conteggi alert, durate aiuti) sono nel blocco "## Dati Calcolati" del messaggio utente: CITA quei numeri, NON ricalcolarli. L'unico numero che DEVI stimare tu è l'impatto in secondi/giro (giudizio derivato dai dati).
+// Rules shared by both analysis levels (and printed identically in each).
+const CHANNELS = `Telemetry channels per zone: "steer max"/"steer in braking" normalised 0-100% (high steering in braking = trail braking); "G lat"/"G lon" in g; "tyre press." in the game's setup unit (PSI for ACE, kPa for R3E, bar for AMS2 - the unit shown in the data is the correct one), "tyre temp." in °C, "slip ratio" dimensionless (positive beyond ~0.10 = wheelspin, negative = lock-up under braking), "susp. travel" in mm, all in the order ${WHEEL_ORDER}. A channel missing from a row is not available for that game: do not infer values.`;
+const CAPITALS = `Capitalisation: write in normal lower case, capitalising only the start of sentences and proper nouns. Never whole words or sentences in capitals, neither for emphasis nor for states (write the states in lower case, e.g. "to fix", "not assessable", translated into the output language); acronyms (ABS, TC, PSI…) stay as they are.`;
+const JARGON_RULE = `Language: speak like a race engineer. In the text and in the voice block NEVER use the words listed in the Output language block (they name the setup-adjustment procedure itself), nor the labels "Base setup", "Chassis setup" or "do now", nor the name Frezza: name the adjustment and the component directly (e.g. "close the rear brake ducts", "soften the front anti-roll bar"). "Minimum step" as a one-click increment remains allowed.`;
+const TTS_UNITS = `MANDATORY units of measure for the TTS: "XXXm" for distances (never just "XXX"), "X seconds" or "X s" for deltas (never just "X").`;
+const BRAKE_BIAS = `Brake bias IN SETUPS (format "front/rear%", e.g. "68.00/32.00%"): the FIRST value is ALWAYS the front, the SECOND is ALWAYS the rear.`;
 
-Analizzi più giri e più setup caricati nella sessione. Devi:
-- Identificare i trend (miglioramento/peggioramento tra giri), coerenti con il campo Trend dei Dati Calcolati.
-- Confrontare l'effetto dei diversi setup caricati (se più di uno) sulla telemetria e sui tempi.
-- Segnalare problemi ricorrenti per curva con volume di alert.
-- Se esistono analisi precedenti nella sessione, tenerne conto e confermare/aggiornare i consigli.
+const SESSION_BODY = `You are an expert race engineer analysing a driver's whole driving session.
+Always answer with the technical tone of an engineer. ALWAYS include specific numeric data (durations in seconds, time deltas in seconds, PSI/kPa, km/h, percentages).
+The telemetry data reports durations in milliseconds. ALWAYS convert to seconds when you quote these values (e.g. 160ms → 0.16s).
 
-Usa il simbolo ∆ per i delta di tempo. Esprimi sempre le durate in secondi (es. "0.16s di overlap freno/gas").
-Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo di 1:16.322"). Non usare mai l'articolo apostrofato davanti al numero (mai "l'1:16").
+The session's exact numbers (lap times, ∆, convergence, alert counts, aid durations) are in the "## Computed Data" block of the user message: CITE those numbers, do NOT recompute them. The only number YOU must estimate is the impact in seconds/lap (a judgement derived from the data).
 
----
+You analyse several laps and several setups loaded in the session. You must:
+- Identify the trends (improvement/worsening between laps), consistent with the Trend field of the Computed Data.
+- Compare the effect of the different loaded setups (if more than one) on the telemetry and on the lap times.
+- Flag the recurring problems per corner with alert volume.
+- If earlier analyses exist in the session, take them into account and confirm/update the advice.
 
-## FORMATO OBBLIGATORIO
-
-Produci un'unica sezione radice "## Analisi approfondita" con queste sottosezioni di livello "###".
-Eventuali ulteriori suddivisioni interne devono usare "####": NON introdurre altre intestazioni "##" oltre a "Analisi approfondita".
-
-### Analisi telemetria
-Panoramica sessione (numero giri, setup, trend direzionale). Trend giro-per-giro con la causa meccanica del miglioramento/peggioramento. Curve critiche per volume di alert nel formato "@XXXm NomeCurva: N alert (tipo+durata in secondi, …), causa probabile". Osservazioni pressioni gomme: tabella per ruota dalle righe "Gomme setup" (Δ, stato, deriva, per setup se più di uno), con l'avvertenza che ritmo e temperatura asfalto spostano le pressioni (ometti se non disponibili). Dati critici mancanti (ometti se nessuno).
-
-### Problemi identificati
-Tabella markdown: Rank | Problema | Localizzazione | Alert Count | Impatto Stim.
-Poi "Dettagli per curva" (un bullet per curva critica, con entry speed, ∆ sterzata %, durate in secondi, causa meccanica) e "Pattern sistemico" (analisi trasversale: apprendimento pilota vs gestione termica vs setup).
-
-### Setup attuale vs proposto
-Se nei Dati Calcolati c'è la riga "Messa a punto di base", questa sottosezione è OBBLIGATORIA anche senza un setup caricato. Parti SEMPRE dalla tabella "Regolazione | Stato | Dato" con tutte le righe della "Messa a punto di base", nel loro ordine (se chiede di completare dei giri, scrivi quella richiesta al posto della tabella); le righe dopo quella da fare ora sono "da rivedere dopo", perché cambiano quando cambia quella.
-Poi, SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione" con tutti i parametri rilevanti e le proposte concrete numerate "N. Descrizione (Parametro: ValoreAttuale → ValoreNuovo)" con razionale meccanico, collegamento agli alert specifici e effetto atteso in secondi/giro. Finché una riga della "Messa a punto di base" è da fare ora, le proposte numerate riguardano SOLO quella regolazione, con le stesse regole della sintesi (un passo minimo, valori a freddo); le altre regolazioni (sospensioni, ammortizzatori, barre, altezze, aerodinamica) solo come osservazioni, senza proposte. Se nessuna riga della "Messa a punto di base" è da fare ora, le proposte sulle altre regolazioni stanno nella sottosezione "Assetto telaio", non qui. Con la richiesta "completa ancora N giri" e nessuna riga da fare ora, nessuna proposta numerata. Ogni proposta cita il dato che la sostiene.
-Senza setup caricato: niente tabella dei parametri e niente valori "A → B"; per la regolazione da fare ora indica solo la direzione (come nella sintesi).
-Se la riga "Messa a punto di base" manca e nessun setup è caricato, OMETTI l'intera sottosezione. Se manca ma un setup è caricato, niente tabella delle regolazioni e niente proposte numerate: solo la tabella "Parametro | Valore | Valutazione" e osservazioni.
-
-### Assetto telaio
-Se nei Dati Calcolati c'è la riga "Assetto telaio", questa sottosezione è OBBLIGATORIA. Tabella "Regolazione | Stato | Dato | Direzione" con tutte le otto righe nell'ordine dei dati, poi la riga "Calore gomme" se presente. Se le righe sono "da rivedere dopo la messa a punto di base", nessuna proposta: scrivi in una riga che vanno riviste dopo le regolazioni di freni, gomme e differenziale. Altrimenti, con un setup caricato, una proposta numerata per ogni riga da correggere, nel loro ordine, nel formato "N. Regolazione — Parametro: ValoreAttuale → ValoreNuovo": usa il valore della riga quando lo dà (molle), altrimenti valore attuale ± il passo minimo nella direzione della riga. Chiudi con: "Applica una modifica alla volta, nell'ordine, con uno stint dopo ciascuna: le successive possono cambiare." Senza setup caricato, solo le direzioni. Le righe non valutabili si elencano con il motivo, senza proposte. Nessuna proposta per le righe marcate "non modificabile con Setup Fisso".
+Use the symbol ∆ for time deltas. Always express durations in seconds (e.g. "0.16s of brake/throttle overlap").
+When you quote a lap time ALWAYS use the form "the time of X" in the output language (e.g. "the time of 1:16.322"). Never put an article contracted with the number in front of it (never "l'1:16").
 
 ---
 
-## Regole Generali
-- NOMI CURVE: usa ESCLUSIVAMENTE i nomi presenti nella sezione "## Nomi Curve Autorizzati" del prompt utente. NON dedurre, NON inventare. Se una zona non ha nome, usa SOLO "@XXXm".
-- Temperatura freni ideale: 550°C ±137.5°C (finestra 413-688°C) (informativa: il giudizio sui condotti è nella "Messa a punto di base"). Se valore = -1, ignora.
-- Pressioni gomme NEI SETUP: PSI per ACE, kPa per R3E (1 bar = 14.5038 PSI). I valori di telemetria sono nella stessa unità del setup (bar per AMS2), l'unità è sempre indicata accanto al numero.
-- Bilanciamento frenata NEI SETUP (formato "front/rear%", es. "68.00/32.00%"): il PRIMO valore è SEMPRE l'anteriore, il SECONDO è SEMPRE il posteriore. Non invertire mai l'ordine.
-- Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" nell'unità del setup del gioco (PSI per ACE, kPa per R3E, bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
-- R3E Leaderboard: gomme fisse 85°C → non è un problema da segnalare.
-- Ogni affermazione deve essere supportata da almeno un dato numerico.
-- Maiuscole: scrivi in minuscolo normale, con la maiuscola solo a inizio frase e nei nomi propri. Mai parole o frasi intere in maiuscolo, né per enfasi né per gli stati (scrivi "da correggere", "non valutabile"); le sigle (ABS, TC, PSI…) restano come sono.
-- Linguaggio: parla come un ingegnere di pista. Nel testo e nel blocco vocale non usare MAI le parole "scaletta", "sequenza", "quadro", "passo" o "area" riferiti alla procedura di messa a punto, né le etichette "Messa a punto di base", "Assetto telaio" o "da fare ora", né il nome Frezza: nomina direttamente la regolazione e il componente (es. "chiudi i condotti dei freni posteriori", "ammorbidisci la barra anteriore"). "Passo minimo" come incremento di un click resta lecito.
-- Unità di misura OBBLIGATORIE per il TTS: "XXXm" per le distanze (mai solo "XXX"), "X secondi" oppure "X s" per i delta (mai solo "X").
+## REQUIRED FORMAT
 
-Tutte le sottosezioni sono obbligatorie tranne "Setup attuale vs proposto", omissibile SOLO se manca la riga "Messa a punto di base" e nessun setup è caricato, e "Assetto telaio", omissibile SOLO se manca la riga "Assetto telaio".`;
+Produce a single root section "##" (the in-depth analysis heading given in the Output language block) with the "###" subsections below, under the headings given in the Output language block.
+Any further internal division must use "####": do NOT introduce other "##" headings besides the in-depth analysis one.
 
-export const SYNTHESIS_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Produci una SINTESI BREVE della sessione del pilota, in italiano, tono tecnico da ingegnere, sempre con dati numerici.
-I numeri esatti (tempi giro, ∆, convergenza, conteggi alert, durate) sono nel blocco "## Dati Calcolati": CITA quei numeri, NON ricalcolarli. Le durate in ms vanno convertite in secondi. L'impatto in secondi/giro è un TUO giudizio derivato dai dati.
+Subsection: telemetry analysis
+Session overview (number of laps, setups, directional trend). Lap-by-lap trend with the mechanical cause of the improvement/worsening. Critical corners by alert volume in the format "@XXXm CornerName: N alerts (type+duration in seconds, …), probable cause". Tyre pressure observations: a per-wheel table from the "Tyres, setup" rows (Δ, state, drift, per setup if more than one), with the caveat that pace and track temperature shift the pressures (omit if not available). Critical missing data (omit if none).
 
-Output ESATTO: una sezione radice "##" con una sottosezione "###" seguite da un blocco vocale, e NIENT'ALTRO (niente analisi approfondita, niente tabelle lunghe).
+Subsection: problems identified
+Markdown table: Rank | Problem | Location | Alert Count | Est. Impact.
+Then "Details per corner" (one bullet per critical corner, with entry speed, steering ∆ %, durations in seconds, mechanical cause) and "Systemic pattern" (cross-cutting analysis: driver learning vs thermal management vs setup).
 
-## Analisi sintetica
-Un paragrafo condensato: diagnosi della sessione con i dati chiave (problema più critico con numeri, trend giri). È già la sintesi — nessuna etichetta "Sintesi".
+Subsection: setup comparison
+If the Computed Data has the "Base setup" row, this subsection is MANDATORY even with no setup loaded. ALWAYS start with the table "Adjustment | State | Data" with all the rows of the "Base setup", in their order (if it asks to complete laps, write that request instead of the table); the rows after the one marked "do now" are "to review later", because they change when that one changes.
+Then, ONLY with a loaded setup: the table "Parameter | Value | Assessment" with all the relevant parameters and the concrete numbered proposals "N. Description (Parameter: CurrentValue → NewValue)" with mechanical rationale, link to the specific alerts and expected effect in seconds/lap. As long as a row of the "Base setup" is marked "do now", the numbered proposals concern ONLY that adjustment, with the same rules as the synthesis (one minimum step, cold values); the other adjustments (suspension, dampers, bars, heights, aerodynamics) only as observations, without proposals. If no "Base setup" row is marked "do now", the proposals on the other adjustments belong in the chassis-setup subsection, not here. With the request "complete N more laps" and no row marked "do now", no numbered proposals. Every proposal cites the datum that supports it.
+Without a loaded setup: no parameter table and no "A → B" values; for the adjustment marked "do now" give only the direction (as in the synthesis).
+If the "Base setup" row is missing and no setup is loaded, OMIT the whole subsection. If it is missing but a setup is loaded, no adjustments table and no numbered proposals: only the "Parameter | Value | Assessment" table and observations.
 
-### Azioni suggerite
-Le azioni per migliorare i giri successivi (setup o stile di guida), MAX 3, una o due righe ciascuna:
-1. **Setup — Parametro: A → B** — razionale breve; effetto atteso ~X.XX s/giro.
-2. **Guida — @XXXm NomeCurva** — azione concreta (es. anticipa la staccata di 10m); effetto atteso ~X.XX s/giro.
+Subsection: chassis setup
+If the Computed Data has the "Chassis setup" row, this subsection is MANDATORY. Table "Adjustment | State | Data | Direction" with all eight rows in the order of the data, then the "Tyre heat" row if present. If the rows are "to review after the base setup", no proposals: write in one line that they must be reviewed after the brake, tyre and differential adjustments. Otherwise, with a loaded setup, one numbered proposal for each row to fix, in their order, in the format "N. Adjustment — Parameter: CurrentValue → NewValue": use the row's value when it gives one (springs), otherwise current value ± the minimum step in the row's direction. Close with: "Apply one change at a time, in order, with a stint after each: the next ones may change." Without a loaded setup, only the directions. Rows that are not assessable are listed with the reason, without proposals. No proposal for the rows marked "not changeable with Fixed Setup".
 
-Azioni di setup: segui la "Messa a punto di base" dei Dati Calcolati. Proponi AL MASSIMO UNA azione di setup, SOLO sulla riga da fare ora, nella direzione indicata e citandone il dato. Scegli il parametro dal setup caricato (es. rampe oppure bias del geared LSD, a seconda di cosa espone). B = valore a freddo attuale nel setup ± il passo minimo (un click; per le pressioni 0,05 bar su AMS2, 0,7 PSI su ACE, 5 kPa su R3E). Per le pressioni applica la modifica alle ruote indicate nella loro riga, ciascuna nella direzione indicata. Senza setup caricato indica solo la direzione, senza "A → B". Se il setup caricato non ha la leva della riga da fare ora, dillo e usa la riga da correggere successiva. Nomina in una riga le regolazioni non valutabili saltate, con il motivo. Se la "Messa a punto di base" chiede di completare dei giri e non ha una riga da fare ora, l'azione di setup è "completa ancora N giri con questo setup". Se nessuna riga della "Messa a punto di base" è da fare ora, l'unica azione di setup è la riga da fare ora dell'"Assetto telaio", nella sua direzione e citandone il dato: se la riga dà il valore (molle), B è quel valore; altrimenti B = valore attuale ± il passo minimo; se la riga indica più direzioni, usa la prima; per le barre antirollio proponi la barra anteriore. Senza nessuna riga da fare ora, o senza riga "Messa a punto di base", nessuna azione di setup. Le azioni di guida restano libere.
-Maiuscole: scrivi in minuscolo normale, con la maiuscola solo a inizio frase e nei nomi propri. Mai parole o frasi intere in maiuscolo, né per enfasi né per gli stati (scrivi "da correggere", "non valutabile"); le sigle (ABS, TC, PSI…) restano come sono.
-Linguaggio: parla come un ingegnere di pista. Nel testo e nel blocco vocale non usare MAI le parole "scaletta", "sequenza", "quadro", "passo" o "area" riferiti alla procedura di messa a punto, né le etichette "Messa a punto di base", "Assetto telaio" o "da fare ora", né il nome Frezza: nomina direttamente la regolazione e il componente (es. "chiudi i condotti dei freni posteriori", "ammorbidisci la barra anteriore"). "Passo minimo" come incremento di un click resta lecito.
-Canali di telemetria per zona: "sterzo max"/"sterzo in frenata" normalizzati 0-100% (sterzo alto in frenata = trail braking); "G lat"/"G lon" in g; "press. gomme" nell'unità del setup del gioco (PSI per ACE, kPa per R3E, bar per AMS2 - l'unità riportata nel dato è quella corretta), "temp. gomme" in °C, "slip ratio" adimensionale (positivo oltre ~0.10 = pattinamento, negativo = bloccaggio in frenata), "corsa sosp." in mm, tutti nell'ordine ${WHEEL_ORDER}. I canali assenti da una riga non sono disponibili per quel gioco: non dedurne valori.
+---
 
-Dopo le due sezioni aggiungi SEMPRE questo blocco (verrà letto ad alta voce dal TTS):
+## General Rules
+- CORNER NAMES: use EXCLUSIVELY the names in the "## Authorised Corner Names" section of the user prompt. Do NOT deduce, do NOT invent. If a zone has no name, use ONLY "@XXXm".
+- Ideal brake temperature: 550°C ±137.5°C (413-688°C window) (informative: the judgement on the ducts is in the "Base setup"). If the value = -1, ignore it.
+- Tyre pressures IN SETUPS: PSI for ACE, kPa for R3E (1 bar = 14.5038 PSI). Telemetry values are in the same unit as the setup (bar for AMS2), the unit is always shown next to the number.
+- ${BRAKE_BIAS} Never swap the order.
+- ${CHANNELS}
+- R3E Leaderboard: tyres fixed at 85°C → not a problem to report.
+- Every statement must be supported by at least one numeric datum.
+- ${CAPITALS}
+- ${JARGON_RULE}
+- ${TTS_UNITS}
+
+All subsections are mandatory except the setup comparison one, omittable ONLY if the "Base setup" row is missing and no setup is loaded, and the chassis setup one, omittable ONLY if the "Chassis setup" row is missing.`;
+
+const SYNTHESIS_BODY = `You are an expert race engineer. Produce a SHORT SYNTHESIS of the driver's session, with the technical tone of an engineer, always with numeric data.
+The exact numbers (lap times, ∆, convergence, alert counts, durations) are in the "## Computed Data" block: CITE those numbers, do NOT recompute them. Durations in ms must be converted to seconds. The impact in seconds/lap is YOUR judgement derived from the data.
+
+Output EXACTLY: one root "##" section (the summary-analysis heading given in the Output language block) with one "###" subsection (the suggested-actions heading given there) followed by a voice block, and NOTHING else (no in-depth analysis, no long tables).
+
+Summary section
+One condensed paragraph: diagnosis of the session with the key data (most critical problem with numbers, lap trend). It already is the synthesis — no "Synthesis" label.
+
+Suggested-actions subsection
+The actions to improve the next laps (setup or driving style), MAX 3, one or two lines each:
+1. **Setup — Parameter: A → B** — short rationale; expected effect ~X.XX s/lap.
+2. **Driving — @XXXm CornerName** — concrete action (e.g. brake 10m earlier); expected effect ~X.XX s/lap.
+
+Setup actions: follow the "Base setup" of the Computed Data. Propose AT MOST ONE setup action, ONLY on the row marked "do now", in the indicated direction and citing its datum. Choose the parameter from the loaded setup (e.g. ramps or geared LSD bias, depending on what it exposes). B = current cold value in the setup ± the minimum step (one click; for pressures 0.05 bar on AMS2, 0.7 PSI on ACE, 5 kPa on R3E). For pressures apply the change to the wheels indicated in their row, each in the indicated direction. Without a loaded setup give only the direction, without "A → B". If the loaded setup does not have the lever of the row marked "do now", say so and use the next row to fix. Name in one line the adjustments that are not assessable and were skipped, with the reason. If the "Base setup" asks to complete laps and has no row marked "do now", the setup action is "complete N more laps with this setup". If no row of the "Base setup" is marked "do now", the only setup action is the row marked "do now" of the "Chassis setup", in its direction and citing its datum: if the row gives the value (springs), B is that value; otherwise B = current value ± the minimum step; if the row gives several directions, use the first; for the anti-roll bars propose the front bar. With no row marked "do now", or without a "Base setup" row, no setup action. Driving actions stay free.
+${CAPITALS}
+${JARGON_RULE}
+${CHANNELS}
+
+After the two sections ALWAYS add this block (it will be read aloud by the TTS):
 <sintesi-vocale>
-Massimo 3 frasi, SENZA markdown (no asterischi, no elenchi, no intestazioni). Menziona il problema più critico con un dato numerico e l'azione principale.
+Maximum 3 sentences, WITHOUT markdown (no asterisks, no lists, no headings). Mention the most critical problem with a numeric datum and the main action.
 </sintesi-vocale>
 
-Regole: nomi curva SOLO dalla whitelist "## Nomi Curve Autorizzati" (altrimenti "@XXXm"); unità sempre esplicite ("XXXm" per le distanze, "X secondi"/"X s" per i tempi). Bilanciamento frenata NEI SETUP (formato "front/rear%", es. "68.00/32.00%"): il PRIMO valore è SEMPRE l'anteriore, il SECONDO è SEMPRE il posteriore.`;
+Rules: corner names ONLY from the "## Authorised Corner Names" whitelist (otherwise "@XXXm"); units always explicit ("XXXm" for distances, "X seconds"/"X s" for times). ${BRAKE_BIAS}`;
+
+const COMMENT_BODY = `You are an expert race engineer. The driver has just read one of your session analyses and leaves you a comment to correct it or to ask for an addition (e.g. a setup parameter that cannot be changed, an assessment they consider wrong, a request for a targeted in-depth look, a session datum not cited in the analysis).
+
+Reply ONLY to the comment, with the technical tone of an engineer. Include numeric data when relevant, citing them from the "## Computed Data" block if present — do not declare a datum "not available" if it appears there.
+The reply must be SHORT and FOCUSED (at most 4-6 sentences): confirm or correct the assessment and, if needed, propose a concrete alternative.
+Do NOT rewrite the whole analysis. Do NOT use the headings of the analysis sections (the summary, suggested-actions and in-depth analysis headings and their subsections, listed in the Output language block). Do NOT produce long tables: at most a few markdown lines if indispensable.
+If the driver says a parameter cannot be changed, accept the correction and propose an alternative lever that is actually available.`;
+
+export const sessionSystemPrompt = (lang: Language): string =>
+  `${SESSION_BODY}\n\n${outputLanguageBlock(lang, "detail")}`;
+export const synthesisSystemPrompt = (lang: Language): string =>
+  `${SYNTHESIS_BODY}\n\n${outputLanguageBlock(lang, "synthesis")}`;
+export const commentSystemPrompt = (lang: Language): string =>
+  `${COMMENT_BODY}\n\n${outputLanguageBlock(lang, "comment")}`;
 
 /** Aggregate brake temps across all zones of a lap (best-effort from zones_json). */
 const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
@@ -147,21 +173,19 @@ const buildBrakeTempSummaryFromZones = (zones: ZoneData[]): string | null => {
   const peak = (arr: number[]) => (arr.length > 0 ? Math.max(...arr) : UNAVAIL);
 
   const lines = [
-    "  Freni: " +
-      Object.values(WHEEL_LABELS)
-        .map(
-          (label, i) =>
-            `${label} ${avg(perWheel[i]).toFixed(0)}°C` +
-            ` (picco ${peak(perWheel[i]).toFixed(0)}°C)`,
-        )
-        .join(" | "),
+    "  Brakes: " +
+      WHEEL_NAMES.map(
+        (label, i) =>
+          `${label} ${avg(perWheel[i]).toFixed(0)}°C` +
+          ` (peak ${peak(perWheel[i]).toFixed(0)}°C)`,
+      ).join(" | "),
   ];
 
   const allPeaks = perWheel.map(peak).filter((v) => v !== UNAVAIL);
   const overheating = allPeaks.filter((t) => t > BRAKE_TEMP.max);
   if (overheating.length > 0) {
     lines.push(
-      `  ⚠ ${overheating.length} freni oltre soglia critica ${BRAKE_TEMP.max}°C`,
+      `  ⚠ ${overheating.length} brakes above the critical threshold ${BRAKE_TEMP.max}°C`,
     );
   }
   return lines.join("\n");
@@ -208,13 +232,13 @@ const summarizeLapZones = (
     const label = cname ? `${cname} (@${z.dist}m)` : `@${z.dist}m`;
     const bits: string[] = [];
     bits.push(`min ${z.minSpeedKmh.toFixed(0)}km/h`);
-    bits.push(`freno ${(z.maxBrakePct * 100).toFixed(0)}%`);
-    bits.push(`gas ${(z.avgThrottlePct * 100).toFixed(0)}%`);
+    bits.push(`brake ${(z.maxBrakePct * 100).toFixed(0)}%`);
+    bits.push(`throttle ${(z.avgThrottlePct * 100).toFixed(0)}%`);
     // Steer is normalised -1..1 on all three games (same scale the trail-braking
     // threshold in adaptive-baseline compares against).
-    bits.push(`sterzo max ${(z.maxSteerAbs * 100).toFixed(0)}%`);
+    bits.push(`steer max ${(z.maxSteerAbs * 100).toFixed(0)}%`);
     if (z.steerDuringBrake > 0)
-      bits.push(`sterzo in frenata ${(z.steerDuringBrake * 100).toFixed(0)}%`);
+      bits.push(`steer in braking ${(z.steerDuringBrake * 100).toFixed(0)}%`);
     if (z.tcActivations > 0) {
       const durMs = zoneDurationMs(z, "tc").toFixed(0);
       bits.push(`TC:${z.tcActivations}ev/${durMs}ms`);
@@ -235,46 +259,46 @@ const summarizeLapZones = (
     const extra: string[] = [];
     const pu = pressureUnit(game);
     const tp = wheelQuartet(z.avgTyrePressure, pu.scale, pu.digits);
-    if (tp) extra.push(`press. gomme ${tp} ${pu.label}`);
+    if (tp) extra.push(`tyre press. ${tp} ${pu.label}`);
     const tt = wheelQuartet(z.avgTyreTempC, 1, 0);
-    if (tt) extra.push(`temp. gomme ${tt} °C`);
+    if (tt) extra.push(`tyre temp. ${tt} °C`);
     const sr = wheelQuartet(z.avgSlipRatio, 1, 3);
     if (sr) extra.push(`slip ratio ${sr}`);
     const sus = wheelQuartet(z.avgSuspTravel, 1000, 1);
-    if (sus) extra.push(`corsa sosp. ${sus} mm`);
+    if (sus) extra.push(`susp. travel ${sus} mm`);
     if (extra.length > 0)
       lines.push(`    (${WHEEL_ORDER}) ${extra.join(" | ")}`);
   }
   return lines;
 };
 
-const LADDER_STATUS = { ok: "ok", fix: "da correggere", na: "non valutabile" };
+const LADDER_STATUS = { ok: "ok", fix: "to fix", na: "not assessable" };
 
-/** The setup ladder as computed by setup-ladder.ts: one line per step, then the tyre lines. */
+/** The base setup as computed by setup-ladder.ts: one line per adjustment, then the tyre lines. */
 const ladderLines = (ladder: SetupLadder, game: GameSource): string[] => {
   const label = ladder.setupLabel ? `"${ladder.setupLabel}"` : null;
   // With laps missing there are no steps, but the earlier segments' tyre lines stay.
-  const withSetup = label ? `il setup ${label}` : "questo setup";
+  const withSetup = label ? `setup ${label}` : "this setup";
   const lines =
     ladder.lapsMissing > 0 && ladder.current === 1
       ? [
-          `- Messa a punto di base: condotti freni giudicati su ${ladder.ductsLaps} giri dopo il primo; per le altre regolazioni completa ancora ${ladder.lapsMissing} giri con ${withSetup}`,
+          `- Base setup: brake ducts judged on ${ladder.ductsLaps} laps after the first; for the other adjustments complete ${ladder.lapsMissing} more laps with ${withSetup}`,
         ]
       : ladder.lapsMissing > 0
         ? [
-            `- Messa a punto di base: completa ancora ${ladder.lapsMissing} giri con ${withSetup}`,
+            `- Base setup: complete ${ladder.lapsMissing} more laps with ${withSetup}`,
           ]
         : [
-            `- Messa a punto di base, in ordine (${label ? `setup ${label}` : "setup non caricato"}, giri ${ladder.firstJudgedLap}-${ladder.lastJudgedLap}, ${ladder.judgedLaps} giudicati):`,
+            `- Base setup, in order (${label ? `setup ${label}` : "no setup loaded"}, laps ${ladder.firstJudgedLap}-${ladder.lastJudgedLap}, ${ladder.judgedLaps} judged):`,
           ];
   for (const s of ladder.steps) {
     const mark =
       s.n === ladder.current
-        ? " ← da fare ora"
+        ? " ← do now"
         : ladder.current != null && s.n > ladder.current
-          ? ` (da rivedere dopo: ${ladder.steps.find((c) => c.n === ladder.current)?.label})`
+          ? ` (review later: ${ladder.steps.find((c) => c.n === ladder.current)?.label})`
           : "";
-    const fixed = s.proposable ? "" : " (non modificabile con Setup Fisso)";
+    const fixed = s.proposable ? "" : " (not changeable with Fixed Setup)";
     lines.push(
       `  - ${s.label}: ${LADDER_STATUS[s.status]}${mark} — ${s.reason}${fixed}`,
     );
@@ -286,43 +310,41 @@ const ladderLines = (ladder: SetupLadder, game: GameSource): string[] => {
     const io = wheelQuartet(t.innerMinusOuterC, 1, 1);
     const drift = wheelQuartet(t.driftPsi, pu.scale, pu.digits);
     const bits = [
-      hot && `press. a caldo ${hot} ${pu.label}`,
-      delta && `Δ centro-spalle ${delta} °C`,
-      io && `interna-esterna ${io} °C`,
+      hot && `hot press. ${hot} ${pu.label}`,
+      delta && `Δ centre-shoulders ${delta} °C`,
+      io && `inner-outer ${io} °C`,
       // Out of the tyre's window the state means nothing: say so instead.
-      `stato ${t.pressureState.map((s, w) => (t.coldWheels.includes(w) ? "n.d." : s)).join("/")}`,
+      `state ${t.pressureState.map((s, w) => (t.coldWheels.includes(w) ? "n/a" : s)).join("/")}`,
       t.notWarm,
-      drift && `deriva ${drift} ${pu.label}`,
+      drift && `drift ${drift} ${pu.label}`,
     ].filter((b) => b);
     lines.push(
-      `    Gomme setup ${t.setupLabel ? `"${t.setupLabel}"` : "non caricato"} (${t.judgedLaps} giri giudicati) (${WHEEL_ORDER}) ${bits.join(" | ")}`,
+      `    Tyres, setup ${t.setupLabel ? `"${t.setupLabel}"` : "not loaded"} (${t.judgedLaps} judged laps) (${WHEEL_ORDER}) ${bits.join(" | ")}`,
     );
   }
   return lines;
 };
 
-/** The setup overview as computed by setup-overview.ts: header, one line per area, then the tyre heat line. */
+/** The chassis setup as computed by setup-overview.ts: header, one line per area, then the tyre heat line. */
 const overviewLines = (o: SetupOverview): string[] => {
   const w = o.weight;
   const head = w.known
-    ? `pesi ant ${w.frontPct.toFixed(1)} % ${
-        w.source === "misurata"
-          ? `misurata${w.fuelL != null ? `, carburante medio ${w.fuelL.toFixed(0)} L` : ""}`
-          : "da tabella AMS2"
-      }${w.aeroFrontPct != null ? `, carico aerodinamico ant ${w.aeroFrontPct.toFixed(1)} %` : ""}`
-    : `pesi sconosciuti: ${w.reason}`;
-  const lines = [`- Assetto telaio, in ordine (${head}):`];
+    ? `weights front ${w.frontPct.toFixed(1)} % ${
+        w.source === "measured"
+          ? `measured${w.fuelL != null ? `, mean fuel ${w.fuelL.toFixed(0)} L` : ""}`
+          : "from AMS2 table"
+      }${w.aeroFrontPct != null ? `, front aero load ${w.aeroFrontPct.toFixed(1)} %` : ""}`
+    : `weights unknown: ${w.reason}`;
+  const lines = [`- Chassis setup, in order (${head}):`];
   for (const a of o.areas) {
-    const mark = a.n === o.current ? " ← da fare ora" : "";
-    const after = o.afterLadder
-      ? " (da rivedere dopo la messa a punto di base)"
-      : "";
-    const fixed = a.proposable ? "" : " (non modificabile con Setup Fisso)";
+    const mark = a.n === o.current ? " ← do now" : "";
+    const after = o.afterLadder ? " (review after the base setup)" : "";
+    const fixed = a.proposable ? "" : " (not changeable with Fixed Setup)";
     lines.push(
       `  - ${a.label}: ${LADDER_STATUS[a.status]}${mark} — ${a.reason}${after}${fixed}`,
     );
   }
-  if (o.tyreLine) lines.push(`  Calore gomme: ${o.tyreLine}`);
+  if (o.tyreLine) lines.push(`  Tyre heat: ${o.tyreLine}`);
   return lines;
 };
 
@@ -336,15 +358,15 @@ export const buildStatsBlock = (
 ): string => {
   const lines: string[] = [];
   lines.push(
-    `## Dati Calcolati (autorevoli — cita questi numeri, NON ricalcolare)`,
+    `## Computed Data (authoritative — cite these numbers, do NOT recompute)`,
   );
   lines.push(
-    `- Giri: ${stats.lapCount} (analizzabili: ${stats.analyzableLapCount}) · Trend: ${stats.trend}` +
+    `- Laps: ${stats.lapCount} (analysable: ${stats.analyzableLapCount}) · Trend: ${stats.trend}` +
       (stats.bestLap != null
-        ? ` · Miglior giro: ${formatLapTime(stats.bestLap)}`
+        ? ` · Best lap: ${formatLapTime(stats.bestLap)}`
         : ""),
   );
-  lines.push(`- Setup caricati: ${stats.setupCount}`);
+  lines.push(`- Loaded setups: ${stats.setupCount}`);
   if (
     stats.avgAirTempC != null ||
     stats.avgRoadTempC != null ||
@@ -354,16 +376,16 @@ export const buildStatsBlock = (
   ) {
     const bits: string[] = [];
     if (stats.avgAirTempC != null)
-      bits.push(`aria ${stats.avgAirTempC.toFixed(0)}°C`);
+      bits.push(`air ${stats.avgAirTempC.toFixed(0)}°C`);
     if (stats.avgRoadTempC != null)
-      bits.push(`asfalto ${stats.avgRoadTempC.toFixed(0)}°C`);
+      bits.push(`track ${stats.avgRoadTempC.toFixed(0)}°C`);
     if (stats.avgRainDensity != null)
-      bits.push(`pioggia ${(stats.avgRainDensity * 100).toFixed(0)}%`);
+      bits.push(`rain ${(stats.avgRainDensity * 100).toFixed(0)}%`);
     if (stats.avgWindSpeed != null)
-      bits.push(`vento ${stats.avgWindSpeed.toFixed(1)} m/s`);
+      bits.push(`wind ${stats.avgWindSpeed.toFixed(1)} m/s`);
     if (stats.avgCloudBrightness != null)
-      bits.push(`nuvolosità ${(stats.avgCloudBrightness * 100).toFixed(0)}%`);
-    lines.push(`- Condizioni: ${bits.join(", ")}`);
+      bits.push(`cloud cover ${(stats.avgCloudBrightness * 100).toFixed(0)}%`);
+    lines.push(`- Conditions: ${bits.join(", ")}`);
   }
   if (stats.setupLadder) lines.push(...ladderLines(stats.setupLadder, game));
   // While the ladder still asks for laps there is nothing settled to judge.
@@ -372,11 +394,11 @@ export const buildStatsBlock = (
   if (stats.suspAsymFrontMm != null || stats.suspAsymRearMm != null) {
     const bits: string[] = [];
     if (stats.suspAsymFrontMm != null)
-      bits.push(`anteriore ${stats.suspAsymFrontMm.toFixed(1)}mm (FL-FR)`);
+      bits.push(`front ${stats.suspAsymFrontMm.toFixed(1)}mm (FL-FR)`);
     if (stats.suspAsymRearMm != null)
-      bits.push(`posteriore ${stats.suspAsymRearMm.toFixed(1)}mm (RL-RR)`);
+      bits.push(`rear ${stats.suspAsymRearMm.toFixed(1)}mm (RL-RR)`);
     lines.push(
-      `- Asimmetria corsa sospensione (media sessione): ${bits.join(", ")}`,
+      `- Suspension travel asymmetry (session mean): ${bits.join(", ")}`,
     );
   }
   if (
@@ -385,40 +407,40 @@ export const buildStatsBlock = (
   ) {
     const bits: string[] = [];
     if (stats.slipAsymFrontThrottle != null)
-      bits.push(`anteriore ${stats.slipAsymFrontThrottle.toFixed(3)} (FL-FR)`);
+      bits.push(`front ${stats.slipAsymFrontThrottle.toFixed(3)} (FL-FR)`);
     if (stats.slipAsymRearThrottle != null)
-      bits.push(`posteriore ${stats.slipAsymRearThrottle.toFixed(3)} (RL-RR)`);
+      bits.push(`rear ${stats.slipAsymRearThrottle.toFixed(3)} (RL-RR)`);
     lines.push(
-      `- Asimmetria slip ratio in trazione (media sessione): ${bits.join(", ")}`,
+      `- Slip ratio asymmetry under traction (session mean): ${bits.join(", ")}`,
     );
   }
   if (stats.slipAsymFrontRelease != null || stats.slipAsymRearRelease != null) {
     const bits: string[] = [];
     if (stats.slipAsymFrontRelease != null)
-      bits.push(`anteriore ${stats.slipAsymFrontRelease.toFixed(3)} (FL-FR)`);
+      bits.push(`front ${stats.slipAsymFrontRelease.toFixed(3)} (FL-FR)`);
     if (stats.slipAsymRearRelease != null)
-      bits.push(`posteriore ${stats.slipAsymRearRelease.toFixed(3)} (RL-RR)`);
+      bits.push(`rear ${stats.slipAsymRearRelease.toFixed(3)} (RL-RR)`);
     lines.push(
-      `- Asimmetria slip ratio in rilascio/frenata (media sessione): ${bits.join(", ")}`,
+      `- Slip ratio asymmetry on release/braking (session mean): ${bits.join(", ")}`,
     );
   }
   if (stats.laps.length > 0) {
-    lines.push(`- Tempi giro:`);
+    lines.push(`- Lap times:`);
     for (const l of stats.laps) {
       const dp =
         l.deltaPrevSec == null
           ? "—"
           : `${l.deltaPrevSec >= 0 ? "+" : ""}${l.deltaPrevSec.toFixed(3)}s`;
       lines.push(
-        `  - Giro ${l.lapNumber}: ${formatLapTime(l.lapTime)} ` +
-          `(∆prec ${dp}, gap best +${l.deltaBestSec.toFixed(3)}s / +${l.gapToBestPct.toFixed(2)}%)` +
-          `${l.valid ? "" : " [non valido]"}` +
+        `  - Lap ${l.lapNumber}: ${formatLapTime(l.lapTime)} ` +
+          `(∆prev ${dp}, gap to best +${l.deltaBestSec.toFixed(3)}s / +${l.gapToBestPct.toFixed(2)}%)` +
+          `${l.valid ? "" : " [invalid]"}` +
           `${l.setupLabel ? ` [setup "${l.setupLabel}"]` : ""}`,
       );
     }
   }
   if (stats.criticalCorners.length > 0) {
-    lines.push(`- Curve critiche (ordinate per numero di alert):`);
+    lines.push(`- Critical corners (ranked by number of alerts):`);
     for (const c of stats.criticalCorners) {
       const label = c.cornerName
         ? `${c.cornerName} (@${c.dist}m)`
@@ -426,18 +448,18 @@ export const buildStatsBlock = (
       const types = Object.entries(c.alertsByType)
         .map(([t, n]) => `${ALERT_LABELS[t as AlertType] ?? t}×${n}`)
         .join(", ");
-      const bits = [`${c.alertCount} alert (${types})`];
+      const bits = [
+        `${c.alertCount} ${c.alertCount === 1 ? "alert" : "alerts"} (${types})`,
+      ];
       // Absent when no lap carried zone data for this corner: not a zero.
       if (c.minSpeedKmh != null)
-        bits.push(`v.min ${c.minSpeedKmh.toFixed(0)}km/h`);
+        bits.push(`min speed ${c.minSpeedKmh.toFixed(0)}km/h`);
       if (c.maxBrakePct != null)
-        bits.push(`freno ${(c.maxBrakePct * 100).toFixed(0)}%`);
+        bits.push(`brake ${(c.maxBrakePct * 100).toFixed(0)}%`);
       if (c.maxSteerAbs != null)
-        bits.push(`sterzo max ${(c.maxSteerAbs * 100).toFixed(0)}%`);
+        bits.push(`steer max ${(c.maxSteerAbs * 100).toFixed(0)}%`);
       if (c.steerDuringBrake > 0)
-        bits.push(
-          `sterzo in frenata ${(c.steerDuringBrake * 100).toFixed(0)}%`,
-        );
+        bits.push(`steer in braking ${(c.steerDuringBrake * 100).toFixed(0)}%`);
       if (c.tcEvents > 0) bits.push(`TC ${c.tcEvents}ev/${c.tcMs}ms`);
       if (c.absEvents > 0) bits.push(`ABS ${c.absEvents}ev/${c.absMs}ms`);
       if (c.overlapMs > 0) bits.push(`overlap ${c.overlapMs}ms`);
@@ -451,17 +473,17 @@ export const buildStatsBlock = (
       const perWheel: string[] = [];
       if (c.brakeTempsC?.some((v) => v > 0))
         perWheel.push(
-          `temp. freni ${c.brakeTempsC.map((v) => (v > 0 ? v.toFixed(0) : "n.d.")).join("/")} °C`,
+          `brake temp. ${c.brakeTempsC.map((v) => (v > 0 ? v.toFixed(0) : "n/a")).join("/")} °C`,
         );
       const pu = pressureUnit(game);
       const tp = wheelQuartet(c.avgTyrePressure, pu.scale, pu.digits);
-      if (tp) perWheel.push(`press. gomme ${tp} ${pu.label}`);
+      if (tp) perWheel.push(`tyre press. ${tp} ${pu.label}`);
       const tt = wheelQuartet(c.avgTyreTempC, 1, 0);
-      if (tt) perWheel.push(`temp. gomme ${tt} °C`);
+      if (tt) perWheel.push(`tyre temp. ${tt} °C`);
       const sr = wheelQuartet(c.avgSlipRatio, 1, 3);
       if (sr) perWheel.push(`slip ratio ${sr}`);
       const sus = wheelQuartet(c.avgSuspTravel, 1000, 1);
-      if (sus) perWheel.push(`corsa sosp. ${sus} mm`);
+      if (sus) perWheel.push(`susp. travel ${sus} mm`);
       if (perWheel.length > 0)
         lines.push(`    (${WHEEL_ORDER}) ${perWheel.join(" | ")}`);
     }
@@ -488,23 +510,28 @@ export type SessionPromptInput = {
   currentSynthesis?: string;
 };
 
-// Over the cap, the deep-dive keeps only "Setup attuale vs proposto" (where the
-// concrete proposals live, which later analyses must confirm or update); with
-// no such subsection, the head of the text.
+// Over the cap, the deep-dive keeps only its setup-comparison subsection (where
+// the concrete proposals live, which later analyses must confirm or update); with
+// no such subsection, the head of the text. A stored deep-dive may have been
+// written in any language, so the heading is matched in all of them.
 export const PRIOR_DETAIL_MAX_CHARS = 12000;
-const SETUP_SECTION =
-  /^###\s+Setup attuale vs proposto[\s\S]*?(?=^###?\s|(?![\s\S]))/m;
+const escapeRe = (s: string): string =>
+  s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const SETUP_SECTION = new RegExp(
+  `^###\\s+(?:${LANGUAGES.map((l) => escapeRe(RESOURCES[l.code].translation.analysis.heading.setupCompare)).join("|")})[\\s\\S]*?(?=^###?\\s|(?![\\s\\S]))`,
+  "m",
+);
 export const capPriorDetail = (detail: string): string => {
   if (detail.length <= PRIOR_DETAIL_MAX_CHARS) return detail;
   const setup = SETUP_SECTION.exec(detail)?.[0].trimEnd();
   const kept = setup ?? detail;
-  return `${kept.slice(0, PRIOR_DETAIL_MAX_CHARS)}\n\n(approfondimento troncato)`;
+  return `${kept.slice(0, PRIOR_DETAIL_MAX_CHARS)}\n\n(in-depth analysis truncated)`;
 };
 
 /**
  * Push injected markdown below its wrapper heading. Analysis text carries its own
- * `## Analisi sintetica` / `## Analisi approfondita`, and injecting it verbatim
- * puts a second copy of the exact headings the model is asked to produce at the
+ * root headings (summary, in-depth analysis), and injecting it verbatim puts a
+ * second copy of the exact headings the model is asked to produce at the
  * same level as its own output - so it either continues the wrong hierarchy or
  * treats the section as already written.
  */
@@ -525,36 +552,36 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   } = input;
   const parts: string[] = [];
 
-  parts.push(`## Sessione`);
-  parts.push(`- Gioco: ${session.game.toUpperCase()}`);
-  parts.push(`- Auto: ${input.carName ?? session.car}`);
+  parts.push(`## Session`);
+  parts.push(`- Game: ${session.game.toUpperCase()}`);
+  parts.push(`- Car: ${input.carName ?? session.car}`);
   parts.push(
-    `- Circuito: ${input.trackName ?? session.track} (${input.layoutName ?? session.layout})`,
+    `- Track: ${input.trackName ?? session.track} (${input.layoutName ?? session.layout})`,
   );
-  parts.push(`- Inizio: ${session.started_at}`);
+  parts.push(`- Start: ${session.started_at}`);
 
   if (session.game === "r3e") {
     if (leaderboardMode) {
       parts.push(
-        `- **Modalità Leaderboard attiva**: temperature e pressioni gomme fisse a 85°C, temperature freni potrebbero non essere significative - non diagnosticare questi valori come problemi. Nella messa a punto di base pressioni e campanatura sono non valutabili.`,
+        `- **Leaderboard mode active**: tyre temperatures and pressures fixed at 85°C, brake temperatures may not be meaningful - do not diagnose these values as problems. In the base setup pressures and camber are not assessable.`,
       );
     }
     if (fixedSetup) {
       parts.push(
-        `- **Setup Fisso attivo**: il pilota può modificare SOLO bilanciamento freni e pressione frenante. La messa a punto di base valuta solo il bilanciamento freni; condotti e ogni altra regolazione non sono modificabili.`,
+        `- **Fixed Setup active**: the driver can change ONLY brake bias and brake pressure. The base setup judges only the brake bias; ducts and every other adjustment are not changeable.`,
       );
     }
   }
-  if (session.ended_at) parts.push(`- Fine: ${session.ended_at}`);
-  parts.push(`- Giri registrati: ${laps.length}`);
+  if (session.ended_at) parts.push(`- End: ${session.ended_at}`);
+  parts.push(`- Recorded laps: ${laps.length}`);
   if (session.best_lap != null)
-    parts.push(`- Miglior giro: ${formatLapTime(session.best_lap)}`);
+    parts.push(`- Best lap: ${formatLapTime(session.best_lap)}`);
   parts.push("");
 
   // Explicit corner name whitelist - model must use ONLY these names
-  parts.push(`## Nomi Curve Autorizzati (FONTE ESCLUSIVA)`);
+  parts.push(`## Authorised Corner Names (EXCLUSIVE SOURCE)`);
   parts.push(
-    `REGOLA ASSOLUTA: usa i nomi curva ESCLUSIVAMENTE da questo elenco. NON usare nomi dedotti da conoscenze esterne sul circuito. Se una curva non compare qui, usa SOLO la notazione "@XXXm".`,
+    `ABSOLUTE RULE: use corner names EXCLUSIVELY from this list. Do NOT use names deduced from outside knowledge of the circuit. If a corner does not appear here, use ONLY the notation "@XXXm".`,
   );
   if (cornerNames.size > 0) {
     const sorted = [...cornerNames.entries()].sort(([a], [b]) => a - b);
@@ -562,7 +589,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
       parts.push(`- @${zone * ZONE_SIZE_M}m: ${name}`);
   } else {
     parts.push(
-      `- Nessun nome curva disponibile per questo circuito - usa SOLO "@XXXm" per tutte le posizioni.`,
+      `- No corner name available for this circuit - use ONLY "@XXXm" for all positions.`,
     );
   }
   parts.push("");
@@ -577,7 +604,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   );
 
   if (analyzableLaps.length > 0) {
-    parts.push(`## Giri`);
+    parts.push(`## Laps`);
     for (const lap of analyzableLaps) {
       const s1 = formatLapTime(lap.sector1!);
       const s2 = formatLapTime(lap.sector2!);
@@ -587,7 +614,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
         lap.setup_id != null ? setupNameById.get(lap.setup_id) : undefined;
       const setupTag = setupLabel != null ? ` [setup "${setupLabel}"]` : "";
       parts.push(
-        `- Giro ${lap.lap_number}: ${formatLapTime(lap.lap_time)} [S1:${s1} S2:${s2} S3:${s3}] ${valid}${setupTag}`,
+        `- Lap ${lap.lap_number}: ${formatLapTime(lap.lap_time)} [S1:${s1} S2:${s2} S3:${s3}] ${valid}${setupTag}`,
       );
       if (lap.zones_json) {
         try {
@@ -596,7 +623,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
           if (z0?.tcSetting !== undefined && z0.tcSetting > 0) {
             if (session.game === "r3e") {
               parts.push(
-                `  TC preset: ${z0.tcSetting}/6 | ABS preset: ${z0.absSetting ?? "?"}/6 (scala inversa: 1=massimo, 6=minimo/assente)`,
+                `  TC preset: ${z0.tcSetting}/6 | ABS preset: ${z0.absSetting ?? "?"}/6 (inverse scale: 1=maximum, 6=minimum/absent)`,
               );
             } else {
               parts.push(
@@ -616,18 +643,18 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     const excluded = laps.length - analyzableLaps.length;
     if (excluded > 0)
       parts.push(
-        `*(${excluded} giro/i esclusi perché privi di tempo settore)*`,
+        `*(${excluded} lap(s) excluded because they lack a sector time)*`,
       );
     parts.push("");
   }
 
   if (setups.length > 0) {
-    parts.push(`## Setup caricati in sessione (ordine cronologico)`);
+    parts.push(`## Setups loaded in the session (chronological order)`);
     setups.forEach((s) => {
       const label = s.setup.name ?? s.setup.carFound;
-      parts.push(`### Setup "${label}" (id=${s.id}, caricato ${s.loaded_at})`);
+      parts.push(`### Setup "${label}" (id=${s.id}, loaded ${s.loaded_at})`);
       parts.push(
-        `- Auto: ${s.setup.carFound}${s.setup.carVerified ? " (verificata)" : " (non verificata)"}`,
+        `- Car: ${s.setup.carFound}${s.setup.carVerified ? " (verified)" : " (not verified)"}`,
       );
       for (const p of s.setup.params) {
         parts.push(`- ${p.category} / ${p.parameter}: ${p.value}`);
@@ -636,13 +663,13 @@ const buildSessionContext = (input: SessionPromptInput): string => {
     });
     if (setups.length > 1) {
       parts.push(
-        `Confronta i setup sopra elencati evidenziando le differenze e l'impatto sulla telemetria dei giri associati.`,
+        `Compare the setups listed above, highlighting the differences and the impact on the telemetry of the associated laps.`,
       );
       parts.push("");
     }
   } else {
     parts.push(
-      `## Setup\nNessun setup caricato in sessione. Ometti le proposte di setup o limitati a suggerimenti generici.`,
+      `## Setup\nNo setup loaded in the session. Omit the setup proposals or limit yourself to generic suggestions.`,
     );
     parts.push("");
   }
@@ -650,39 +677,39 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   if (priorAnalyses.length > 0) {
     // The most recent prior analysis goes in whole (synthesis + deep-dive when
     // it exists), older ones stay as their 3-sentence voice summary. The system
-    // prompts ask to "confermare/aggiornare i consigli", and the concrete setup
+    // prompts ask to "confirm/update the advice", and the concrete setup
     // proposals live in `detail`: a voice summary cannot carry them, so with
     // summaries alone the model re-derived or re-proposed them blind.
     // `detail` is capped (see capPriorDetail): a deep-dive that hit the
     // 32000-token ceiling would otherwise swell every later prompt.
     const latestVersion = priorAnalyses.at(-1)?.version;
-    parts.push(`## Analisi precedenti`);
+    parts.push(`## Previous analyses`);
     for (const a of priorAnalyses) {
       const isLatest = a.version === latestVersion;
       parts.push(
-        `### Analisi #${a.version} (${a.created_at})` +
-          (isLatest ? ` — la più recente, testo integrale` : ""),
+        `### Analysis #${a.version} (${a.created_at})` +
+          (isLatest ? ` — the most recent, full text` : ""),
       );
       if (isLatest) {
         parts.push(nestHeadings(a.synthesis, 2));
         if (a.detail) parts.push("", nestHeadings(capPriorDetail(a.detail), 2));
       } else if (a.summary) {
-        parts.push(`Sintesi: ${a.summary}`);
+        parts.push(`Summary: ${a.summary}`);
       } else {
         // Fallback: first ~500 chars of the synthesis
         parts.push(a.synthesis.slice(0, 500));
       }
       if (a.comments && a.comments.length > 0) {
-        parts.push(`Commenti del pilota e integrazioni su questa analisi:`);
+        parts.push(`Driver comments and additions on this analysis:`);
         for (const c of a.comments) {
-          parts.push(`- Pilota: ${c.comment}`);
-          parts.push(`  Integrazione: ${c.response}`);
+          parts.push(`- Driver: ${c.comment}`);
+          parts.push(`  Addition: ${c.response}`);
         }
       }
       parts.push("");
     }
     parts.push(
-      `Questa è l'analisi #${priorAnalyses.length + 1}: tieni conto delle precedenti, conferma o aggiorna i consigli in base ai nuovi dati.`,
+      `This is analysis #${priorAnalyses.length + 1}: take the previous ones into account, confirm or update the advice based on the new data.`,
     );
     parts.push("");
   }
@@ -693,7 +720,7 @@ const buildSessionContext = (input: SessionPromptInput): string => {
       2: "P2",
       3: "P3",
     };
-    parts.push(`## Alert generati in sessione (${alerts.length})`);
+    parts.push(`## Alerts raised in the session (${alerts.length})`);
     for (const a of alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
       parts.push(`- [${prio}] @${Math.round(a.dist)}m: ${a.message}`);
@@ -706,46 +733,39 @@ const buildSessionContext = (input: SessionPromptInput): string => {
   return parts.join("\n");
 };
 
-/** Level 2 (on-demand): full "Analisi approfondita" deep-dive. */
+/** Level 2 (on-demand): full in-depth analysis. */
 export const buildSessionPrompt = (input: SessionPromptInput): string => {
   const context = buildSessionContext(input);
   // Level 1 of THIS analysis. Without it the deep-dive is written blind to the
   // synthesis and the actions it must complement - while the closing instruction
   // below tells it not to repeat them, which it cannot honour unseen.
   const alreadyProduced = input.currentSynthesis
-    ? `## Livello 1 già prodotto per questa analisi (NON ripeterlo)\n` +
+    ? `## Level 1 already produced for this analysis (do NOT repeat it)\n` +
       `${nestHeadings(input.currentSynthesis, 1)}\n\n`
     : "";
   return (
     context +
     "\n" +
     alreadyProduced +
-    `Produci l'analisi come "## Analisi approfondita" con le sottosezioni ` +
-    `"Analisi telemetria", "Problemi identificati" e "Setup attuale vs proposto". ` +
-    `Ometti "Setup attuale vs proposto" SOLO se nessun setup è caricato. ` +
-    `NON produrre la sintesi né le azioni suggerite (già generate a parte). ` +
-    `Cita i numeri dal blocco "## Dati Calcolati".`
+    `Produce the in-depth analysis as the system prompt specifies, with the subsections ` +
+    `"telemetry analysis", "problems identified" and "setup comparison". ` +
+    `Omit "setup comparison" ONLY if no setup is loaded. ` +
+    `Do NOT produce the synthesis nor the suggested actions (already generated separately). ` +
+    `Cite the numbers from the "## Computed Data" block.`
   );
 };
 
-/** Level 1 (always): short "## Analisi sintetica" + "### Azioni suggerite" + <sintesi-vocale>. */
+/** Level 1 (always): short summary + the "suggested actions" subsection + <sintesi-vocale>. */
 export const buildSynthesisPrompt = (input: SessionPromptInput): string => {
   const context = buildSessionContext(input);
   return (
     context +
     "\n" +
-    `Produci SOLO la sezione "## Analisi sintetica" con la sottosezione "### Azioni suggerite", ` +
-    `seguite dal blocco <sintesi-vocale>. Niente tabelle, niente analisi approfondita. ` +
-    `Cita i numeri dal blocco "## Dati Calcolati".`
+    `Produce ONLY the summary section with the "suggested actions" subsection, ` +
+    `followed by the <sintesi-vocale> block. No tables, no in-depth analysis. ` +
+    `Cite the numbers from the "## Computed Data" block.`
   );
 };
-
-export const COMMENT_SYSTEM_PROMPT = `Sei un ingegnere di pista esperto. Il pilota ha appena letto una tua analisi di sessione e ti lascia un commento per correggerla o chiederti un'integrazione (es. un parametro di setup non modificabile, una valutazione che ritiene errata, una richiesta di approfondimento mirato, un dato di sessione non citato nell'analisi).
-
-Rispondi SOLO al commento, in italiano, con tono tecnico da ingegnere. Includi dati numerici quando rilevanti, citandoli dal blocco "## Dati Calcolati" se presente — non dichiarare un dato "non disponibile" se compare lì.
-La risposta deve essere BREVE e FOCALIZZATA (massimo 4-6 frasi): conferma o correggi la valutazione e, se serve, proponi un'alternativa concreta.
-NON riscrivere l'intera analisi. NON usare le intestazioni delle sezioni di analisi ("Analisi sintetica", "Azioni suggerite", "Analisi approfondita" e relative sottosezioni). NON produrre tabelle lunghe: al massimo poche righe markdown se indispensabili.
-Se il pilota segnala che un parametro non è modificabile, accetta la correzione e proponi una leva alternativa effettivamente disponibile.`;
 
 export type CommentPromptInput = {
   analysisText: string;
@@ -759,31 +779,31 @@ export type CommentPromptInput = {
 
 export const buildCommentPrompt = (input: CommentPromptInput): string => {
   const parts: string[] = [];
-  parts.push(`## Contesto`);
-  if (input.carName) parts.push(`- Auto: ${input.carName}`);
-  if (input.trackName) parts.push(`- Circuito: ${input.trackName}`);
+  parts.push(`## Context`);
+  if (input.carName) parts.push(`- Car: ${input.carName}`);
+  if (input.trackName) parts.push(`- Track: ${input.trackName}`);
   parts.push("");
   if (input.stats) {
     parts.push(buildStatsBlock(input.stats, input.game));
     parts.push("");
   }
-  parts.push(`## Analisi a cui si riferisce il commento`);
+  parts.push(`## Analysis the comment refers to`);
   parts.push(nestHeadings(input.analysisText, 1));
   parts.push("");
   if (input.priorComments.length > 0) {
-    parts.push(`## Commenti e integrazioni precedenti su questa analisi`);
+    parts.push(`## Previous comments and additions on this analysis`);
     input.priorComments.forEach((c, i) => {
-      parts.push(`### Commento ${i + 1}`);
-      parts.push(`Pilota: ${c.comment}`);
-      parts.push(`Integrazione: ${c.response}`);
+      parts.push(`### Comment ${i + 1}`);
+      parts.push(`Driver: ${c.comment}`);
+      parts.push(`Addition: ${c.response}`);
       parts.push("");
     });
   }
-  parts.push(`## Nuovo commento del pilota`);
+  parts.push(`## New driver comment`);
   parts.push(input.comment);
   parts.push("");
   parts.push(
-    `Rispondi in modo breve e mirato a questo commento, seguendo le regole del system prompt.`,
+    `Reply briefly and to the point to this comment, following the rules of the system prompt.`,
   );
   return parts.join("\n");
 };

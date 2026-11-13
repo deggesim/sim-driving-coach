@@ -16,15 +16,17 @@ import type {
   SessionSetupRow,
 } from "../../shared/types.js";
 import { formatLapTime } from "../../shared/format.js";
+import { getLanguage } from "../i18n-main.js";
+import { outputLanguageBlock } from "./output-language.js";
 import { nestHeadings } from "./prompt-builder.js";
 
-const VOICE_SYSTEM_PROMPT = `Sei un coach di guida esperto che risponde a domande specifiche di un pilota durante una sessione di guida.
-Rispondi SEMPRE in italiano, in modo conciso e diretto. Massimo 3-4 frasi.
-Il pilota sta guidando in questo momento - sii pratico, usa dati numerici, cita le curve per nome quando disponibile.
-Non ripetere la domanda. Non usare elenchi puntati. Rispondi come se stessi parlando al pilota in diretta radio.
-La risposta viene letta da un sintetizzatore vocale: scrivi SOLO testo semplice, nessuna formattazione markdown (mai **grassetto**, *corsivo*, \`codice\`, titoli con # o elenchi con -).
-Quando citi un tempo sul giro usa SEMPRE la forma "il tempo di X" (es. "il tempo di 1:16.322" oppure "il tempo di 58.322s"). Non usare mai l'articolo apostrofato davanti al numero (mai "l'1:16").
-Unità di misura OBBLIGATORIE per il TTS: scrivi SEMPRE l'unità accanto al numero. Distanze: "XXXm" (mai solo "XXX"). Delta tempi: "X secondi" oppure "X s" (mai solo "X" o "~X"). Esempio corretto: "frenata ritardata di 24m", "puoi guadagnare circa 0.2 secondi". Il TTS legge "m" come "metri" e "s" come "secondi".`;
+const VOICE_BODY = `You are an expert driving coach answering a driver's specific questions during a driving session.
+Always answer concisely and directly. Maximum 3-4 sentences.
+The driver is driving right now - be practical, use numeric data, cite corners by name when available.
+Do not repeat the question. Do not use bullet lists. Answer as if you were talking to the driver live over the radio.
+The answer is read by a speech synthesizer: write ONLY plain text, no markdown formatting (never **bold**, *italic*, \`code\`, titles with # or lists with -).
+When you quote a lap time ALWAYS use the form "the time of X" in the output language (e.g. "the time of 1:16.322" or "the time of 58.322s"). Never put an article contracted with the number in front of it (never "l'1:16").
+MANDATORY units of measure for the TTS: ALWAYS write the unit next to the number. Distances: "XXXm" (never just "XXX"). Time deltas: "X seconds" or "X s" (never just "X" or "~X"). Correct example: "braking delayed by 24m", "you can gain about 0.2 seconds". The TTS reads "m" as "metres" and "s" as "seconds".`;
 
 type SessionContext = {
   carName: string;
@@ -42,28 +44,28 @@ type SessionContext = {
 const buildVoiceContext = (ctx: SessionContext): string => {
   const parts: string[] = [];
 
-  parts.push(`## Sessione corrente`);
-  parts.push(`- Auto: ${ctx.carName}`);
-  parts.push(`- Circuito: ${ctx.trackName} (${ctx.layoutName})`);
-  parts.push(`- Giri completati: ${ctx.laps.length}`);
+  parts.push(`## Current session`);
+  parts.push(`- Car: ${ctx.carName}`);
+  parts.push(`- Track: ${ctx.trackName} (${ctx.layoutName})`);
+  parts.push(`- Laps completed: ${ctx.laps.length}`);
 
   if (ctx.laps.length > 0) {
     const valid = ctx.laps.filter((l) => l.lap_time > 0);
     if (valid.length > 0) {
       const best = valid.reduce((a, b) => (a.lap_time < b.lap_time ? a : b));
       parts.push(
-        `- Miglior tempo: ${formatLapTime(best.lap_time)} (Giro ${best.lap_number})`,
+        `- Best time: ${formatLapTime(best.lap_time)} (Lap ${best.lap_number})`,
       );
     }
 
     const recent = ctx.laps.slice(-5).reverse();
-    parts.push(`\n## Ultimi giri (dal più recente)`);
+    parts.push(`\n## Latest laps (most recent first)`);
     for (const lap of recent) {
       const s1 = lap.sector1 != null ? formatLapTime(lap.sector1) : "--";
       const s2 = lap.sector2 != null ? formatLapTime(lap.sector2) : "--";
       const s3 = lap.sector3 != null ? formatLapTime(lap.sector3) : "--";
       parts.push(
-        `- Giro ${lap.lap_number}: ${formatLapTime(lap.lap_time)} [S1:${s1} S2:${s2} S3:${s3}] ${lap.valid ? "✓" : "✗"}`,
+        `- Lap ${lap.lap_number}: ${formatLapTime(lap.lap_time)} [S1:${s1} S2:${s2} S3:${s3}] ${lap.valid ? "✓" : "✗"}`,
       );
     }
   }
@@ -72,7 +74,7 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     const cornerList = Array.from(ctx.cornerMap.entries())
       .map(([zone, name]) => `@${zone * 50}m → ${name}`)
       .join(", ");
-    parts.push(`\n## Curve del circuito\n${cornerList}`);
+    parts.push(`\n## Track corners\n${cornerList}`);
   }
 
   if (ctx.lastLapZones) {
@@ -90,12 +92,12 @@ const buildVoiceContext = (ctx: SessionContext): string => {
         (z) => z.maxBrakePct > 0.2 || z.avgThrottlePct < 0.5,
       );
       if (significant.length > 0) {
-        parts.push(`\n## Telemetria ultimo giro (zone rilevanti)`);
+        parts.push(`\n## Last lap telemetry (relevant zones)`);
         for (const z of significant.slice(0, 20)) {
           const cn = ctx.cornerMap.get(z.zone);
           const label = cn ? ` [${cn}]` : "";
           parts.push(
-            `- @${z.dist}m${label}: min ${z.minSpeedKmh.toFixed(0)}km/h, freno ${(z.maxBrakePct * 100).toFixed(0)}%, gas ${(z.avgThrottlePct * 100).toFixed(0)}%, ABS:${z.absActivations} TC:${z.tcActivations}`,
+            `- @${z.dist}m${label}: min ${z.minSpeedKmh.toFixed(0)}km/h, brake ${(z.maxBrakePct * 100).toFixed(0)}%, throttle ${(z.avgThrottlePct * 100).toFixed(0)}%, ABS:${z.absActivations} TC:${z.tcActivations}`,
           );
         }
       }
@@ -105,7 +107,7 @@ const buildVoiceContext = (ctx: SessionContext): string => {
   }
 
   if (ctx.deviations && ctx.deviations.length > 0) {
-    parts.push(`\n## Deviazioni rispetto alla baseline`);
+    parts.push(`\n## Deviations from the baseline`);
     for (const d of ctx.deviations) {
       const cn = ctx.cornerMap.get(Math.floor(d.dist / 50));
       const label = cn ? ` [${cn}]` : "";
@@ -119,7 +121,7 @@ const buildVoiceContext = (ctx: SessionContext): string => {
       2: "P2",
       3: "P3",
     };
-    parts.push(`\n## Alert generati in sessione (${ctx.alerts.length})`);
+    parts.push(`\n## Alerts raised in the session (${ctx.alerts.length})`);
     for (const a of ctx.alerts) {
       const prio = PRIORITY_LABEL[a.priority] ?? `P${a.priority}`;
       parts.push(`- [${prio}] @${Math.round(a.dist)}m: ${a.message}`);
@@ -127,7 +129,7 @@ const buildVoiceContext = (ctx: SessionContext): string => {
   }
 
   if (ctx.setups.length > 0) {
-    parts.push(`\n## Setup caricati in sessione (${ctx.setups.length})`);
+    parts.push(`\n## Setups loaded in the session (${ctx.setups.length})`);
     ctx.setups.forEach((s, idx) => {
       parts.push(
         `### Setup #${idx + 1} (${s.loaded_at}) - ${s.setup.carFound}`,
@@ -144,17 +146,17 @@ const buildVoiceContext = (ctx: SessionContext): string => {
     // voice summary can carry them. Driver comments always go in - they are
     // corrections, so ignoring them means repeating advice already rejected.
     const latestVersion = ctx.analyses.at(-1)?.version;
-    parts.push(`\n## Analisi precedenti della sessione`);
+    parts.push(`\n## Previous analyses of the session`);
     for (const a of ctx.analyses) {
-      parts.push(`### Analisi #${a.version} (${a.created_at})`);
+      parts.push(`### Analysis #${a.version} (${a.created_at})`);
       if (a.version === latestVersion) {
         parts.push(nestHeadings(a.synthesis, 2));
         if (a.detail) parts.push(nestHeadings(a.detail, 2));
       } else if (a.summary) parts.push(a.summary);
       else parts.push(a.synthesis.slice(0, 600));
       for (const c of a.comments) {
-        parts.push(`- Pilota: ${c.comment}`);
-        parts.push(`  Integrazione: ${c.response}`);
+        parts.push(`- Driver: ${c.comment}`);
+        parts.push(`  Addition: ${c.response}`);
       }
     }
   }
@@ -176,8 +178,8 @@ export const createVoiceCoachEngine = (
 ): VoiceCoachEngine => {
   const client = new Anthropic({ apiKey });
   const currentContext: SessionContext = {
-    carName: "Sconosciuta",
-    trackName: "Sconosciuto",
+    carName: "Unknown",
+    trackName: "Unknown",
     layoutName: "",
     laps: [],
     lastLapZones: null,
@@ -207,13 +209,13 @@ export const createVoiceCoachEngine = (
 
     handleVoiceQuery: async (question, onChunk) => {
       const contextText = buildVoiceContext(currentContext);
-      const userMessage = `${contextText}\n\n---\n\n## Domanda del pilota\n${question}`;
+      const userMessage = `${contextText}\n\n---\n\n## Driver question\n${question}`;
 
       let fullText = "";
       const stream = client.messages.stream({
         model,
         max_tokens: 500,
-        system: VOICE_SYSTEM_PROMPT,
+        system: `${VOICE_BODY}\n\n${outputLanguageBlock(getLanguage(), "voice")}`,
         messages: [{ role: "user", content: userMessage }],
       });
       for await (const event of stream) {

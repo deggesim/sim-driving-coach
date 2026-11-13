@@ -15,5 +15,57 @@
     "maximizeLabel": "Maximizar ventana",
     "close": "Cerrar",
     "closeLabel": "Cerrar ventana"
+  },
+  "analysis": {
+    "heading": {
+      "synthesis": "Análisis resumido",
+      "actions": "Acciones sugeridas",
+      "detail": "Análisis detallado",
+      "telemetry": "Análisis de telemetría",
+      "problems": "Problemas identificados",
+      "setupCompare": "Setup actual vs. propuesto",
+      "chassis": "Setup del chasis"
+    },
+    "forbidden": "escalera, secuencia, cuadro, paso, área, Ajuste base, Setup del chasis, hacer ahora, Frezza",
+    "glossary": "brake ducts = conductos de freno; camber = caída; ride height = altura al suelo; rake = rake; bumpstop = bumpstop; third spring = tercer muelle; anti-roll bar = barra estabilizadora; toe = convergencia; caster = avance; understeer = subviraje; oversteer = sobreviraje; preload = precarga; trail braking = trail braking"
+  },
+  "coach": {
+    "stintReady": "Tanda analizable: {{laps}} vueltas evaluadas.",
+    "firstFix": "Primera corrección: {{label}}.",
+    "noFix": "No hay ninguna corrección que hacer.",
+    "tyresNotWarm": "Neumáticos fuera de temperatura: presiones y caída no evaluadas.",
+    "wheelsNotWarm": "Ruedas fuera de temperatura y no evaluadas: {{wheels}}.",
+    "stintReadyTail": "Puedes ponerte en pausa y ejecutar el análisis.",
+    "wheel": {
+      "fl": "delantera izquierda",
+      "fr": "delantera derecha",
+      "rl": "trasera izquierda",
+      "rr": "trasera derecha"
+    },
+    "step": {
+      "ducts": "conductos de freno",
+      "bias": "reparto de frenada",
+      "engine": "freno motor",
+      "pressures": "presiones",
+      "camber": "caída",
+      "differential": "diferencial"
+    },
+    "area": {
+      "springs": "muelles",
+      "heights": "alturas y rake",
+      "bumpstops": "bumpstops",
+      "thirds": "terceros muelles",
+      "dampers": "amortiguadores",
+      "bars": "barras estabilizadoras",
+      "toe": "convergencia",
+      "aero": "aerodinámica"
+    },
+    "error": {
+      "invalidKey": "API de Anthropic: clave no válida. Compruébala en los ajustes.",
+      "rateLimit": "API de Anthropic: límite de frecuencia superado. Inténtalo de nuevo en unos instantes.",
+      "quota": "API de Anthropic: crédito insuficiente o cuota agotada. Comprueba el saldo en console.anthropic.com.",
+      "synthesisTruncated": "Resumen truncado: se alcanzó el límite de tokens. El texto parcial se guardó; vuelve a ejecutar el análisis.",
+      "detailTruncated": "Análisis detallado truncado: se alcanzó el límite de tokens. El texto parcial se guardó; inténtalo de nuevo."
+    }
   }
 }

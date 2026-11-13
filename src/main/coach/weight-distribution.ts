@@ -17,7 +17,7 @@ export type WeightDistribution =
   | {
       known: true;
       frontPct: number;
-      source: "misurata" | "tabella AMS2";
+      source: "measured" | "AMS2 table";
       aeroFrontPct: number | null;
       fuelL: number | null;
     }
@@ -40,14 +40,14 @@ export const weightDistribution = (
       ? {
           known: true,
           frontPct: car.frontPct,
-          source: "tabella AMS2",
+          source: "AMS2 table",
           aeroFrontPct: null,
           fuelL: null,
         }
-      : unknown("auto non presente nella tabella AMS2");
+      : unknown("car not in the AMS2 table");
 
   const fits = zones.flatMap((z) => (z.loadFit ? [z.loadFit] : []));
-  if (fits.length === 0) return unknown("carico ruota non disponibile");
+  if (fits.length === 0) return unknown("wheel load not available");
   const t = fits.reduce<LoadFitSums>(
     (a, f) => ({
       n: a.n + f.n,
@@ -75,15 +75,15 @@ export const weightDistribution = (
     },
   );
   if (t.n < MIN_LOAD_SAMPLES)
-    return unknown(`meno di ${MIN_LOAD_SAMPLES} campioni in linea retta`);
+    return unknown(`fewer than ${MIN_LOAD_SAMPLES} straight-line samples`);
   if ((t.nLow ?? 0) < MIN_LOW_SAMPLES)
     return unknown(
-      `meno di ${MIN_LOW_SAMPLES} campioni in linea retta sotto i 120 km/h (basta un passaggio in corsia box)`,
+      `fewer than ${MIN_LOW_SAMPLES} straight-line samples below 120 km/h (one pass down the pit lane is enough)`,
     );
 
   const den = t.n * t.sxx - t.sx * t.sx;
   if (!(den > MIN_SPREAD * t.n * t.sxx))
-    return unknown("campioni tutti alla stessa velocità");
+    return unknown("all samples at the same speed");
 
   const slope = (sxy: number, sy: number) => (t.n * sxy - t.sx * sy) / den;
   const bF = slope(t.sxyF, t.syF);
@@ -92,10 +92,10 @@ export const weightDistribution = (
   const aR = (t.syR - bR * t.sx) / t.n;
   // Loads of 0 / -1 (channel missing) or a non-physical fit: no distribution, never NaN.
   if (!Number.isFinite(aF + aR) || aF <= 0 || aR <= 0)
-    return unknown("carico ruota non disponibile");
+    return unknown("wheel load not available");
   const frontPct = (aF / (aF + aR)) * 100;
   if (frontPct < MIN_FRONT_PCT || frontPct > MAX_FRONT_PCT)
-    return unknown("distribuzione misurata non plausibile");
+    return unknown("measured distribution not plausible");
 
   const aeroOk =
     bF >= 0 &&
@@ -105,7 +105,7 @@ export const weightDistribution = (
   return {
     known: true,
     frontPct,
-    source: "misurata",
+    source: "measured",
     aeroFrontPct: aeroOk ? (bF / (bF + bR)) * 100 : null,
     fuelL: t.fuelN > 0 ? t.fuelSum / t.fuelN : null,
   };

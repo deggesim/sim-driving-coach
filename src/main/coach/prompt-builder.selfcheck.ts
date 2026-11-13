@@ -22,14 +22,20 @@ import {
   buildSynthesisPrompt,
   capPriorDetail,
   PRIOR_DETAIL_MAX_CHARS,
-  SESSION_SYSTEM_PROMPT,
-  SYNTHESIS_SYSTEM_PROMPT,
+  sessionSystemPrompt,
+  synthesisSystemPrompt,
   type SessionPromptInput,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
 import type { SetupLadder } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
-import { decodeAlertCodes, WHEEL_ORDER } from "../../shared/alert-types.js";
+import { decodeAlertCodes } from "../../shared/alert-types.js";
+import { LANGUAGES, RESOURCES } from "../../shared/i18n.js";
+import { outputLanguageBlock } from "./output-language.js";
+
+const SYNTHESIS_SYSTEM_PROMPT = synthesisSystemPrompt("en");
+const SESSION_SYSTEM_PROMPT = sessionSystemPrompt("en");
+const WHEEL_ORDER = "front left/front right/rear left/rear right";
 
 const session: SessionRow = {
   id: 1,
@@ -80,7 +86,7 @@ assert.ok(
   l2.includes("APPROFONDITA-V2"),
   "latest prior detail must be injected",
 );
-assert.ok(l2.includes("la più recente, testo integrale"));
+assert.ok(l2.includes("the most recent, full text"));
 
 // Older ones stay as their voice summary - their deep-dive must NOT be injected,
 // otherwise a long session grows the prompt by one full deep-dive per analysis.
@@ -115,8 +121,11 @@ const withCurrent = buildSessionPrompt({
   currentSynthesis: "SINTESI-CORRENTE del livello 1.",
 });
 assert.ok(withCurrent.includes("SINTESI-CORRENTE"));
-assert.ok(withCurrent.includes("NON ripeterlo"));
-assert.ok(!l2.includes("NON ripeterlo"), "block omitted when field is unset");
+assert.ok(withCurrent.includes("do NOT repeat it"));
+assert.ok(
+  !l2.includes("do NOT repeat it"),
+  "block omitted when field is unset",
+);
 
 // Injected analysis text must not carry root-level headings: the model is asked
 // to produce "## Analisi approfondita" itself, so a verbatim copy of that heading
@@ -181,11 +190,11 @@ const commentWithStats = buildCommentPrompt({
   }),
 });
 assert.ok(
-  commentWithStats.includes("## Dati Calcolati"),
+  commentWithStats.includes("## Computed Data"),
   "stats block reaches the comment prompt when provided",
 );
 assert.ok(
-  !commentPrompt.includes("## Dati Calcolati"),
+  !commentPrompt.includes("## Computed Data"),
   "omitted when no stats given",
 );
 
@@ -196,22 +205,38 @@ assert.ok(
 const roots = (prompt: string): string[] =>
   prompt.match(/^## .+$/gm)?.map((h) => h.slice(3)) ?? [];
 
-assert.deepEqual(roots(SYNTHESIS_SYSTEM_PROMPT), ["Analisi sintetica"]);
-assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("### Azioni suggerite"));
-assert.ok(l1.includes(`"### Azioni suggerite"`), "L1 closing instruction");
-
-assert.deepEqual(roots(SESSION_SYSTEM_PROMPT), [
-  "FORMATO OBBLIGATORIO",
-  "Regole Generali",
-]);
-for (const sub of [
-  "Analisi telemetria",
-  "Problemi identificati",
-  "Setup attuale vs proposto",
-  "Assetto telaio",
-]) {
-  assert.ok(SESSION_SYSTEM_PROMPT.includes(`### ${sub}`), sub);
+// The English body is one text for every language; only the Output language
+// block changes, and it carries that language's headings at the right levels.
+const OUTPUT_TAIL = "\n\n# Output language";
+const bodyOf = (prompt: string): string =>
+  prompt.slice(0, prompt.indexOf(OUTPUT_TAIL));
+const headingsOf = (lang: (typeof LANGUAGES)[number]["code"]) =>
+  RESOURCES[lang].translation.analysis.heading;
+for (const { code } of LANGUAGES) {
+  const h = headingsOf(code);
+  const syn = synthesisSystemPrompt(code);
+  const det = sessionSystemPrompt(code);
+  assert.deepEqual(roots(syn), [h.synthesis], `${code} synthesis roots`);
+  assert.ok(syn.includes(`### ${h.actions}`), `${code} actions`);
+  assert.ok(syn.includes(`## ${h.synthesis}\n### ${h.actions}`), code);
+  assert.deepEqual(
+    roots(det),
+    ["REQUIRED FORMAT", "General Rules", h.detail],
+    `${code} detail roots`,
+  );
+  for (const sub of [h.telemetry, h.problems, h.setupCompare, h.chassis])
+    assert.ok(det.includes(`### ${sub}`), `${code} ${sub}`);
+  // Same body, byte for byte, in every language.
+  assert.equal(bodyOf(syn), bodyOf(SYNTHESIS_SYSTEM_PROMPT), code);
+  assert.equal(bodyOf(det), bodyOf(SESSION_SYSTEM_PROMPT), code);
+  // The block names this language's forbidden procedure words and glossary.
+  const t = RESOURCES[code].translation.analysis;
+  for (const kind of ["synthesis", "detail", "comment"] as const)
+    assert.ok(outputLanguageBlock(code, kind).includes(t.forbidden), code);
+  for (const kind of ["synthesis", "detail", "comment", "voice"] as const)
+    assert.ok(outputLanguageBlock(code, kind).includes(t.glossary), code);
 }
+assert.ok(l1.includes(`the "suggested actions" subsection`), "L1 closing");
 
 // Extended channels reach the prompt. All of these are computed by lap-recorder
 // and used to be dropped here, which left the braking channels as the only data
@@ -266,14 +291,14 @@ const aceLap = buildSynthesisPrompt({
     ]),
   ],
 });
-assert.ok(aceLap.includes("sterzo max 42%"), "steer must reach the prompt");
-assert.ok(aceLap.includes("sterzo in frenata 21%"));
+assert.ok(aceLap.includes("steer max 42%"), "steer must reach the prompt");
+assert.ok(aceLap.includes("steer in braking 21%"));
 assert.ok(aceLap.includes("G lat 1.85g"));
 assert.ok(aceLap.includes("G lon 1.40g"));
-assert.ok(aceLap.includes("press. gomme 27.4/27.6/26.8/26.9 PSI"));
+assert.ok(aceLap.includes("tyre press. 27.4/27.6/26.8/26.9 PSI"));
 assert.ok(aceLap.includes("slip ratio 0.020/0.030/0.120/0.110"));
-assert.ok(aceLap.includes("corsa sosp. 31.0/32.0/48.0/47.0 mm"));
-assert.ok(aceLap.includes("temp. gomme 88/90/85/84 °C"));
+assert.ok(aceLap.includes("susp. travel 31.0/32.0/48.0/47.0 mm"));
+assert.ok(aceLap.includes("tyre temp. 88/90/85/84 °C"));
 
 // AMS2 has rpm, which is what switches lap-recorder's extended block on, but no
 // per-wheel channels: they arrive as [0,0,0,0] and must be omitted rather than
@@ -292,14 +317,11 @@ const ams2Lap = buildSynthesisPrompt({
     ]),
   ],
 });
-assert.ok(ams2Lap.includes("sterzo max 42%"), "steer is game-independent");
-assert.ok(
-  !ams2Lap.includes("press. gomme"),
-  "all-zero quartet must be omitted",
-);
+assert.ok(ams2Lap.includes("steer max 42%"), "steer is game-independent");
+assert.ok(!ams2Lap.includes("tyre press."), "all-zero quartet must be omitted");
 assert.ok(!ams2Lap.includes("slip ratio"));
-assert.ok(!ams2Lap.includes("corsa sosp."));
-assert.ok(!ams2Lap.includes("temp. gomme"));
+assert.ok(!ams2Lap.includes("susp. travel"));
+assert.ok(!ams2Lap.includes("tyre temp."));
 
 // AMS2's in-game HUD shows bar, unlike R3E/ACE (PSI) - the stored `tp` channel
 // stays PSI (see src/main/CLAUDE.md), only this game's prompt display converts.
@@ -316,47 +338,52 @@ const ams2PressureLap = buildSynthesisPrompt({
   }),
 });
 assert.ok(
-  ams2PressureLap.includes("press. gomme 1.89/1.90/1.85/1.85 bar"),
+  ams2PressureLap.includes("tyre press. 1.89/1.90/1.85/1.85 bar"),
   "AMS2 tyre pressure converted from PSI to bar",
 );
 assert.ok(!ams2PressureLap.includes("PSI"), "no PSI label for AMS2");
 
 // Setup proposals follow the ladder: one lever, on the current step. The old
 // "cover every area" wording must be gone from both levels.
-assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes("SOLO sulla riga da fare ora"));
-assert.ok(SESSION_SYSTEM_PROMPT.includes("riguardano SOLO quella regolazione"));
+assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes('ONLY on the row marked "do now"'));
+assert.ok(SESSION_SYSTEM_PROMPT.includes("concern ONLY that adjustment"));
 // Level 2 only: the restriction holds WHILE a current step exists (spec); with
 // every step ok / non valutabile it may propose on the other areas again.
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'Se nessuna riga della "Messa a punto di base" è da fare ora, le proposte sulle altre regolazioni stanno nella sottosezione "Assetto telaio", non qui.',
+    'If no "Base setup" row is marked "do now", the proposals on the other adjustments belong in the chassis-setup subsection, not here.',
   ),
-  "Level 2: without a current step the other areas live in Assetto telaio",
+  "Level 2: without a current step the other areas live in the chassis setup",
 );
 assert.ok(
   !SESSION_SYSTEM_PROMPT.includes(
-    "puoi dare proposte numerate anche sulle altre aree",
+    "you may give numbered proposals on the other areas too",
   ),
   "old Level 2 sentence replaced",
 );
 assert.ok(
-  !SESSION_SYSTEM_PROMPT.includes("ogni passo ok o non valutabile"),
+  !SESSION_SYSTEM_PROMPT.includes("every step ok or not assessable"),
   "old Level 2 sentence replaced",
 );
 assert.ok(
-  !SYNTHESIS_SYSTEM_PROMPT.includes("anche sulle altre aree"),
+  !SYNTHESIS_SYSTEM_PROMPT.includes("on the other areas too"),
   "Level 1 rule unchanged",
 );
-assert.ok(!SYNTHESIS_SYSTEM_PROMPT.includes("NON concentrare tutte le azioni"));
-assert.ok(!SESSION_SYSTEM_PROMPT.includes("Copri ogni area"));
-assert.ok(!SESSION_SYSTEM_PROMPT.includes("NON limitarti ai freni"));
+assert.ok(
+  !SYNTHESIS_SYSTEM_PROMPT.includes("do NOT concentrate all the actions"),
+);
+assert.ok(!SESSION_SYSTEM_PROMPT.includes("Cover every area"));
+assert.ok(
+  !SESSION_SYSTEM_PROMPT.includes("do NOT limit yourself to the brakes"),
+);
 
 // Both levels must know what the channels mean.
 for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT]) {
   assert.ok(p.includes("slip ratio"), "channel units documented");
-  assert.ok(p.includes("temp. gomme"), "tyre temp units documented");
+  assert.ok(p.includes("tyre temp."), "tyre temp units documented");
   assert.ok(p.includes(WHEEL_ORDER), "wheel order");
   assert.ok(!p.includes("ANT-SX"), "no raw wheel code in the prompt");
+  assert.ok(!/[àèéìòù]/i.test(p), "the body is English");
 }
 
 // The "Dati Calcolati" block carries the same channels. It is the block both
@@ -418,26 +445,26 @@ const statsBlock = buildSynthesisPrompt({
   alerts: statsIn.alerts,
   stats: computeSessionStats(statsIn),
 });
-const calc = statsBlock.slice(statsBlock.indexOf("## Dati Calcolati"));
+const calc = statsBlock.slice(statsBlock.indexOf("## Computed Data"));
 
 assert.ok(calc.includes("  - @150m: 1 alert"), "critical corner rendered");
 // Internal zone ids are not a race engineer's vocabulary: the model copied
 // "zona 18" into a real Level-1 analysis.
 assert.ok(!/\bzona \d/i.test(statsBlock), "no zone ids in the prompt");
-assert.ok(calc.includes("sterzo max 42%"), "steer in the authoritative block");
-assert.ok(calc.includes("sterzo in frenata 21%"));
+assert.ok(calc.includes("steer max 42%"), "steer in the authoritative block");
+assert.ok(calc.includes("steer in braking 21%"));
 assert.ok(calc.includes("G lat 1.85g"));
 assert.ok(!calc.includes("G lon"), "absent channel omitted, not zeroed");
 // A wheel with no brake sensor reads -1: the "-1 means ignore" rule lives only
 // in the Level-2 prompt, so it must never reach Level 1 as a number.
-assert.ok(calc.includes("temp. freni 612/604/n.d./n.d. °C"), "no raw -1");
-assert.ok(calc.includes("press. gomme 27.4/27.6/26.8/26.9 PSI"));
+assert.ok(calc.includes("brake temp. 612/604/n/a/n/a °C"), "no raw -1");
+assert.ok(calc.includes("tyre press. 27.4/27.6/26.8/26.9 PSI"));
 assert.ok(calc.includes("slip ratio 0.020/0.030/0.120/0.110"));
-assert.ok(calc.includes("corsa sosp. 31.0/32.0/48.0/47.0 mm"));
-assert.ok(calc.includes("temp. gomme 88/90/85/84 °C"));
+assert.ok(calc.includes("susp. travel 31.0/32.0/48.0/47.0 mm"));
+assert.ok(calc.includes("tyre temp. 88/90/85/84 °C"));
 assert.ok(
   calc.includes(
-    "Condizioni: aria 22°C, asfalto 28°C, pioggia 30%, vento 5.2 m/s, nuvolosità 60%",
+    "Conditions: air 22°C, track 28°C, rain 30%, wind 5.2 m/s, cloud cover 60%",
   ),
   "ambient conditions in the authoritative block",
 );
@@ -455,28 +482,28 @@ const ladderFixture: SetupLadder = {
   steps: [
     {
       n: 1,
-      label: "condotti freni",
+      label: "brake ducts",
       status: "ok",
-      reason: "ant 612 °C, post 548 °C, sbil. 10 %",
+      reason: "front 612 °C, rear 548 °C, imbalance 10 %",
       proposable: true,
     },
     {
       n: 2,
-      label: "bilanciamento freni",
+      label: "brake bias",
       status: "na",
-      reason: "manca lo slip",
+      reason: "slip missing",
       proposable: true,
     },
     {
       n: 4,
-      label: "pressioni",
+      label: "tyre pressures",
       status: "fix",
-      reason: "Δ ANT-SX +2.1 °C → abbassare",
+      reason: "Δ front left +2.1 °C → lower",
       proposable: true,
     },
     {
       n: 5,
-      label: "campanatura",
+      label: "camber",
       status: "ok",
       reason: "…",
       proposable: true,
@@ -489,7 +516,7 @@ const ladderFixture: SetupLadder = {
       hotPressurePsi: [29.6, 29.4, 28.3, 28.1],
       deltaC: [2.1, 1.8, 0.3, -0.2],
       innerMinusOuterC: [5, 6, 4, 4],
-      pressureState: ["alta", "alta", "ok", "ok"],
+      pressureState: ["high", "high", "ok", "ok"],
       driftPsi: null,
       coldWheels: [],
       notWarm: null,
@@ -516,48 +543,46 @@ const ladderBlock = (
 
 const lb = ladderBlock({});
 for (const s of [
-  `Messa a punto di base, in ordine (setup "Gara B", giri 4-9, 6 giudicati)`,
-  "- bilanciamento freni: non valutabile — manca lo slip",
-  "- condotti freni: ok — ant 612 °C",
-  "- pressioni: da correggere ← da fare ora — Δ ANT-SX +2.1 °C → abbassare",
-  "- campanatura: ok (da rivedere dopo: pressioni)",
-  `Gomme setup "Gara B" (6 giri giudicati) (${WHEEL_ORDER})`,
-  "press. a caldo 2.04/2.03/1.95/1.94 bar",
-  "stato alta/alta/ok/ok",
-  "interna-esterna 5.0/6.0/4.0/4.0 °C",
+  `Base setup, in order (setup "Gara B", laps 4-9, 6 judged)`,
+  "- brake bias: not assessable — slip missing",
+  "- brake ducts: ok — front 612 °C",
+  "- tyre pressures: to fix ← do now — Δ front left +2.1 °C → lower",
+  "- camber: ok (review later: tyre pressures)",
+  `Tyres, setup "Gara B" (6 judged laps) (${WHEEL_ORDER})`,
+  "hot press. 2.04/2.03/1.95/1.94 bar",
+  "state high/high/ok/ok",
+  "inner-outer 5.0/6.0/4.0/4.0 °C",
 ]) {
   assert.ok(lb.includes(s), s);
 }
-assert.ok(!lb.includes("deriva"), "null drift is omitted");
+assert.ok(!lb.includes("drift"), "null drift is omitted");
 assert.ok(
-  !lb.includes("1 condotti freni: ok (da rivedere"),
+  !lb.includes("1 brake ducts: ok (review"),
   "steps before the current one are not provisional",
 );
 assert.ok(
   ladderBlock({
     tyres: [{ ...ladderFixture.tyres[0], driftPsi: [1.2, 0, 0, -0.3] }],
-  }).includes("deriva"),
+  }).includes("drift"),
 );
 assert.ok(
-  ladderBlock({}, "ace").includes("press. a caldo 29.6/29.4/28.3/28.1 PSI"),
+  ladderBlock({}, "ace").includes("hot press. 29.6/29.4/28.3/28.1 PSI"),
   "PSI on ACE",
 );
 // R3E shows kPa in its setup screen and export: the prompt follows it.
 assert.ok(
-  ladderBlock({}, "r3e").includes("press. a caldo 204/203/195/194 kPa"),
+  ladderBlock({}, "r3e").includes("hot press. 204/203/195/194 kPa"),
   "kPa on R3E",
 );
 assert.ok(!ladderBlock({}, "r3e").includes("PSI"), "no PSI label for R3E");
 const missing = ladderBlock({ lapsMissing: 3, steps: [], current: null });
 assert.ok(
-  missing.includes(
-    `Messa a punto di base: completa ancora 3 giri con il setup "Gara B"`,
-  ),
+  missing.includes(`Base setup: complete 3 more laps with setup "Gara B"`),
 );
 // Right after a setup change the earlier segments' tyre lines are the useful
 // comparison: they are kept next to the "completa ancora" line.
 assert.ok(
-  missing.includes(`Gomme setup "Gara B" (6 giri giudicati)`),
+  missing.includes(`Tyres, setup "Gara B" (6 judged laps)`),
   "earlier tyre lines survive a short last segment",
 );
 // Step 1 already current while steps 2-6 still wait for judged laps.
@@ -569,119 +594,117 @@ const earlyDucts = ladderBlock({
 });
 assert.ok(
   earlyDucts.includes(
-    `- Messa a punto di base: condotti freni giudicati su 2 giri dopo il primo; per le altre regolazioni completa ancora 2 giri con il setup "Gara B"
-  - condotti freni: da correggere ← da fare ora`,
+    `- Base setup: brake ducts judged on 2 laps after the first; for the other adjustments complete 2 more laps with setup "Gara B"
+  - brake ducts: to fix ← do now`,
   ),
   earlyDucts,
 );
 assert.ok(
   SYNTHESIS_SYSTEM_PROMPT.includes(
-    `Se la "Messa a punto di base" chiede di completare dei giri e non ha una riga da fare ora, l'azione di setup è`,
+    `If the "Base setup" asks to complete laps and has no row marked "do now", the setup action is`,
   ),
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'Con la richiesta "completa ancora N giri" e nessuna riga da fare ora, nessuna proposta numerata.',
+    'With the request "complete N more laps" and no row marked "do now", no numbered proposals.',
   ),
 );
 const notEditable = ladderBlock({
   steps: [{ ...ladderFixture.steps[0], status: "fix", proposable: false }],
   current: null,
 });
-assert.ok(notEditable.includes("(non modificabile con Setup Fisso)"));
-assert.ok(
-  !ladderBlock(null).includes("Messa a punto di base"),
-  "no ladder, no row",
-);
+assert.ok(notEditable.includes("(not changeable with Fixed Setup)"));
+assert.ok(!ladderBlock(null).includes("Base setup"), "no ladder, no row");
 
-// Level 2: the ladder table is mandatory whenever the "Sequenza setup" row
+// Level 2: the ladder table is mandatory whenever the "Base setup" row
 // exists, loaded setup or not; the parameter table and A → B need a setup.
 const setupSub = SESSION_SYSTEM_PROMPT.slice(
-  SESSION_SYSTEM_PROMPT.indexOf("### Setup attuale vs proposto"),
-  SESSION_SYSTEM_PROMPT.indexOf("## Regole Generali"),
+  SESSION_SYSTEM_PROMPT.indexOf("Subsection: setup comparison"),
+  SESSION_SYSTEM_PROMPT.indexOf("Subsection: chassis setup"),
 );
 for (const s of [
-  `OBBLIGATORIA anche senza un setup caricato`,
-  `tabella "Regolazione | Stato | Dato"`,
-  `SOLO con un setup caricato: la tabella "Parametro | Valore | Valutazione"`,
-  `Senza setup caricato: niente tabella dei parametri e niente valori "A → B"`,
-  `indica solo la direzione`,
-  `Se la riga "Messa a punto di base" manca e nessun setup è caricato, OMETTI`,
-  `Se manca ma un setup è caricato, niente tabella delle regolazioni e niente proposte numerate`,
+  `MANDATORY even with no setup loaded`,
+  `table "Adjustment | State | Data"`,
+  `ONLY with a loaded setup: the table "Parameter | Value | Assessment"`,
+  `Without a loaded setup: no parameter table and no "A → B" values`,
+  `give only the direction`,
+  `If the "Base setup" row is missing and no setup is loaded, OMIT`,
+  `If it is missing but a setup is loaded, no adjustments table and no numbered proposals`,
 ]) {
   assert.ok(setupSub.includes(s), s);
 }
 assert.ok(
-  !setupSub.startsWith("### Setup attuale vs proposto\n(OMETTI"),
+  !setupSub.includes("Subsection: setup comparison (OMIT"),
   "the subsection is not unconditionally omittable",
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    `omissibile SOLO se manca la riga "Messa a punto di base" e nessun setup è caricato`,
+    `omittable ONLY if the "Base setup" row is missing and no setup is loaded`,
   ),
   "closing sentence matches the rule",
 );
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'e "Assetto telaio", omissibile SOLO se manca la riga "Assetto telaio".',
+    'and the chassis setup one, omittable ONLY if the "Chassis setup" row is missing.',
   ),
-  "Assetto telaio is omittable only without its row",
+  "chassis setup is omittable only without its row",
 );
 
 // Quadro assetto (Task 9): the overview reaches the stats block and both prompts.
 assert.ok(
   SYNTHESIS_SYSTEM_PROMPT.includes(
-    "l'unica azione di setup è la riga da fare ora dell'\"Assetto telaio\"",
+    'the only setup action is the row marked "do now" of the "Chassis setup"',
   ),
   "Level 1 acts on the current area",
 );
 assert.ok(
   SYNTHESIS_SYSTEM_PROMPT.includes(
-    'Senza nessuna riga da fare ora, o senza riga "Messa a punto di base"',
+    'With no row marked "do now", or without a "Base setup" row',
   ),
 );
 assert.ok(
   !SYNTHESIS_SYSTEM_PROMPT.includes(
-    'Senza passo corrente, o senza riga "Sequenza setup", nessuna azione di setup.',
+    'Without a current step, or without a "Setup ladder" row, no setup action.',
   ),
   "old Level 1 sentence replaced",
 );
 // Level 1 on the current area: the row's value wins, the front bar, the first direction.
 for (const s of [
-  "se la riga dà il valore (molle), B è quel valore",
-  "per le barre antirollio proponi la barra anteriore",
-  "se la riga indica più direzioni, usa la prima",
+  "if the row gives the value (springs), B is that value",
+  "for the anti-roll bars propose the front bar",
+  "if the row gives several directions, use the first",
 ]) {
   assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes(s), s);
 }
 assert.ok(
   !SYNTHESIS_SYSTEM_PROMPT.includes(
-    "stesse regole su A → B e sul passo minimo",
+    "same rules on A → B and on the minimum step",
   ),
   "Level 1 no longer overrides the computed spring value",
 );
 // Level 2 Quadro: no proposal on a Fixed Setup area.
 assert.ok(
   SESSION_SYSTEM_PROMPT.includes(
-    'Nessuna proposta per le righe marcate "non modificabile con Setup Fisso".',
+    'No proposal for the rows marked "not changeable with Fixed Setup".',
   ),
 );
 assert.deepEqual(roots(SESSION_SYSTEM_PROMPT), [
-  "FORMATO OBBLIGATORIO",
-  "Regole Generali",
+  "REQUIRED FORMAT",
+  "General Rules",
+  "In-depth analysis",
 ]); // no new root
 const overviewFixture: SetupOverview = {
   areas: [
     {
       n: 1,
-      label: "molle",
+      label: "springs",
       status: "fix",
-      reason: "rapporto molle 1.00, pesi 1.28 → molle posteriori 289 N/mm",
+      reason: "spring ratio 1.00, weights 1.28 → rear springs 289 N/mm",
       proposable: true,
     },
     {
       n: 2,
-      label: "altezze e rake",
+      label: "ride heights and rake",
       status: "ok",
       reason: "min 12 mm",
       proposable: true,
@@ -690,7 +713,7 @@ const overviewFixture: SetupOverview = {
       n: 3,
       label: "bumpstop",
       status: "na",
-      reason: "nessun contatto misurato",
+      reason: "no contact measured",
       proposable: false,
     },
   ],
@@ -699,11 +722,11 @@ const overviewFixture: SetupOverview = {
   weight: {
     known: true,
     frontPct: 43.8,
-    source: "tabella AMS2",
+    source: "AMS2 table",
     aeroFrontPct: null,
     fuelL: null,
   },
-  tyreLine: "ant−post +6.2 °C, sx−dx −1.0 °C",
+  tyreLine: "front−rear +6.2 °C, left−right −1.0 °C",
 };
 const ovBlock = (
   over: Partial<SetupOverview> | null,
@@ -720,52 +743,52 @@ const ovBlock = (
   );
 const ov = ovBlock({});
 for (const x of [
-  "- Assetto telaio, in ordine (pesi ant 43.8 % da tabella AMS2):",
-  "- molle: da correggere ← da fare ora — rapporto molle 1.00, pesi 1.28 → molle posteriori 289 N/mm",
-  "- altezze e rake: ok — min 12 mm",
-  "- bumpstop: non valutabile — nessun contatto misurato (non modificabile con Setup Fisso)",
-  "Calore gomme: ant−post +6.2 °C, sx−dx −1.0 °C",
+  "- Chassis setup, in order (weights front 43.8 % from AMS2 table):",
+  "- springs: to fix ← do now — spring ratio 1.00, weights 1.28 → rear springs 289 N/mm",
+  "- ride heights and rake: ok — min 12 mm",
+  "- bumpstop: not assessable — no contact measured (not changeable with Fixed Setup)",
+  "Tyre heat: front−rear +6.2 °C, left−right −1.0 °C",
 ]) {
   assert.ok(ov.includes(x), x);
 }
 assert.ok(
-  ov.indexOf("Messa a punto di base") < ov.indexOf("Assetto telaio"),
+  ov.indexOf("Base setup") < ov.indexOf("Chassis setup"),
   "overview follows the ladder",
 );
 const ovAfter = ovBlock({ afterLadder: true, current: null });
 assert.ok(
   ovAfter.includes(
-    "- altezze e rake: ok — min 12 mm (da rivedere dopo la messa a punto di base)",
+    "- ride heights and rake: ok — min 12 mm (review after the base setup)",
   ),
 );
-assert.ok(!ovAfter.includes("da fare ora"));
+assert.ok(!ovAfter.includes("do now"));
 assert.ok(
   ovBlock({
     weight: {
       known: true,
       frontPct: 47.2,
-      source: "misurata",
+      source: "measured",
       aeroFrontPct: 38.4871,
       fuelL: 40.3,
     },
   }).includes(
-    "(pesi ant 47.2 % misurata, carburante medio 40 L, carico aerodinamico ant 38.5 %)",
+    "(weights front 47.2 % measured, mean fuel 40 L, front aero load 38.5 %)",
   ),
 );
 assert.ok(
   ovBlock({
-    weight: { known: false, reason: "carico ruota non disponibile" },
-  }).includes("(pesi sconosciuti: carico ruota non disponibile)"),
+    weight: { known: false, reason: "wheel load not available" },
+  }).includes("(weights unknown: wheel load not available)"),
 );
-assert.ok(!ovBlock({ tyreLine: null }).includes("Calore gomme"));
+assert.ok(!ovBlock({ tyreLine: null }).includes("Tyre heat"));
 assert.ok(
-  !ovBlock(null, {}, "r3e").includes("Assetto telaio"),
+  !ovBlock(null, {}, "r3e").includes("Chassis setup"),
   "no overview, no row",
 );
 // Controller ruling: while the ladder still asks for laps, the overview is not printed.
 assert.ok(
   !ovBlock({}, { lapsMissing: 2, steps: [], current: null }).includes(
-    "Assetto telaio",
+    "Chassis setup",
   ),
   "no overview while laps are missing",
 );
@@ -777,9 +800,9 @@ const asym = buildStatsBlock({
   slipAsymFrontThrottle: 0.05,
   slipAsymFrontRelease: 0.04,
 });
-assert.ok(asym.includes("Asimmetria corsa sospensione"));
-assert.ok(!asym.includes("verifica camber"));
-assert.ok(!asym.includes("verifica differenziale"));
+assert.ok(asym.includes("Suspension travel asymmetry"));
+assert.ok(!asym.includes("check camber"));
+assert.ok(!asym.includes("check differential"));
 
 // Fixed Setup: the ladder shows steps 1-2 only, and the context says so.
 const fixedCtx = buildSessionPrompt({
@@ -788,14 +811,12 @@ const fixedCtx = buildSessionPrompt({
   fixedSetup: true,
 });
 assert.ok(
-  fixedCtx.includes(
-    "La messa a punto di base valuta solo il bilanciamento freni",
-  ),
+  fixedCtx.includes("The base setup judges only the brake bias"),
   "fixed setup wording",
 );
 
 // Alert codes never reach the prompt: the analysis text is rendered, exported to
-// PDF and read aloud, and "LATE_BRAKE" is unpronounceable in an Italian sentence.
+// PDF and read aloud, and "LATE_BRAKE" is unpronounceable in a spoken sentence.
 assert.ok(calc.includes("1 alert (frenata tardiva×1)"), "alert type decoded");
 assert.ok(!calc.includes("LATE_BRAKE"), "no raw alert code in the prompt");
 
@@ -814,7 +835,7 @@ const filler = "x".repeat(PRIOR_DETAIL_MAX_CHARS);
 const longDetail = [
   "### Analisi telemetria",
   filler,
-  "### Setup attuale vs proposto",
+  "### Current vs proposed setup",
   "Pressione FL: 160 -> 158 kPa",
   "#### Dettaglio",
   "altro",
@@ -823,28 +844,37 @@ const longDetail = [
 ].join("\n");
 const capped = capPriorDetail(longDetail);
 assert.ok(
-  capped.startsWith("### Setup attuale vs proposto"),
+  capped.startsWith("### Current vs proposed setup"),
   capped.slice(0, 40),
 );
 assert.ok(capped.includes("Pressione FL: 160 -> 158 kPa"));
 assert.ok(capped.includes("#### Dettaglio"));
 assert.ok(!capped.includes("da scartare") && !capped.includes("xxx"));
+// A deep-dive written in another language is recognised by its own heading.
+const cappedDe = capPriorDetail(
+  longDetail.replace(
+    "Current vs proposed setup",
+    "Setup aktuell vs. vorgeschlagen",
+  ),
+);
+assert.ok(cappedDe.startsWith("### Setup aktuell vs. vorgeschlagen"));
+assert.ok(cappedDe.includes("Pressione FL: 160 -> 158 kPa"));
 // No setup subsection: the head of the text, bounded.
 assert.ok(capPriorDetail(filler + filler).length < PRIOR_DETAIL_MAX_CHARS + 40);
 
 console.log("prompt-builder.selfcheck OK");
 
 // The data the model writes from carries none of the procedure's jargon: a
-// race engineer never says "scaletta", "sequenza", "quadro", "passo N", "area N".
+// race engineer never says "ladder", "sequence", "overview", "step N", "area N".
 const JARGON =
-  /scalett|sequenz|quadro|passo corrente|area corrente|\bpass[oi] \d|\barea \d|vedi area/i;
+  /ladder|sequence|overview|current step|current area|\bsteps? \d|\barea \d|see area|Frezza/i;
 for (const block of [lb, earlyDucts, ov, ovAfter])
   assert.ok(!JARGON.test(block), block.match(JARGON)?.[0]);
 
 // No shouting either: states and markers reach the model in lower case, so it
 // never copies an all-caps label into the analysis; both prompts forbid it.
-const SHOUT = /\b(DA CORREGGERE|NON VALUTABIL[EI]|DA FARE ORA|ATTIV[AO])\b/;
+const SHOUT = /\b(TO FIX|NOT ASSESSABLE|DO NOW|ACTIVE)\b/;
 for (const block of [lb, earlyDucts, ov, ovAfter, fixedCtx])
   assert.ok(!SHOUT.test(block), block.match(SHOUT)?.[0]);
 for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT])
-  assert.ok(p.includes("Mai parole o frasi intere in maiuscolo"));
+  assert.ok(p.includes("Never whole words or sentences in capitals"));

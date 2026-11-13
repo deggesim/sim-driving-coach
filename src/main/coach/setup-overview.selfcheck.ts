@@ -76,7 +76,7 @@ const ladderOk: SetupLadder = {
 const w438: WeightDistribution = {
   known: true,
   frontPct: 43.8,
-  source: "tabella AMS2",
+  source: "AMS2 table",
   aeroFrontPct: null,
   fuelL: null,
 };
@@ -87,7 +87,7 @@ const base = {
   zones: [z({})],
   judgedLaps: 5,
   ladder: ladderOk,
-  weight: { known: false, reason: "carico ruota non disponibile" },
+  weight: { known: false, reason: "wheel load not available" },
   levers: null,
   fixedSetup: false,
   leaderboardMode: false,
@@ -131,7 +131,7 @@ const old = computeSetupOverview({
   ...base,
   zones: [preQuadroZone],
   levers: null,
-  weight: { known: false, reason: "carico ruota non disponibile" },
+  weight: { known: false, reason: "wheel load not available" },
 });
 assert.equal(old.areas.length, 8);
 assert.deepEqual(
@@ -147,10 +147,10 @@ assert.equal(old.current, null);
 assert.equal(old.afterLadder, false);
 assert.equal(
   area(old, 2).reason,
-  "altezza da terra non disponibile · molle non verificate",
+  "ride height not available · springs not verified",
 );
-assert.ok(!area(old, 6).reason.includes("vedi altezze e rake"));
-assert.equal(area(old, 8).reason, "nessuna curva lenta o veloce misurata");
+assert.ok(!area(old, 6).reason.includes("see ride heights and rake"));
+assert.equal(area(old, 8).reason, "no slow or fast corner measured");
 assert.equal(
   computeSetupOverview({ ...base, zones: [legacyZone] }).tyreLine,
   null,
@@ -165,7 +165,7 @@ const springs = computeSetupOverview({
 });
 assert.equal(area(springs, 1).status, "fix");
 assert.ok(
-  area(springs, 1).reason.includes("molle posteriori 289 N/mm"),
+  area(springs, 1).reason.includes("rear springs 289 N/mm"),
   area(springs, 1).reason,
 );
 assert.equal(springs.current, 1);
@@ -173,7 +173,7 @@ assert.equal(springs.current, 1);
 const measured = area(
   computeSetupOverview({
     ...base,
-    weight: { ...w438, source: "misurata" },
+    weight: { ...w438, source: "measured" },
     levers: springsOff,
   }),
   1,
@@ -181,7 +181,7 @@ const measured = area(
 assert.equal(measured.status, "ok");
 assert.ok(
   measured.reason.includes(
-    "l'isofrequenza darebbe molle posteriori 289 N/mm, non proposto",
+    "isofrequency would give rear springs 289 N/mm, not proposed",
   ),
   measured.reason,
 );
@@ -208,12 +208,12 @@ const asym = area(
   1,
 );
 assert.equal(asym.status, "ok");
-assert.ok(!asym.reason.includes("uguagliare"));
+assert.ok(!asym.reason.includes("equalise"));
 // Weight unknown → na with the weight's reason; springs absent → na; a zero spring → na.
 assert.equal(area(old, 1).status, "na");
 assert.equal(
   area(computeSetupOverview({ ...base, weight: w438, levers: {} }), 1).reason,
-  "parametro non presente nel setup caricato",
+  "parameter not present in the loaded setup",
 );
 assert.equal(
   area(
@@ -230,14 +230,14 @@ assert.ok(
   area(
     computeSetupOverview({ ...base, levers: springsOff }),
     1,
-  ).reason.includes("carico ruota non disponibile"),
+  ).reason.includes("wheel load not available"),
 );
-// Springs na → areas 2-5 say "molle non verificate"; with springs judged they do not.
-assert.ok(area(old, 3).reason.includes("molle non verificate"));
+// Springs na → areas 2-5 say "springs not verified"; with springs judged they do not.
+assert.ok(area(old, 3).reason.includes("springs not verified"));
 for (const n of [2, 3, 4, 5])
-  assert.ok(area(old, n).reason.includes("molle non verificate"));
-assert.ok(!area(old, 6).reason.includes("molle non verificate"));
-assert.ok(!area(springs, 3).reason.includes("molle non verificate"));
+  assert.ok(area(old, n).reason.includes("springs not verified"));
+assert.ok(!area(old, 6).reason.includes("springs not verified"));
+assert.ok(!area(springs, 3).reason.includes("springs not verified"));
 
 // Bumpstop: 2 upsetting events in 5 judged laps (0.4 > 0.1), front → fix with the conditional fallback.
 const bump = withZones(
@@ -249,14 +249,14 @@ const bump = withZones(
 assert.equal(area(bump, 3).status, "fix");
 assert.ok(
   area(bump, 3).reason.startsWith(
-    "2 tocchi del fondo che scompongono l'auto in 5 giri, asse anteriore → avvicinare il bumpstop anteriore",
+    "2 floor touches upsetting the car in 5 laps, front axle → bring the front bumpstop closer",
   ),
   area(bump, 3).reason,
 );
 assert.ok(
-  area(bump, 3).reason.includes("se l'auto non ha bumpstop regolabili"),
+  area(bump, 3).reason.includes("if the car has no adjustable bumpstops"),
 );
-assert.ok(area(bump, 2).reason.includes("vedi bumpstop"));
+assert.ok(area(bump, 2).reason.includes("see bumpstop"));
 assert.equal(area(bump, 2).status, "ok", "a cited symptom never fixes area 2");
 // Touches that do not upset the car: ok.
 assert.equal(
@@ -282,7 +282,7 @@ const high = area(
 assert.equal(high.status, "fix");
 assert.ok(
   high.reason.startsWith(
-    "altezza minima ant 18 mm, post 22 mm, nessun tocco del fondo → abbassare di un click, stessi mm sui due assi",
+    "minimum height front 18 mm, rear 22 mm, no floor touch → lower by one click, the same mm on both axles",
   ),
   high.reason,
 );
@@ -297,8 +297,8 @@ const entryUnder = withZones(
   }),
 );
 assert.equal(area(entryUnder, 2).status, "fix");
-assert.ok(area(entryUnder, 2).reason.includes("più rake"));
-assert.ok(area(entryUnder, 6).reason.includes("vedi altezze e rake"));
+assert.ok(area(entryUnder, 2).reason.includes("more rake"));
+assert.ok(area(entryUnder, 6).reason.includes("see ride heights and rake"));
 assert.notEqual(area(entryUnder, 6).status, "fix");
 // With ABS dominant (30 % of the hard-brake frames) the same understeer is the
 // ladder's step 2: no rake here, and area 6 does not cite area 2.
@@ -313,10 +313,8 @@ const absEntry = withZones(
   }),
 );
 assert.equal(area(absEntry, 2).status, "ok");
-assert.ok(
-  area(absEntry, 2).reason.includes("va corretto con il bilanciamento freni"),
-);
-assert.ok(!area(absEntry, 6).reason.includes("vedi altezze e rake"));
+assert.ok(area(absEntry, 2).reason.includes("fix it with the brake bias"));
+assert.ok(!area(absEntry, 6).reason.includes("see ride heights and rake"));
 
 // Terze molle (4): a touch on a fast straight → stiffer third spring; straight
 // 10+ mm higher than mid-corner → softer; neither → ok.
@@ -328,15 +326,15 @@ const third = withZones(
 );
 assert.equal(area(third, 4).status, "fix");
 assert.ok(
-  area(third, 4).reason.includes("irrigidire la terza molla posteriore"),
+  area(third, 4).reason.includes("stiffen the rear third spring"),
   area(third, 4).reason,
 );
 assert.ok(
-  area(third, 4).reason.startsWith("1 tocco del fondo in rettilineo veloce"),
+  area(third, 4).reason.startsWith("1 floor touch on the fast straight"),
 );
-assert.ok(area(third, 4).reason.includes("avvicinare i bumpstop posteriori"));
+assert.ok(area(third, 4).reason.includes("bring the rear bumpstops closer"));
 for (const n of [2, 3, 8])
-  assert.ok(area(third, n).reason.includes("vedi terze molle"));
+  assert.ok(area(third, n).reason.includes("see third springs"));
 // Each area names the axle of its own phase: front upsetting brake touches,
 // rear straight touches (more touches on the front overall).
 const byPhase = withZones(
@@ -354,12 +352,12 @@ const byPhase = withZones(
     },
   }),
 );
-assert.ok(area(byPhase, 3).reason.includes("asse anteriore"));
+assert.ok(area(byPhase, 3).reason.includes("front axle"));
 assert.ok(
-  area(byPhase, 4).reason.includes("irrigidire la terza molla posteriore"),
+  area(byPhase, 4).reason.includes("stiffen the rear third spring"),
   area(byPhase, 4).reason,
 );
-// Straight touches and a straight 15 mm above mid-corner: only "irrigidire".
+// Straight touches and a straight 15 mm above mid-corner: only "stiffen".
 const both = area(
   withZones(
     z({
@@ -376,10 +374,10 @@ const both = area(
   ),
   4,
 );
-assert.ok(both.reason.includes("irrigidire"));
-assert.ok(!both.reason.includes("ammorbidire"), both.reason);
+assert.ok(both.reason.includes("stiffen"));
+assert.ok(!both.reason.includes("soften"), both.reason);
 // A rolled mid-corner (outside wheel low, inside high) with the straight's axle
-// mean, through the real counters: no "ammorbidire".
+// mean, through the real counters: no "soften".
 const rolled = chassisCounters(
   Array.from({ length: 20 }, (_, i) => ({
     d: i,
@@ -400,7 +398,7 @@ const rolled = chassisCounters(
 ).get(0)!;
 const rolledArea = area(withZones(z({ ...rolled })), 4);
 assert.equal(rolledArea.status, "ok", rolledArea.reason);
-assert.ok(!rolledArea.reason.includes("ammorbidire"));
+assert.ok(!rolledArea.reason.includes("soften"));
 const thirdSoft = area(
   withZones(
     z({
@@ -418,7 +416,7 @@ const thirdSoft = area(
   4,
 );
 assert.equal(thirdSoft.status, "fix");
-assert.ok(thirdSoft.reason.includes("ammorbidire le terze molle"));
+assert.ok(thirdSoft.reason.includes("soften the third springs"));
 assert.equal(
   area(
     withZones(
@@ -444,11 +442,11 @@ assert.equal(
 // a legitimate choice (front/rear always, left/right on one-way tracks).
 const noSetup = area(withZones(z({})), 5);
 assert.equal(noSetup.status, "na");
-assert.ok(noSetup.reason.startsWith("nessun setup caricato"));
+assert.ok(noSetup.reason.startsWith("no setup loaded"));
 const noDampers = area(computeSetupOverview({ ...base, levers: {} }), 5);
 assert.equal(noDampers.status, "na");
 assert.ok(
-  noDampers.reason.startsWith("parametro non presente nel setup caricato"),
+  noDampers.reason.startsWith("parameter not present in the loaded setup"),
 );
 const shown = area(
   computeSetupOverview({
@@ -460,7 +458,7 @@ const shown = area(
 assert.equal(shown.status, "na");
 assert.ok(
   shown.reason.startsWith(
-    "slow bump ant 12/12 post 8/8, slow rebound ant 10/11 post 9/9; non giudicati: nessun criterio affidabile dalla telemetria",
+    "slow bump front 12/12 rear 8/8, slow rebound front 10/11 rear 9/9; not judged: no reliable criterion from the telemetry",
   ),
   shown.reason,
 );
@@ -468,7 +466,7 @@ assert.ok(
 // Convergenze (7): 7 reversals/km over 3 km → fix; 5/km → ok; under 2 km → na.
 const weave = withZones(z({ straightSteer: { metres: 3000, reversals: 21 } }));
 assert.equal(area(weave, 7).status, "fix");
-assert.ok(area(weave, 7).reason.includes("più convergenza anteriore"));
+assert.ok(area(weave, 7).reason.includes("more front toe-in"));
 assert.equal(
   area(withZones(z({ straightSteer: { metres: 3000, reversals: 15 } })), 7)
     .status,
@@ -492,16 +490,14 @@ const slowUnder = withZones(
 );
 assert.equal(area(slowUnder, 6).status, "fix");
 assert.ok(
-  area(slowUnder, 6).reason.includes(
-    "barra anteriore più morbida o posteriore più rigida",
-  ),
+  area(slowUnder, 6).reason.includes("softer front bar or stiffer rear bar"),
 );
 assert.ok(
-  area(slowUnder, 6).reason.includes("conferma: anteriori più calde di 6.0 °C"),
+  area(slowUnder, 6).reason.includes("confirmed: front hotter by 6.0 °C"),
   area(slowUnder, 6).reason,
 );
-assert.ok(area(slowUnder, 7).reason.includes("vedi barre antirollio"));
-assert.equal(slowUnder.tyreLine, "ant−post +6.0 °C, sx−dx +0.0 °C");
+assert.ok(area(slowUnder, 7).reason.includes("see anti-roll bars"));
+assert.equal(slowUnder.tyreLine, "front−rear +6.0 °C, left−right +0.0 °C");
 
 // Aero: the same mid-corner symptom in the fast corners but not in the slow ones.
 const speedClasses = {
@@ -518,14 +514,14 @@ const aeroUnder = withZones(z({ ...speedClasses, cornersFastUnder: 4 }));
 assert.equal(area(aeroUnder, 8).status, "fix");
 assert.ok(
   area(aeroUnder, 8).reason.startsWith(
-    "sottosterzo a centro curva in 4/5 curve veloci e 1/6 lente",
+    "mid-corner understeer in 4/5 fast corners and 1/6 slow",
   ),
   area(aeroUnder, 8).reason,
 );
-assert.ok(area(aeroUnder, 8).reason.includes("più carico anteriore"));
+assert.ok(area(aeroUnder, 8).reason.includes("more front downforce"));
 const aeroOver = area(withZones(z({ ...speedClasses, cornersFastOver: 3 })), 8);
 assert.equal(aeroOver.status, "fix");
-assert.ok(aeroOver.reason.includes("più carico posteriore"), aeroOver.reason);
+assert.ok(aeroOver.reason.includes("more rear downforce"), aeroOver.reason);
 // Understeer in fast AND slow corners is area 6's symptom, not aero.
 const underEverywhere = withZones(
   z({ ...speedClasses, cornersFastUnder: 4, cornersSlowUnder: 4 }),
@@ -540,7 +536,7 @@ assert.equal(
 // Aero na: the real counts when too few.
 assert.equal(
   area(withZones(z({ ...speedClasses, cornersSlow: 2 })), 8).reason,
-  "curve lente 2, veloci 5: ne servono almeno 3 per classe",
+  "slow corners 2, fast 5: at least 3 per class needed",
 );
 // Fast corners recorded without their balance counters: na, never a 0/N.
 assert.equal(
@@ -554,10 +550,10 @@ assert.equal(
     ),
     8,
   ).reason,
-  "bilanciamento delle curve veloci non registrato",
+  "fast-corner balance not recorded",
 );
 assert.equal(area(withZones(z(speedClasses)), 8).status, "ok");
-assert.ok(area(aeroUnder, 6).reason.includes("vedi aerodinamica"));
+assert.ok(area(aeroUnder, 6).reason.includes("see aerodynamics"));
 assert.equal(area(aeroUnder, 6).status, "ok");
 
 // Ladder with a current step: areas computed, no current area.
@@ -593,7 +589,7 @@ assert.equal(fixed.current, null);
 assert.equal(base.zones.length, 1);
 assert.equal(
   computeSetupOverview(base).tyreLine,
-  "ant−post +0.0 °C, sx−dx +0.0 °C",
+  "front−rear +0.0 °C, left−right +0.0 °C",
 );
 assert.equal(
   computeSetupOverview({ ...base, leaderboardMode: true }).tyreLine,
@@ -629,13 +625,13 @@ const lowerWith = (params: SetupParam[], game: "r3e" | "ace" = "r3e") =>
   );
 // Free to lower: unchanged.
 assert.equal(lowerWith(rhParams()).status, "fix");
-// The R3E Porsche of 2026-10-27: front already at its lowest. "Stessi mm sui
-// due assi" needs both axles, so the fix cannot be applied: ok with the note.
+// The R3E Porsche of 2026-10-27: front already at its lowest. "The same mm on
+// both axles" needs both axles, so the fix cannot be applied: ok with the note.
 const frontAtMin = lowerWith(rhParams("min"));
 assert.equal(frontAtMin.status, "ok");
 assert.ok(
   frontAtMin.reason.includes(
-    "abbassare di un click, stessi mm sui due assi: già a fondo scala",
+    "lower by one click, the same mm on both axles: already at end of range",
   ),
   frontAtMin.reason,
 );

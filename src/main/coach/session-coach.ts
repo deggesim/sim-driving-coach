@@ -9,12 +9,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type Database from "better-sqlite3";
 import {
-  COMMENT_SYSTEM_PROMPT,
-  SESSION_SYSTEM_PROMPT,
-  SYNTHESIS_SYSTEM_PROMPT,
   buildCommentPrompt,
   buildSessionPrompt,
   buildSynthesisPrompt,
+  commentSystemPrompt,
+  sessionSystemPrompt,
+  synthesisSystemPrompt,
 } from "./prompt-builder.js";
 import { computeSessionStats } from "./session-stats.js";
 import {
@@ -23,6 +23,7 @@ import {
   tyreTempsFixed,
 } from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
+import { getLanguage, tm } from "../i18n-main.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 import {
   parseAnalysisComments,
@@ -67,12 +68,12 @@ export const buildAnthropicErrorMessage = (err: unknown): string => {
     msg.includes("invalid") ||
     msg.includes("api key")
   ) {
-    return "API Anthropic: chiave non valida. Verifica nelle impostazioni.";
+    return tm("coach.error.invalidKey");
   }
   if (msg.includes("429") || msg.includes("rate") || msg.includes("too many")) {
-    return "API Anthropic: limite di frequenza superato. Riprova tra qualche istante.";
+    return tm("coach.error.rateLimit");
   }
-  return "API Anthropic: credito insufficiente o quota esaurita. Controlla il saldo su console.anthropic.com.";
+  return tm("coach.error.quota");
 };
 
 type SessionCoachOptions = {
@@ -338,7 +339,7 @@ export const createSessionCoachEngine = (
         const msg = await client.messages.create({
           model,
           max_tokens: 4000,
-          system: SYNTHESIS_SYSTEM_PROMPT,
+          system: synthesisSystemPrompt(getLanguage()),
           messages: [{ role: "user", content: prompt }],
         });
         // Decoded here, before stripVoiceTag/extractVoiceSummary: the codes must
@@ -351,9 +352,7 @@ export const createSessionCoachEngine = (
         // A truncated Level 1 can also lose the <sintesi-vocale> block, which
         // would leave the post-analysis TTS silent with no visible cause.
         if (msg.stop_reason === "max_tokens") {
-          options.onError?.(
-            "Sintesi troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riesegui l'analisi.",
-          );
+          options.onError?.(tm("coach.error.synthesisTruncated"));
         }
       } catch (err) {
         console.error("[SessionCoach] Claude API error:", err);
@@ -483,7 +482,7 @@ export const createSessionCoachEngine = (
           .messages.create({
             model: useModel,
             max_tokens: 32000,
-            system: SESSION_SYSTEM_PROMPT,
+            system: sessionSystemPrompt(getLanguage()),
             messages: [{ role: "user", content: prompt }],
           });
         fullText = decodeAlertCodes(
@@ -503,9 +502,7 @@ export const createSessionCoachEngine = (
         );
 
         if (finalMsg.stop_reason === "max_tokens") {
-          options.onError?.(
-            "Analisi approfondita troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riprova.",
-          );
+          options.onError?.(tm("coach.error.detailTruncated"));
         }
       } catch (err) {
         console.error("[SessionCoach] expand API error:", err);
@@ -556,7 +553,7 @@ export const createSessionCoachEngine = (
       if (!row) return null;
 
       const priorComments = parseAnalysisComments(row.comments_json);
-      // Same "Dati Calcolati" block the analysis itself was built from: a
+      // Same "Computed Data" block the analysis itself was built from: a
       // driver comment can ask about a computed fact (e.g. temperatura,
       // meteo) that never made it into the rendered synthesis/detail text,
       // which is otherwise all this prompt would have to work with.
@@ -592,7 +589,7 @@ export const createSessionCoachEngine = (
         const msg = await client.messages.create({
           model,
           max_tokens: 2000,
-          system: COMMENT_SYSTEM_PROMPT,
+          system: commentSystemPrompt(getLanguage()),
           messages: [{ role: "user", content: prompt }],
         });
         responseText = decodeAlertCodes(

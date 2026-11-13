@@ -58,7 +58,7 @@ const R = (x: number) => 7600 + 0.16 * x;
 
 const synth = [zone(sums(s1, F, R, 40)), zone(sums(s2, F, R, 30)), zone()];
 const m = weightDistribution("r3e", synth, null);
-assert.ok(m.known && m.source === "misurata");
+assert.ok(m.known && m.source === "measured");
 assert.ok(m.known && Math.abs(m.frontPct - 44.12) < 0.05); // 6000 / 13600
 assert.ok(m.known && Math.abs(m.aeroFrontPct! - 38.46) < 0.05); // 0.10 / 0.26
 assert.ok(m.known && m.fuelL !== null && Math.abs(m.fuelL - 35) < 1e-9);
@@ -93,7 +93,7 @@ for (const [f, r] of [
 
 assert.deepEqual(
   weightDistribution("ace", [zone(sums(speeds.slice(0, 50), F, R))], null),
-  { known: false, reason: "meno di 300 campioni in linea retta" },
+  { known: false, reason: "fewer than 300 straight-line samples" },
 );
 // Only fast samples (40..60 m/s): the intercept is an extrapolation, no answer.
 assert.deepEqual(
@@ -113,14 +113,14 @@ assert.deepEqual(
   {
     known: false,
     reason:
-      "meno di 20 campioni in linea retta sotto i 120 km/h (basta un passaggio in corsia box)",
+      "fewer than 20 straight-line samples below 120 km/h (one pass down the pit lane is enough)",
   },
 );
 assert.deepEqual(
   weightDistribution("r3e", [zone(sums(Array(400).fill(30), F, R))], null),
-  { known: false, reason: "campioni tutti alla stessa velocità" },
+  { known: false, reason: "all samples at the same speed" },
 );
-const noLoad = { known: false, reason: "carico ruota non disponibile" };
+const noLoad = { known: false, reason: "wheel load not available" };
 assert.deepEqual(weightDistribution("r3e", [zone()], null), noLoad);
 assert.deepEqual(weightDistribution("r3e", [], null), noLoad);
 assert.deepEqual(
@@ -171,7 +171,7 @@ assert.deepEqual(
     ],
     null,
   ),
-  { known: false, reason: "distribuzione misurata non plausibile" },
+  { known: false, reason: "measured distribution not plausible" },
 );
 
 // AMS2 never measures: table only, even when sums exist.
@@ -180,14 +180,14 @@ assert.deepEqual(
   {
     known: true,
     frontPct: 43.8,
-    source: "tabella AMS2",
+    source: "AMS2 table",
     aeroFrontPct: null,
     fuelL: null,
   },
 );
 assert.deepEqual(weightDistribution("ams2", synth, null), {
   known: false,
-  reason: "auto non presente nella tabella AMS2",
+  reason: "car not in the AMS2 table",
 });
 
 console.log("weight-distribution selfcheck OK");

@@ -25,15 +25,12 @@ export const ALERT_LABELS: Record<AlertType, string> = {
  * Feminine ("ruota") also in the brake temp line: it is a position label, and a
  * second masculine map just for the brakes is not worth its weight.
  */
-export const WHEEL_LABELS = {
+const WHEEL_LABELS = {
   "ANT-SX": "anteriore sinistra",
   "ANT-DX": "anteriore destra",
   "POST-SX": "posteriore sinistra",
   "POST-DX": "posteriore destra",
 } as const;
-
-/** Wheel order legend, one source for every prompt line printing a quartet. */
-export const WHEEL_ORDER = Object.values(WHEEL_LABELS).join("/");
 
 const DECODE: Record<string, string> = { ...ALERT_LABELS, ...WHEEL_LABELS };
 const CODE_RE = new RegExp(`\\b(?:${Object.keys(DECODE).join("|")})\\b`, "g");

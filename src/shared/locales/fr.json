@@ -15,5 +15,57 @@
     "maximizeLabel": "Agrandir la fenêtre",
     "close": "Fermer",
     "closeLabel": "Fermer la fenêtre"
+  },
+  "analysis": {
+    "heading": {
+      "synthesis": "Analyse synthétique",
+      "actions": "Actions suggérées",
+      "detail": "Analyse approfondie",
+      "telemetry": "Analyse de la télémétrie",
+      "problems": "Problèmes identifiés",
+      "setupCompare": "Setup actuel vs proposé",
+      "chassis": "Setup du châssis"
+    },
+    "forbidden": "échelle, séquence, tableau, étape, zone, Réglage de base, Setup du châssis, à faire maintenant, Frezza",
+    "glossary": "brake ducts = conduits de frein; camber = carrossage; ride height = garde au sol; rake = rake; bumpstop = bumpstop; third spring = troisième ressort; anti-roll bar = barre antiroulis; toe = parallélisme; caster = chasse; understeer = sous-virage; oversteer = survirage; preload = précontrainte; trail braking = trail braking"
+  },
+  "coach": {
+    "stintReady": "Relais analysable : {{laps}} tours jugés.",
+    "firstFix": "Première correction : {{label}}.",
+    "noFix": "Aucune correction à faire.",
+    "tyresNotWarm": "Pneus pas à température : pressions et carrossage non jugés.",
+    "wheelsNotWarm": "Roues pas à température et non jugées : {{wheels}}.",
+    "stintReadyTail": "Tu peux te mettre en pause et lancer l'analyse.",
+    "wheel": {
+      "fl": "avant gauche",
+      "fr": "avant droite",
+      "rl": "arrière gauche",
+      "rr": "arrière droite"
+    },
+    "step": {
+      "ducts": "conduits de frein",
+      "bias": "répartition de freinage",
+      "engine": "frein moteur",
+      "pressures": "pressions",
+      "camber": "carrossage",
+      "differential": "différentiel"
+    },
+    "area": {
+      "springs": "ressorts",
+      "heights": "hauteurs et rake",
+      "bumpstops": "bumpstops",
+      "thirds": "troisièmes ressorts",
+      "dampers": "amortisseurs",
+      "bars": "barres antiroulis",
+      "toe": "parallélisme",
+      "aero": "aérodynamique"
+    },
+    "error": {
+      "invalidKey": "API Anthropic : clé invalide. Vérifie-la dans les réglages.",
+      "rateLimit": "API Anthropic : limite de fréquence dépassée. Réessaie dans quelques instants.",
+      "quota": "API Anthropic : crédit insuffisant ou quota épuisé. Vérifie ton solde sur console.anthropic.com.",
+      "synthesisTruncated": "Synthèse tronquée : limite de tokens atteinte. Le texte partiel a été enregistré ; relance l'analyse.",
+      "detailTruncated": "Analyse approfondie tronquée : limite de tokens atteinte. Le texte partiel a été enregistré ; réessaie."
+    }
   }
 }

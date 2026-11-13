@@ -15,5 +15,57 @@
     "maximizeLabel": "Fenster maximieren",
     "close": "Schließen",
     "closeLabel": "Fenster schließen"
+  },
+  "analysis": {
+    "heading": {
+      "synthesis": "Kurzanalyse",
+      "actions": "Empfohlene Maßnahmen",
+      "detail": "Detailanalyse",
+      "telemetry": "Telemetrieanalyse",
+      "problems": "Erkannte Probleme",
+      "setupCompare": "Setup aktuell vs. vorgeschlagen",
+      "chassis": "Fahrwerks-Setup"
+    },
+    "forbidden": "Leiter, Sequenz, Reihenfolge, Übersicht, Schritt, Bereich, Basis-Setup, Fahrwerks-Setup, jetzt zu tun, Frezza",
+    "glossary": "brake ducts = Bremsbelüftung; camber = Sturz; ride height = Fahrhöhe; rake = Rake; bumpstop = Bumpstop; third spring = dritte Feder; anti-roll bar = Stabilisator; toe = Spur; caster = Nachlauf; understeer = Untersteuern; oversteer = Übersteuern; preload = Vorspannung; trail braking = Trail Braking"
+  },
+  "coach": {
+    "stintReady": "Stint analysierbar: {{laps}} gewertete Runden.",
+    "firstFix": "Erste Korrektur: {{label}}.",
+    "noFix": "Keine Korrektur nötig.",
+    "tyresNotWarm": "Reifen nicht auf Temperatur: Drücke und Sturz nicht bewertet.",
+    "wheelsNotWarm": "Räder nicht auf Temperatur und nicht bewertet: {{wheels}}.",
+    "stintReadyTail": "Du kannst pausieren und die Analyse starten.",
+    "wheel": {
+      "fl": "vorne links",
+      "fr": "vorne rechts",
+      "rl": "hinten links",
+      "rr": "hinten rechts"
+    },
+    "step": {
+      "ducts": "Bremsbelüftung",
+      "bias": "Bremsbalance",
+      "engine": "Motorbremse",
+      "pressures": "Reifendrücke",
+      "camber": "Sturz",
+      "differential": "Differenzial"
+    },
+    "area": {
+      "springs": "Federn",
+      "heights": "Fahrhöhen und Rake",
+      "bumpstops": "Bumpstops",
+      "thirds": "dritte Federn",
+      "dampers": "Dämpfer",
+      "bars": "Stabilisatoren",
+      "toe": "Spur",
+      "aero": "Aerodynamik"
+    },
+    "error": {
+      "invalidKey": "Anthropic-API: ungültiger Schlüssel. Prüfe ihn in den Einstellungen.",
+      "rateLimit": "Anthropic-API: Anfragelimit überschritten. Versuche es in einigen Augenblicken erneut.",
+      "quota": "Anthropic-API: Guthaben unzureichend oder Kontingent erschöpft. Prüfe dein Guthaben auf console.anthropic.com.",
+      "synthesisTruncated": "Kurzanalyse abgeschnitten: Token-Limit erreicht. Der Teiltext wurde gespeichert; starte die Analyse erneut.",
+      "detailTruncated": "Detailanalyse abgeschnitten: Token-Limit erreicht. Der Teiltext wurde gespeichert; versuche es erneut."
+    }
   }
 }
