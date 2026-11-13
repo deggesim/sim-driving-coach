@@ -97,6 +97,8 @@ import {
 } from "./coach/session-coach.js";
 import { createZoneTracker } from "./zone-tracker.js";
 import { initUpdater } from "./updater.js";
+import { setLanguage } from "./i18n-main.js";
+import { isLanguage, resolveSystemLanguage } from "../shared/i18n.js";
 
 // Chromium's Native Window Occlusion (Windows) treats a window fully covered by
 // another app - the simulator running fullscreen - as hidden: it pauses the
@@ -315,6 +317,17 @@ const setupPipeline = (): void => {
         { value: string } | undefined
     )?.value;
 
+  // Language must be settled before the renderer's first config:get("language").
+  const storedLanguage = getConfig("language");
+  const language = isLanguage(storedLanguage)
+    ? storedLanguage
+    : resolveSystemLanguage(app.getPreferredSystemLanguages());
+  if (language !== storedLanguage)
+    db.prepare(
+      "INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)",
+    ).run("language", language);
+  setLanguage(language);
+
   // Register config handlers immediately - renderer may call configGet before
   // the rest of setupPipeline (readers, baseline, etc.) finishes initializing.
   ipcMain.handle("config:get", (_event, key: string) => {
@@ -330,6 +343,10 @@ const setupPipeline = (): void => {
     ).run(key, String(value));
     if (key === "anthropicApiKey" || key === "anthropicModel")
       voiceCoach = null;
+    if (key === "language" && isLanguage(value)) {
+      setLanguage(value);
+      voiceCoach = null;
+    }
     if (key === "telemetryLogEnabled") {
       telemetryEnabled = String(value) === "true";
       if (!telemetryEnabled) closeTelemetryFile();

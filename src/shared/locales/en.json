@@ -1,4 +1,19 @@
 {
-  "language": { "label": "Language" },
-  "corner": "Turn {{n}}"
+  "language": {
+    "label": "Language"
+  },
+  "corner": "Turn {{n}}",
+  "titleBar": {
+    "live": "Live analysis",
+    "sessions": "Session list",
+    "settings": "Settings",
+    "voiceOn": "Voice on",
+    "voiceOff": "Voice off",
+    "voice": "Coach voice",
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "maximizeLabel": "Maximize window",
+    "close": "Close",
+    "closeLabel": "Close window"
+  }
 }

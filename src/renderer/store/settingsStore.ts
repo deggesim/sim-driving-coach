@@ -4,8 +4,17 @@
  */
 
 import { create } from "zustand";
+import { isLanguage, type Language } from "../../shared/i18n";
+import { rendererI18n } from "../i18n";
+
+const applyLanguage = (lang: Language): void => {
+  void rendererI18n.changeLanguage(lang);
+  document.documentElement.lang = lang;
+};
 
 type SettingsStore = {
+  language: Language;
+
   // General / AI
   apiKey: string;
   assistantName: string;
@@ -36,6 +45,7 @@ type SettingsStore = {
   settingsLoaded: boolean;
 
   // Setters
+  setLanguage: (lang: Language) => void;
   setApiKey: (v: string) => void;
   setAssistantName: (v: string) => void;
   setGamepadButton: (v: number | null) => void;
@@ -59,6 +69,7 @@ type SettingsStore = {
    * Called once by the module-level settings loader promise; not from component render.
    */
   initFromConfig: (values: {
+    language: string | null;
     apiKey: string | null;
     azureTtsEnabled: string | null;
     azureSpeechKey: string | null;
@@ -75,6 +86,7 @@ type SettingsStore = {
 };
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
+  language: "it",
   apiKey: "",
   assistantName: "Aria",
   gamepadButton: null,
@@ -93,6 +105,11 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   aceSetupsPath: "",
   settingsLoaded: false,
 
+  setLanguage: (language) => {
+    applyLanguage(language);
+    set({ language });
+    void window.electronAPI.configSet("language", language);
+  },
   setApiKey: (apiKey) => set({ apiKey }),
   setAssistantName: (assistantName) => set({ assistantName }),
   setGamepadButton: (gamepadButton) => set({ gamepadButton }),
@@ -116,7 +133,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   clearSaved: () => set({ settingSaved: null }),
 
   initFromConfig: (values) => {
+    const language = isLanguage(values.language) ? values.language : null;
+    if (language) applyLanguage(language);
     set({
+      ...(language ? { language } : {}),
       ...(values.apiKey ? { apiKey: values.apiKey } : {}),
       ...(values.azureTtsEnabled
         ? { azureTtsEnabled: values.azureTtsEnabled === "true" }

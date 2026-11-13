@@ -1,4 +1,19 @@
 {
-  "language": { "label": "Lingua" },
-  "corner": "Curva {{n}}"
+  "language": {
+    "label": "Lingua"
+  },
+  "corner": "Curva {{n}}",
+  "titleBar": {
+    "live": "Analisi in tempo reale",
+    "sessions": "Elenco sessioni",
+    "settings": "Impostazioni",
+    "voiceOn": "Voce attiva",
+    "voiceOff": "Voce disattiva",
+    "voice": "Voce del coach",
+    "minimize": "Riduci a icona",
+    "maximize": "Ingrandisci",
+    "maximizeLabel": "Ingrandisci finestra",
+    "close": "Chiudi",
+    "closeLabel": "Chiudi finestra"
+  }
 }

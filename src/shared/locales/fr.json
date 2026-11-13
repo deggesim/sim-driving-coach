@@ -1,4 +1,19 @@
 {
-  "language": { "label": "Langue" },
-  "corner": "Virage {{n}}"
+  "language": {
+    "label": "Langue"
+  },
+  "corner": "Virage {{n}}",
+  "titleBar": {
+    "live": "Analyse en direct",
+    "sessions": "Liste des sessions",
+    "settings": "Paramètres",
+    "voiceOn": "Voix activée",
+    "voiceOff": "Voix désactivée",
+    "voice": "Voix du coach",
+    "minimize": "Réduire",
+    "maximize": "Agrandir",
+    "maximizeLabel": "Agrandir la fenêtre",
+    "close": "Fermer",
+    "closeLabel": "Fermer la fenêtre"
+  }
 }

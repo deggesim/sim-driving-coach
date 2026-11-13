@@ -22,6 +22,7 @@ const configGet = async (key: string): Promise<string | null> => {
 
 export const settingsLoaderPromise: Promise<void> = (async () => {
   const [
+    language,
     apiKey,
     azureTtsEnabled,
     azureSpeechKey,
@@ -35,6 +36,7 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     keyboardVoiceKey,
     aceSetupsPath,
   ] = await Promise.all([
+    configGet("language"),
     configGet("anthropicApiKey"),
     configGet("azureTtsEnabled"),
     configGet("azureSpeechKey"),
@@ -50,6 +52,7 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
   ]);
 
   useSettingsStore.getState().initFromConfig({
+    language,
     apiKey,
     azureTtsEnabled,
     azureSpeechKey,

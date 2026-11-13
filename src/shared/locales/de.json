@@ -1,4 +1,19 @@
 {
-  "language": { "label": "Sprache" },
-  "corner": "Kurve {{n}}"
+  "language": {
+    "label": "Sprache"
+  },
+  "corner": "Kurve {{n}}",
+  "titleBar": {
+    "live": "Live-Analyse",
+    "sessions": "Sitzungsliste",
+    "settings": "Einstellungen",
+    "voiceOn": "Stimme an",
+    "voiceOff": "Stimme aus",
+    "voice": "Coach-Stimme",
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "maximizeLabel": "Fenster maximieren",
+    "close": "Schließen",
+    "closeLabel": "Fenster schließen"
+  }
 }
