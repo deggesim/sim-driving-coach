@@ -7,7 +7,7 @@
  * from every judged zone means "no data" and gives "na", never a zero.
  */
 
-import { WHEEL_LABELS } from "../../shared/alert-types.js";
+import { tm } from "../i18n-main.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type {
   GameSource,
@@ -43,22 +43,22 @@ const DIFF_SPIN_SHARE = 0.2; // of the exit frames
 const DRIVEN_SLIP_EPS = 0.01; // front − rear throttle slip that marks fwd
 const FIXED_DIFFS = ["FIXED", "SPOOL", "OPEN"]; // AMS2 differentials with nothing to adjust
 // Lever per step, by setup parameter name (R3E idToLabel, ACE labels, AMS2 canonical names).
-const LEVERS: Record<LadderStep["n"], RegExp> = {
-  1: /duct|condott/i,
-  2: /brake bias|ripartizione frenata|bilanciamento fren|brake pressure|pressione freni/i,
-  3: /coast|freno motore|engine brak/i,
-  4: /tyre pressure|^pressione (fl|fr|rl|rr)\b/i, // not "Pressione freni"
-  5: /camber|campanatura/i,
-  6: /differential (power|preload)|power locking|power ramp|precarico|preload|bias ratio/i,
+export const LEVERS: Record<LadderStep["n"], RegExp> = {
+  1: /duct/i,
+  2: /brake bias|brake pressure/i,
+  3: /coast|engine brak/i,
+  4: /tyre pressure/i, // not "Brake Pressure"
+  5: /camber/i,
+  6: /differential (power|preload)|power locking|power ramp|preload|bias ratio/i,
 };
 // AMS2 Vision categories (buildAms2SetupSystemPrompt) holding each step's lever.
 const AMS2_LEVER_PAGES: Record<LadderStep["n"], string[]> = {
-  1: ["Freni"],
-  2: ["Freni"],
-  3: ["Motore/Elettronica", "Differenziale"],
-  4: ["Gomme"],
-  5: ["Sospensioni"],
-  6: ["Differenziale"],
+  1: ["Brakes"],
+  2: ["Brakes"],
+  3: ["Engine/Electronics", "Differential"],
+  4: ["Tyres"],
+  5: ["Suspension"],
+  6: ["Differential"],
 };
 const GEARED_DIFFS = ["G-LSD", "GC-LSD"]; // AMS2 differentials tuned by bias ratio, not ramps
 
@@ -69,12 +69,12 @@ export type LadderStep = {
   n: 1 | 2 | 3 | 4 | 5 | 6;
   label: string;
   status: LadderStatus;
-  reason: string; // Italian: numbers + direction (fix) or why (na)
+  reason: string; // English data for the model: numbers + direction (fix) or why (na)
   proposable: boolean; // false only for step 1 under fixedSetup
   // R3E range check: the R3E parameter each fix would move, and which way.
   moves?: Move[];
 };
-type PressureState = "alta" | "ok" | "bassa";
+type PressureState = "high" | "ok" | "low";
 export type TyreSummary = {
   setupLabel: string | null;
   judgedLaps: number;
@@ -153,8 +153,33 @@ export const tyreTempsFixed = (laps: LapRow[]): boolean =>
     ),
   ).size === 1;
 
-const WHEELS = Object.keys(WHEEL_LABELS); // ANT-SX, ANT-DX, POST-SX, POST-DX
-const NOT_WARM = "gomme non in temperatura";
+// Wheel order everywhere: FL, FR, RL, RR. English: it is data for the model.
+export const WHEEL_NAMES = [
+  "front left",
+  "front right",
+  "rear left",
+  "rear right",
+] as const;
+const STEP_KEYS = [
+  "ducts",
+  "bias",
+  "engine",
+  "pressures",
+  "camber",
+  "differential",
+] as const;
+const AREA_KEYS = [
+  "springs",
+  "heights",
+  "bumpstops",
+  "thirds",
+  "dampers",
+  "bars",
+  "toe",
+  "aero",
+] as const;
+const WHEEL_KEYS = ["fl", "fr", "rl", "rr"] as const;
+const NOT_WARM = "tyres not up to temperature";
 const R3E_WHEELS = ["Front Left", "Front Right", "Rear Left", "Rear Right"]; // idToLabel suffixes
 const W = [0, 1, 2, 3] as const;
 
@@ -213,9 +238,9 @@ const lapTyres = (lap: Lap): LapTyres | null => {
 
 const pressureOf = (delta: number): PressureState =>
   delta > TYRE_BALANCE_TOL_C
-    ? "alta"
+    ? "high"
     : delta < -TYRE_BALANCE_TOL_C
-      ? "bassa"
+      ? "low"
       : "ok";
 
 const tyreSummary = (
@@ -263,7 +288,7 @@ const tyreSummary = (
       coldWheels: cold,
       notWarm:
         coldC && centreC && cold.length
-          ? `${NOT_WARM}: ${cold.map((w) => `${WHEELS[w]} ${centreC[w].toFixed(0)} °C (soglia ${coldC[w].toFixed(0)} °C)`).join(", ")}`
+          ? `${NOT_WARM}: ${cold.map((w) => `${WHEEL_NAMES[w]} ${centreC[w].toFixed(0)} °C (threshold ${coldC[w].toFixed(0)} °C)`).join(", ")}`
           : null,
     },
   };
@@ -387,7 +412,7 @@ export const computeSetupLadder = (
 
   // 1 - brake ducts, on its own laps: brake temperatures need no tyre plateau.
   const ducts = ((): LadderStep => {
-    const L = "condotti freni";
+    const L = "brake ducts";
     const bz = brakeLaps.flatMap((l) => l.zones);
     const axle = (ws: number[]): number | null => {
       const ts = bz
@@ -398,19 +423,19 @@ export const computeSetupLadder = (
     const front = axle([0, 1]);
     const rear = axle([2, 3]);
     if (front == null || rear == null)
-      return step(1, L, "na", "temperature freni non disponibili");
+      return step(1, L, "na", "brake temperatures not available");
     const imbalance = Math.abs(front - rear) / Math.max(front, rear);
     const fixes = [
-      front > DUCT_FRONT_MAX_C ? "aprire i condotti anteriori" : null,
+      front > DUCT_FRONT_MAX_C ? "open the front ducts" : null,
       imbalance <= DUCT_IMBALANCE
         ? null
         : Math.max(front, rear) < BRAKE_MIN_C
-          ? "chiudere i condotti dell'asse più freddo"
+          ? "close the ducts of the colder axle"
           : Math.min(front, rear) > BRAKE_MAX_C
-            ? "aprire i condotti dell'asse più caldo"
-            : "aprire i condotti dell'asse più caldo, o chiudere quelli dell'asse più freddo",
+            ? "open the ducts of the hotter axle"
+            : "open the ducts of the hotter axle, or close those of the colder axle",
     ].filter((f) => f != null);
-    const data = `ant ${Math.round(front)} °C, post ${Math.round(rear)} °C, sbil. ${pct(imbalance)}`;
+    const data = `front ${Math.round(front)} °C, rear ${Math.round(rear)} °C, imbalance ${pct(imbalance)}`;
     return fixes.length
       ? step(1, L, "fix", `${data} → ${fixes.join("; ")}`)
       : step(1, L, "ok", data);
@@ -432,7 +457,7 @@ export const computeSetupLadder = (
       ? {
           ...s,
           status: "na",
-          reason: `leva non presente nel setup caricato — ${s.reason}`,
+          reason: `lever not present in the loaded setup — ${s.reason}`,
         }
       : s;
   // R3E: a fix whose every known move is already at the end of its range
@@ -446,7 +471,7 @@ export const computeSetupLadder = (
       (s.moves ?? []).map((m) => [m]),
       params,
     )
-      ? { ...s, status: "ok", reason: `${s.reason} — già a fondo scala` }
+      ? { ...s, status: "ok", reason: `${s.reason} — already at end of range` }
       : s;
   const currentOf = (steps: LadderStep[]): number | null =>
     steps.find((s) => s.status === "fix" && s.proposable)?.n ?? null;
@@ -464,8 +489,8 @@ export const computeSetupLadder = (
   const zs = judged.flatMap((l) => l.zones);
   const sum = (k: keyof ZoneData): number | null => total(zs, k);
   const noCorners = zs.some((z) => z.maxGLat != null)
-    ? "nessuna curva misurabile"
-    : "manca l'accelerazione laterale";
+    ? "no measurable corners"
+    : "lateral acceleration missing";
   const slipT = meanQ(
     zs.flatMap((z) => (z.avgSlipRatioThrottle ? [z.avgSlipRatioThrottle] : [])),
   );
@@ -478,34 +503,34 @@ export const computeSetupLadder = (
 
   // 2 - brake bias
   const bias = ((): LadderStep => {
-    const L = "bilanciamento freni";
+    const L = "brake bias";
     const hard = sum("hardBrakeFrames");
-    if (hard == null) return step(2, L, "na", "mancano i contatori di frenata");
-    if (hard === 0) return step(2, L, "na", "nessuna frenata forte");
+    if (hard == null) return step(2, L, "na", "braking counters missing");
+    if (hard === 0) return step(2, L, "na", "no hard braking");
     const absHard = sum("absHardBrakeFrames") ?? 0;
     if (absHard > 0) {
       const share = absHard / hard;
       const entry = sum("cornersEntry");
       if (!entry) return step(2, L, "na", noCorners);
       const under = sum("cornersEntryUnder") ?? 0;
-      const data = `ABS nel ${pct(share)} delle frenate forti, sottosterzo in inserimento in ${under}/${entry} curve`;
+      const data = `ABS in ${pct(share)} of the hard braking, understeer on entry in ${under}/${entry} corners`;
       return share > ABS_SHARE && under > entry / 2
-        ? step(2, L, "fix", `${data} → bilanciamento verso il posteriore`, [
+        ? step(2, L, "fix", `${data} → bias toward the rear`, [
             { param: "Brake Bias", dir: "up" },
           ])
         : step(2, L, "ok", data);
     }
     const srHard = sum("srHardBrakeFrames");
-    if (!srHard) return step(2, L, "na", "manca lo slip");
+    if (!srHard) return step(2, L, "na", "slip missing");
     const f = (sum("lockFramesFront") ?? 0) / srHard;
     const r = (sum("lockFramesRear") ?? 0) / srHard;
-    const data = `bloccaggi ant ${pct(f)}, post ${pct(r)} delle frenate forti`;
+    const data = `lock-ups front ${pct(f)}, rear ${pct(r)} of the hard braking`;
     if (f > LOCK_SHARE && f >= LOCK_RATIO * r)
       return step(
         2,
         L,
         "fix",
-        `${data} → bilanciamento verso il posteriore (l'auto tira dritta)`,
+        `${data} → bias toward the rear (the car goes straight on)`,
         [{ param: "Brake Bias", dir: "up" }],
       );
     if (r > LOCK_SHARE && r >= LOCK_RATIO * f)
@@ -513,7 +538,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → bilanciamento verso l'anteriore (il posteriore scoda)`,
+        `${data} → bias toward the front (the rear steps out)`,
         [{ param: "Brake Bias", dir: "down" }],
       );
     // Both axles lock and neither dominates: no bias fixes it (guide: "forza
@@ -523,7 +548,7 @@ export const computeSetupLadder = (
         2,
         L,
         "fix",
-        `${data} → bloccano entrambi gli assi: ridurre la forza frenante (brake pressure), poi rifare il bilanciamento`,
+        `${data} → both axles lock: reduce the braking force (brake pressure), then redo the bias`,
         [{ param: "Brake Pressure", dir: "down" }],
       );
     return step(2, L, "ok", data);
@@ -531,13 +556,13 @@ export const computeSetupLadder = (
 
   // 3 - engine braking
   const engine = ((): LadderStep => {
-    const L = "freno motore";
-    if (fwd) return step(3, L, "na", "trazione anteriore");
+    const L = "engine braking";
+    if (fwd) return step(3, L, "na", "front-wheel drive");
     const downs = sum("downshifts");
-    if (downs == null) return step(3, L, "na", "manca lo slip");
-    if (downs === 0) return step(3, L, "na", "nessuna scalata");
+    if (downs == null) return step(3, L, "na", "slip missing");
+    if (downs === 0) return step(3, L, "na", "no downshifts");
     const nervous = sum("nervousDownshifts") ?? 0;
-    const data = `scalate nervose ${nervous}/${downs} (${pct(nervous / downs)})`;
+    const data = `nervous downshifts ${nervous}/${downs} (${pct(nervous / downs)})`;
     return nervous / downs > NERVOUS_SHARE
       ? step(
           3,
@@ -545,7 +570,7 @@ export const computeSetupLadder = (
           "fix",
           // Guide slides 22-23: "abbassare il coast ramp" (35 deg understeers,
           // 36 deg oversteers) = close it; slide 53: open coast = oversteer.
-          `${data} → coast ramp più chiusa (su AMS2 valore più basso); se è già al minimo, meno freno motore (su AMS2 engine braking più alto = meno freno motore) e più forza frenante per non allungare la frenata`,
+          `${data} → coast ramp more closed (on AMS2 a lower value); if it is already at the minimum, less engine braking (on AMS2 a higher engine braking value = less engine braking) and more braking force so the braking distance does not grow`,
         )
       : step(3, L, "ok", data);
   })();
@@ -553,17 +578,17 @@ export const computeSetupLadder = (
   // 4 - pressures, 5 - camber
   const tyres = opts.leaderboardMode ? undefined : analysed.at(-1);
   const noTemps = opts.leaderboardMode
-    ? "gomme fisse a 85 °C (Leaderboard)"
-    : "mancano le temperature interna/centro/esterna";
+    ? "tyres fixed at 85 °C (Leaderboard)"
+    : "inner/centre/outer temperatures missing";
   const pressures = ((): LadderStep => {
-    const L = "pressioni";
+    const L = "tyre pressures";
     if (!tyres) return step(4, L, "na", noTemps);
     const { deltaC, pressureState, coldWheels, notWarm } = tyres.summary;
     const warm = W.filter((w) => !coldWheels.includes(w));
     if (!warm.length)
-      return step(4, L, "na", `${notWarm} — pressioni non giudicate`);
+      return step(4, L, "na", `${notWarm} — pressures not judged`);
     // A wheel out of its window is left out of the judgement, not the step.
-    const skipped = notWarm ? ` (${notWarm}; non giudicate)` : "";
+    const skipped = notWarm ? ` (${notWarm}; not judged)` : "";
     const off = warm.filter((w) => pressureState[w] !== "ok");
     // The axle with the largest |Δ| among the out-of-tolerance wheels; a tie
     // goes to the front.
@@ -579,44 +604,44 @@ export const computeSetupLadder = (
           4,
           L,
           "fix",
-          `asse ${front ? "ANT" : "POST"}: ${wheels
+          `${front ? "front" : "rear"} axle: ${wheels
             .map(
               (w) =>
-                `Δ ${WHEELS[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "alta" ? "abbassare" : "alzare"}`,
+                `Δ ${WHEEL_NAMES[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "high" ? "lower" : "raise"}`,
             )
             .join(", ")}${skipped}`,
           wheels.map((w) => ({
             param: `Tyre Pressure ${R3E_WHEELS[w]}`,
-            dir: pressureState[w] === "alta" ? "down" : "up",
+            dir: pressureState[w] === "high" ? "down" : "up",
           })),
         )
       : step(
           4,
           L,
           "ok",
-          `Δ entro ±${TYRE_BALANCE_TOL_C} °C su ${notWarm ? warm.map((w) => WHEELS[w]).join(", ") : "tutte le ruote"}${skipped}`,
+          `Δ within ±${TYRE_BALANCE_TOL_C} °C on ${notWarm ? warm.map((w) => WHEEL_NAMES[w]).join(", ") : "all wheels"}${skipped}`,
         );
   })();
   const camber = ((): LadderStep => {
-    const L = "campanatura";
+    const L = "camber";
     if (!tyres) return step(5, L, "na", noTemps);
     const { innerMinusOuterC, pressureState, coldWheels, notWarm } =
       tyres.summary;
     if (coldWheels.length === 4)
-      return step(5, L, "na", `${notWarm} — campanatura non giudicata`);
-    const skipped = notWarm ? ` (${notWarm}; non giudicate)` : "";
+      return step(5, L, "na", `${notWarm} — camber not judged`);
+    const skipped = notWarm ? ` (${notWarm}; not judged)` : "";
     if (!innerMinusOuterC)
       return step(
         5,
         L,
         "na",
-        "in questo simulatore la differenza tra spalla interna ed esterna non segue la campanatura, quindi non la giudica",
+        "in this simulator the difference between the inner and outer shoulder does not follow the camber, so it is not judged",
       );
     const okWheels = W.filter(
       (w) => !coldWheels.includes(w) && pressureState[w] === "ok",
     );
     if (!okWheels.length)
-      return step(5, L, "na", "nessuna ruota con pressione a posto");
+      return step(5, L, "na", "no wheel with the pressure in range");
     const equalOnly = opts.game === "ams2";
     const moves: NonNullable<LadderStep["moves"]> = [];
     const off = okWheels.flatMap((w) => {
@@ -624,12 +649,12 @@ export const computeSetupLadder = (
         tyres.perLap.map((t) =>
           equalOnly
             ? t.d[w] < AMS2_CAMBER_EQUAL_C
-              ? "più"
+              ? "more"
               : "ok"
             : t.d[w] < CAMBER_MIN_C
-              ? "più"
+              ? "more"
               : t.d[w] > CAMBER_MAX_C
-                ? "meno"
+                ? "less"
                 : "ok",
         ),
         "ok",
@@ -638,14 +663,14 @@ export const computeSetupLadder = (
       if (dir !== "ok")
         moves.push({
           param: `Camber ${R3E_WHEELS[w]}`,
-          dir: dir === "più" ? "down" : "up",
+          dir: dir === "more" ? "down" : "up",
         });
       return dir === "ok"
         ? []
         : [
             // Guide: low caster heats the front inner shoulders, so more caster
             // is the alternative lever there (not separable from camber in the data).
-            `${WHEELS[w]} ${signed(innerMinusOuterC[w])} °C → ${dir} campanatura negativa${dir === "meno" && w < 2 ? " o più incidenza (se regolabile)" : ""}`,
+            `${WHEEL_NAMES[w]} ${signed(innerMinusOuterC[w])} °C → ${dir} negative camber${dir === "less" && w < 2 ? " or more caster (if adjustable)" : ""}`,
           ];
     });
     return off.length
@@ -653,7 +678,7 @@ export const computeSetupLadder = (
           5,
           L,
           "fix",
-          `interna−esterna ${off.join(", ")}${equalOnly ? `, temperature uguali: aumentare la campanatura negativa a poco a poco fino a circa ${AMS2_CAMBER_TARGET_C} °C tra spalla interna ed esterna (se frenata o trazione perdono grip, hai esagerato)` : ""}${skipped}`,
+          `inner−outer ${off.join(", ")}${equalOnly ? `, temperatures equal: increase the negative camber little by little up to about ${AMS2_CAMBER_TARGET_C} °C between the inner and outer shoulder (if braking or traction lose grip, you went too far)` : ""}${skipped}`,
           moves,
         )
       : step(
@@ -661,20 +686,20 @@ export const computeSetupLadder = (
           L,
           "ok",
           equalOnly
-            ? `interna più calda dell'esterna (≥ ${AMS2_CAMBER_EQUAL_C} °C) su ${okWheels.map((w) => WHEELS[w]).join(", ")}`
-            : `interna−esterna tra ${CAMBER_MIN_C} e ${CAMBER_MAX_C} °C su ${okWheels.map((w) => WHEELS[w]).join(", ")}${skipped}`,
+            ? `inner hotter than outer (≥ ${AMS2_CAMBER_EQUAL_C} °C) on ${okWheels.map((w) => WHEEL_NAMES[w]).join(", ")}`
+            : `inner−outer between ${CAMBER_MIN_C} and ${CAMBER_MAX_C} °C on ${okWheels.map((w) => WHEEL_NAMES[w]).join(", ")}${skipped}`,
         );
   })();
 
   // 6 - differential
   const diff = ((): LadderStep => {
-    const L = "differenziale";
+    const L = "differential";
     const dt = opts.car?.differential;
     if (dt && FIXED_DIFFS.includes(dt))
-      return step(6, L, "na", "differenziale non regolabile");
+      return step(6, L, "na", "differential not adjustable");
     const geared = dt != null && GEARED_DIFFS.includes(dt);
     const exit = sum("exitFrames");
-    if (exit == null) return step(6, L, "na", "manca lo slip");
+    if (exit == null) return step(6, L, "na", "slip missing");
     const entry = sum("cornersEntry");
     if (!entry) return step(6, L, "na", noCorners);
     const spin = exit
@@ -683,15 +708,15 @@ export const computeSetupLadder = (
     const exits = sum("cornersExit") ?? 0;
     const exitOver = sum("cornersExitOver") ?? 0;
     const entryOver = sum("cornersEntryOver") ?? 0;
-    const data = `pattinamento ruota interna ${pct(spin)} dei frame in uscita, sovrasterzo in uscita ${exitOver}/${exits} e in inserimento ${entryOver}/${entry} curve`;
+    const data = `inside-wheel spin ${pct(spin)} of the exit frames, oversteer on exit ${exitOver}/${exits} and on entry ${entryOver}/${entry} corners`;
     if (spin > DIFF_SPIN_SHARE)
       return step(
         6,
         L,
         "fix",
         geared
-          ? `${data} → alzare il bias ratio power (più bloccaggio)`
-          : `${data} → chiudere la power ramp (più bloccaggio); se è già chiusa del tutto, più precarico`,
+          ? `${data} → raise the power bias ratio (more locking)`
+          : `${data} → close the power ramp (more locking); if it is already fully closed, more preload`,
       );
     if (exitOver > exits / 2)
       return step(
@@ -699,8 +724,8 @@ export const computeSetupLadder = (
         L,
         "fix",
         geared
-          ? `${data} → abbassare il bias ratio power`
-          : `${data} → aprire la power ramp; se è già aperta del tutto, meno precarico`,
+          ? `${data} → lower the power bias ratio`
+          : `${data} → open the power ramp; if it is already fully open, less preload`,
       );
     if (entryOver > entry / 2)
       return step(
@@ -708,8 +733,8 @@ export const computeSetupLadder = (
         L,
         "fix",
         geared
-          ? `${data} → alzare il bias ratio coast`
-          : `${data} → chiudere la coast ramp; se è già al minimo, più precarico`,
+          ? `${data} → raise the coast bias ratio`
+          : `${data} → close the coast ramp; if it is already at the minimum, more preload`,
       );
     return step(6, L, "ok", data);
   })();
@@ -766,17 +791,32 @@ export const stintReadyMessage = (
   const current = ladder.steps.find((s) => s.n === ladder.current);
   const area = overview?.areas.find((a) => a.n === overview.current);
   const verdict = current
-    ? `Prima correzione: ${current.label}.`
+    ? tm("coach.firstFix", {
+        label: tm(`coach.step.${STEP_KEYS[current.n - 1]}`),
+      })
     : area
-      ? `Prima correzione: ${area.label}.`
-      : "Nessuna correzione da fare.";
+      ? tm("coach.firstFix", {
+          label: tm(`coach.area.${AREA_KEYS[area.n - 1]}`),
+        })
+      : tm("coach.noFix");
   // Tyres out of their window: all four = nothing judged, else just those wheels.
   const cold = ladder.tyres.at(-1)?.coldWheels ?? [];
   const notWarm =
     cold.length === 4
-      ? " Gomme non in temperatura: pressioni e campanatura non giudicate."
+      ? tm("coach.tyresNotWarm")
       : cold.length
-        ? ` Ruote non in temperatura e non giudicate: ${cold.map((w) => WHEEL_LABELS[WHEELS[w] as keyof typeof WHEEL_LABELS]).join(", ")}.`
+        ? tm("coach.wheelsNotWarm", {
+            wheels: cold
+              .map((w) => tm(`coach.wheel.${WHEEL_KEYS[w]}`))
+              .join(", "),
+          })
         : "";
-  return `Stint analizzabile: ${counted} giri giudicati. ${verdict}${notWarm} Puoi metterti in pausa ed eseguire l'analisi.`;
+  return [
+    tm("coach.stintReady", { laps: counted }),
+    verdict,
+    notWarm,
+    tm("coach.stintReadyTail"),
+  ]
+    .filter((x) => x)
+    .join(" ");
 };

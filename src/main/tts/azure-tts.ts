@@ -10,6 +10,7 @@
 import axios from "axios";
 import type { AzureVoice } from "../../shared/types.js";
 import { preprocessTTSText } from "../../shared/format.js";
+import { localeOf, type Language } from "../../shared/i18n.js";
 
 /** Create a region-scoped axios instance for Azure Speech endpoints. */
 const createAzureClient = (region: string, key: string) =>
@@ -19,16 +20,16 @@ const createAzureClient = (region: string, key: string) =>
   });
 
 /**
- * Fetch available voices for a given region, filtered to Italian (it-IT).
+ * Fetch available voices for a given region, filtered to one locale (e.g. "es-ES").
  */
 export const getAzureVoices = async (
   key: string,
   region: string,
+  locale: string,
 ): Promise<AzureVoice[]> => {
   const client = createAzureClient(region, key);
   const { data } = await client.get<AzureVoice[]>("/voices/list");
-  console.log("data", data);
-  return data.filter((v) => v.Locale.startsWith("it-IT"));
+  return data.filter((v) => v.Locale === locale);
 };
 
 /**
@@ -40,11 +41,12 @@ export const synthesizeAzure = async (
   key: string,
   region: string,
   voiceName: string,
+  lang: Language,
 ): Promise<Buffer> => {
   const client = createAzureClient(region, key);
 
   // Expand track-position markers and time deltas before XML escaping
-  const processed = preprocessTTSText(text);
+  const processed = preprocessTTSText(text, lang);
 
   // Escape XML special chars in text
   const escaped = processed
@@ -54,7 +56,7 @@ export const synthesizeAzure = async (
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-  const ssml = `<speak version='1.0' xml:lang='it-IT'><voice name='${voiceName}'>${escaped}</voice></speak>`;
+  const ssml = `<speak version='1.0' xml:lang='${localeOf(lang)}'><voice name='${voiceName}'>${escaped}</voice></speak>`;
 
   const { data } = await client.post<ArrayBuffer>("/v1", ssml, {
     headers: {
@@ -72,6 +74,7 @@ export const synthesizeAzure = async (
  * @param audioBuffer  Raw audio bytes (WebM/Opus from MediaRecorder)
  * @param key          Azure Speech subscription key
  * @param region       Azure region (e.g. "westeurope")
+ * @param locale       Recognition language (e.g. "es-ES")
  * @param mimeType     MIME type of the audio (must match what MediaRecorder produced)
  * @returns            Recognized text, or empty string if nothing was heard
  */
@@ -79,11 +82,12 @@ export const transcribeAzure = async (
   audioBuffer: Buffer,
   key: string,
   region: string,
+  locale: string,
   mimeType = "audio/wav",
 ): Promise<string> => {
   const url =
     `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation` +
-    `/cognitiveservices/v1?language=it-IT&format=simple`;
+    `/cognitiveservices/v1?language=${locale}&format=simple`;
 
   console.log(
     `[Azure STT] Sending ${audioBuffer.byteLength} bytes as ${mimeType}`,

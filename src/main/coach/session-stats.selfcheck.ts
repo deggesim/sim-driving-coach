@@ -63,6 +63,8 @@ const alert = (z: number, type: string): Alert => ({
   dist: z * 50,
   lap: 2,
   message: "x",
+  messageKey: "alert.dev.lateBrake",
+  messageVars: {},
   immediate: false,
   timestamp: 0,
 });
@@ -77,7 +79,7 @@ const improving = computeSessionStats({
   bestLap: 116,
   setups: [],
   alerts: [alert(8, "LATE_BRAKE"), alert(8, "LATE_BRAKE")],
-  cornerNames: new Map([[8, "Curva 8"]]),
+  cornerNames: new Map([[8, "Turn 8"]]),
 });
 
 assert.equal(improving.lapCount, 3);
@@ -100,11 +102,11 @@ const ranked = computeSessionStats({
     alert(8, "LATE_BRAKE"),
     alert(8, "LATE_BRAKE"),
   ],
-  cornerNames: new Map([[8, "Curva 8"]]),
+  cornerNames: new Map([[8, "Turn 8"]]),
 });
 assert.equal(ranked.criticalCorners[0].zone, 8);
 assert.equal(ranked.criticalCorners[0].alertCount, 2);
-assert.equal(ranked.criticalCorners[0].cornerName, "Curva 8");
+assert.equal(ranked.criticalCorners[0].cornerName, "Turn 8");
 assert.equal(ranked.criticalCorners[1].zone, 15);
 assert.equal(ranked.criticalCorners[1].cornerName, null);
 // zone 8 seen on 2 laps: tcEvents = 1+1, tcMs = (4+4)*16, overlapMs = (3+3)*16
@@ -359,7 +361,7 @@ const lbLadder = computeSessionStats({
 assert.ok(lbLadder, "ladder also in Leaderboard");
 for (const step of lbLadder.steps.filter((x) => x.n === 4 || x.n === 5)) {
   assert.equal(step.status, "na");
-  assert.equal(step.reason, "gomme fisse a 85 °C (Leaderboard)");
+  assert.equal(step.reason, "tyres fixed at 85 °C (Leaderboard)");
 }
 assert.equal(lbLadder.steps.length, 6, "steps 4 and 5 are both present");
 assert.equal(lbLadder.tyres.length, 0, "no tyre lines in Leaderboard");

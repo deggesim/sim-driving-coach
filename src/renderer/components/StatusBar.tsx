@@ -7,6 +7,7 @@ import { faMicrophone } from "@fortawesome/free-solid-svg-icons/faMicrophone";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ReactNode } from "react";
 import { Badge, Button } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import type { GameSource, GameStatus } from "../../shared/types";
 
 type StatusBarProps = {
@@ -15,11 +16,17 @@ type StatusBarProps = {
 };
 
 const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
+  const { t } = useTranslation();
   const calibrationText: ReactNode = status.calibrating ? (
-    `Calibrazione: ${status.lapsToCalibration} ${status.lapsToCalibration === 1 ? "giro rimanente" : "giri rimanenti"}`
+    t(
+      status.lapsToCalibration === 1
+        ? "status.calibratingOne"
+        : "status.calibratingMany",
+      { n: status.lapsToCalibration },
+    )
   ) : (
     <>
-      <FontAwesomeIcon icon={faMicrophone} /> Coach attivo
+      <FontAwesomeIcon icon={faMicrophone} /> {t("status.coachActive")}
     </>
   );
 
@@ -32,14 +39,14 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
             variant="success"
             size="sm"
             className="status-badge game-badge game-badge--r3e"
-            title="Forza riconnessione R3E"
+            title={t("status.forceReconnect", { game: "R3E" })}
             onClick={() => onResetReader?.("r3e")}
           >
-            R3E connesso
+            {t("status.connected", { game: "R3E" })}
           </Button>
         ) : (
           <Badge bg="secondary" className="status-badge">
-            R3E disconnesso
+            {t("status.disconnected", { game: "R3E" })}
           </Badge>
         )}
         {status.aceConnected ? (
@@ -47,14 +54,14 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
             variant="success"
             size="sm"
             className="status-badge game-badge game-badge--ace ms-1"
-            title="Forza riconnessione ACE"
+            title={t("status.forceReconnect", { game: "ACE" })}
             onClick={() => onResetReader?.("ace")}
           >
-            ACE connesso
+            {t("status.connected", { game: "ACE" })}
           </Button>
         ) : (
           <Badge bg="secondary" className="status-badge ms-1">
-            ACE disconnesso
+            {t("status.disconnected", { game: "ACE" })}
           </Badge>
         )}
         {status.ams2Connected ? (
@@ -62,14 +69,14 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
             variant="success"
             size="sm"
             className="status-badge game-badge game-badge--ams2 ms-1"
-            title="Forza riconnessione AMS2"
+            title={t("status.forceReconnect", { game: "AMS2" })}
             onClick={() => onResetReader?.("ams2")}
           >
-            AMS2 connesso
+            {t("status.connected", { game: "AMS2" })}
           </Button>
         ) : (
           <Badge bg="secondary" className="status-badge ms-1">
-            AMS2 disconnesso
+            {t("status.disconnected", { game: "AMS2" })}
           </Badge>
         )}
       </div>

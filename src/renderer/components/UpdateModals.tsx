@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal, ProgressBar } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import type { UpdateProgress } from "../../shared/types";
 
 type Phase = "idle" | "ask" | "downloading";
@@ -11,6 +12,7 @@ const MOCK_TOTAL = 80 * 1048576;
 // Startup update flow: "new version" prompt → download modal with progress.
 // When the download ends the main process quits the app and launches the setup.
 export const UpdateModals = () => {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>("idle");
   const [version, setVersion] = useState("");
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
@@ -83,28 +85,23 @@ export const UpdateModals = () => {
       <Modal show={phase === "ask" || !!error} onHide={dismiss} centered>
         <Modal.Header closeButton>
           <Modal.Title>
-            {error
-              ? "Aggiornamento non riuscito"
-              : "Nuova versione disponibile"}
+            {error ? t("update.failedTitle") : t("update.newTitle")}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {error ? (
             <p className="text-danger mb-0">{error}</p>
           ) : (
-            <p className="mb-0">
-              È disponibile la versione {version}. Vuoi scaricarla e installarla
-              ora? L&apos;app si chiuderà e partirà il setup di aggiornamento.
-            </p>
+            <p className="mb-0">{t("update.body", { version })}</p>
           )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={dismiss}>
-            {error ? "Chiudi" : "Più tardi"}
+            {error ? t("update.close") : t("update.later")}
           </Button>
           {!error && (
             <Button variant="primary" onClick={download}>
-              Scarica e installa
+              {t("update.install")}
             </Button>
           )}
         </Modal.Footer>
@@ -117,7 +114,7 @@ export const UpdateModals = () => {
         centered
       >
         <Modal.Header>
-          <Modal.Title>Download aggiornamento</Modal.Title>
+          <Modal.Title>{t("update.downloading")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <ProgressBar now={percent} label={`${percent}%`} animated />

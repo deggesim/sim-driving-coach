@@ -3,12 +3,13 @@
 // errori, dà setup chiamati "vu uno" o "setup d gara".
 import assert from "node:assert/strict";
 import { normalizeSpokenName } from "./spoken-name.js";
+import type { Language } from "../../shared/i18n.js";
 
-const eq = (spoken: string, expected: string) =>
+const eq = (spoken: string, expected: string, lang: Language = "it") =>
   assert.equal(
-    normalizeSpokenName(spoken),
+    normalizeSpokenName(spoken, lang),
     expected,
-    `"${spoken}" -> "${normalizeSpokenName(spoken)}" invece di "${expected}"`,
+    `"${spoken}" -> "${normalizeSpokenName(spoken, lang)}" invece di "${expected}"`,
   );
 
 // ── Lettere compitate + numeri: i due casi della specifica ───────────────────
@@ -74,5 +75,26 @@ eq("gara punto", "gara.");
 eq("", "");
 eq("   ", "");
 eq("annulla", "annulla");
+
+// ── Per-language spelling: letters, numbers and symbols of the active language ─
+eq("vee one underscore b", "v1_b", "en");
+eq("double u three dash two", "w3-2", "en");
+eq("setup for race", "setup for race", "en");
+eq("vau eins Unterstrich be", "v1_b", "de");
+eq("em vierzehn", "m14", "de");
+eq("lauf einundzwanzig", "lauf 21", "de");
+eq("ypsilon zwei Bindestrich ka", "y2-k", "de");
+eq("Setup für Rennen", "setup für rennen", "de");
+eq("vé un tiret bas bé", "v1_b", "fr");
+eq("em deux", "m2", "fr");
+eq("course vingt et un", "course 21", "fr");
+eq("i grec trois tiret ka", "y3-k", "fr");
+eq("un setup rapide", "un setup rapide", "fr");
+eq("uve uno guion bajo be", "v1_b", "es");
+eq("i griega dos guion ka", "y2-k", "es");
+eq("carrera treinta y cinco", "carrera 35", "es");
+eq("un setup rápido", "un setup rápido", "es");
+// Only the active language is read: Italian spelling under "de" stays words
+eq("vu uno trattino basso gara", "vu uno trattino basso gara", "de");
 
 console.log("spoken-name.selfcheck OK");

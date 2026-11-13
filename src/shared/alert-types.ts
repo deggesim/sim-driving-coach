@@ -2,49 +2,88 @@
  * Alert and telemetry tuning constants.
  */
 
+import type { TFunction } from "i18next";
+import { createI18n } from "./i18n.js";
+import { localizeCorner } from "./setup-labels.js";
 import type { AlertType } from "./types.js";
 
+// i18next keys are typed against it.json; the alert keys are built at run time.
+type Lookup = (key: string, opts?: Record<string, unknown>) => string;
+const lookup = (t: TFunction): Lookup => t as unknown as Lookup;
+
 /**
- * AlertType code -> Italian label. The analysis text is rendered, exported to PDF
- * and read aloud by the TTS: a raw code must never reach it, neither through the
- * prompt nor through the model's output.
+ * AlertType code -> label in the language of `t`. The analysis text is rendered,
+ * exported to PDF and read aloud by the TTS: a raw code must never reach it,
+ * neither through the prompt nor through the model's output.
  */
-export const ALERT_LABELS: Record<AlertType, string> = {
-  BRAKE_TEMP_CRITICAL: "temperatura critica dei freni",
-  TC_ANOMALY: "anomalia controllo di trazione",
-  ABS_ANOMALY: "anomalia abs",
-  LATE_BRAKE: "frenata tardiva",
-  SLOW_THROTTLE: "accelerazione tardiva",
-  TRAIL_BRAKING: "trail braking eccessivo",
-  COASTING: "coasting",
-  BRAKE_THROTTLE_OVERLAP: "sovrapposizione freno gas",
+export const alertLabel = (t: TFunction, type: AlertType): string =>
+  t(`alert.label.${type}`);
+
+/** Prompt side: one English instance for every active language. */
+export const englishT: TFunction = createI18n("en").t;
+
+export type MessageVars = Record<string, string | number>;
+
+/**
+ * Alert or deviation text from its language-neutral key + vars. `wheel` is a
+ * wheel code, `m` (+ optional `corner`) the track position. A deviation key
+ * with a position is wrapped as "<position>: <text>", one without stays bare.
+ */
+export const renderMessage = (
+  t: TFunction,
+  key: string,
+  vars: MessageVars,
+): string => {
+  const tr = lookup(t);
+  const v: MessageVars = { ...vars };
+  if (typeof vars.wheel === "string")
+    v.wheel = tr(`alert.brakeWheel.${vars.wheel}`);
+  if (vars.m !== undefined) {
+    const corner =
+      typeof vars.corner === "string" ? localizeCorner(t, vars.corner) : null;
+    v.location = corner
+      ? tr("alert.atCorner", { corner, m: vars.m })
+      : tr("alert.atMeter", { m: vars.m });
+  }
+  const text = tr(key, v);
+  return key.startsWith("alert.dev.") && v.location
+    ? tr("alert.located", { location: v.location, text })
+    : text;
 };
 
+// Wheel codes of the old per-wheel prompt lines; the model can still copy them.
+const WHEEL_CODES: Record<string, string> = {
+  "ANT-SX": "FL",
+  "ANT-DX": "FR",
+  "POST-SX": "RL",
+  "POST-DX": "RR",
+};
+const ALERT_TYPES = [
+  "BRAKE_TEMP_CRITICAL",
+  "TC_ANOMALY",
+  "ABS_ANOMALY",
+  "LATE_BRAKE",
+  "SLOW_THROTTLE",
+  "TRAIL_BRAKING",
+  "COASTING",
+  "BRAKE_THROTTLE_OVERLAP",
+] as const satisfies readonly AlertType[];
+const CODE_RE = new RegExp(
+  `\\b(?:${[...ALERT_TYPES, ...Object.keys(WHEEL_CODES)].join("|")})\\b`,
+  "g",
+);
+
 /**
- * Wheel position codes used by the per-wheel prompt lines, same rule.
- * Feminine ("ruota") also in the brake temp line: it is a position label, and a
- * second masculine map just for the brakes is not worth its weight.
+ * Safety net on the model output, decoded in the active language (the text is
+ * shown and spoken). The prompts no longer carry codes, but prior analyses are
+ * injected verbatim into the next prompt: a saved row can still copy one forward.
  */
-export const WHEEL_LABELS = {
-  "ANT-SX": "anteriore sinistra",
-  "ANT-DX": "anteriore destra",
-  "POST-SX": "posteriore sinistra",
-  "POST-DX": "posteriore destra",
-} as const;
-
-/** Wheel order legend, one source for every prompt line printing a quartet. */
-export const WHEEL_ORDER = Object.values(WHEEL_LABELS).join("/");
-
-const DECODE: Record<string, string> = { ...ALERT_LABELS, ...WHEEL_LABELS };
-const CODE_RE = new RegExp(`\\b(?:${Object.keys(DECODE).join("|")})\\b`, "g");
-
-/**
- * Safety net on the model output. The prompts no longer carry codes, but prior
- * analyses are injected verbatim into the next prompt: a row saved before this
- * change can still be copied forward.
- */
-export const decodeAlertCodes = (text: string): string =>
-  text.replace(CODE_RE, (m) => DECODE[m] ?? m);
+export const decodeAlertCodes = (t: TFunction, text: string): string =>
+  text.replace(CODE_RE, (m) =>
+    m in WHEEL_CODES
+      ? lookup(t)(`alert.wheel.${WHEEL_CODES[m]}`)
+      : alertLabel(t, m as AlertType),
+  );
 
 /** Brake temp ideal window (Celsius) */
 export const BRAKE_TEMP = {

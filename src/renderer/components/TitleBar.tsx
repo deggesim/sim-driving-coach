@@ -12,6 +12,8 @@ import {
   faExpand,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { useTranslation } from "react-i18next";
+import { LanguageMenu } from "./LanguageMenu";
 import { useSettingsStore } from "../store/settingsStore";
 import iconUrl from "/icon.png";
 
@@ -23,6 +25,7 @@ interface TitleBarProps {
 }
 
 const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
+  const { t } = useTranslation();
   const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
   const setTtsEnabled = useSettingsStore((s) => s.setTtsEnabled);
   return (
@@ -36,7 +39,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           aria-current={tab === "current-session" ? "page" : undefined}
           onClick={() => onTabChange("current-session")}
         >
-          Analisi in tempo reale
+          {t("titleBar.live")}
         </Button>
         <Button
           variant="link"
@@ -44,7 +47,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           aria-current={tab === "session-list" ? "page" : undefined}
           onClick={() => onTabChange("session-list")}
         >
-          Elenco sessioni
+          {t("titleBar.sessions")}
         </Button>
         <Button
           variant="link"
@@ -52,7 +55,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           aria-current={tab === "settings" ? "page" : undefined}
           onClick={() => onTabChange("settings")}
         >
-          Impostazioni
+          {t("titleBar.settings")}
         </Button>
       </div>
       <div className="title-bar-tts">
@@ -60,8 +63,8 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           variant="link"
           className={`tts-toggle ${ttsEnabled ? "on" : "off"}`}
           onClick={() => setTtsEnabled(!ttsEnabled)}
-          title={ttsEnabled ? "Voce attiva" : "Voce disattiva"}
-          aria-label="Voce del coach"
+          title={ttsEnabled ? t("titleBar.voiceOn") : t("titleBar.voiceOff")}
+          aria-label={t("titleBar.voice")}
           aria-pressed={ttsEnabled}
         >
           {ttsEnabled ? (
@@ -71,12 +74,13 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           )}
         </Button>
       </div>
+      <LanguageMenu />
       <Button
         variant="link"
         className="title-bar-wc"
         onClick={() => window.electronAPI.windowMinimize()}
-        title="Riduci a icona"
-        aria-label="Riduci a icona"
+        title={t("titleBar.minimize")}
+        aria-label={t("titleBar.minimize")}
       >
         <FontAwesomeIcon icon={faMinus} />
       </Button>
@@ -84,8 +88,8 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         variant="link"
         className="title-bar-wc"
         onClick={() => window.electronAPI.windowMaximize()}
-        title="Ingrandisci"
-        aria-label="Ingrandisci finestra"
+        title={t("titleBar.maximize")}
+        aria-label={t("titleBar.maximizeLabel")}
       >
         <FontAwesomeIcon icon={faExpand} />
       </Button>
@@ -93,8 +97,8 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         variant="link"
         className="title-bar-close"
         onClick={() => window.electronAPI.windowClose()}
-        title="Chiudi"
-        aria-label="Chiudi finestra"
+        title={t("titleBar.close")}
+        aria-label={t("titleBar.closeLabel")}
       >
         <FontAwesomeIcon icon={faXmark} />
       </Button>

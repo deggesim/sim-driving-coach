@@ -1,15 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
+import { useTranslation } from "react-i18next";
 import type { SetupParam } from "../../shared/types";
+import { localizeSetupName } from "../../shared/setup-labels";
 
 export const WHEEL_KEYS = ["FL", "FR", "RL", "RR"] as const;
 export type WheelKey = (typeof WHEEL_KEYS)[number];
-
-export const WHEEL_LABELS: Record<WheelKey, string> = {
-  FL: "Ant. Sinistro",
-  FR: "Ant. Destro",
-  RL: "Post. Sinistro",
-  RR: "Post. Destro",
-};
 
 export const getWheelKey = (parameter: string): WheelKey | null => {
   for (const key of WHEEL_KEYS) {
@@ -26,12 +21,13 @@ export const ParamTable = ({
 }: {
   rows: Array<{ label: string; value: string }>;
 }) => {
+  const { t } = useTranslation();
   return (
     <table className="setup-tab-table w-100">
       <tbody>
         {rows.map((r) => (
           <tr key={r.label}>
-            <td className="text-muted">{r.label}</td>
+            <td className="text-muted">{localizeSetupName(t, r.label)}</td>
             <td className="setup-value">{r.value}</td>
           </tr>
         ))}
@@ -41,6 +37,7 @@ export const ParamTable = ({
 };
 
 export const FourCornerGrid = ({ params }: { params: SetupParam[] }) => {
+  const { t } = useTranslation();
   const byWheel: Partial<Record<WheelKey, SetupParam[]>> = {};
   const shared: SetupParam[] = [];
 
@@ -65,7 +62,9 @@ export const FourCornerGrid = ({ params }: { params: SetupParam[] }) => {
         <div key={left} className="d-flex gap-2 mb-2">
           {([left, right] as WheelKey[]).map((key) => (
             <div key={key} className="setup-axle-col">
-              <div className="setup-subsection-title">{WHEEL_LABELS[key]}</div>
+              <div className="setup-subsection-title">
+                {t(`setup.wheelShort.${key}`)}
+              </div>
               <ParamTable
                 rows={(byWheel[key] ?? []).map((p) => ({
                   label: stripWheelSuffix(p.parameter),

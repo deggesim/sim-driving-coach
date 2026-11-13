@@ -4,8 +4,17 @@
  */
 
 import { create } from "zustand";
+import { isLanguage, type Language } from "../../shared/i18n";
+import { rendererI18n } from "../i18n";
+
+const applyLanguage = (lang: Language): void => {
+  void rendererI18n.changeLanguage(lang);
+  document.documentElement.lang = lang;
+};
 
 type SettingsStore = {
+  language: Language;
+
   // General / AI
   apiKey: string;
   assistantName: string;
@@ -19,7 +28,7 @@ type SettingsStore = {
   azureTtsEnabled: boolean;
   azureSpeechKey: string;
   azureRegion: string;
-  azureVoiceName: string;
+  azureVoiceNames: Partial<Record<Language, string>>; // saved voice per language
 
   // UI state
   settingSaved: string | null;
@@ -36,6 +45,7 @@ type SettingsStore = {
   settingsLoaded: boolean;
 
   // Setters
+  setLanguage: (lang: Language) => void;
   setApiKey: (v: string) => void;
   setAssistantName: (v: string) => void;
   setGamepadButton: (v: number | null) => void;
@@ -46,7 +56,7 @@ type SettingsStore = {
   setAzureTtsEnabled: (v: boolean) => void;
   setAzureSpeechKey: (v: string) => void;
   setAzureRegion: (v: string) => void;
-  setAzureVoiceName: (v: string) => void;
+  setAzureVoiceName: (lang: Language, v: string) => void;
   setMockHistoryMode: (v: boolean) => void;
   setTelemetryLogEnabled: (v: boolean) => void;
   setCapturingVoiceInput: (v: boolean) => void;
@@ -59,11 +69,12 @@ type SettingsStore = {
    * Called once by the module-level settings loader promise; not from component render.
    */
   initFromConfig: (values: {
+    language: string | null;
     apiKey: string | null;
     azureTtsEnabled: string | null;
     azureSpeechKey: string | null;
     azureRegion: string | null;
-    azureVoiceName: string | null;
+    azureVoiceNames: Partial<Record<Language, string | null>>;
     assistantName: string | null;
     gamepadButton: string | null;
     anthropicModel: string | null;
@@ -75,6 +86,7 @@ type SettingsStore = {
 };
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
+  language: "en",
   apiKey: "",
   assistantName: "Aria",
   gamepadButton: null,
@@ -85,7 +97,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   azureTtsEnabled: false,
   azureSpeechKey: "",
   azureRegion: "westeurope",
-  azureVoiceName: "",
+  azureVoiceNames: {},
   settingSaved: null,
   capturingVoiceInput: false,
   mockHistoryMode: false,
@@ -93,6 +105,11 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   aceSetupsPath: "",
   settingsLoaded: false,
 
+  setLanguage: (language) => {
+    applyLanguage(language);
+    set({ language });
+    void window.electronAPI.configSet("language", language);
+  },
   setApiKey: (apiKey) => set({ apiKey }),
   setAssistantName: (assistantName) => set({ assistantName }),
   setGamepadButton: (gamepadButton) => set({ gamepadButton }),
@@ -104,7 +121,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   setAzureTtsEnabled: (azureTtsEnabled) => set({ azureTtsEnabled }),
   setAzureSpeechKey: (azureSpeechKey) => set({ azureSpeechKey }),
   setAzureRegion: (azureRegion) => set({ azureRegion }),
-  setAzureVoiceName: (azureVoiceName) => set({ azureVoiceName }),
+  setAzureVoiceName: (lang, v) =>
+    set((s) => ({ azureVoiceNames: { ...s.azureVoiceNames, [lang]: v } })),
   setCapturingVoiceInput: (capturingVoiceInput) => set({ capturingVoiceInput }),
   setMockHistoryMode: (mockHistoryMode) => set({ mockHistoryMode }),
   setTelemetryLogEnabled: (telemetryLogEnabled) => set({ telemetryLogEnabled }),
@@ -116,7 +134,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   clearSaved: () => set({ settingSaved: null }),
 
   initFromConfig: (values) => {
+    const language = isLanguage(values.language) ? values.language : null;
+    if (language) applyLanguage(language);
     set({
+      ...(language ? { language } : {}),
       ...(values.apiKey ? { apiKey: values.apiKey } : {}),
       ...(values.azureTtsEnabled
         ? { azureTtsEnabled: values.azureTtsEnabled === "true" }
@@ -125,9 +146,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         ? { azureSpeechKey: values.azureSpeechKey }
         : {}),
       ...(values.azureRegion ? { azureRegion: values.azureRegion } : {}),
-      ...(values.azureVoiceName
-        ? { azureVoiceName: values.azureVoiceName }
-        : {}),
+      azureVoiceNames: Object.fromEntries(
+        Object.entries(values.azureVoiceNames).filter(([, v]) => v),
+      ),
       ...(values.assistantName ? { assistantName: values.assistantName } : {}),
       gamepadButton: values.gamepadButton ? Number(values.gamepadButton) : null,
       ...(values.anthropicModel

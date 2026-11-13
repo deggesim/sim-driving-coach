@@ -355,7 +355,7 @@ export const hasCornerNames = (
 /**
  * Derive corner names from the first lap's zone data.
  * Zones with significant braking (maxBrakePct >= 0.2) are grouped into corners
- * and named "Curva 1", "Curva 2", etc. by distance order.
+ * and named "Turn 1", "Turn 2", etc. by distance order.
  */
 export const seedCornersFromLap = (
   db: Database.Database,
@@ -402,7 +402,7 @@ export const seedCornersFromLap = (
         layout,
         g.start * ZONE_M,
         (g.end + 1) * ZONE_M,
-        `Curva ${i + 1}`,
+        `Turn ${i + 1}`,
       );
     });
   })();

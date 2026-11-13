@@ -18,7 +18,10 @@ import {
   Spinner,
   useAccordionButton,
 } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
+import { localeOf } from "../../shared/i18n";
 import { useSessionStore } from "../store/sessionStore";
+import { useSettingsStore } from "../store/settingsStore";
 import AnalysisCommentControls from "./AnalysisCommentControls";
 
 type WorkingVersion = { sessionId: number; version: number };
@@ -37,6 +40,8 @@ const AnalysisAccordionHeader = ({
   createdAt: string;
   onDelete: (e: React.MouseEvent) => void;
 }) => {
+  const { t } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
   const { activeEventKey } = use(AccordionContext);
   const handleToggle = useAccordionButton(eventKey);
   const isOpen = Array.isArray(activeEventKey)
@@ -51,8 +56,8 @@ const AnalysisAccordionHeader = ({
         variant="danger"
         size="sm"
         className="p-0 px-3 rounded-0"
-        title="Elimina analisi"
-        aria-label="Elimina analisi"
+        title={t("analysisList.delete")}
+        aria-label={t("analysisList.delete")}
         onClick={onDelete}
       >
         <FontAwesomeIcon icon={faTrash} aria-hidden />
@@ -63,9 +68,9 @@ const AnalysisAccordionHeader = ({
         onClick={handleToggle}
       >
         <span className="flex-grow-1">
-          Analisi #{version}
+          {t("analysisList.title", { version })}
           <span className="ms-2">
-            {new Date(createdAt).toLocaleString("it-IT")}
+            {new Date(createdAt).toLocaleString(localeOf(language))}
           </span>
         </span>
       </button>
@@ -80,23 +85,25 @@ const ExpandButton = ({
 }: {
   blocked: string | null;
   onExpand: () => void;
-}) => (
-  <>
-    <Button
-      variant="outline-light"
-      size="sm"
-      className="mt-2"
-      disabled={blocked !== null}
-      onClick={onExpand}
-    >
-      Mostra analisi approfondita
-    </Button>
-    <div className="analysis-detail-blocked mt-1">
-      {blocked ??
-        "Chiama l'API Claude: aggiunge l'analisi approfondita a questa versione."}
-    </div>
-  </>
-);
+}) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Button
+        variant="outline-light"
+        size="sm"
+        className="mt-2"
+        disabled={blocked !== null}
+        onClick={onExpand}
+      >
+        {t("analysisList.expand")}
+      </Button>
+      <div className="analysis-detail-blocked mt-1">
+        {blocked ?? t("analysisList.expandHint")}
+      </div>
+    </>
+  );
+};
 
 type Props = {
   workingVersion: WorkingVersion | null;
@@ -107,6 +114,7 @@ const renderMd = (md: string): string =>
   marked.parse(md, { async: false }) as string;
 
 const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
+  const { t } = useTranslation();
   const analyses = useSessionStore((s) => s.analyses);
   const deleteAnalysis = useSessionStore((s) => s.deleteAnalysis);
   const expandAnalysis = useSessionStore((s) => s.expandAnalysis);
@@ -241,7 +249,7 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
               />
               {renderedDetailById.has(a.id) ? (
                 // No wrapper label: the deep-dive text opens with its own
-                // "## Analisi approfondita" heading, so any label here duplicates it.
+                // heading (analysis.heading.detail), so any label here duplicates it.
                 <div
                   className="analysis-detail deb-content"
                   // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
@@ -252,22 +260,24 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
               ) : expandingVersion === a.version ? (
                 <div className="analysis-detail analysis-detail-label">
                   <Spinner size="sm" className="me-2" />
-                  Analisi approfondita in corso…
+                  {t("analysisList.detailRunning", {
+                    heading: t("analysis.heading.detail"),
+                  })}
                 </div>
               ) : (
                 <ExpandButton
                   // Negative ids are mockHistoryMode rows: they exist only in
                   // mockData.ts, so the IPC handler's lookup would fail with
-                  // "Analisi non trovata." The store keeps a single in-flight
+                  // "analysis not found". The store keeps a single in-flight
                   // slot, so a second concurrent expand would overwrite the one
                   // in flight. Both reasons are shown, not just enforced —
                   // Bootstrap sets pointer-events:none on a disabled .btn, so a
                   // title tooltip would never appear.
                   blocked={
                     a.id < 0
-                      ? "Non disponibile in mock mode: questa analisi non esiste nel database."
+                      ? t("analysisList.blockedMock")
                       : workingVersion !== null
-                        ? "Attendi il completamento dell'analisi in corso."
+                        ? t("analysisList.blockedWorking")
                         : null
                   }
                   onExpand={() => expandAnalysis(a.id)}
@@ -277,7 +287,9 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
                 <div className="analysis-comments">
                   {a.comments.map((c) => (
                     <div key={c.created_at} className="analysis-comment">
-                      <div className="analysis-comment-label">Commento</div>
+                      <div className="analysis-comment-label">
+                        {t("analysisList.comment")}
+                      </div>
                       <div className="analysis-comment-text">{c.comment}</div>
                       <div
                         className="analysis-comment-response deb-content"
@@ -297,11 +309,13 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
           <Accordion.Item eventKey={`working-${workingVersion.version}`}>
             <Accordion.Header>
               <Spinner size="sm" className="me-2" />
-              Analisi #{workingVersion.version} (in corso…)
+              {t("analysisList.workingTitle", {
+                version: workingVersion.version,
+              })}
             </Accordion.Header>
             <Accordion.Body className="overflow-y-auto">
               <div style={{ color: "var(--text-dim)" }}>
-                Elaborazione in corso…
+                {t("analysisList.processing")}
               </div>
             </Accordion.Body>
           </Accordion.Item>
@@ -314,11 +328,11 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>Elimina analisi</Modal.Title>
+          <Modal.Title>{t("analysisList.delete")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Eliminare l&apos;analisi #{pendingDelete?.version}? L&apos;operazione
-          è irreversibile.
+          {t("analysisList.deleteBody", { version: pendingDelete?.version })}{" "}
+          {t("common.irreversible")}
         </Modal.Body>
         <Modal.Footer>
           <Button
@@ -326,7 +340,7 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
             onClick={() => setPendingDelete(null)}
             disabled={isDeleting}
           >
-            Annulla
+            {t("common.cancel")}
           </Button>
           <Button
             variant="danger"
@@ -334,7 +348,7 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
             disabled={isDeleting}
           >
             {isDeleting ? <Spinner size="sm" className="me-1" /> : null}
-            Elimina
+            {t("common.delete")}
           </Button>
         </Modal.Footer>
       </Modal>

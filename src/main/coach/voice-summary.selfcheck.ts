@@ -4,6 +4,8 @@
  *   npm run selfcheck
  */
 import assert from "node:assert/strict";
+import { decodeAlertCodes } from "../../shared/alert-types.js";
+import { createI18n } from "../../shared/i18n.js";
 import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
 
 const withTag = `## Analisi sintetica
@@ -35,5 +37,19 @@ Perdi due decimi alla Curva 1.`;
 assert.equal(extractVoiceSummary(truncated), "Perdi due decimi alla Curva 1.");
 assert.equal(stripVoiceTag(truncated), "## Analisi sintetica\nCorpo.");
 assert.ok(!stripVoiceTag(truncated).includes("sintesi-vocale"));
+
+// Codes are decoded in the active language before the tag is read: the spoken
+// summary comes out pronounceable and the extraction is unaffected.
+const coded = `Corpo.
+
+<sintesi-vocale>
+Frenata tardiva: LATE_BRAKE alla Curva 1.
+</sintesi-vocale>`;
+const decoded = decodeAlertCodes(createI18n("it").t, coded);
+assert.equal(
+  extractVoiceSummary(decoded),
+  "Frenata tardiva: frenata tardiva alla Curva 1.",
+);
+assert.equal(stripVoiceTag(decoded), "Corpo.");
 
 console.log("voice-summary.selfcheck OK");

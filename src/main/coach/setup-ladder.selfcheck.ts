@@ -5,15 +5,20 @@
  */
 import assert from "node:assert/strict";
 import {
+  LEVERS,
   computeSetupLadder,
   judgedLapsOfLastSegment,
   ladderFlags,
   stintReadyMessage,
   tyreTempsFixed,
   verdictKey,
+  type LadderStep,
   type SetupLadder,
 } from "./setup-ladder.js";
 import type { SetupOverview } from "./setup-overview.js";
+import { setLanguage } from "../i18n-main.js";
+import { parseR3eSetupJson } from "../../shared/r3e-setup-parse.js";
+import { AMS2_CANONICAL_PARAMS } from "../ams2/ams2-setup-vision.js";
 import type { Ams2Car } from "../ams2/ams2-cars.js";
 import type {
   GameSource,
@@ -210,18 +215,18 @@ assert.equal(hotFront.current, 1);
 const unbalanced = ladder(okZone({ avgBrakeTempC: [450, 450, 250, 250] }));
 assert.equal(stepOf(unbalanced, 1).status, "fix");
 assert.ok(stepOf(unbalanced, 1).reason.includes("44 %"));
-assert.ok(stepOf(unbalanced, 1).reason.includes(", o chiudere"));
+assert.ok(stepOf(unbalanced, 1).reason.includes(", or close"));
 // Both axles under the window (live Monza: 362/280 °C): only close the colder.
 const bothCold = stepOf(
   ladder(okZone({ avgBrakeTempC: [362, 362, 280, 280] })),
   1,
 ).reason;
-assert.ok(bothCold.endsWith("→ chiudere i condotti dell'asse più freddo"));
+assert.ok(bothCold.endsWith("→ close the ducts of the colder axle"));
 const bothHot = stepOf(
   ladder(okZone({ avgBrakeTempC: [690, 690, 900, 900] })),
   1,
 ).reason;
-assert.ok(bothHot.endsWith("→ aprire i condotti dell'asse più caldo"));
+assert.ok(bothHot.endsWith("→ open the ducts of the hotter axle"));
 assert.equal(stepOf(ladder(okZone()), 1).status, "ok");
 const noBrakeTemps = ladder(
   okZone({
@@ -236,21 +241,21 @@ assert.equal(noBrakeTemps.current, 2, "a na step is skipped, never current");
 // --- Step 2 without ABS ---
 const frontLock = ladder(okZone({ lockFramesFront: 8, lockFramesRear: 2 }));
 assert.equal(stepOf(frontLock, 2).status, "fix");
-assert.ok(stepOf(frontLock, 2).reason.includes("posteriore"));
+assert.ok(stepOf(frontLock, 2).reason.includes("toward the rear"));
 // Both axles lock, neither twice the other: brake pressure, not bias.
 const bothLock = stepOf(
   ladder(okZone({ lockFramesFront: 8, lockFramesRear: 6 })),
   2,
 );
 assert.equal(bothLock.status, "fix");
-assert.ok(bothLock.reason.includes("ridurre la forza frenante"));
+assert.ok(bothLock.reason.includes("reduce the braking force"));
 assert.equal(
   stepOf(ladder(okZone({ lockFramesFront: 8, lockFramesRear: 5 })), 2).status,
   "ok",
   "front over 5 %, rear at 5 %, not twice: still ok",
 );
 const rearLock = ladder(okZone({ lockFramesFront: 0, lockFramesRear: 6 }));
-assert.ok(stepOf(rearLock, 2).reason.includes("verso l'anteriore"));
+assert.ok(stepOf(rearLock, 2).reason.includes("toward the front"));
 // Lock share is over the frames that carry slip, not every hard-brake frame.
 const fewSlipFrames = ladder(
   okZone({ srHardBrakeFrames: 40, lockFramesFront: 4, lockFramesRear: 0 }),
@@ -258,7 +263,7 @@ const fewSlipFrames = ladder(
 assert.equal(stepOf(fewSlipFrames, 2).status, "fix", "4/40 = 10 %");
 assert.equal(
   stepOf(ladder(okZone({ srHardBrakeFrames: 0 })), 2).reason,
-  "manca lo slip",
+  "slip missing",
 );
 
 // --- Step 2 with ABS ---
@@ -266,7 +271,7 @@ const absUnder = ladder(
   okZone({ absHardBrakeFrames: 30, cornersEntryUnder: 3 }),
 );
 assert.equal(stepOf(absUnder, 2).status, "fix");
-assert.ok(stepOf(absUnder, 2).reason.includes("verso il posteriore"));
+assert.ok(stepOf(absUnder, 2).reason.includes("toward the rear"));
 assert.equal(
   stepOf(ladder(okZone({ absHardBrakeFrames: 30, cornersEntryUnder: 1 })), 2)
     .status,
@@ -280,15 +285,15 @@ const absNoCorners = ladder(
   }),
 );
 assert.equal(stepOf(absNoCorners, 2).status, "na");
-assert.equal(stepOf(absNoCorners, 2).reason, "manca l'accelerazione laterale");
+assert.equal(stepOf(absNoCorners, 2).reason, "lateral acceleration missing");
 assert.equal(
   stepOf(ladder(okZone({ absHardBrakeFrames: 30, cornersEntry: undefined })), 2)
     .reason,
-  "nessuna curva misurabile",
+  "no measurable corners",
 );
 assert.equal(
   stepOf(ladder(okZone({ hardBrakeFrames: 0 })), 2).reason,
-  "nessuna frenata forte",
+  "no hard braking",
 );
 
 // --- Step 3: engine braking ---
@@ -300,7 +305,7 @@ assert.equal(
 // Guide slides 22-23/53: oversteer on downshift = close the coast ramp, never open it.
 assert.ok(
   stepOf(ladder(okZone({ nervousDownshifts: 3 })), 3).reason.includes(
-    "coast ramp più chiusa",
+    "coast ramp more closed",
   ),
 );
 const fwd = ladder(
@@ -310,10 +315,10 @@ const fwd = ladder(
   }),
 );
 assert.equal(stepOf(fwd, 3).status, "na");
-assert.equal(stepOf(fwd, 3).reason, "trazione anteriore");
+assert.equal(stepOf(fwd, 3).reason, "front-wheel drive");
 assert.equal(
   stepOf(ladder(okZone({ downshifts: 0, nervousDownshifts: 0 })), 3).reason,
-  "nessuna scalata",
+  "no downshifts",
 );
 
 // --- Step 4: the four calibration points of Δ, one per wheel ---
@@ -325,14 +330,14 @@ const calib = ladder(
   }),
 );
 const calibTyres = calib.tyres.at(-1) ?? assert.fail("tyres missing");
-assert.deepEqual(calibTyres.pressureState, ["bassa", "alta", "ok", "ok"]);
+assert.deepEqual(calibTyres.pressureState, ["low", "high", "ok", "ok"]);
 assert.equal(stepOf(calib, 4).status, "fix");
-assert.ok(stepOf(calib, 4).reason.includes("ANT-SX"));
-assert.ok(!stepOf(calib, 4).reason.includes("POST-SX"));
+assert.ok(stepOf(calib, 4).reason.includes("front left"));
+assert.ok(!stepOf(calib, 4).reason.includes("rear left"));
 // The reason names the axle (largest |Δ|) and only its out-of-tolerance wheels.
 assert.equal(
   stepOf(calib, 4).reason,
-  "asse ANT: Δ ANT-SX -1.5 °C → alzare, Δ ANT-DX +1.5 °C → abbassare",
+  "front axle: Δ front left -1.5 °C → raise, Δ front right +1.5 °C → lower",
 );
 // Rear axle wins (|Δ| 3.0 vs 1.5): the front wheel that is also off is not listed.
 const rearAxle = ladder(
@@ -344,7 +349,7 @@ const rearAxle = ladder(
 );
 assert.equal(
   stepOf(rearAxle, 4).reason,
-  "asse POST: Δ POST-SX +3.0 °C → abbassare, Δ POST-DX -2.0 °C → alzare",
+  "rear axle: Δ rear left +3.0 °C → lower, Δ rear right -2.0 °C → raise",
 );
 // Tie on |Δ| between the axles: the front.
 const axleTie = ladder(
@@ -356,7 +361,7 @@ const axleTie = ladder(
 );
 assert.equal(
   stepOf(axleTie, 4).reason,
-  "asse ANT: Δ ANT-SX +2.0 °C → abbassare",
+  "front axle: Δ front left +2.0 °C → lower",
 );
 assert.deepEqual(calibTyres.hotPressurePsi, [27, 27, 26, 26]);
 assert.equal(calibTyres.judgedLaps, 4);
@@ -405,7 +410,7 @@ const camberMore = ladder(
 );
 assert.equal(stepOf(camberMore, 4).status, "ok");
 assert.equal(stepOf(camberMore, 5).status, "fix");
-assert.ok(stepOf(camberMore, 5).reason.includes("più campanatura negativa"));
+assert.ok(stepOf(camberMore, 5).reason.includes("more negative camber"));
 const camberLess = ladder(
   okZone({
     avgTyreTempInnerC: [92, 92, 92, 92],
@@ -414,13 +419,13 @@ const camberLess = ladder(
   }),
 );
 assert.equal(stepOf(camberLess, 5).status, "fix");
-assert.ok(stepOf(camberLess, 5).reason.includes("meno campanatura negativa"));
+assert.ok(stepOf(camberLess, 5).reason.includes("less negative camber"));
 // Caster is offered on the front wheels only: two of the four wheels.
 assert.equal(
-  stepOf(camberLess, 5).reason.split("o più incidenza").length - 1,
+  stepOf(camberLess, 5).reason.split("or more caster").length - 1,
   2,
 );
-assert.ok(!stepOf(camberMore, 5).reason.includes("incidenza"));
+assert.ok(!stepOf(camberMore, 5).reason.includes("caster"));
 // FL has high pressure (Δ +7.5) and d = 15: ignored, so the step is ok.
 const highIgnored = ladder(
   okZone({
@@ -438,19 +443,19 @@ const allHigh = ladder(
     avgTyreTempOuterC: [75, 75, 75, 75],
   }),
 );
-assert.equal(stepOf(allHigh, 5).reason, "nessuna ruota con pressione a posto");
+assert.equal(stepOf(allHigh, 5).reason, "no wheel with the pressure in range");
 
 // --- Step 6: differential ---
 const spin = ladder(okZone({ spinFramesRear: 30 }));
 assert.equal(stepOf(spin, 6).status, "fix");
-assert.ok(stepOf(spin, 6).reason.includes("chiudere la power ramp"));
-assert.ok(stepOf(spin, 6).reason.includes("più precarico"));
+assert.ok(stepOf(spin, 6).reason.includes("close the power ramp"));
+assert.ok(stepOf(spin, 6).reason.includes("more preload"));
 const exitOver = stepOf(ladder(okZone({ cornersExitOver: 3 })), 6).reason;
-assert.ok(exitOver.includes("aprire la power ramp"));
-assert.ok(exitOver.includes("meno precarico"));
+assert.ok(exitOver.includes("open the power ramp"));
+assert.ok(exitOver.includes("less preload"));
 assert.ok(
   stepOf(ladder(okZone({ cornersEntryOver: 3 })), 6).reason.includes(
-    "chiudere la coast ramp",
+    "close the coast ramp",
   ),
 );
 // Front-wheel drive reads the front spin counter.
@@ -486,7 +491,7 @@ assert.equal(
     withCar(okZone({ nervousDownshifts: 3 }), car({ driveline: "FWD" })),
     3,
   ).reason,
-  "trazione anteriore",
+  "front-wheel drive",
 );
 // ...and RWD/AWD beat a front-biased slip (not fwd).
 for (const driveline of ["RWD", "AWD"])
@@ -508,11 +513,11 @@ for (const differential of ["FIXED", "SPOOL", "OPEN"])
   assert.equal(
     stepOf(withCar(okZone({ spinFramesRear: 30 }), car({ differential })), 6)
       .reason,
-    "differenziale non regolabile",
+    "differential not adjustable",
   );
 assert.equal(
   stepOf(withCar(zone(), car({ differential: "FIXED" })), 6).reason,
-  "differenziale non regolabile",
+  "differential not adjustable",
   "even without counters",
 );
 // Geared LSD → bias ratio wording, no preload fallback.
@@ -520,14 +525,14 @@ for (const differential of ["G-LSD", "GC-LSD"]) {
   const g = (z: Partial<ZoneData>) =>
     stepOf(withCar(okZone(z), car({ differential })), 6).reason;
   const power = g({ spinFramesRear: 30 });
-  assert.ok(power.includes("alzare il bias ratio power"), power);
-  assert.ok(!power.includes("precarico") && !power.includes("ramp"), power);
+  assert.ok(power.includes("raise the power bias ratio"), power);
+  assert.ok(!power.includes("preload") && !power.includes("ramp"), power);
   const open = g({ cornersExitOver: 3 });
-  assert.ok(open.includes("abbassare il bias ratio power"), open);
-  assert.ok(!open.includes("precarico") && !open.includes("ramp"), open);
+  assert.ok(open.includes("lower the power bias ratio"), open);
+  assert.ok(!open.includes("preload") && !open.includes("ramp"), open);
   const coast = g({ cornersEntryOver: 3 });
-  assert.ok(coast.includes("alzare il bias ratio coast"), coast);
-  assert.ok(!coast.includes("precarico") && !coast.includes("ramp"), coast);
+  assert.ok(coast.includes("raise the coast bias ratio"), coast);
+  assert.ok(!coast.includes("preload") && !coast.includes("ramp"), coast);
 }
 // Clutch LSDs (incl. SPL/C-LSD) keep the ramp wording; no car = today's behaviour.
 for (const c of [
@@ -538,7 +543,7 @@ for (const c of [
 ])
   assert.ok(
     stepOf(withCar(okZone({ spinFramesRear: 30 }), c), 6).reason.includes(
-      "chiudere la power ramp (più bloccaggio); se è già chiusa del tutto, più precarico",
+      "close the power ramp (more locking); if it is already fully closed, more preload",
     ),
   );
 
@@ -575,7 +580,7 @@ const lb = computeSetupLadder(stint(5, lbZone), new Map(), {
 assert.equal(lb.steps.length, 6, "Leaderboard keeps all six steps");
 for (const n of [4, 5]) {
   assert.equal(stepOf(lb, n).status, "na");
-  assert.equal(stepOf(lb, n).reason, "gomme fisse a 85 °C (Leaderboard)");
+  assert.equal(stepOf(lb, n).reason, "tyres fixed at 85 °C (Leaderboard)");
 }
 assert.equal(stepOf(lb, 1).status, "ok", "steps 1-3 judged as usual");
 assert.equal(stepOf(lb, 6).status, "fix", "step 6 judged as usual");
@@ -664,14 +669,26 @@ const readyOf = (laps: number, z: ZoneData): string | null =>
 assert.equal(readyOf(3, okZone()), null, "2 judged laps: not yet");
 assert.equal(
   readyOf(4, okZone()),
-  "Stint analizzabile: 3 giri giudicati. Nessuna correzione da fare. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint ready for analysis: 3 judged laps. No correction to make. You can pause and run the analysis.",
 );
+assert.equal(
+  readyOf(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] })),
+  "Stint ready for analysis: 4 judged laps. First correction: brake ducts. You can pause and run the analysis.",
+);
+// No temperatures (fixed warm-up, 3 judged laps by lap 6) and every step na: still speaks.
+assert.ok(readyOf(6, zone())?.includes("No correction to make"));
+// The spoken cue follows the chosen language (real translations, no fallback).
+setLanguage("it");
 assert.equal(
   readyOf(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] })),
   "Stint analizzabile: 4 giri giudicati. Prima correzione: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
 );
-// No temperatures (fixed warm-up, 3 judged laps by lap 6) and every step na: still speaks.
-assert.ok(readyOf(6, zone())?.includes("Nessuna correzione da fare"));
+setLanguage("de");
+assert.equal(
+  readyOf(4, okZone()),
+  "Stint analysierbar: 3 gewertete Runden. Keine Korrektur nötig. Du kannst pausieren und die Analyse starten.",
+);
+setLanguage("en");
 
 // --- stintReadyMessage with the overview: complete ladder, first area to fix ---
 const ladderComplete = computeSetupLadder(stint(4, okZone()), new Map(), {
@@ -681,7 +698,7 @@ const overviewCurrent6 = {
   areas: [
     {
       n: 6,
-      label: "barre antirollio",
+      label: "anti-roll bars",
       status: "fix",
       reason: "x",
       proposable: true,
@@ -694,18 +711,18 @@ const overviewCurrent6 = {
 } satisfies SetupOverview;
 assert.ok(
   stintReadyMessage(ladderComplete, overviewCurrent6)?.includes(
-    "Prima correzione: barre antirollio.",
+    "First correction: anti-roll bars.",
   ),
 );
 assert.ok(
-  stintReadyMessage(ladderComplete)?.includes("Nessuna correzione da fare."),
+  stintReadyMessage(ladderComplete)?.includes("No correction to make."),
   "overview absent: unchanged",
 );
 assert.ok(
   stintReadyMessage(ladderComplete, {
     ...overviewCurrent6,
     current: null,
-  })?.includes("Nessuna correzione da fare."),
+  })?.includes("No correction to make."),
 );
 
 // --- ladderFlags: the DB columns default to 1 for every game, but the two
@@ -780,7 +797,7 @@ const flatShoulders = (flags: {
   );
 const aceLadder = flatShoulders({ camberUnreadable: true });
 assert.equal(stepOf(aceLadder, 5).status, "na");
-assert.ok(stepOf(aceLadder, 5).reason.includes("non segue la campanatura"));
+assert.ok(stepOf(aceLadder, 5).reason.includes("does not follow the camber"));
 assert.ok(!/\b(ACE|AMS2)\b/.test(stepOf(aceLadder, 5).reason), "no game name");
 assert.equal(aceLadder.tyres[0].innerMinusOuterC, null);
 assert.equal(
@@ -809,7 +826,7 @@ const ams2Shoulders = (inner: number, outer: number): SetupLadder =>
   );
 const ams2Equal = stepOf(ams2Shoulders(85, 85), 5);
 assert.equal(ams2Equal.status, "fix");
-assert.ok(ams2Equal.reason.includes("temperature uguali"));
+assert.ok(ams2Equal.reason.includes("temperatures equal"));
 assert.ok(ams2Equal.reason.includes("5 °C"));
 assert.equal(
   stepOf(ams2Shoulders(88, 85), 5).status,
@@ -818,7 +835,7 @@ assert.equal(
 );
 const ams2Wide = stepOf(ams2Shoulders(95, 75), 5);
 assert.equal(ams2Wide.status, "ok", "a wide gap never asks for less camber");
-assert.ok(!ams2Wide.reason.includes("meno"));
+assert.ok(!ams2Wide.reason.includes("less"));
 
 // --- Step 1 on the laps after the out-lap, before the judged laps ---
 // Tyres never settle (+5 °C per lap): 0 judged laps, but brakes are judged on laps 2..n.
@@ -904,7 +921,7 @@ assert.equal(
   stintReadyMessage(L(stint(3, okZone())), null, {
     ladder: L1(stint(2, okZone())),
   }),
-  "Stint analizzabile: 2 giri giudicati. Nessuna correzione da fare. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint ready for analysis: 2 judged laps. No correction to make. You can pause and run the analysis.",
 );
 // Numbers alone differ: still stable.
 const hotF = (t: number) => okZone({ avgBrakeTempC: [t, t, 400, 400] });
@@ -935,7 +952,7 @@ assert.equal(
   stintReadyMessage(L(drifting(3, [720, 720, 400, 400])), null, {
     ladder: L(drifting(2, [720, 720, 400, 400])),
   }),
-  "Stint analizzabile: 2 giri giudicati. Prima correzione: condotti freni. Puoi metterti in pausa ed eseguire l'analisi.",
+  "Stint ready for analysis: 2 judged laps. First correction: brake ducts. You can pause and run the analysis.",
 );
 
 // --- Tyres out of the game's window (R3E cold threshold): no verdict on 4-5 ---
@@ -954,12 +971,12 @@ const notWarm = L(stint(4, coldRear));
 assert.deepEqual(notWarm.tyres[0].coldWheels, [2, 3]);
 const p4 = stepOf(notWarm, 4);
 assert.equal(p4.status, "ok", "the warm front axle is judged");
-assert.ok(p4.reason.includes("su ANT-SX, ANT-DX"), p4.reason);
-assert.ok(p4.reason.includes("POST-SX 56 °C (soglia 57 °C)"), p4.reason);
-assert.ok(p4.reason.includes("POST-DX 46 °C (soglia 57 °C)"), p4.reason);
-assert.ok(p4.reason.includes("non giudicate"), p4.reason);
+assert.ok(p4.reason.includes("on front left, front right"), p4.reason);
+assert.ok(p4.reason.includes("rear left 56 °C (threshold 57 °C)"), p4.reason);
+assert.ok(p4.reason.includes("rear right 46 °C (threshold 57 °C)"), p4.reason);
+assert.ok(p4.reason.includes("not judged"), p4.reason);
 assert.equal(stepOf(notWarm, 5).status, "ok");
-assert.ok(stepOf(notWarm, 5).reason.includes("su ANT-SX, ANT-DX"));
+assert.ok(stepOf(notWarm, 5).reason.includes("on front left, front right"));
 // A cold wheel with a real imbalance is not proposed: only the warm one is.
 const rearOff = L(
   stint(
@@ -987,25 +1004,25 @@ const allCold = L(
 );
 assert.equal(stepOf(allCold, 4).status, "na");
 assert.equal(stepOf(allCold, 5).status, "na");
-assert.ok(stepOf(allCold, 4).reason.startsWith("gomme non in temperatura:"));
-assert.ok(stepOf(allCold, 5).reason.includes("campanatura non giudicata"));
+assert.ok(stepOf(allCold, 4).reason.startsWith("tyres not up to temperature:"));
+assert.ok(stepOf(allCold, 5).reason.includes("camber not judged"));
 // A game without a threshold (no tyreColdC) judges as before.
 assert.equal(L(stint(4, okZone())).tyres[0].notWarm, null);
 // Spoken: which wheels, or all of them.
 const partialCue = stintReadyMessage(notWarm);
 assert.ok(
   partialCue?.includes(
-    "Ruote non in temperatura e non giudicate: posteriore sinistra, posteriore destra.",
+    "Wheels not up to temperature and not judged: rear left, rear right.",
   ),
   String(partialCue),
 );
 assert.ok(
   stintReadyMessage(allCold)?.includes(
-    "Gomme non in temperatura: pressioni e campanatura non giudicate.",
+    "Tyres not up to temperature: pressures and camber not judged.",
   ),
 );
 assert.ok(
-  !stintReadyMessage(L(stint(3, okZone())))?.includes("non in temperatura"),
+  !stintReadyMessage(L(stint(3, okZone())))?.includes("not up to temperature"),
 );
 
 // --- A step to fix without its lever in the loaded setup is skipped ---
@@ -1033,20 +1050,17 @@ const noDucts = withParams(
 assert.equal(stepOf(noDucts, 1).status, "na");
 assert.ok(
   stepOf(noDucts, 1).reason.startsWith(
-    "leva non presente nel setup caricato — ",
+    "lever not present in the loaded setup — ",
   ),
 );
 assert.equal(noDucts.current, null);
 // ACE never exports ducts either.
 assert.equal(
-  withParams(
-    unbalancedLaps,
-    P("Ripartizione Frenata Anteriore", "Pressione FL"),
-  ).current,
+  withParams(unbalancedLaps, P("Front Brake Bias", "Tyre Pressure FL")).current,
   null,
 );
 // The lever exists → unchanged.
-assert.equal(withParams(unbalancedLaps, P("Condotti freni")).current, 1);
+assert.equal(withParams(unbalancedLaps, P("Brake Ducts")).current, 1);
 // No setup loaded → unchanged.
 assert.equal(withParams(unbalancedLaps, null).current, 1);
 // Early step 1 (`drifting`) without the lever: not current.
@@ -1058,11 +1072,11 @@ assert.equal(
 assert.equal(stepOf(withParams(stint(5, okZone()), P()), 1).status, "ok");
 // Brake pressure is not a tyre-pressure lever.
 assert.equal(
-  stepOf(withParams(stint(5, lowPress), P("Pressione freni")), 4).status,
+  stepOf(withParams(stint(5, lowPress), P("Brake Pressure")), 4).status,
   "na",
 );
 assert.equal(
-  stepOf(withParams(stint(5, lowPress), P("Pressione RL")), 4).status,
+  stepOf(withParams(stint(5, lowPress), P("Tyre Pressure RL")), 4).status,
   "fix",
 );
 
@@ -1093,7 +1107,7 @@ const free = r3eLadder(corners4.map((w) => lp(`Camber ${w}`)));
 assert.equal(free.current, 5, "camber is the step to fix");
 const atEnd = r3eLadder(corners4.map((w) => lp(`Camber ${w}`, "min")));
 assert.equal(stepOf(atEnd, 5).status, "ok");
-assert.ok(stepOf(atEnd, 5).reason.endsWith(" — già a fondo scala"));
+assert.ok(stepOf(atEnd, 5).reason.endsWith(" — already at end of range"));
 assert.equal(atEnd.current, null);
 // One wheel can still move → still fix.
 assert.equal(
@@ -1150,12 +1164,9 @@ const page = (category: string, parameter: string): SetupParam => ({
   value: "1",
 });
 // Only the suspension page captured: the brakes are unknown, step 1 stays.
-assert.equal(ams2With([page("Sospensioni", "Camber FL")]).current, 1);
+assert.equal(ams2With([page("Suspension", "Camber FL")]).current, 1);
 // Brakes page read and no duct among them: the lever is really missing.
-assert.equal(
-  stepOf(ams2With([page("Freni", "Bilanciamento freni")]), 1).status,
-  "na",
-);
+assert.equal(stepOf(ams2With([page("Brakes", "Brake Bias")]), 1).status, "na");
 
 // --- Levers named by the steps' own fixes ---
 // G-LSD (AMS2): the diff is tuned by bias ratio only.
@@ -1184,4 +1195,76 @@ for (const m of [
   readyOf(5, okZone({ avgBrakeTempC: [720, 720, 400, 400] })),
   stintReadyMessage(ladderComplete, overviewCurrent6),
 ])
-  assert.ok(m && !/scalett|sequenz|quadro|passo|area/i.test(m), m ?? "null");
+  assert.ok(m && !/ladder|sequence|overview|step|area/i.test(m), m ?? "null");
+
+// --- English setup names: every game's lever names are matched by the ladder ---
+const r3eItem = (id: string) => ({
+  id,
+  minValue: 0,
+  stepSize: 1,
+  currentStep: 1,
+  suffix: "",
+  disabled: false,
+});
+const r3eFixture = parseR3eSetupJson(
+  JSON.stringify({
+    values: [
+      "BrakeBias",
+      "TyrePressureFrontLeft",
+      "CamberFrontLeft",
+      "DifferentialPreload",
+      "EngineBraking",
+    ].map(r3eItem),
+  }),
+);
+// ACE labels as ace-setup-reader.ts pushes them (no brake ducts there either).
+const aceFixture = P(
+  "Front Brake Bias",
+  "Brake Torque Multiplier",
+  "Tyre Pressure FL",
+  "Camber FL",
+  "Effective Camber FL",
+  "Coast Locking (0–1)",
+  "Power Locking (0–1)",
+  "Differential Preload",
+);
+const ams2Category = (name: string): string =>
+  /^Brake/.test(name)
+    ? "Brakes"
+    : /^Tyre/.test(name)
+      ? "Tyres"
+      : /^Engine/.test(name)
+        ? "Engine/Electronics"
+        : /^(Coast|Power|Preload)/.test(name)
+          ? "Differential"
+          : "Suspension";
+const ams2Fixture = AMS2_CANONICAL_PARAMS.map((parameter) => ({
+  category: ams2Category(parameter),
+  parameter,
+  value: "1",
+}));
+const covered = (params: SetupParam[], steps: LadderStep["n"][]) =>
+  steps.every((n) => params.some((q) => LEVERS[n].test(q.parameter)));
+assert.ok(covered(r3eFixture, [2, 3, 4, 5, 6]), "R3E levers");
+assert.ok(covered(aceFixture, [2, 3, 4, 5, 6]), "ACE levers");
+assert.ok(covered(ams2Fixture, [1, 2, 3, 4, 5, 6]), "AMS2 levers");
+// Brake pressure is not a tyre-pressure lever (and the reverse).
+assert.ok(!LEVERS[4].test("Brake Pressure"));
+assert.ok(LEVERS[2].test("Brake Pressure"));
+assert.ok(!LEVERS[2].test("Tyre Pressure FL"));
+// Behaviour unchanged: step 1 stays current with the duct lever, and na on a
+// read brakes page without it; step 4 is a fix only with a tyre-pressure lever.
+assert.equal(ams2With(ams2Fixture).current, 1);
+assert.equal(
+  stepOf(ams2With(ams2Fixture.filter((q) => q.parameter !== "Brake Ducts")), 1)
+    .status,
+  "na",
+);
+assert.equal(
+  stepOf(withParams(stint(5, lowPress), aceFixture), 4).status,
+  "fix",
+);
+assert.equal(
+  stepOf(withParams(stint(5, lowPress), r3eFixture), 4).status,
+  "fix",
+);

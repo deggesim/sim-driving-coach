@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   CartesianGrid,
   Line,
@@ -50,6 +51,7 @@ const formatDist = (v: number) => `${Math.round(v)} m`;
 const ZONE_SIZE_M = 50;
 
 const PedalsTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  const { t } = useTranslation();
   if (!active || !payload || payload.length === 0) return null;
   const dist = label ?? 0;
   const zone = Math.floor(dist / ZONE_SIZE_M);
@@ -57,7 +59,9 @@ const PedalsTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     <div className="telemetry-tooltip">
       <div className="telemetry-tooltip-dist">
         {formatDist(dist)} &nbsp;
-        <span className="telemetry-tooltip-zone">zona {zone}</span>
+        <span className="telemetry-tooltip-zone">
+          {t("telemetry.zone", { n: zone })}
+        </span>
       </div>
       {payload.map((p) => (
         <div key={p.dataKey} style={{ color: p.color }}>
@@ -69,6 +73,7 @@ const PedalsTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 const SpeedTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  const { t } = useTranslation();
   if (!active || !payload || payload.length === 0) return null;
   const p = payload[0];
   const dist = label ?? 0;
@@ -77,7 +82,9 @@ const SpeedTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     <div className="telemetry-tooltip">
       <div className="telemetry-tooltip-dist">
         {formatDist(dist)} &nbsp;
-        <span className="telemetry-tooltip-zone">zona {zone}</span>
+        <span className="telemetry-tooltip-zone">
+          {t("telemetry.zone", { n: zone })}
+        </span>
       </div>
       <div style={{ color: p.color }}>
         {p.name}: {Math.round(p.value)} km/h
@@ -217,6 +224,7 @@ type Props = {
 };
 
 const LapTelemetryCharts = ({ lap }: Props) => {
+  const { t } = useTranslation();
   const game: GameSource = useSessionStore((s) => s.session?.game ?? "r3e");
   const sessionCar = useSessionStore((s) => s.session?.car ?? "");
   const sessionTrack = useSessionStore((s) => s.session?.track ?? "");
@@ -301,23 +309,23 @@ const LapTelemetryCharts = ({ lap }: Props) => {
 
   if (loading) {
     return (
-      <div className="text-muted telemetry-status">Caricamento telemetria…</div>
+      <div className="text-muted telemetry-status">
+        {t("telemetry.loading")}
+      </div>
     );
   }
 
   if (data.length === 0 && framesError) {
     return (
       <div className="text-danger telemetry-status" role="alert">
-        Impossibile caricare la telemetria del giro.
+        {t("telemetry.loadError")}
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="text-muted telemetry-status">
-        Nessun dato di telemetria disponibile per questo giro.
-      </div>
+      <div className="text-muted telemetry-status">{t("telemetry.noData")}</div>
     );
   }
 
@@ -348,7 +356,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
   const charts = (
     <div className="telemetry-charts">
       <div>
-        <div className="telemetry-chart-label">Freno / Acceleratore (%)</div>
+        <div className="telemetry-chart-label">{t("telemetry.pedals")}</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart
             data={data}
@@ -392,7 +400,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
             <Line
               type="monotone"
               dataKey="brake"
-              name="Freno"
+              name={t("telemetry.brake")}
               stroke="#e8451a"
               strokeWidth={2}
               dot={false}
@@ -401,7 +409,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
             <Line
               type="monotone"
               dataKey="throttle"
-              name="Acceleratore"
+              name={t("telemetry.throttle")}
               stroke="#3ecf3e"
               strokeWidth={2}
               dot={false}
@@ -412,7 +420,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
       </div>
 
       <div>
-        <div className="telemetry-chart-label">Velocità (km/h)</div>
+        <div className="telemetry-chart-label">{t("telemetry.speedLabel")}</div>
         <ResponsiveContainer width="100%" height={180}>
           <LineChart
             data={data}
@@ -446,7 +454,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
             <Line
               type="monotone"
               dataKey="speed"
-              name="Velocità"
+              name={t("telemetry.speed")}
               stroke="#f1c40f"
               strokeWidth={2}
               dot={false}
@@ -462,7 +470,7 @@ const LapTelemetryCharts = ({ lap }: Props) => {
     <div className="telemetry-container">
       {trackMap && (
         <div className="telemetry-track-map">
-          <div className="telemetry-chart-label">Tracciato</div>
+          <div className="telemetry-chart-label">{t("telemetry.map")}</div>
           <div className="telemetry-track-svg">
             <TrackMapSvg
               geometry={trackMap}

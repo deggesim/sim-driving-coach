@@ -13,7 +13,10 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
+import { Trans, useTranslation } from "react-i18next";
+import { localeOf } from "../../shared/i18n";
 import type { SetupData } from "../../shared/types";
+import { useSettingsStore } from "../store/settingsStore";
 import Ams2SetupTabs from "./Ams2SetupTabs";
 
 type AlreadyUsedInfo = {
@@ -42,12 +45,15 @@ export const Ams2SetupPicker = ({
   onClose,
   onConfirm,
 }: Props) => {
+  const { t } = useTranslation();
+  const language = useSettingsStore((s) => s.language);
   const [screenshots, setScreenshots] = useState<ScreenshotEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [phase, setPhase] = useState<Phase>("pick");
   const [decodedSetup, setDecodedSetup] = useState<SetupData | null>(null);
   const [setupName, setSetupName] = useState("");
+  // Main-process message; "" = no message, show the generic translated one.
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
   const loadedRef = useRef(false);
@@ -101,7 +107,7 @@ export const Ams2SetupPicker = ({
       setDecodedSetup(result);
       setPhase("verify");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Errore durante il decoding");
+      setError(e instanceof Error ? e.message : "");
       setPhase("pick");
     }
   };
@@ -131,7 +137,7 @@ export const Ams2SetupPicker = ({
 
   const formatDate = (iso: string): string => {
     try {
-      return new Date(iso).toLocaleDateString("it-IT", {
+      return new Date(iso).toLocaleDateString(localeOf(language), {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -150,14 +156,14 @@ export const Ams2SetupPicker = ({
     >
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
-          Seleziona screenshot setup
+          {t("ams2Picker.title")}
           <span className="picker-subtitle"> · {expectedCar}</span>
         </Modal.Title>
         <Button
           variant="link"
           className="picker-close"
-          title="Chiudi"
-          aria-label="Chiudi"
+          title={t("setupCommon.close")}
+          aria-label={t("setupCommon.close")}
           onClick={handleClose}
         >
           <FontAwesomeIcon icon={faXmark} aria-hidden />
@@ -167,30 +173,37 @@ export const Ams2SetupPicker = ({
       <Modal.Body className="picker-body">
         {phase === "pick" && (
           <>
-            {error && (
+            {error !== null && (
               <div className="picker-error mb-3" role="alert">
-                {error}
+                {error || t("ams2Picker.decodeError")}
               </div>
             )}
             {loading ? (
               <div className="picker-loading">
-                <Spinner size="sm" /> Caricamento screenshot...
+                <Spinner size="sm" /> {t("ams2Picker.loading")}
               </div>
             ) : loadError ? (
               <div className="picker-error" role="alert">
-                Impossibile leggere gli screenshot.{" "}
+                {t("ams2Picker.readError")}{" "}
                 <Button variant="link" size="sm" className="p-0" onClick={load}>
-                  Riprova
+                  {t("setupCommon.retry")}
                 </Button>
               </div>
             ) : screenshots.length === 0 ? (
               <p className="text-secondary">
-                Nessuno screenshot trovato nella cartella Steam di AMS2. Cattura
-                le schermate del setup in-game con F12, poi{" "}
-                <Button variant="link" size="sm" className="p-0" onClick={load}>
-                  Riprova
-                </Button>
-                .
+                <Trans
+                  i18nKey="ams2Picker.empty"
+                  components={{
+                    retry: (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0"
+                        onClick={load}
+                      />
+                    ),
+                  }}
+                />
               </p>
             ) : (
               <div className="picker-grid">
@@ -210,7 +223,12 @@ export const Ams2SetupPicker = ({
                     }}
                     title={
                       s.alreadyUsed
-                        ? `Già usato nel setup "${s.alreadyUsed.setupName || "senza nome"}" (${formatDate(s.alreadyUsed.loadedAt)})`
+                        ? t("ams2Picker.usedTitle", {
+                            name:
+                              s.alreadyUsed.setupName ||
+                              t("ams2Picker.unnamed"),
+                            date: formatDate(s.alreadyUsed.loadedAt),
+                          })
                         : undefined
                     }
                   >
@@ -230,7 +248,7 @@ export const Ams2SetupPicker = ({
                           icon={faExclamationTriangle}
                           className="me-1"
                         />
-                        Già scansionato
+                        {t("ams2Picker.alreadyScanned")}
                       </div>
                     )}
                     <div className="picker-name">
@@ -248,11 +266,11 @@ export const Ams2SetupPicker = ({
             <div className="picker-confirm-icon">
               <FontAwesomeIcon icon={faExclamationTriangle} />
             </div>
-            <h6 className="picker-confirm-title">Screenshot già scansionati</h6>
+            <h6 className="picker-confirm-title">{t("ams2Picker.dupTitle")}</h6>
             <p className="picker-confirm-text">
               {selectedDuplicates.length === 1
-                ? "1 screenshot selezionato è già presente in un setup precedente:"
-                : `${selectedDuplicates.length} screenshot selezionati sono già presenti in setup precedenti:`}
+                ? t("ams2Picker.dupOne")
+                : t("ams2Picker.dupOther", { n: selectedDuplicates.length })}
             </p>
             <ul className="picker-confirm-list">
               {selectedDuplicates.map((name) => {
@@ -264,15 +282,17 @@ export const Ams2SetupPicker = ({
                     </span>
                     {" — "}
                     <span className="text-dim">
-                      setup "{info.setupName || "senza nome"}" del{" "}
-                      {formatDate(info.loadedAt)}
+                      {t("ams2Picker.dupItem", {
+                        name: info.setupName || t("ams2Picker.unnamed"),
+                        date: formatDate(info.loadedAt),
+                      })}
                     </span>
                   </li>
                 );
               })}
             </ul>
             <p className="picker-confirm-question">
-              Vuoi procedere comunque con il decode?
+              {t("ams2Picker.dupQuestion")}
             </p>
           </div>
         )}
@@ -280,7 +300,7 @@ export const Ams2SetupPicker = ({
         {phase === "decoding" && (
           <div className="picker-loading">
             <FontAwesomeIcon icon={faCircleNotch} spin />
-            <span>Analisi setup in corso con Claude Vision...</span>
+            <span>{t("ams2Picker.decoding")}</span>
           </div>
         )}
 
@@ -290,24 +310,27 @@ export const Ams2SetupPicker = ({
               {decodedSetup.carVerified ? (
                 <Badge bg="success">
                   <FontAwesomeIcon icon={faCheck} className="me-1" />
-                  Auto verificata: {decodedSetup.carFound}
+                  {t("ams2Picker.carOk", { car: decodedSetup.carFound })}
                 </Badge>
               ) : (
                 <Badge bg="warning" text="dark">
-                  Attenzione: auto rilevata "{decodedSetup.carFound}" — potrebbe
-                  non corrispondere a "{expectedCar}"
+                  {t("ams2Picker.carWarn", {
+                    found: decodedSetup.carFound,
+                    expected: expectedCar,
+                  })}
                 </Badge>
               )}
             </div>
 
             <Form.Group className="mb-3" style={{ maxWidth: 360 }}>
               <Form.Label className="text-dim" style={{ fontSize: 13 }}>
-                Nome setup <span className="text-danger">*</span>
+                {t("setupCommon.nameLabel")}{" "}
+                <span className="text-danger">*</span>
               </Form.Label>
               <Form.Control
                 size="sm"
                 type="text"
-                placeholder="es. Qualifica Interlagos baseline"
+                placeholder={t("ams2Picker.namePlaceholder")}
                 value={setupName}
                 onChange={(e) => setSetupName(e.target.value)}
                 autoFocus
@@ -328,11 +351,16 @@ export const Ams2SetupPicker = ({
           <>
             <span className="text-secondary me-auto">
               {selected.size > 0
-                ? `${selected.size} screenshot selezionati${selectedDuplicates.length > 0 ? ` (${selectedDuplicates.length} già scansionati)` : ""}`
-                : "Seleziona le schermate del setup"}
+                ? selectedDuplicates.length > 0
+                  ? t("ams2Picker.selectedDup", {
+                      n: selected.size,
+                      dup: selectedDuplicates.length,
+                    })
+                  : t("ams2Picker.selected", { n: selected.size })
+                : t("ams2Picker.prompt")}
             </span>
             <Button variant="secondary" size="sm" onClick={handleClose}>
-              Annulla
+              {t("common.cancel")}
             </Button>
             <Button
               variant="primary"
@@ -340,7 +368,7 @@ export const Ams2SetupPicker = ({
               disabled={selected.size === 0}
               onClick={handleDecodeRequest}
             >
-              Decodifica setup
+              {t("ams2Picker.decode")}
             </Button>
           </>
         )}
@@ -353,14 +381,14 @@ export const Ams2SetupPicker = ({
               onClick={() => setPhase("pick")}
             >
               <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
-              Torna alla selezione
+              {t("ams2Picker.back")}
             </Button>
             <Button
               variant="danger"
               size="sm"
               onClick={() => void startDecode()}
             >
-              Procedi comunque
+              {t("ams2Picker.proceed")}
             </Button>
           </>
         )}
@@ -376,7 +404,7 @@ export const Ams2SetupPicker = ({
               }}
             >
               <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
-              Riseleziona
+              {t("ams2Picker.reselect")}
             </Button>
             <Button
               variant="primary"
@@ -385,7 +413,7 @@ export const Ams2SetupPicker = ({
               onClick={handleConfirm}
             >
               <FontAwesomeIcon icon={faCheck} className="me-1" />
-              Salva setup
+              {t("setupCommon.save")}
             </Button>
           </>
         )}

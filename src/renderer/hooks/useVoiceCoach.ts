@@ -18,6 +18,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { convertToWav, pickMimeType } from "../lib/audio";
 import { preprocessTTSText } from "../../shared/format";
+import { localeOf } from "../../shared/i18n";
+import { useSettingsStore } from "../store/settingsStore";
 
 export type VoiceCoachState = "idle" | "listening" | "processing" | "speaking";
 
@@ -351,18 +353,20 @@ export const useVoiceCoach = ({
       if (!azureTtsEnabled) {
         // Azure preprocesses in the main process; the Web Speech fallback must do
         // it here, else numbers and distances are read as raw digit groups.
-        const text = preprocessTTSText(fullAnswer);
+        const lang = useSettingsStore.getState().language;
+        const text = preprocessTTSText(fullAnswer, lang);
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "it-IT";
+        utterance.lang = localeOf(lang);
         utterance.rate = 0.9;
-        const voices = window.speechSynthesis.getVoices();
-        const itVoice = voices.find((v) => v.lang.startsWith("it"));
-        if (itVoice) utterance.voice = itVoice;
+        const voice = window.speechSynthesis
+          .getVoices()
+          .find((v) => v.lang.startsWith(lang));
+        if (voice) utterance.voice = voice;
         utterance.onend = finishSpeaking;
         utterance.onerror = resetToIdle;
         window.speechSynthesis.speak(utterance);
         // Web Speech gives no duration up front, so the guard is estimated at
-        // 12 chars/s - slower than any it-IT voice at rate 0.9, so it can only
+        // 12 chars/s - slower than any voice at rate 0.9, so it can only
         // fire on a read that never ended.
         armSpeakGuard(text.length * 80 + 5000);
       } else {

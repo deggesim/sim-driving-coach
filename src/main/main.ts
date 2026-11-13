@@ -39,7 +39,7 @@ import {
   matchGame,
   nextGreeting,
 } from "./coach/voice-intent.js";
-import { normalizeSpokenName } from "./coach/spoken-name.js";
+import { decidePendingName } from "./coach/pending-name.js";
 import { createAceReader, type AceReader } from "./ace/ace-reader.js";
 import {
   decodeCarSetup,
@@ -97,6 +97,9 @@ import {
 } from "./coach/session-coach.js";
 import { createZoneTracker } from "./zone-tracker.js";
 import { initUpdater } from "./updater.js";
+import { getLanguage, setLanguage, tm } from "./i18n-main.js";
+import { resolveVoice, voiceConfigKey } from "../shared/azure-voice.js";
+import { isLanguage, localeOf, resolveSystemLanguage } from "../shared/i18n.js";
 
 // Chromium's Native Window Occlusion (Windows) treats a window fully covered by
 // another app - the simulator running fullscreen - as hidden: it pauses the
@@ -229,9 +232,9 @@ const pushAppError = (message: string): void => {
 const buildAzureErrorMessage = (err: unknown): string => {
   const msg = err instanceof Error ? err.message.toLowerCase() : "";
   if (msg.includes("429") || msg.includes("too many") || msg.includes("rate")) {
-    return "Azure TTS: limite di frequenza superato. Riprova tra qualche istante.";
+    return tm("err.azureRate");
   }
-  return "Azure TTS: credito insufficiente o quota esaurita. Verifica la sottoscrizione Cognitive Services.";
+  return tm("err.azureQuota");
 };
 
 // ──────────────────────────────────────────────
@@ -315,6 +318,17 @@ const setupPipeline = (): void => {
         { value: string } | undefined
     )?.value;
 
+  // Language must be settled before the renderer's first config:get("language").
+  const storedLanguage = getConfig("language");
+  const language = isLanguage(storedLanguage)
+    ? storedLanguage
+    : resolveSystemLanguage(app.getPreferredSystemLanguages());
+  if (language !== storedLanguage)
+    db.prepare(
+      "INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)",
+    ).run("language", language);
+  setLanguage(language);
+
   // Register config handlers immediately - renderer may call configGet before
   // the rest of setupPipeline (readers, baseline, etc.) finishes initializing.
   ipcMain.handle("config:get", (_event, key: string) => {
@@ -330,6 +344,10 @@ const setupPipeline = (): void => {
     ).run(key, String(value));
     if (key === "anthropicApiKey" || key === "anthropicModel")
       voiceCoach = null;
+    if (key === "language" && isLanguage(value)) {
+      setLanguage(value);
+      voiceCoach = null;
+    }
     if (key === "telemetryLogEnabled") {
       telemetryEnabled = String(value) === "true";
       if (!telemetryEnabled) closeTelemetryFile();
@@ -1177,8 +1195,8 @@ const setupPipeline = (): void => {
         ok: false,
         reason:
           probe === "not-live"
-            ? `${gameLabel(game)} non è connesso. Avvialo ed entra in pista prima di aprire una sessione.`
-            : "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
+            ? tm("err.notConnectedOpen", { game: gameLabel(game) })
+            : tm("err.carTrackUnknown"),
       };
     }
     activeGame = game;
@@ -1296,9 +1314,7 @@ const setupPipeline = (): void => {
     ) => {
       const targetId = sid ?? currentSessionId;
       if (!targetId) {
-        throw new Error(
-          "Nessuna sessione attiva. Apri una sessione prima di caricare un setup.",
-        );
+        throw new Error(tm("err.noActiveSessionSetup"));
       }
       return {
         setupId: insertSetup({
@@ -1347,11 +1363,11 @@ const setupPipeline = (): void => {
       const sessionId = params.sessionId ?? currentSessionId;
       const game = params.game ?? currentSessionGame;
       if (!sessionId) {
-        return { ok: false, reason: "Nessuna sessione selezionata." };
+        return { ok: false, reason: tm("err.noSessionSelected") };
       }
       const apiKey = getAnthropicApiKey();
       if (!apiKey) {
-        return { ok: false, reason: "API Key Anthropic non configurata." };
+        return { ok: false, reason: tm("err.noApiKey") };
       }
       sessionCoach.updateApiKey(apiKey);
       sessionCoach.updateCornerNames(buildCornerMap());
@@ -1373,7 +1389,7 @@ const setupPipeline = (): void => {
       if (analyzingInProgress.has(analyzeKey)) {
         return {
           ok: false,
-          reason: "Analisi già in corso per questa sessione.",
+          reason: tm("err.analysisRunning"),
         };
       }
 
@@ -1395,11 +1411,11 @@ const setupPipeline = (): void => {
     async (_event, params: { analysisId: number; game?: GameSource }) => {
       const game = params.game ?? currentSessionGame;
       if (!params.analysisId) {
-        return { ok: false, reason: "Nessuna analisi selezionata." };
+        return { ok: false, reason: tm("err.noAnalysisSelected") };
       }
       const apiKey = getAnthropicApiKey();
       if (!apiKey) {
-        return { ok: false, reason: "API Key Anthropic non configurata." };
+        return { ok: false, reason: tm("err.noApiKey") };
       }
       sessionCoach.updateApiKey(apiKey);
       sessionCoach.updateCornerNames(buildCornerMap());
@@ -1414,7 +1430,7 @@ const setupPipeline = (): void => {
         .get(params.analysisId) as
         | { session_id: number; car: string; track: string; layout: string }
         | undefined;
-      if (!sRow) return { ok: false, reason: "Analisi non trovata." };
+      if (!sRow) return { ok: false, reason: tm("err.analysisNotFound") };
       const resolved = resolveNames(game, sRow.car, sRow.track, sRow.layout);
 
       // Same rule as session:analyze: sessionAlerts is in-memory only, so it
@@ -1428,7 +1444,7 @@ const setupPipeline = (): void => {
 
       const expandKey = `expand:${params.analysisId}:${game}`;
       if (analyzingInProgress.has(expandKey)) {
-        return { ok: false, reason: "Approfondimento già in corso." };
+        return { ok: false, reason: tm("err.expandRunning") };
       }
       analyzingInProgress.add(expandKey);
       sessionCoach
@@ -1641,11 +1657,11 @@ const setupPipeline = (): void => {
       { id, game, comment }: { id: number; game: GameSource; comment: string },
     ) => {
       const text = (comment ?? "").trim();
-      if (!text) return { ok: false, reason: "Commento vuoto." };
+      if (!text) return { ok: false, reason: tm("err.emptyComment") };
 
       const apiKey = getAnthropicApiKey();
       if (!apiKey) {
-        return { ok: false, reason: "API Key Anthropic non configurata." };
+        return { ok: false, reason: tm("err.noApiKey") };
       }
       sessionCoach.updateApiKey(apiKey);
       sessionCoach.updateCornerNames(buildCornerMap());
@@ -1669,7 +1685,7 @@ const setupPipeline = (): void => {
         resolved,
       );
       if (!analysis) {
-        return { ok: false, reason: "Impossibile generare l'integrazione." };
+        return { ok: false, reason: tm("err.commentFailed") };
       }
       return { ok: true, analysis };
     },
@@ -1721,7 +1737,7 @@ const setupPipeline = (): void => {
       { id, game, setup }: { id: number; game: GameSource; setup: SetupData },
     ) => {
       if (!setup.name?.trim()) {
-        return { ok: false, reason: "Nome setup obbligatorio." };
+        return { ok: false, reason: tm("err.setupNameRequired") };
       }
       const screenshots =
         game === "ace" ? null : JSON.stringify(setup.screenshots ?? []);
@@ -1731,7 +1747,7 @@ const setupPipeline = (): void => {
       const row = db
         .prepare(`SELECT * FROM ${t("session_setups", game)} WHERE id = ?`)
         .get(id) as Parameters<typeof parseSetupRow>[0] | undefined;
-      if (!row) return { ok: false, reason: "Setup non trovato." };
+      if (!row) return { ok: false, reason: tm("err.setupNotFound") };
       return { ok: true, row: parseSetupRow(row) };
     },
   );
@@ -1751,7 +1767,7 @@ const setupPipeline = (): void => {
       const dateLabel = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const defaultFilename = `${dateLabel} - ${carLabel} - ${trackLabel}`;
       const { canceled, filePath } = await dialog.showSaveDialog({
-        title: "Salva PDF sessione",
+        title: tm("pdf.saveTitle"),
         defaultPath: `${defaultFilename}.pdf`,
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       });
@@ -1779,8 +1795,8 @@ const setupPipeline = (): void => {
           ok: false,
           reason:
             probe === "not-live"
-              ? `${gameLabel(game)} non è connesso. Avvia il simulatore prima di riaprire la sessione.`
-              : "Auto/circuito non ancora rilevati. Entra in pista e riprova.",
+              ? tm("err.notConnectedReopen", { game: gameLabel(game) })
+              : tm("err.carTrackUnknown"),
         };
       }
 
@@ -1792,7 +1808,7 @@ const setupPipeline = (): void => {
         .get(id) as { car: string; track: string; layout: string } | undefined;
       if (!sessionRow) {
         stopReader(game);
-        return { ok: false, reason: "Sessione non trovata." };
+        return { ok: false, reason: tm("err.sessionNotFound") };
       }
 
       if (
@@ -1809,7 +1825,16 @@ const setupPipeline = (): void => {
         );
         return {
           ok: false,
-          reason: `Auto o circuito non corrispondono alla sessione. La sessione richiede ${names.carName} a ${names.trackName}${names.layoutName && names.layoutName !== names.trackName ? ` - ${names.layoutName}` : ""}, ma il simulatore ha rilevato ${resolveNames(game, currentCar, currentTrack, currentLayout).carName}.`,
+          reason: tm("err.sessionMismatch", {
+            car: names.carName,
+            track: `${names.trackName}${names.layoutName && names.layoutName !== names.trackName ? ` - ${names.layoutName}` : ""}`,
+            detected: resolveNames(
+              game,
+              currentCar,
+              currentTrack,
+              currentLayout,
+            ).carName,
+          }),
         };
       }
 
@@ -1916,7 +1941,7 @@ const setupPipeline = (): void => {
     "session:reuseSetup",
     (_event, { setupId }: { setupId: number }) => {
       if (!currentSessionId) {
-        throw new Error("Nessuna sessione attiva.");
+        throw new Error(tm("err.noActiveSession"));
       }
       currentSetupId = setupId;
     },
@@ -1929,19 +1954,18 @@ const setupPipeline = (): void => {
   ipcMain.handle("tts:getVoices", async () => {
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
-    if (!key || !region)
-      throw new Error("Azure Speech Key e Region non configurati");
-    return getAzureVoices(key, region);
+    if (!key || !region) throw new Error(tm("err.azureNotConfigured"));
+    return getAzureVoices(key, region, localeOf(getLanguage()));
   });
 
   ipcMain.handle("tts:synthesize", async (_event, text: string) => {
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
-    const voice = getConfig("azureVoiceName");
-    if (!key || !region || !voice)
-      throw new Error("Azure TTS non completamente configurato");
+    if (!key || !region) throw new Error(tm("err.azureTtsNotConfigured"));
+    const lang = getLanguage();
+    const voice = resolveVoice(lang, getConfig(voiceConfigKey(lang)));
     try {
-      return await synthesizeAzure(text, key, region, voice);
+      return await synthesizeAzure(text, key, region, voice, lang);
     } catch (err) {
       if (isCreditOrQuotaError(err)) pushAppError(buildAzureErrorMessage(err));
       throw err;
@@ -1951,11 +1975,10 @@ const setupPipeline = (): void => {
   ipcMain.handle("tts:test", async (_event, voiceName: string) => {
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
-    if (!key || !region)
-      throw new Error("Azure Speech Key e Region non configurati");
+    if (!key || !region) throw new Error(tm("err.azureNotConfigured"));
     const assistantName = getConfig("assistantName") ?? "Aria";
-    const testPhrase = assistantIntro(assistantName);
-    return synthesizeAzure(testPhrase, key, region, voiceName);
+    const testPhrase = assistantIntro(assistantName, tm);
+    return synthesizeAzure(testPhrase, key, region, voiceName, getLanguage());
   });
 
   // Live list of Claude models for the analysis model selector.
@@ -1983,9 +2006,14 @@ const setupPipeline = (): void => {
     async (_event, audioBuffer: ArrayBuffer, mimeType?: string) => {
       const key = getConfig("azureSpeechKey");
       const region = getConfig("azureRegion");
-      if (!key || !region)
-        throw new Error("Azure Speech Key e Region non configurati");
-      return transcribeAzure(Buffer.from(audioBuffer), key, region, mimeType);
+      if (!key || !region) throw new Error(tm("err.azureNotConfigured"));
+      return transcribeAzure(
+        Buffer.from(audioBuffer),
+        key,
+        region,
+        localeOf(getLanguage()),
+        mimeType,
+      );
     },
   );
 
@@ -2004,10 +2032,11 @@ const setupPipeline = (): void => {
     if (getConfig("azureTtsEnabled") !== "true") return;
     const key = getConfig("azureSpeechKey");
     const region = getConfig("azureRegion");
-    const voice = getConfig("azureVoiceName");
-    if (!key || !region || !voice) return;
+    if (!key || !region) return;
+    const lang = getLanguage();
+    const voice = resolveVoice(lang, getConfig(voiceConfigKey(lang)));
     try {
-      const audio = await synthesizeAzure(text, key, region, voice);
+      const audio = await synthesizeAzure(text, key, region, voice, lang);
       pushToRenderer("coach:voiceAudio", { audio });
     } catch (err) {
       console.error("[VoiceCoach] TTS synthesis error:", err);
@@ -2018,35 +2047,26 @@ const setupPipeline = (): void => {
   const openSessionByVoice = async (game: GameSource): Promise<void> => {
     const res = await startSession(game);
     if (!res.ok) {
-      await speakText(`Impossibile aprire la sessione. ${res.reason}`);
+      await speakText(tm("voice.openFailed", { reason: res.reason }));
       return;
     }
     const names = resolveNames(game, currentCar, currentTrack, currentLayout);
-    const car = names.carName || "auto sconosciuta";
-    const track = names.trackName || "circuito sconosciuto";
+    const car = names.carName || tm("voice.unknownCar");
+    const track = names.trackName || tm("voice.unknownTrack");
     const layout =
       names.layoutName && names.layoutName !== track
         ? `, ${names.layoutName}`
         : "";
     await speakText(
-      `Sessione aperta su ${gameLabel(game)}. ${car} - ${track}${layout}.`,
+      tm("voice.opened", { game: gameLabel(game), car, track, layout }),
     );
   };
 
   /** Messaggio d'errore per gioco, verbatim dalla specifica: per chi guida
    *  "clipboard vuota" e "JSON malformato" sono lo stesso problema, quindi ogni
    *  acquirer collassa qualunque fallimento in una sola frase. */
-  const ACQUIRE_ERROR: Record<GameSource, string> = {
-    r3e: "Nessun setup presente nella clipboard.",
-    ace: "Setup non presente per la combinazione auto tracciato, o errore nella decodifica.",
-    ams2: "Nessuno screenshot da acquisire o errore nella scansione.",
-  };
-
-  /** Parole con cui il pilota rinuncia invece di dettare un nome. Senza questa
-   *  via d'uscita uno STT confuso persiste una riga session_setups_* con un nome
-   *  spazzatura, cancellabile solo dalla UI. */
-  const CANCEL_WORDS =
-    /^(annulla|annullo|lascia stare|lascia perdere|niente|no)$/i;
+  const acquireError = (game: GameSource): string =>
+    tm(`voice.acquireError.${game}`);
 
   /** Nome dell'auto della sessione, risolto: per R3E currentCar è un id numerico. */
   const sessionCarName = (): string =>
@@ -2101,27 +2121,31 @@ const setupPipeline = (): void => {
   const saveAcquiredSetup = async (setup: SetupData): Promise<void> => {
     const sessionId = currentSessionId;
     if (!sessionId) {
-      await speakText("Non c'è nessuna sessione aperta.");
+      await speakText(tm("voice.noSession"));
       return;
     }
     insertSetup({ setup, sessionId, game: currentSessionGame, activate: true });
     // carVerified arriva da Claude Vision solo per AMS2: quando l'auto sulle
     // schermate non è quella della sessione il dato esiste già, tacerlo
     // sarebbe peggio che dirlo.
-    const warn = setup.carVerified
-      ? ""
-      : ` Attenzione, l'auto rilevata è ${setup.carFound}.`;
-    await speakText(`Setup salvato con nome ${setup.name}.${warn}`);
+    await speakText(
+      setup.carVerified
+        ? tm("voice.setupSaved", { name: setup.name })
+        : tm("voice.setupSavedWarn", {
+            name: setup.name,
+            car: setup.carFound,
+          }),
+    );
   };
 
   const acquireSetupByVoice = async (): Promise<void> => {
     if (!currentSessionId) {
-      await speakText("Non c'è nessuna sessione aperta.");
+      await speakText(tm("voice.noSession"));
       return;
     }
     const game = currentSessionGame;
     if (game === "ams2" && !getAnthropicApiKey()) {
-      await speakText("API Key Anthropic non configurata.");
+      await speakText(tm("err.noApiKey"));
       return;
     }
     let setup: SetupData;
@@ -2134,7 +2158,7 @@ const setupPipeline = (): void => {
             : await acquireAms2Setup();
     } catch (err) {
       console.error("[VoiceCoach] Setup acquisition failed:", err);
-      await speakText(ACQUIRE_ERROR[game]);
+      await speakText(acquireError(game));
       return;
     }
     // ACE porta già il nome del file: niente da chiedere.
@@ -2144,7 +2168,7 @@ const setupPipeline = (): void => {
     }
     pendingSetup = setup;
     pendingSetupAt = Date.now();
-    await speakText("Come vuoi chiamare il setup?", { listenAgain: true });
+    await speakText(tm("voice.askSetupName"), { listenAgain: true });
   };
 
   ipcMain.handle("coach:voiceQuery", async (_event, question: string) => {
@@ -2155,11 +2179,9 @@ const setupPipeline = (): void => {
     // treated as absent instead of eating a later, unrelated command.
     if (pendingGame && Date.now() - pendingGameAt < PENDING_ANSWER_TTL_MS) {
       pendingGame = false;
-      const answered = matchGame(question);
+      const answered = matchGame(question, getLanguage());
       if (!answered) {
-        await speakText(
-          "Non ho capito quale gioco. Ripeti il comando indicando il gioco.",
-        );
+        await speakText(tm("voice.whichGameUnclear"));
         return;
       }
       await openSessionByVoice(answered);
@@ -2168,24 +2190,31 @@ const setupPipeline = (): void => {
     pendingGame = false;
 
     // Un "come vuoi chiamare il setup?" pendente ingoia la trascrizione
-    // successiva: è un nome, non un comando.
-    if (pendingSetup && Date.now() - pendingSetupAt < PENDING_ANSWER_TTL_MS) {
+    // successiva: è un nome, non un comando. La decisione non dipende dalla
+    // lingua (vedi pending-name.ts): la frase seguente esce nella lingua attiva.
+    const pendingName = pendingSetup
+      ? decidePendingName(
+          question,
+          pendingSetupAt,
+          Date.now(),
+          PENDING_ANSWER_TTL_MS,
+          getLanguage(),
+        )
+      : null;
+    if (pendingSetup && pendingName && pendingName.kind !== "expired") {
       const setup = pendingSetup;
       pendingSetup = null;
-      // Chi detta un nome lo compita ("vu uno" -> v1) e nomina i simboli
-      // ("trattino basso" -> _): la trascrizione grezza non è mai il nome.
-      const name = normalizeSpokenName(question);
-      if (!name || CANCEL_WORDS.test(name)) {
-        await speakText("Acquisizione annullata.");
+      if (pendingName.kind === "cancel") {
+        await speakText(tm("voice.acquireCancelled"));
         return;
       }
-      await saveAcquiredSetup({ ...setup, name });
+      await saveAcquiredSetup({ ...setup, name: pendingName.name });
       return;
     }
     pendingSetup = null;
 
     const assistantName = getConfig("assistantName") ?? "Aria";
-    const intent = classifyVoiceIntent(question, assistantName);
+    const intent = classifyVoiceIntent(question, assistantName, getLanguage());
     console.log("[VoiceCoach] intent:", intent);
 
     if (intent.kind === "newSession") {
@@ -2195,10 +2224,7 @@ const setupPipeline = (): void => {
       if (!intent.game) {
         pendingGame = true;
         pendingGameAt = Date.now();
-        await speakText(
-          "Quale gioco? RaceRoom, Assetto Corsa EVO o Automobilista 2.",
-          { listenAgain: true },
-        );
+        await speakText(tm("voice.whichGame"), { listenAgain: true });
         return;
       }
       await openSessionByVoice(intent.game);
@@ -2206,17 +2232,17 @@ const setupPipeline = (): void => {
     }
 
     if (intent.kind === "greeting") {
-      await speakText(nextGreeting(greetCount++), { listenAgain: true });
+      await speakText(nextGreeting(greetCount++, tm), { listenAgain: true });
       return;
     }
 
     if (intent.kind === "closeSession") {
       if (!currentSessionId) {
-        await speakText("Non c'è nessuna sessione aperta.");
+        await speakText(tm("voice.noSession"));
         return;
       }
       closeSession("voice command");
-      await speakText("Sessione chiusa.");
+      await speakText(tm("voice.sessionClosed"));
       return;
     }
 
@@ -2227,12 +2253,12 @@ const setupPipeline = (): void => {
 
     if (intent.kind === "analyze") {
       if (!currentSessionId) {
-        await speakText("Non c'è nessuna sessione aperta da analizzare.");
+        await speakText(tm("voice.noSessionToAnalyze"));
         return;
       }
       const apiKey = getAnthropicApiKey();
       if (!apiKey) {
-        await speakText("API Key Anthropic non configurata.");
+        await speakText(tm("err.noApiKey"));
         return;
       }
       sessionCoach.updateApiKey(apiKey);
@@ -2257,7 +2283,7 @@ const setupPipeline = (): void => {
       if (analysis?.summary) {
         await speakText(analysis.summary);
       } else {
-        await speakText("Analisi completata.");
+        await speakText(tm("voice.analysisDone"));
       }
       return;
     }
@@ -2265,7 +2291,7 @@ const setupPipeline = (): void => {
     // Freeform
     const coach = getVoiceCoach();
     if (!coach) {
-      await speakText("API Key Anthropic non configurata.");
+      await speakText(tm("err.noApiKey"));
       return;
     }
     coach.updateContext({ cornerMap: buildCornerMap() });
@@ -2283,8 +2309,7 @@ const setupPipeline = (): void => {
       analyses: detail?.analyses ?? [],
     });
 
-    let fullAnswer =
-      "Si è verificato un errore durante l'elaborazione della domanda.";
+    let fullAnswer = tm("voice.questionError");
     try {
       fullAnswer = await coach.handleVoiceQuery(intent.question, (token) => {
         pushToRenderer("coach:voiceChunk", { token });
@@ -2344,7 +2369,7 @@ const setupPipeline = (): void => {
       const resolvedPath = path.resolve(filePath);
       // Prevent path traversal: filePath must be inside the ACE setups directory
       if (!resolvedPath.startsWith(resolvedBase + path.sep)) {
-        throw new Error("Percorso file non consentito.");
+        throw new Error(tm("err.pathNotAllowed"));
       }
       const buf = fs.readFileSync(resolvedPath);
       const parts = resolvedPath.split(path.sep);
@@ -2455,10 +2480,9 @@ const setupPipeline = (): void => {
       { filenames, expectedCar }: { filenames: string[]; expectedCar: string },
     ) => {
       const screenshotsDir = resolveAms2ScreenshotsDir();
-      if (!screenshotsDir)
-        throw new Error("Cartella screenshot AMS2 non trovata");
+      if (!screenshotsDir) throw new Error(tm("err.ams2DirMissing"));
       const apiKey = getAnthropicApiKey();
-      if (!apiKey) throw new Error("Anthropic API Key non configurata");
+      if (!apiKey) throw new Error(tm("err.anthropicKeyMissing"));
       return decodeAms2Setup({
         screenshotsDir,
         filenames,

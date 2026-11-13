@@ -1,4 +1,5 @@
 import { Button, Modal } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faCopy, faPen } from "@fortawesome/free-solid-svg-icons";
 import type { GameSource, SessionSetupRow } from "../../shared/types";
@@ -32,6 +33,7 @@ export const SetupDetailModal = ({
   onRename,
   takenNames,
 }: SetupDetailModalProps) => {
+  const { t } = useTranslation();
   if (setupId == null) return null;
 
   const row = setupById.get(setupId);
@@ -71,10 +73,7 @@ export const SetupDetailModal = ({
             <R3eSetupTabs params={row.setup.params} />
           )
         ) : (
-          <p className="text-muted mb-0">
-            Nessun parametro in questo setup: la lettura non ne ha estratti.
-            Eliminalo e acquisiscilo di nuovo.
-          </p>
+          <p className="text-muted mb-0">{t("setupDetail.empty")}</p>
         )}
       </Modal.Body>
       {(onUse || onDuplicate || onEdit) && (
@@ -82,19 +81,19 @@ export const SetupDetailModal = ({
           {onEdit && (
             <Button size="sm" variant="secondary" onClick={onEdit}>
               <FontAwesomeIcon icon={faPen} className="me-1" />
-              Modifica setup
+              {t("setupDetail.edit")}
             </Button>
           )}
           {onDuplicate && (
             <Button size="sm" variant="secondary" onClick={onDuplicate}>
               <FontAwesomeIcon icon={faCopy} className="me-1" />
-              Crea setup da esistente
+              {t("setupDetail.duplicate")}
             </Button>
           )}
           {onUse && (
             <Button size="sm" variant="primary" onClick={onUse}>
               <FontAwesomeIcon icon={faCheck} className="me-1" />
-              Usa questo setup
+              {t("setupDetail.use")}
             </Button>
           )}
         </Modal.Footer>

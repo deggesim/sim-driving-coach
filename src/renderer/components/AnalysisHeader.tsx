@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge, Button, Form } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlay,
@@ -42,6 +43,7 @@ const AnalysisHeader = ({
   onBack,
   onReopen,
 }: Props) => {
+  const { t } = useTranslation();
   const session = useSessionStore((s) => s.session);
   const laps = useSessionStore((s) => s.laps);
   const setups = useSessionStore((s) => s.setups);
@@ -91,15 +93,13 @@ const AnalysisHeader = ({
         console.error("[AnalysisHeader] sessionUpdateFlags failed:", e);
         setLeaderboardMode(session.leaderboard_mode !== 0);
         setFixedSetup(session.fixed_setup !== 0);
-        useIPCStore
-          .getState()
-          .setAppError("Impossibile salvare le opzioni della sessione.");
+        useIPCStore.getState().setAppError(t("header.flagsError"));
       });
   };
 
   return (
     <section
-      aria-label="Intestazione sessione"
+      aria-label={t("header.aria")}
       className="debriefing-header flex-shrink-0"
     >
       <div className="deb-top">
@@ -115,14 +115,14 @@ const AnalysisHeader = ({
               </span>
               <GameBadge game={session.game} />
               <Badge bg={sessionActive ? "success" : "secondary"}>
-                {sessionActive ? "Attiva" : "Chiusa"}
+                {sessionActive ? t("header.active") : t("header.closed")}
               </Badge>
             </>
           ) : (
             <span className="text-muted fst-italic">
               {isLive
-                ? "Nessuna sessione aperta: scegli il gioco con «Nuova sessione» per registrare i giri."
-                : "Caricamento sessione…"}
+                ? t("header.noSession", { action: t("header.newSession") })
+                : t("header.loading")}
             </span>
           )}
         </div>
@@ -130,7 +130,8 @@ const AnalysisHeader = ({
         <div className="deb-actions">
           {showStart && (
             <Button size="sm" variant="primary" onClick={onStart}>
-              <FontAwesomeIcon icon={faPlay} className="me-1" /> Nuova sessione
+              <FontAwesomeIcon icon={faPlay} className="me-1" />{" "}
+              {t("header.newSession")}
             </Button>
           )}
           <Button
@@ -138,21 +139,20 @@ const AnalysisHeader = ({
             variant={canAnalyze && !showStart ? "primary" : "secondary"}
             onClick={() => onAnalyze()}
             disabled={!canAnalyze}
-            title="Chiama l'API Claude: genera una nuova versione dell'analisi sintetica."
+            title={t("header.analyzeHint")}
             aria-describedby="analyze-hint"
           >
-            <FontAwesomeIcon icon={faChartLine} className="me-1" /> Esegui
-            analisi
+            <FontAwesomeIcon icon={faChartLine} className="me-1" />{" "}
+            {t("header.analyze")}
           </Button>
           <span id="analyze-hint" className="visually-hidden">
-            Chiama l&apos;API Claude: genera una nuova versione
-            dell&apos;analisi sintetica.
+            {t("header.analyzeHint")}
           </span>
           <div className="deb-actions-secondary">
             {session && (isLive ? sessionActive : true) && (
               <Button size="sm" variant="secondary" onClick={onOpenPicker}>
-                <FontAwesomeIcon icon={faGear} className="me-1" /> Gestione
-                setup
+                <FontAwesomeIcon icon={faGear} className="me-1" />{" "}
+                {t("header.manageSetup")}
                 {setups.length > 0 && ` (${setups.length})`}
               </Button>
             )}
@@ -162,18 +162,19 @@ const AnalysisHeader = ({
               onClick={onExportPdf}
               disabled={!session || analyses.length === 0}
             >
-              <FontAwesomeIcon icon={faFilePdf} className="me-1" /> Esporta PDF
+              <FontAwesomeIcon icon={faFilePdf} className="me-1" />{" "}
+              {t("header.exportPdf")}
             </Button>
             {!isLive && session && !sessionActive && onReopen && (
               <Button size="sm" variant="secondary" onClick={onReopen}>
                 <FontAwesomeIcon icon={faRotateRight} className="me-1" />
-                Riapri sessione
+                {t("header.reopen")}
               </Button>
             )}
             {!isLive && onBack && (
               <Button size="sm" variant="secondary" onClick={onBack}>
                 <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
-                Indietro
+                {t("header.back")}
               </Button>
             )}
             {isLive && sessionActive && (
@@ -181,11 +182,11 @@ const AnalysisHeader = ({
                 size="sm"
                 variant="secondary"
                 onClick={onEnd}
-                title="Chiude la sessione in corso: i giri registrati restano nello storico"
-                aria-label="Chiudi sessione in corso"
+                title={t("header.endTitle")}
+                aria-label={t("header.endAria")}
               >
-                <FontAwesomeIcon icon={faStop} className="me-1" /> Chiudi
-                sessione
+                <FontAwesomeIcon icon={faStop} className="me-1" />{" "}
+                {t("header.endSession")}
               </Button>
             )}
           </div>
@@ -196,11 +197,11 @@ const AnalysisHeader = ({
         <div className="deb-bottom">
           <dl className="deb-metrics">
             <div className="deb-metric">
-              <dt>Giri</dt>
+              <dt>{t("header.laps")}</dt>
               <dd>{laps.length}</dd>
             </div>
             <div className="deb-metric">
-              <dt>Miglior giro</dt>
+              <dt>{t("header.bestLap")}</dt>
               <dd className="deb-time">
                 {session.best_lap != null
                   ? formatLapTime(session.best_lap)
@@ -209,7 +210,7 @@ const AnalysisHeader = ({
             </div>
             {activeSetupName && (
               <div className="deb-metric">
-                <dt>Setup</dt>
+                <dt>{t("header.setup")}</dt>
                 <dd className="deb-setup">{activeSetupName}</dd>
               </div>
             )}
@@ -221,7 +222,7 @@ const AnalysisHeader = ({
                 <Form.Check
                   type="switch"
                   id="leaderboard-mode"
-                  label="Leaderboard"
+                  label={t("header.leaderboard")}
                   checked={leaderboardMode}
                   aria-describedby="leaderboard-mode-hint"
                   onChange={(e) => {
@@ -231,14 +232,14 @@ const AnalysisHeader = ({
                   }}
                 />
                 <Form.Text id="leaderboard-mode-hint" className="deb-hint">
-                  Gomme fisse a 85 °C: pressioni e campanatura non valutabili.
+                  {t("header.leaderboardHint")}
                 </Form.Text>
               </div>
               <div>
                 <Form.Check
                   type="switch"
                   id="fixed-setup"
-                  label="Setup fisso"
+                  label={t("header.fixedSetup")}
                   checked={fixedSetup}
                   aria-describedby="fixed-setup-hint"
                   onChange={(e) => {
@@ -248,8 +249,7 @@ const AnalysisHeader = ({
                   }}
                 />
                 <Form.Text id="fixed-setup-hint" className="deb-hint">
-                  Si valutano solo bilanciamento e pressione dei freni, gli
-                  unici parametri modificabili.
+                  {t("header.fixedSetupHint")}
                 </Form.Text>
               </div>
             </div>

@@ -13,6 +13,9 @@ import type {
   SessionAnalysisRow,
   SessionDetail,
 } from "../shared/types.js";
+import { localeOf } from "../shared/i18n.js";
+import { localizeSetupName } from "../shared/setup-labels.js";
+import { getLanguage, tm } from "./i18n-main.js";
 
 const GAME_LABELS: Record<GameSource, { short: string; full: string }> = {
   r3e: { short: "R3E", full: "RaceRoom Racing Experience" },
@@ -63,10 +66,12 @@ const md = (src: string): string =>
 const buildSessionHtml = (detail: SessionDetail): string => {
   const { session, laps, setups, analyses } = detail;
   const gameLabel = GAME_LABELS[session.game];
-  const startedAt = new Date(session.started_at).toLocaleString("it-IT");
+  const lang = getLanguage();
+  const locale = localeOf(lang);
+  const startedAt = new Date(session.started_at).toLocaleString(locale);
   const endedAt = session.ended_at
-    ? new Date(session.ended_at).toLocaleString("it-IT")
-    : "in corso";
+    ? new Date(session.ended_at).toLocaleString(locale)
+    : tm("pdf.ongoing");
 
   const lapRows = laps
     .map(
@@ -88,12 +93,12 @@ const buildSessionHtml = (detail: SessionDetail): string => {
       const paramsRows = s.setup.params
         .map(
           (p) =>
-            `<tr><td>${escapeHtml(p.category)}</td><td>${escapeHtml(p.parameter)}</td><td>${escapeHtml(p.value)}</td></tr>`,
+            `<tr><td>${escapeHtml(localizeSetupName(tm, p.category))}</td><td>${escapeHtml(localizeSetupName(tm, p.parameter))}</td><td>${escapeHtml(p.value)}</td></tr>`,
         )
         .join("");
       return `
-        <h3>Setup #${i + 1} - ${escapeHtml(s.setup.carFound || "")} <span class="muted">(${s.loaded_at})</span></h3>
-        <table class="params"><thead><tr><th>Categoria</th><th>Parametro</th><th>Valore</th></tr></thead><tbody>${paramsRows}</tbody></table>`;
+        <h3>${escapeHtml(tm("pdf.setupN", { n: i + 1, car: s.setup.carFound || "" }))} <span class="muted">(${new Date(s.loaded_at).toLocaleString(locale)})</span></h3>
+        <table class="params"><thead><tr><th>${tm("pdf.colCategory")}</th><th>${tm("pdf.colParameter")}</th><th>${tm("pdf.colValue")}</th></tr></thead><tbody>${paramsRows}</tbody></table>`;
     })
     .join("");
 
@@ -104,7 +109,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
           .map(
             (c) => `
         <div class="comment-box">
-          <div class="comment-label">Commento pilota</div>
+          <div class="comment-label">${tm("pdf.driverComment")}</div>
           <div class="comment-text">${escapeHtml(c.comment)}</div>
           <div class="comment-response">${md(c.response)}</div>
         </div>`,
@@ -114,7 +119,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
   const analysesHtml = analyses
     .map(
       (a) => `
-        <h2>Analisi #${a.version} <span class="muted">(${new Date(a.created_at).toLocaleString("it-IT")})</span></h2>
+        <h2>${tm("pdf.analysisN", { n: a.version })} <span class="muted">(${new Date(a.created_at).toLocaleString(locale)})</span></h2>
         <div class="analysis-body">${md(a.synthesis)}</div>
         ${a.detail ? `<div class="analysis-body">${md(a.detail)}</div>` : ""}
         ${commentsHtml(a)}`,
@@ -122,7 +127,7 @@ const buildSessionHtml = (detail: SessionDetail): string => {
     .join("");
 
   return `<!DOCTYPE html>
-<html lang="it"><head><meta charset="UTF-8"/>
+<html lang="${lang}"><head><meta charset="UTF-8"/>
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; padding: 24px; font-size: 12px; }
   h1 { color: #0a3d62; margin-bottom: 4px; }
@@ -148,24 +153,24 @@ const buildSessionHtml = (detail: SessionDetail): string => {
 
 <h1>${gameLabel.full} - ${escapeHtml(session.car_name ?? session.car)}</h1>
 <div class="meta">
-  <strong>Circuito:</strong> ${escapeHtml(session.track_name ?? session.track)} (${escapeHtml(session.layout_name ?? session.layout)}) &bull;
-  <strong>Inizio:</strong> ${startedAt} &bull;
-  <strong>Fine:</strong> ${endedAt} &bull;
-  <strong>Giri:</strong> ${session.lap_count} &bull;
-  <strong>Best:</strong> ${fmtTime(session.best_lap)}
+  <strong>${tm("pdf.track")}:</strong> ${escapeHtml(session.track_name ?? session.track)} (${escapeHtml(session.layout_name ?? session.layout)}) &bull;
+  <strong>${tm("pdf.start")}:</strong> ${startedAt} &bull;
+  <strong>${tm("pdf.end")}:</strong> ${endedAt} &bull;
+  <strong>${tm("pdf.laps")}:</strong> ${session.lap_count} &bull;
+  <strong>${tm("pdf.best")}:</strong> ${fmtTime(session.best_lap)}
 </div>
 
-<h2>Giri</h2>
+<h2>${tm("pdf.laps")}</h2>
 <table>
-  <thead><tr><th>#</th><th>Tempo</th><th>S1</th><th>S2</th><th>S3</th><th>Valido</th><th>Setup</th></tr></thead>
-  <tbody>${lapRows || '<tr><td colspan="7">Nessun giro</td></tr>'}</tbody>
+  <thead><tr><th>#</th><th>${tm("pdf.colTime")}</th><th>S1</th><th>S2</th><th>S3</th><th>${tm("pdf.colValid")}</th><th>${tm("pdf.colSetup")}</th></tr></thead>
+  <tbody>${lapRows || `<tr><td colspan="7">${tm("pdf.noLaps")}</td></tr>`}</tbody>
 </table>
 
-${setups.length > 0 ? `<h2>Setup caricati</h2>${setupsHtml}` : ""}
+${setups.length > 0 ? `<h2>${tm("pdf.setups")}</h2>${setupsHtml}` : ""}
 
-${analyses.length > 0 ? analysesHtml : "<h2>Analisi</h2><p>Nessuna analisi generata.</p>"}
+${analyses.length > 0 ? analysesHtml : `<h2>${tm("pdf.analysisHeading")}</h2><p>${tm("pdf.noAnalyses")}</p>`}
 
-<div class="footer">Sim Driving Coach &bull; Simulatore: ${gameLabel.full}</div>
+<div class="footer">${tm("pdf.footer", { game: gameLabel.full })}</div>
 </body></html>`;
 };
 

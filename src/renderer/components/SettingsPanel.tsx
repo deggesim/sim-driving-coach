@@ -11,71 +11,75 @@ import {
   Alert,
 } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type { TFunction } from "i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useConfig } from "../hooks/useIPC";
 import { useIPCStore } from "../store/ipcStore";
 import { useSettingsStore } from "../store/settingsStore";
 import type { AzureVoice, AnthropicModelInfo } from "../../shared/types";
 import { assistantIntro } from "../../shared/format";
+import { resolveVoice, voiceConfigKey } from "../../shared/azure-voice";
 
+// Azure region codes; display names are in the locale files (settings.azure.regions).
 const AZURE_REGIONS = [
-  { value: "australiacentral", label: "Australia Central" },
-  { value: "australiacentral2", label: "Australia centrale 2" },
-  { value: "australiaeast", label: "Australia East" },
-  { value: "australiasoutheast", label: "Australia Southeast" },
-  { value: "austriaeast", label: "Austria orientale" },
-  { value: "belgiocentral", label: "Belgio centrale" },
-  { value: "brazilsouth", label: "Brasile meridionale" },
-  { value: "brazilsoutheast", label: "Brasile sud-orientale" },
-  { value: "canadacentral", label: "Canada Central" },
-  { value: "canadaeast", label: "Canada East" },
-  { value: "centralindia", label: "India centrale" },
-  { value: "centralus", label: "Central US" },
-  { value: "chilecentral", label: "Cile centrale" },
-  { value: "denmarkeast", label: "Danimarca orientale" },
-  { value: "eastasia", label: "East Asia" },
-  { value: "eastus", label: "East US" },
-  { value: "eastus2", label: "Stati Uniti orientali 2" },
-  { value: "francecentral", label: "Francia centrale" },
-  { value: "francesouth", label: "Francia meridionale" },
-  { value: "germanynorth", label: "Germania settentrionale" },
-  { value: "germanywestcentral", label: "Germania centro-occidentale" },
-  { value: "indonesiacentral", label: "Indonesia centrale" },
-  { value: "israelcentral", label: "Israel Central" },
-  { value: "italynorth", label: "Italia settentrionale" },
-  { value: "japaneast", label: "Japan East" },
-  { value: "japanwest", label: "Japan West" },
-  { value: "koreacentral", label: "Korea Central" },
-  { value: "koreasouth", label: "Korea South" },
-  { value: "malaysiawest", label: "Malesia occidentale" },
-  { value: "mexicocentral", label: "Messico centrale" },
-  { value: "newzealandnorth", label: "Nuova Zelanda settentrionale" },
-  { value: "northcentralus", label: "Stati Uniti centro-settentrionali" },
-  { value: "northeurope", label: "North Europe" },
-  { value: "norwayeast", label: "Norway East" },
-  { value: "norwaywest", label: "Norvegia occidentale" },
-  { value: "polandcentral", label: "Poland Central" },
-  { value: "qatarcentral", label: "Qatar Central" },
-  { value: "southafricanorth", label: "Sudafrica settentrionale" },
-  { value: "southafricawest", label: "Sudafrica occidentale" },
-  { value: "southcentralus", label: "Stati Uniti centro-meridionali" },
-  { value: "southindia", label: "South India" },
-  { value: "southeastasia", label: "Sud-est asiatico" },
-  { value: "spaincentral", label: "Spain Central" },
-  { value: "swedencentral", label: "Svezia centrale" },
-  { value: "switzerlandnorth", label: "Switzerland North" },
-  { value: "switzerlandwest", label: "Svizzera occidentale" },
-  { value: "uaecentral", label: "Emirati Arabi Uniti centrali" },
-  { value: "uaenorth", label: "UAE North" },
-  { value: "uksouth", label: "UK South" },
-  { value: "ukwest", label: "UK West" },
-  { value: "westcentralus", label: "Stati Uniti centro-occidentali" },
-  { value: "westeurope", label: "West Europe" },
-  { value: "westindia", label: "West India" },
-  { value: "westus", label: "West US" },
-  { value: "westus2", label: "West US 2" },
-  { value: "westus3", label: "Stati Uniti occidentali 3" },
-];
+  "australiacentral",
+  "australiacentral2",
+  "australiaeast",
+  "australiasoutheast",
+  "austriaeast",
+  "belgiumcentral",
+  "brazilsouth",
+  "brazilsoutheast",
+  "canadacentral",
+  "canadaeast",
+  "centralindia",
+  "centralus",
+  "chilecentral",
+  "denmarkeast",
+  "eastasia",
+  "eastus",
+  "eastus2",
+  "francecentral",
+  "francesouth",
+  "germanynorth",
+  "germanywestcentral",
+  "indonesiacentral",
+  "israelcentral",
+  "italynorth",
+  "japaneast",
+  "japanwest",
+  "koreacentral",
+  "koreasouth",
+  "malaysiawest",
+  "mexicocentral",
+  "newzealandnorth",
+  "northcentralus",
+  "northeurope",
+  "norwayeast",
+  "norwaywest",
+  "polandcentral",
+  "qatarcentral",
+  "southafricanorth",
+  "southafricawest",
+  "southcentralus",
+  "southindia",
+  "southeastasia",
+  "spaincentral",
+  "swedencentral",
+  "switzerlandnorth",
+  "switzerlandwest",
+  "uaecentral",
+  "uaenorth",
+  "uksouth",
+  "ukwest",
+  "westcentralus",
+  "westeurope",
+  "westindia",
+  "westus",
+  "westus2",
+  "westus3",
+] as const;
 
 const KEY_LABELS: Record<string, string> = {
   " ": "Space",
@@ -86,24 +90,32 @@ const KEY_LABELS: Record<string, string> = {
   Enter: "Enter",
   Escape: "Esc",
   Backspace: "⌫",
-  Delete: "Canc",
   Tab: "Tab",
   CapsLock: "Caps",
   Home: "Home",
-  End: "Fine",
-  PageUp: "PgSu",
-  PageDown: "PgGiù",
   Insert: "Ins",
   PrintScreen: "PrtSc",
   ScrollLock: "ScrollLk",
-  Pause: "Pausa",
   NumLock: "NumLk",
 };
 
-const formatKeyPart = (part: string): string =>
-  KEY_LABELS[part] ?? (part.length === 1 ? part.toUpperCase() : part);
+// Keys whose short label is language-specific.
+const KEY_I18N = {
+  Delete: "settings.keys.Delete",
+  End: "settings.keys.End",
+  PageUp: "settings.keys.PageUp",
+  PageDown: "settings.keys.PageDown",
+  Pause: "settings.keys.Pause",
+} as const;
+
+const formatKeyPart = (part: string, t: TFunction): string => {
+  const i18nKey = KEY_I18N[part as keyof typeof KEY_I18N];
+  if (i18nKey) return t(i18nKey);
+  return KEY_LABELS[part] ?? (part.length === 1 ? part.toUpperCase() : part);
+};
 
 const KeyComboDisplay = ({ combo }: { combo: string }) => {
+  const { t } = useTranslation();
   const parts = combo.split("+");
   return (
     <span className="d-inline-flex align-items-center gap-1">
@@ -112,7 +124,7 @@ const KeyComboDisplay = ({ combo }: { combo: string }) => {
           <kbd
             style={{ fontSize: "0.8em", padding: "1px 5px", borderRadius: 3 }}
           >
-            {formatKeyPart(part)}
+            {formatKeyPart(part, t)}
           </kbd>
           {i < parts.length - 1 && (
             <span className="text-secondary" style={{ fontSize: "0.8em" }}>
@@ -125,7 +137,7 @@ const KeyComboDisplay = ({ combo }: { combo: string }) => {
   );
 };
 
-const getButtonLabel = (index: number): string => {
+const getButtonLabel = (index: number, t: TFunction): string => {
   const labels: Record<number, string> = {
     0: "A",
     1: "B",
@@ -139,15 +151,16 @@ const getButtonLabel = (index: number): string => {
     9: "Start",
     10: "L3",
     11: "R3",
-    12: "Su (D-pad)",
-    13: "Giù (D-pad)",
-    14: "Sinistra (D-pad)",
-    15: "Destra (D-pad)",
+    12: t("settings.pad.up"),
+    13: t("settings.pad.down"),
+    14: t("settings.pad.left"),
+    15: t("settings.pad.right"),
   };
-  return labels[index] ?? `Tasto ${index}`;
+  return labels[index] ?? t("settings.pad.button", { n: index });
 };
 
 const SettingsPanel = () => {
+  const { t } = useTranslation();
   const frame = useIPCStore((s) => s.frame);
 
   const {
@@ -172,8 +185,9 @@ const SettingsPanel = () => {
     setAzureSpeechKey,
     azureRegion,
     setAzureRegion,
-    azureVoiceName,
+    azureVoiceNames,
     setAzureVoiceName,
+    language,
     mockHistoryMode,
     setMockHistoryMode,
     telemetryLogEnabled,
@@ -186,7 +200,11 @@ const SettingsPanel = () => {
 
   const { set: configSet } = useConfig();
 
+  // Voice of the active language; the list below is filtered to that language too.
+  const azureVoiceName = resolveVoice(language, azureVoiceNames[language]);
+
   const [azureVoices, setAzureVoices] = useState<AzureVoice[]>([]);
+  useEffect(() => setAzureVoices([]), [language]); // list was for the old language
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voicesError, setVoicesError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -208,13 +226,16 @@ const SettingsPanel = () => {
       });
   }, []);
 
-  const reportSaveError = useCallback((err: unknown) => {
-    console.error("[SettingsPanel] configSet failed:", err);
-    setSaveError("Impossibile salvare l'impostazione. Riprova.");
-  }, []);
+  const reportSaveError = useCallback(
+    (err: unknown) => {
+      console.error("[SettingsPanel] configSet failed:", err);
+      setSaveError(t("settings.saveError"));
+    },
+    [t],
+  );
 
   // Writes config entries in order; false (with an inline alert) on failure so
-  // callers show "Salvata" only after a real save.
+  // callers show "Saved" only after a real save.
   const persist = useCallback(
     async (entries: [string, string][]): Promise<boolean> => {
       setSaveError("");
@@ -240,7 +261,7 @@ const SettingsPanel = () => {
         ? [
             {
               id: anthropicModel,
-              display_name: `${anthropicModel} (obsoleto)`,
+              display_name: `${anthropicModel} (${t("settings.model.obsoleteTag")})`,
             },
             ...models,
           ]
@@ -257,7 +278,7 @@ const SettingsPanel = () => {
       ? [
           {
             id: anthropicModelDetail,
-            display_name: `${anthropicModelDetail} (obsoleto)`,
+            display_name: `${anthropicModelDetail} (${t("settings.model.obsoleteTag")})`,
           },
           ...modelOptionsSorted,
         ]
@@ -334,13 +355,16 @@ const SettingsPanel = () => {
         return;
       const voices = await window.electronAPI.ttsGetVoices();
       setAzureVoices(voices);
-      if (voices.length > 0 && !azureVoiceName) {
-        setAzureVoiceName(voices[0].ShortName);
-        await persist([["azureVoiceName", voices[0].ShortName]]);
+      if (
+        voices.length > 0 &&
+        !voices.some((v) => v.ShortName === azureVoiceName)
+      ) {
+        setAzureVoiceName(language, voices[0].ShortName);
+        await persist([[voiceConfigKey(language), voices[0].ShortName]]);
       }
     } catch (err) {
       setVoicesError(
-        err instanceof Error ? err.message : "Errore nel caricamento voci",
+        err instanceof Error ? err.message : t("settings.azure.voicesError"),
       );
     } finally {
       setVoicesLoading(false);
@@ -349,9 +373,9 @@ const SettingsPanel = () => {
 
   const handleVoiceChange = useCallback(
     async (shortName: string) => {
-      setAzureVoiceName(shortName);
+      setAzureVoiceName(language, shortName);
       setVoicesError("");
-      if (!(await persist([["azureVoiceName", shortName]]))) return;
+      if (!(await persist([[voiceConfigKey(language), shortName]]))) return;
       try {
         const raw = await window.electronAPI.ttsTest(shortName);
         const bytes = new Uint8Array(
@@ -366,10 +390,10 @@ const SettingsPanel = () => {
         source.onended = () => ctx.close();
       } catch (err) {
         console.error("[SettingsPanel] Voice preview error:", err);
-        setVoicesError("Anteprima della voce non riuscita.");
+        setVoicesError(t("settings.azure.previewError"));
       }
     },
-    [persist, setAzureVoiceName],
+    [persist, setAzureVoiceName, language, t],
   );
 
   useEffect(() => {
@@ -455,7 +479,7 @@ const SettingsPanel = () => {
 
   return (
     <Container fluid className="settings-panel h-100 p-4">
-      <h2 className="fs-5 fw-bold mb-4">Impostazioni</h2>
+      <h2 className="fs-5 fw-bold mb-4">{t("settings.title")}</h2>
 
       {saveError && (
         <Alert variant="danger" dismissible onClose={() => setSaveError("")}>
@@ -468,12 +492,12 @@ const SettingsPanel = () => {
         <Col md={6}>
           <div className="settings-section">
             <Form.Label className="setting-section-label">
-              API Key Anthropic
+              {t("settings.anthropic.title")}
             </Form.Label>
 
             <Form.Group as={Row} className="mb-2" controlId="api-key">
               <Form.Label column sm={3}>
-                Chiave
+                {t("settings.key")}
               </Form.Label>
               <Col sm={7}>
                 <Form.Control
@@ -487,26 +511,23 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveApiKey}>
                   {settingSaved === "apiKey" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> Salvata
+                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedF")}
                     </>
                   ) : (
-                    "Salva"
+                    t("settings.save")
                   )}
                 </Button>
               </Col>
             </Form.Group>
             <Row className="mb-3">
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Necessaria per il debriefing post-giro e il coach vocale via
-                  Claude API.
-                </Form.Text>
+                <Form.Text>{t("settings.anthropic.hint")}</Form.Text>
               </Col>
             </Row>
 
             <Form.Group as={Row} className="mb-2" controlId="anthropic-model">
               <Form.Label column sm={3}>
-                Modello
+                {t("settings.model.label")}
               </Form.Label>
               <Col sm={7}>
                 <Form.Select
@@ -521,15 +542,16 @@ const SettingsPanel = () => {
                 </Form.Select>
                 {modelsError && (
                   <p className="text-danger mt-2 mb-0" role="alert">
-                    Elenco modelli non disponibile: controlla la chiave API e la
-                    connessione.
+                    {t("settings.model.error")}
                   </p>
                 )}
                 {modelObsolete && (
                   <Alert variant="warning" className="mt-2 mb-0 py-2">
-                    Il modello selezionato (<code>{anthropicModel}</code>) non è
-                    più disponibile: selezionane uno aggiornato dall'elenco e
-                    salva.
+                    <Trans
+                      i18nKey="settings.model.obsolete"
+                      values={{ model: anthropicModel }}
+                      components={{ code: <code /> }}
+                    />
                   </Alert>
                 )}
               </Col>
@@ -537,20 +559,17 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveModel}>
                   {settingSaved === "model" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> Salvato
+                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
                     </>
                   ) : (
-                    "Salva"
+                    t("settings.save")
                   )}
                 </Button>
               </Col>
             </Form.Group>
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Usato per l&apos;analisi sintetica, i commenti e il coach
-                  vocale. Le modifiche hanno effetto al prossimo utilizzo.
-                </Form.Text>
+                <Form.Text>{t("settings.model.hint")}</Form.Text>
               </Col>
             </Row>
 
@@ -560,14 +579,14 @@ const SettingsPanel = () => {
               controlId="anthropic-model-detail"
             >
               <Form.Label column sm={3}>
-                Modello analisi approfondita
+                {t("settings.modelDetail.label")}
               </Form.Label>
               <Col sm={7}>
                 <Form.Select
                   value={anthropicModelDetail}
                   onChange={(e) => setAnthropicModelDetail(e.target.value)}
                 >
-                  <option value="">Come modello base (default)</option>
+                  <option value="">{t("settings.modelDetail.default")}</option>
                   {detailOptions.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.display_name}
@@ -579,20 +598,17 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveModelDetail}>
                   {settingSaved === "modelDetail" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> Salvato
+                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
                     </>
                   ) : (
-                    "Salva"
+                    t("settings.save")
                   )}
                 </Button>
               </Col>
             </Form.Group>
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Modello usato solo per l&apos;analisi approfondita
-                  (on-demand). Vuoto = stesso modello base.
-                </Form.Text>
+                <Form.Text>{t("settings.modelDetail.hint")}</Form.Text>
               </Col>
             </Row>
           </div>
@@ -601,18 +617,18 @@ const SettingsPanel = () => {
         <Col md={6}>
           <div className="settings-section">
             <Form.Label className="setting-section-label">
-              Azure Text-to-Speech
+              {t("settings.azure.title")}
             </Form.Label>
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
-                Stato
+                {t("settings.azure.status")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center">
                 <Form.Check
                   type="switch"
                   id="azure-tts-toggle"
-                  label={azureTtsEnabled ? "Attivo" : "Disattivo"}
+                  label={azureTtsEnabled ? t("settings.on") : t("settings.off")}
                   checked={azureTtsEnabled}
                   onChange={handleToggleAzure}
                 />
@@ -621,37 +637,46 @@ const SettingsPanel = () => {
 
             <Form.Group as={Row} className="mb-2" controlId="azure-key">
               <Form.Label column sm={3}>
-                Chiave
+                {t("settings.key")}
               </Form.Label>
               <Col sm={7}>
                 <Form.Control
                   type="password"
                   value={azureSpeechKey}
                   onChange={(e) => setAzureSpeechKey(e.target.value)}
-                  placeholder="Chiave Azure Speech"
+                  placeholder={t("settings.azure.keyPlaceholder")}
                 />
               </Col>
               <Col sm={2}>
                 <Button variant="primary" onClick={handleSaveAzureKey}>
-                  {settingSaved === "azureKey" ? "✓ Salvata" : "Salva"}
+                  {settingSaved === "azureKey"
+                    ? `✓ ${t("settings.savedF")}`
+                    : t("settings.save")}
                 </Button>
               </Col>
             </Form.Group>
 
             <Form.Group as={Row} className="mb-2" controlId="azure-region">
               <Form.Label column sm={3}>
-                Regione
+                {t("settings.azure.region")}
               </Form.Label>
               <Col sm={9}>
                 <Form.Select
                   value={azureRegion}
                   onChange={(e) => setAzureRegion(e.target.value)}
                 >
-                  {AZURE_REGIONS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
+                  {AZURE_REGIONS.map((r) => ({
+                    value: r,
+                    label: t(`settings.azure.regions.${r}`),
+                  }))
+                    .toSorted((a, b) =>
+                      a.label.localeCompare(b.label, language),
+                    )
+                    .map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
                 </Form.Select>
               </Col>
             </Form.Group>
@@ -666,10 +691,10 @@ const SettingsPanel = () => {
                   {voicesLoading ? (
                     <>
                       <Spinner className="me-1" />
-                      Caricamento...
+                      {t("settings.azure.loading")}
                     </>
                   ) : (
-                    "Carica voci"
+                    t("settings.azure.loadVoices")
                   )}
                 </Button>
               </Col>
@@ -688,7 +713,7 @@ const SettingsPanel = () => {
             {azureVoices.length > 0 && (
               <Form.Group as={Row} className="mb-2" controlId="azure-voice">
                 <Form.Label column sm={3}>
-                  Voce
+                  {t("settings.azure.voice")}
                 </Form.Label>
                 <Col sm={9}>
                   <Form.Select
@@ -708,9 +733,9 @@ const SettingsPanel = () => {
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
-                  Selezionando una voce viene riprodotta un&apos;anteprima:
-                  &quot;{assistantIntro(assistantName)}&quot; Richiede una
-                  sottoscrizione Azure Cognitive Services.
+                  {t("settings.azure.hint", {
+                    intro: assistantIntro(assistantName, t),
+                  })}
                 </Form.Text>
               </Col>
             </Row>
@@ -723,12 +748,12 @@ const SettingsPanel = () => {
         <Col md={6}>
           <div className="settings-section">
             <Form.Label className="setting-section-label">
-              Assistente Vocale
+              {t("settings.assistant.title")}
             </Form.Label>
 
             <Form.Group as={Row} className="mb-2" controlId="assistant-name">
               <Form.Label column sm={3}>
-                Nome
+                {t("settings.assistant.name")}
               </Form.Label>
               <Col sm={5}>
                 <Form.Control
@@ -743,10 +768,10 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveAssistant}>
                   {settingSaved === "assistant" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> Salvato
+                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
                     </>
                   ) : (
-                    "Salva"
+                    t("settings.save")
                   )}
                 </Button>
               </Col>
@@ -754,14 +779,14 @@ const SettingsPanel = () => {
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
-                Controller
+                {t("settings.controller.label")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center gap-2 flex-wrap">
                 {isCapturingButton ? (
                   <>
                     <Spinner animation="border" />
                     <span className="text-warning">
-                      Premi un tasto sul controller…
+                      {t("settings.controller.press")}
                     </span>
                     <Button
                       variant="secondary"
@@ -770,15 +795,15 @@ const SettingsPanel = () => {
                         setCapturingVoiceInput(false);
                       }}
                     >
-                      Annulla
+                      {t("settings.cancel")}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Badge bg="secondary">
                       {gamepadButton !== null
-                        ? getButtonLabel(gamepadButton)
-                        : "Nessun tasto assegnato"}
+                        ? getButtonLabel(gamepadButton, t)
+                        : t("settings.noButton")}
                     </Badge>
                     <Button
                       variant="secondary"
@@ -787,7 +812,7 @@ const SettingsPanel = () => {
                         setCapturingVoiceInput(true);
                       }}
                     >
-                      Assegna
+                      {t("settings.assign")}
                     </Button>
                     {gamepadButton !== null && (
                       <Button
@@ -799,12 +824,13 @@ const SettingsPanel = () => {
                           );
                         }}
                       >
-                        Rimuovi
+                        {t("settings.remove")}
                       </Button>
                     )}
                     {settingSaved === "gamepadButton" && (
                       <span className="text-success">
-                        <FontAwesomeIcon icon={faCheck} /> Salvato
+                        <FontAwesomeIcon icon={faCheck} />{" "}
+                        {t("settings.savedM")}
                       </span>
                     )}
                   </>
@@ -813,24 +839,20 @@ const SettingsPanel = () => {
             </Form.Group>
             <Row className="mb-3">
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Premi il tasto configurato sul controller per attivare il
-                  microfono e fare domande al coach. Il tasto 0 corrisponde al
-                  tasto A su controller Xbox.
-                </Form.Text>
+                <Form.Text>{t("settings.controller.hint")}</Form.Text>
               </Col>
             </Row>
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
-                Tastiera
+                {t("settings.keyboard.label")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center gap-2 flex-wrap">
                 {isCapturingKey ? (
                   <>
                     <Spinner animation="border" />
                     <span className="text-warning">
-                      Premi un tasto sulla tastiera…
+                      {t("settings.keyboard.press")}
                     </span>
                     <Button
                       variant="secondary"
@@ -839,7 +861,7 @@ const SettingsPanel = () => {
                         setCapturingVoiceInput(false);
                       }}
                     >
-                      Annulla
+                      {t("settings.cancel")}
                     </Button>
                   </>
                 ) : (
@@ -847,7 +869,7 @@ const SettingsPanel = () => {
                     {keyboardVoiceKey ? (
                       <KeyComboDisplay combo={keyboardVoiceKey} />
                     ) : (
-                      <Badge bg="secondary">Nessun tasto assegnato</Badge>
+                      <Badge bg="secondary">{t("settings.noButton")}</Badge>
                     )}
                     <Button
                       variant="secondary"
@@ -856,7 +878,7 @@ const SettingsPanel = () => {
                         setCapturingVoiceInput(true);
                       }}
                     >
-                      Assegna
+                      {t("settings.assign")}
                     </Button>
                     {keyboardVoiceKey && (
                       <Button
@@ -868,12 +890,13 @@ const SettingsPanel = () => {
                           );
                         }}
                       >
-                        Rimuovi
+                        {t("settings.remove")}
                       </Button>
                     )}
                     {settingSaved === "keyboardKey" && (
                       <span className="text-success">
-                        <FontAwesomeIcon icon={faCheck} /> Salvato
+                        <FontAwesomeIcon icon={faCheck} />{" "}
+                        {t("settings.savedM")}
                       </span>
                     )}
                   </>
@@ -882,22 +905,19 @@ const SettingsPanel = () => {
             </Form.Group>
             <Row className="mb-3">
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Tasto da tastiera alternativo al controller per attivare il
-                  microfono. Utile quando si usa la tastiera anziché un gamepad.
-                </Form.Text>
+                <Form.Text>{t("settings.keyboard.hint")}</Form.Text>
               </Col>
             </Row>
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
-                Output vocale
+                {t("settings.voiceOutput.label")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center">
                 <Form.Check
                   type="switch"
                   id="tts-toggle"
-                  label={ttsEnabled ? "Attivo" : "Disattivo"}
+                  label={ttsEnabled ? t("settings.on") : t("settings.off")}
                   checked={ttsEnabled}
                   onChange={() => setTtsEnabled(!ttsEnabled)}
                 />
@@ -905,10 +925,7 @@ const SettingsPanel = () => {
             </Form.Group>
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Attiva/disattiva tutti gli output vocali (alert, debriefing,
-                  coach).
-                </Form.Text>
+                <Form.Text>{t("settings.voiceOutput.hint")}</Form.Text>
               </Col>
             </Row>
           </div>
@@ -917,12 +934,12 @@ const SettingsPanel = () => {
         <Col md={6}>
           <div className="settings-section">
             <Form.Label className="setting-section-label">
-              Test &amp; sviluppo
+              {t("settings.dev.title")}
             </Form.Label>
 
             <Form.Group as={Row} className="mb-2" controlId="ace-setups-path">
               <Form.Label column sm={3}>
-                Setup ACE
+                {t("settings.dev.aceSetups")}
               </Form.Label>
               <Col sm={7}>
                 <Form.Control
@@ -936,10 +953,10 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveAceSetupsPath}>
                   {settingSaved === "aceSetupsPath" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> Salvato
+                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
                     </>
                   ) : (
-                    "Salva"
+                    t("settings.save")
                   )}
                 </Button>
               </Col>
@@ -947,34 +964,37 @@ const SettingsPanel = () => {
             <Row className="mb-3">
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
-                  Cartella di base dei setup ACE (file <code>.carsetup</code>).
-                  Lascia vuoto per usare il percorso predefinito:{" "}
-                  <code>D:\Salvataggi\ACE\Car Setups</code>.
+                  <Trans
+                    i18nKey="settings.dev.aceSetupsHint"
+                    components={{ code: <code /> }}
+                  />
                 </Form.Text>
               </Col>
             </Row>
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
-                Sessioni mock
+                {t("settings.dev.mockSessions")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center gap-2">
                 <Button
                   variant="secondary"
                   onClick={() => setMockHistoryMode(!mockHistoryMode)}
                 >
-                  {mockHistoryMode ? "Mock attivo" : "Mock disattivo"}
+                  {mockHistoryMode
+                    ? t("settings.dev.mockOn")
+                    : t("settings.dev.mockOff")}
                 </Button>
                 <span className="text-secondary" style={{ fontSize: 12 }}>
                   {mockHistoryMode
-                    ? "3 sessioni mock visibili nello storico (R3E + ACE + AMS2, 3 giri ciascuna)"
-                    : "Inserisce sessioni fittizie nello storico per test UI"}
+                    ? t("settings.dev.mockOnHint")
+                    : t("settings.dev.mockOffHint")}
                 </span>
               </Col>
             </Form.Group>
             <Form.Group as={Row} className="mb-3">
               <Form.Label column sm={3}>
-                Aggiornamento mock
+                {t("settings.dev.mockUpdate")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center gap-2">
                 <Button
@@ -983,37 +1003,30 @@ const SettingsPanel = () => {
                     window.dispatchEvent(new Event(UPDATE_MOCK_EVENT))
                   }
                 >
-                  Simula aggiornamento
+                  {t("settings.dev.simulateUpdate")}
                 </Button>
                 <span className="text-secondary" style={{ fontSize: 12 }}>
-                  Apre la notifica di nuova versione e simula il download, senza
-                  installare nulla
+                  {t("settings.dev.simulateUpdateHint")}
                 </span>
               </Col>
             </Form.Group>
             <Row className="mb-3">
               <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>
-                  Quando attivo, aggiunge nello storico una sessione R3E (BMW M4
-                  GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una
-                  AMS2 (Formula Ultimate - Interlagos), ognuna con 3 giri e
-                  un&apos;analisi precompilata. Le sessioni R3E e ACE hanno
-                  anche l&apos;analisi approfondita salvata, la AMS2 no: serve a
-                  provare il pulsante &quot;Mostra analisi approfondita&quot;.
-                  Utile per testare la UI senza una sessione reale in corso.
-                </Form.Text>
+                <Form.Text>{t("settings.dev.mockHint")}</Form.Text>
               </Col>
             </Row>
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
-                Log telemetria
+                {t("settings.dev.telemetryLog")}
               </Form.Label>
               <Col sm={9} className="d-flex align-items-center">
                 <Form.Check
                   type="switch"
                   id="telemetry-log-toggle"
-                  label={telemetryLogEnabled ? "Attivo" : "Disattivo"}
+                  label={
+                    telemetryLogEnabled ? t("settings.on") : t("settings.off")
+                  }
                   checked={telemetryLogEnabled}
                   onChange={handleToggleTelemetry}
                 />
@@ -1022,17 +1035,19 @@ const SettingsPanel = () => {
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
-                  Scrive tutta la telemetria disponibile (R3E e ACE) su file
-                  JSONL in formato riga-per-riga. Ogni connessione crea un nuovo
-                  file:{" "}
-                  <code>
-                    &lt;timestamp&gt;-&lt;gioco&gt;-&lt;auto&gt;-&lt;circuito&gt;-&lt;layout&gt;.jsonl
-                  </code>
-                  .
+                  <Trans
+                    i18nKey="settings.dev.telemetryHint"
+                    values={{ pattern: t("settings.dev.telemetryPattern") }}
+                    components={{ code: <code /> }}
+                  />
                   {telemetryLogEnabled && telemetryLogDir && (
                     <>
                       {" "}
-                      Directory: <code>{telemetryLogDir}</code>
+                      <Trans
+                        i18nKey="settings.dev.telemetryDir"
+                        values={{ dir: telemetryLogDir }}
+                        components={{ code: <code /> }}
+                      />
                     </>
                   )}
                 </Form.Text>
@@ -1046,7 +1061,7 @@ const SettingsPanel = () => {
       {frame && (
         <div className="settings-section">
           <Form.Label className="setting-section-label">
-            Debug - Ultimo frame
+            {t("settings.debugFrame")}
           </Form.Label>
           <pre className="debug-frame">
             {JSON.stringify(

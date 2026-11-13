@@ -19,22 +19,22 @@ export type R3ESetupItem = {
 };
 
 const categorize = (id: string): string => {
-  if (/^Brake/.test(id)) return "Freni";
-  if (/^Fuel/.test(id)) return "Carburante";
-  if (/^Tyre/.test(id)) return "Gomme";
-  if (/^(Steering|Ffb)/.test(id)) return "Sterzo";
+  if (/^Brake/.test(id)) return "Brakes";
+  if (/^Fuel/.test(id)) return "Fuel";
+  if (/^Tyre/.test(id)) return "Tyres";
+  if (/^(Steering|Ffb)/.test(id)) return "Steering";
   if (/^AntiRollBar/.test(id)) return "ARB";
-  if (/^Toein/.test(id)) return "Geometria";
-  if (/^(Splitter|Wing|Aero)/.test(id)) return "Aerodinamica";
+  if (/^Toein/.test(id)) return "Geometry";
+  if (/^(Splitter|Wing|Aero)/.test(id)) return "Aero";
   if (/^(Springs|RideHeight|Camber|Bump|Rebound|FastBump|FastRebound)/.test(id))
-    return "Sospensioni";
+    return "Suspension";
   if (/^ABS/.test(id)) return "ABS";
-  if (/^Tc/.test(id)) return "Controllo Trazione";
-  if (/^(Rev|Engine)/.test(id)) return "Motore";
-  if (/Gear$/.test(id)) return "Trasmissione";
-  if (/^Differential/.test(id)) return "Differenziale";
-  if (/^(MGU|Discharge|Regen)/.test(id)) return "Ibrido";
-  return "Altro";
+  if (/^Tc/.test(id)) return "Traction Control";
+  if (/^(Rev|Engine)/.test(id)) return "Engine";
+  if (/Gear$/.test(id)) return "Transmission";
+  if (/^Differential/.test(id)) return "Differential";
+  if (/^(MGU|Discharge|Regen)/.test(id)) return "Hybrid";
+  return "Other";
 };
 
 const idToLabel = (id: string): string => {
