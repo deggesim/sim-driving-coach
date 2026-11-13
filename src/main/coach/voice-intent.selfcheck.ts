@@ -5,9 +5,10 @@ import assert from "node:assert/strict";
 import {
   classifyVoiceIntent,
   matchGame,
-  GREETINGS,
+  GREETING_KEYS,
   nextGreeting,
 } from "./voice-intent.js";
+import { setLanguage, tm } from "../i18n-main.js";
 
 const NAME = "Robert";
 
@@ -131,11 +132,16 @@ assert.deepEqual(classifyVoiceIntent("   ", NAME), {
 });
 
 // ── Greeting rotation is deterministic ────────────────────────────────────────
-assert.equal(GREETINGS.length, 10);
-assert.equal(nextGreeting(0), GREETINGS[0]);
-assert.equal(nextGreeting(3), GREETINGS[3]);
-assert.equal(nextGreeting(10), GREETINGS[0]);
-assert.equal(nextGreeting(13), GREETINGS[3]);
+assert.equal(GREETING_KEYS.length, 10);
+setLanguage("it");
+assert.equal(nextGreeting(0, tm), "Ciao, come posso essere utile?");
+assert.equal(nextGreeting(3, tm), "Ti ascolto.");
+assert.equal(nextGreeting(10, tm), nextGreeting(0, tm));
+assert.equal(nextGreeting(13, tm), nextGreeting(3, tm));
+// A switch applies to the very next greeting.
+setLanguage("de");
+assert.equal(nextGreeting(3, tm), "Ich höre.");
+setLanguage("it");
 
 // ── acquireSetup: quattro trigger equivalenti ────────────────────────────────
 // Sono quattro modi di attivare la stessa funzionalità, non quattro varianti: se

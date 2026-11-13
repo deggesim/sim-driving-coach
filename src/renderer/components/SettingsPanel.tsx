@@ -726,7 +726,7 @@ const SettingsPanel = () => {
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>
                   {t("settings.azure.hint", {
-                    intro: assistantIntro(assistantName),
+                    intro: assistantIntro(assistantName, t),
                   })}
                 </Form.Text>
               </Col>

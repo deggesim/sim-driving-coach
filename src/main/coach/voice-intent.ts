@@ -5,6 +5,7 @@
  * function in main.ts with no test.
  */
 
+import type { TFunction } from "i18next";
 import type { GameSource } from "../../shared/types.js";
 
 export type VoiceIntent =
@@ -15,24 +16,24 @@ export type VoiceIntent =
   | { kind: "greeting" }
   | { kind: "freeform"; question: string };
 
-/** The ten answers to a bare wake call, in spec order. Gender-neutral: the
- *  assistant name is user-configurable, so no concorded participle. */
-export const GREETINGS: readonly string[] = [
-  "Ciao, come posso essere utile?",
-  "Ciao, chiedi e ti darò suggerimenti di guida.",
-  "Sono qui, dimmi.",
-  "Ti ascolto.",
-  "Dimmi pure, sono in linea.",
-  "Presente. Cosa ti serve?",
-  "Eccomi, che problema hai?",
-  "In ascolto. Dimmi tutto.",
-  "Ci sono. Che ti serve?",
-  "Eccomi. Su cosa lavoriamo?",
-];
+/** Locale keys of the ten answers to a bare wake call, in spec order.
+ *  Gender-neutral: the assistant name is user-configurable, so no concorded participle. */
+export const GREETING_KEYS = [
+  "voice.greeting.0",
+  "voice.greeting.1",
+  "voice.greeting.2",
+  "voice.greeting.3",
+  "voice.greeting.4",
+  "voice.greeting.5",
+  "voice.greeting.6",
+  "voice.greeting.7",
+  "voice.greeting.8",
+  "voice.greeting.9",
+] as const;
 
 /** Rotation by call count: deterministic so the selfcheck can assert it. */
-export const nextGreeting = (count: number): string =>
-  GREETINGS[count % GREETINGS.length];
+export const nextGreeting = (count: number, t: TFunction): string =>
+  t(GREETING_KEYS[count % GREETING_KEYS.length]);
 
 /**
  * Lowercase, drop punctuation, collapse whitespace. Azure STT punctuates and

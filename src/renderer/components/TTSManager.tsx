@@ -12,6 +12,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useIPCStore } from "../store/ipcStore";
 import { assistantIntro, preprocessTTSText } from "../../shared/format";
+import { rendererI18n } from "../i18n";
 import { localeOf } from "../../shared/i18n";
 import { useSettingsStore } from "../store/settingsStore";
 
@@ -171,7 +172,10 @@ const TTSManager = ({
     if (welcomeSpokenRef.current) return;
     welcomeSpokenRef.current = true;
 
-    const welcomeText = assistantIntro(assistantName);
+    const welcomeText = assistantIntro(
+      assistantName,
+      rendererI18n.t.bind(rendererI18n),
+    );
 
     const speakWelcomeWebSpeech = () => {
       const utterance = new SpeechSynthesisUtterance(welcomeText);

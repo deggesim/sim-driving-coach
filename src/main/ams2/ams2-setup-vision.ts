@@ -9,6 +9,7 @@
 import fs from "fs";
 import path from "path";
 import type { SetupData } from "../../shared/types.js";
+import { tm } from "../i18n-main.js";
 
 const AMS2_STEAM_APPID = "1066890";
 const VISION_MODEL = "claude-sonnet-5";
@@ -129,7 +130,7 @@ export const decodeAms2Setup = async ({
     // Caller-supplied names must be bare filenames; a path component
     // ("..", "/" or "\\") would escape the screenshots directory.
     if (path.basename(name) !== name) {
-      throw new Error(`Nome file screenshot non valido: ${name}`);
+      throw new Error(tm("err.badScreenshotName", { name }));
     }
     const fullPath = path.join(screenshotsDir, name);
     const data = fs.readFileSync(fullPath).toString("base64");
@@ -173,17 +174,13 @@ export const decodeAms2Setup = async ({
   const raw = textBlock?.type === "text" ? textBlock.text : "";
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error(
-      "Claude Vision non ha restituito un JSON di setup valido. Riprova o seleziona schermate più leggibili.",
-    );
+    throw new Error(tm("err.visionNoJson"));
   }
   let parsed;
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch {
-    throw new Error(
-      "Risposta di Claude Vision non interpretabile (JSON malformato). Riprova.",
-    );
+    throw new Error(tm("err.visionBadJson"));
   }
 
   return {

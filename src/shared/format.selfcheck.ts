@@ -1,7 +1,19 @@
 // Self-check: markdown must never reach the TTS (Azure spells "**" out loud)
 // nor the voice overlay, which renders the answer as plain text.
 import assert from "node:assert/strict";
-import { stripMarkdown, preprocessTTSText } from "./format.js";
+import { createI18n } from "./i18n.js";
+import { assistantIntro, stripMarkdown, preprocessTTSText } from "./format.js";
+
+// The intro follows the language of the translator it is given.
+assert.equal(
+  assistantIntro("Aria", createI18n("it").t),
+  "Ciao, sono Aria e oggi ti accompagno in pista.",
+);
+assert.match(assistantIntro("Aria", createI18n("fr").t), /Aria.*piste/);
+assert.notEqual(
+  assistantIntro("Aria", createI18n("de").t),
+  assistantIntro("Aria", createI18n("en").t),
+);
 
 assert.equal(
   stripMarkdown("sposta il **brake bias** da 52/48 a 50/50"),

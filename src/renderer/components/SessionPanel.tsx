@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { GameSource, SessionStartResult } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
+import { rendererI18n } from "../i18n";
 import { useIPCStore } from "../store/ipcStore";
 import { useSessionStore } from "../store/sessionStore";
 import AceSetupPicker from "./AceSetupPicker";
@@ -78,13 +79,14 @@ const SessionPanel = ({
   // has alt-tabbed to the sim). Routed through the TTS queue (respects mute/Azure).
   const announceOutcome = (res: SessionStartResult): void => {
     if (document.hasFocus()) return;
-    useIPCStore
-      .getState()
-      .setAnnounce(
-        res.ok
-          ? `Sessione aperta: auto ${res.car}, circuito ${res.track}`
-          : "Attenzione, impossibile aprire la sessione",
-      );
+    useIPCStore.getState().setAnnounce(
+      res.ok
+        ? rendererI18n.t("announce.opened", {
+            car: res.car,
+            track: res.track,
+          })
+        : rendererI18n.t("announce.failed"),
+    );
   };
 
   const handleGamePicked = async (game: GameSource): Promise<void> => {

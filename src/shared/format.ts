@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { Language } from "./i18n.js";
 
 /**
@@ -21,8 +22,8 @@ export const stripMarkdown = (text: string): string =>
  * Gender-neutral on purpose — the name is user-configurable (default "Aria"), so
  * a concorded participle like "pronto" is wrong for half the settings.
  */
-export const assistantIntro = (name: string): string =>
-  `Ciao, sono ${name} e oggi ti accompagno in pista.`;
+export const assistantIntro = (name: string, t: TFunction): string =>
+  t("voice.intro", { name });
 
 export const formatLapTime = (seconds: number | null): string => {
   if (!seconds || seconds <= 0 || !isFinite(seconds)) return "--:--";
