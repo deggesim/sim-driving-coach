@@ -26,7 +26,7 @@
       "setupCompare": "Setup aktuell vs. vorgeschlagen",
       "chassis": "Fahrwerks-Setup"
     },
-    "forbidden": "Leiter, Sequenz, Reihenfolge, Übersicht, Schritt, Bereich, Basis-Setup, Fahrwerks-Setup, jetzt zu tun, Frezza",
+    "forbidden": "Leiter, Sequenz, Übersicht, Schritt, Basis-Setup, Fahrwerks-Setup, jetzt zu tun, Frezza",
     "glossary": "brake ducts = Bremsbelüftung; camber = Sturz; ride height = Fahrhöhe; rake = Rake; bumpstop = Bumpstop; third spring = dritte Feder; anti-roll bar = Stabilisator; toe = Spur; caster = Nachlauf; understeer = Untersteuern; oversteer = Übersteuern; preload = Vorspannung; trail braking = Trail Braking"
   },
   "coach": {

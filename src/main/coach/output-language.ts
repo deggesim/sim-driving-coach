@@ -63,7 +63,7 @@ export const outputLanguageBlock = (
   ];
   if (kind === "synthesis" || kind === "detail") {
     lines.push(
-      'Use exactly these headings, in this order and at these levels, and no other "##" heading:',
+      'Use exactly these headings, in this order and at these levels (omit the optional ones only as the rules above allow), and no other "##" heading:',
       ...HEADINGS[kind].map(
         ([level, key]) => `${level} ${t(`analysis.heading.${key}`)}`,
       ),

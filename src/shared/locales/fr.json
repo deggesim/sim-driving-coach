@@ -26,7 +26,7 @@
       "setupCompare": "Setup actuel vs proposé",
       "chassis": "Setup du châssis"
     },
-    "forbidden": "échelle, séquence, tableau, étape, zone, Réglage de base, Setup du châssis, à faire maintenant, Frezza",
+    "forbidden": "échelle, séquence, vue d'ensemble, étape, Réglage de base, Setup du châssis, à faire maintenant, Frezza",
     "glossary": "brake ducts = conduits de frein; camber = carrossage; ride height = garde au sol; rake = rake; bumpstop = bumpstop; third spring = troisième ressort; anti-roll bar = barre antiroulis; toe = parallélisme; caster = chasse; understeer = sous-virage; oversteer = survirage; preload = précontrainte; trail braking = trail braking"
   },
   "coach": {

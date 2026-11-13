@@ -878,3 +878,20 @@ for (const block of [lb, earlyDucts, ov, ovAfter, fixedCtx])
   assert.ok(!SHOUT.test(block), block.match(SHOUT)?.[0]);
 for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT])
   assert.ok(p.includes("Never whole words or sentences in capitals"));
+
+// The ban is limited to the procedure, so a forbidden word the prompt itself
+// needs (zone, table, order, area) must not sit in a language's list.
+for (const p of [SYNTHESIS_SYSTEM_PROMPT, SESSION_SYSTEM_PROMPT])
+  assert.ok(
+    p.includes("when referring to the setup-adjustment procedure itself"),
+  );
+const listed = (lang: (typeof LANGUAGES)[number]["code"]) =>
+  RESOURCES[lang].translation.analysis.forbidden.split(", ");
+for (const w of ["zone", "tableau"]) assert.ok(!listed("fr").includes(w), w);
+for (const w of ["Reihenfolge", "Bereich"])
+  assert.ok(!listed("de").includes(w), w);
+assert.ok(
+  outputLanguageBlock("en", "detail").includes(
+    "omit the optional ones only as the rules above allow",
+  ),
+);
