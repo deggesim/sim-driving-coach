@@ -229,7 +229,14 @@ const ductsAms2 = (t: number[]) =>
     ),
     1,
   ).reason;
-assert.ok(ductsAms2([1400, 1400, 500, 500]).includes("by 5 points"), "64 %: 5");
+assert.ok(
+  ductsAms2([1400, 1400, 500, 500]).includes("by 10 points"),
+  "front +100 % over its limit: 10",
+);
+assert.ok(
+  ductsAms2([650, 650, 250, 250]).includes("by 5 points"),
+  "imbalance 62 %: 5",
+);
 assert.ok(ductsAms2([450, 450, 250, 250]).includes("by 2 points"), "44 %: 2");
 assert.ok(ductsAms2([450, 450, 340, 340]).includes("by 1 point"), "24 %: 1");
 assert.ok(
@@ -266,6 +273,8 @@ assert.ok(stepOf(frontLock, 2).reason.includes("toward the rear"));
 const biasReason = (front: number) =>
   stepOf(ladder(okZone({ lockFramesFront: front, lockFramesRear: 0 })), 2)
     .reason;
+assert.ok(biasReason(25).includes("by 10 points"), "25 % = 5×: 10");
+assert.ok(biasReason(24).includes("by 5 points"), "24 % = 4.8×: 5");
 assert.ok(biasReason(15).includes("by 5 points"), "15 % = 3×: 5");
 assert.ok(biasReason(8).includes("by 2 points"), "8 % = 1.6×: 2");
 assert.ok(biasReason(6).includes("by 1 point "), "6 % = 1.2×: 1");
