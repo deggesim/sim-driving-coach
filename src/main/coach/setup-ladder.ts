@@ -32,8 +32,12 @@ const LOCK_SHARE = 0.05; // of the hard-brake frames carrying slip
 const LOCK_RATIO = 2; // one axle locks at least this many times the other
 export const ABS_SHARE = 0.2; // of the hard-brake frames; the overview's rake reuses it
 // Size of a percentage move (brake bias, brake pressure) by symptom ÷ threshold.
-const PCT_FAR_RATIO = 3; // from here: PCT_STEP_FAR points
-const PCT_NEAR_RATIO = 1.5; // from here: PCT_STEP_NEAR points, below: PCT_STEP_CLOSE
+// 10 points from 5×, 5 from 3×, 2 from 1.5×, else 1. ABS and the AMS2 ducts
+// max out at exactly 5× (100 % of their threshold), so they reach 10 only at the extreme.
+const PCT_MAX_RATIO = 5;
+const PCT_FAR_RATIO = 3;
+const PCT_NEAR_RATIO = 1.5;
+const PCT_STEP_MAX = 10;
 const PCT_STEP_FAR = 5;
 const PCT_STEP_NEAR = 2;
 const PCT_STEP_CLOSE = 1;
@@ -417,15 +421,17 @@ export const computeSetupLadder = (
   });
 
   // Points of a percentage move, by how far the symptom (share ÷ its threshold)
-  // is: 5 from 3× the threshold up, 2 from 1.5×, else 1.
+  // is: 10 from 5× the threshold up, 5 from 3×, 2 from 1.5×, else 1.
   const pctPoints = (share: number, threshold: number): string => {
     const ratio = share / threshold + 1e-9; // 0.15 / 0.05 is 2.9999…
     const n =
-      ratio >= PCT_FAR_RATIO
-        ? PCT_STEP_FAR
-        : ratio >= PCT_NEAR_RATIO
-          ? PCT_STEP_NEAR
-          : PCT_STEP_CLOSE;
+      ratio >= PCT_MAX_RATIO
+        ? PCT_STEP_MAX
+        : ratio >= PCT_FAR_RATIO
+          ? PCT_STEP_FAR
+          : ratio >= PCT_NEAR_RATIO
+            ? PCT_STEP_NEAR
+            : PCT_STEP_CLOSE;
     return `by ${n} ${n === 1 ? "point" : "points"}`;
   };
 
