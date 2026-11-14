@@ -1,3 +1,10 @@
+# [2.3.0](https://github.com/deggesim/sim-driving-coach/compare/v2.2.0...v2.3.0) (2026-11-14)
+
+
+### Features
+
+* step in click per pressioni gomme e campanatura ([#28](https://github.com/deggesim/sim-driving-coach/issues/28)) ([d97d339](https://github.com/deggesim/sim-driving-coach/commit/d97d3397c800db58c0805518a690a8cc50e9237d))
+
 # [2.2.0](https://github.com/deggesim/sim-driving-coach/compare/v2.1.0...v2.2.0) (2026-11-14)
 
 
