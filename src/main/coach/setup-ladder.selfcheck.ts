@@ -373,7 +373,7 @@ assert.ok(!stepOf(calib, 4).reason.includes("rear left"));
 // The reason names the axle (largest |Δ|) and only its out-of-tolerance wheels.
 assert.equal(
   stepOf(calib, 4).reason,
-  "front axle: Δ front left -1.5 °C → raise, Δ front right +1.5 °C → lower",
+  "front axle: Δ front left -1.5 °C → raise by 1 click(s), Δ front right +1.5 °C → lower by 1 click(s)",
 );
 // Rear axle wins (|Δ| 3.0 vs 1.5): the front wheel that is also off is not listed.
 const rearAxle = ladder(
@@ -385,7 +385,7 @@ const rearAxle = ladder(
 );
 assert.equal(
   stepOf(rearAxle, 4).reason,
-  "rear axle: Δ rear left +3.0 °C → lower, Δ rear right -2.0 °C → raise",
+  "rear axle: Δ rear left +3.0 °C → lower by 2 click(s), Δ rear right -2.0 °C → raise by 1 click(s)",
 );
 // Tie on |Δ| between the axles: the front.
 const axleTie = ladder(
@@ -397,7 +397,20 @@ const axleTie = ladder(
 );
 assert.equal(
   stepOf(axleTie, 4).reason,
-  "front axle: Δ front left +2.0 °C → lower",
+  "front axle: Δ front left +2.0 °C → lower by 1 click(s)",
+);
+// Δ +5.0 °C is 4× the tolerance: the top tier, 3 clicks.
+assert.ok(
+  stepOf(
+    ladder(
+      okZone({
+        avgTyreTempInnerC: [85, 87, 85, 87],
+        avgTyreTempCenterC: [90, 87, 85, 87],
+        avgTyreTempOuterC: [85, 87, 85, 87],
+      }),
+    ),
+    4,
+  ).reason.includes("lower by 3 click(s)"),
 );
 assert.deepEqual(calibTyres.hotPressurePsi, [27, 27, 26, 26]);
 assert.equal(calibTyres.judgedLaps, 4);
@@ -446,7 +459,9 @@ const camberMore = ladder(
 );
 assert.equal(stepOf(camberMore, 4).status, "ok");
 assert.equal(stepOf(camberMore, 5).status, "fix");
-assert.ok(stepOf(camberMore, 5).reason.includes("more negative camber"));
+assert.ok(
+  stepOf(camberMore, 5).reason.includes("more negative camber by 1 click(s)"),
+);
 const camberLess = ladder(
   okZone({
     avgTyreTempInnerC: [92, 92, 92, 92],
@@ -455,7 +470,10 @@ const camberLess = ladder(
   }),
 );
 assert.equal(stepOf(camberLess, 5).status, "fix");
-assert.ok(stepOf(camberLess, 5).reason.includes("less negative camber"));
+// inner−outer 12 °C is 2 °C over the band: 2 clicks.
+assert.ok(
+  stepOf(camberLess, 5).reason.includes("less negative camber by 2 click(s)"),
+);
 // Caster is offered on the front wheels only: two of the four wheels.
 assert.equal(
   stepOf(camberLess, 5).reason.split("or more caster").length - 1,
