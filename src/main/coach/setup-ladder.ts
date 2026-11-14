@@ -41,6 +41,11 @@ const PCT_STEP_MAX = 10;
 const PCT_STEP_FAR = 5;
 const PCT_STEP_NEAR = 2;
 const PCT_STEP_CLOSE = 1;
+// Size of a tyre move (pressure, camber) in clicks of the setup: a click on the
+// cold pressure is a click on the hot one (Frezza), so no unit per game is needed.
+// shortcut: tiers not calibrated on the sim, retune after a real session.
+const CLICKS_MAX_RATIO = 4; // 3 clicks from here
+const CLICKS_FAR_RATIO = 2; // 2 clicks from here, else 1
 const NERVOUS_SHARE = 0.2; // of the downshifts
 const TYRE_BALANCE_TOL_C = 1.25; // |centre − mean(shoulders)| still ok
 const CAMBER_MIN_C = 2; // inner − outer below this: more negative camber
@@ -199,6 +204,9 @@ const meanQ = (qs: Quartet[]): Quartet | null =>
   qs.length ? (W.map((i) => mean(qs.map((q) => q[i]))) as Quartet) : null;
 const pct = (x: number): string => `${Math.round(x * 100)} %`;
 const signed = (x: number): string => `${x >= 0 ? "+" : ""}${x.toFixed(1)}`;
+// "(s)" always: a 1/N word swap would change verdictKey between laps.
+const byClicks = (ratio: number): string =>
+  `by ${ratio >= CLICKS_MAX_RATIO ? 3 : ratio >= CLICKS_FAR_RATIO ? 2 : 1} click(s)`;
 
 /** Σ of a counter over the zones, null when no zone carries it. */
 const total = (zones: ZoneData[], k: keyof ZoneData): number | null => {
@@ -647,7 +655,7 @@ export const computeSetupLadder = (
           `${front ? "front" : "rear"} axle: ${wheels
             .map(
               (w) =>
-                `Δ ${WHEEL_NAMES[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "high" ? "lower" : "raise"}`,
+                `Δ ${WHEEL_NAMES[w]} ${signed(deltaC[w])} °C → ${pressureState[w] === "high" ? "lower" : "raise"} ${byClicks(Math.abs(deltaC[w]) / TYRE_BALANCE_TOL_C)}`,
             )
             .join(", ")}${skipped}`,
           wheels.map((w) => ({
@@ -705,12 +713,16 @@ export const computeSetupLadder = (
           param: `Camber ${R3E_WHEELS[w]}`,
           dir: dir === "more" ? "down" : "up",
         });
+      // AMS2 keeps its own "little by little" wording: its gap does not follow camber.
+      const by = equalOnly
+        ? ""
+        : ` ${byClicks(dir === "more" ? CAMBER_MIN_C - innerMinusOuterC[w] : innerMinusOuterC[w] - CAMBER_MAX_C)}`; // °C beyond the band, 1 °C per ratio unit
       return dir === "ok"
         ? []
         : [
             // Guide: low caster heats the front inner shoulders, so more caster
             // is the alternative lever there (not separable from camber in the data).
-            `${WHEEL_NAMES[w]} ${signed(innerMinusOuterC[w])} °C → ${dir} negative camber${dir === "less" && w < 2 ? " or more caster (if adjustable)" : ""}`,
+            `${WHEEL_NAMES[w]} ${signed(innerMinusOuterC[w])} °C → ${dir} negative camber${by}${dir === "less" && w < 2 ? " or more caster (if adjustable)" : ""}`,
           ];
     });
     return off.length
