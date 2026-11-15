@@ -1,4 +1,68 @@
 {
   "title": "Guide",
-  "intro": "Everything you need to get started: follow the steps in order. The guide stays available during a session too."
+  "intro": "Everything you need to get started: follow the steps in order. The guide stays available during a session too.",
+  "sections": {
+    "prerequisites": {
+      "title": "Before you start",
+      "steps": [
+        "Open <b>Settings</b>, paste your key into <b>Anthropic API key</b> and press <b>Save</b>. Without a key, <b>Run analysis</b> cannot produce the debrief.",
+        "Voice commands and dictation also need an Azure key and region (Azure Text-to-Speech section). Without them, in-lap alerts use the system voice.",
+        "Assign a controller button or a keyboard key in the <b>Voice assistant</b> section (button <b>Assign</b>): you use it to talk to the coach.",
+        "This guide is always available: switching tab does not close your session."
+      ]
+    },
+    "session": {
+      "title": "Starting a session",
+      "steps": [
+        "Start your simulator and get on track, then press <b>New session</b>, pick the game (RaceRoom, Assetto Corsa EVO or Automobilista 2) and confirm with <b>Open session</b>. The chosen game must already be sending data.",
+        "Each pass over the line adds a lap to the table. <b>Show telemetry</b> plots brake, throttle and speed for that lap; invalid laps can be hidden with the filter above the table.",
+        "The session stays open until you press <b>End session</b>: recorded laps stay in the list.",
+        "To go back to a closed session open <b>Session list</b> and use <b>Reopen session</b>."
+      ]
+    },
+    "driving": {
+      "title": "Driving with the coach",
+      "steps": [
+        "On track the coach only speaks when something is wrong: at most one alert per zone per lap, with at least 4 seconds of silence between alerts.",
+        "It learns your thresholds over the first 2 laps: technique alerts get more precise from the third lap.",
+        "Safety alerts (for example critical brake temperature) interrupt everything; traction control and ABS anomalies are queued; technique tips come after the corner.",
+        "To silence all voice use the toggle in the title bar, or Voice output in Settings."
+      ]
+    },
+    "setup": {
+      "title": "Loading the setup",
+      "steps": [
+        "Open <b>Manage setups</b>: the setup you load is linked to the following laps, and you can reuse setups already loaded for the same car and track.",
+        "RaceRoom: copy the setup in the game with CTRL+C and press <b>Load from JSON</b>. Assetto Corsa EVO: <b>Select file</b> and pick the .carsetup file. Automobilista 2: take screenshots of the setup screen and press <b>Capture screenshots</b>.",
+        "By voice: say <code>acquire setup</code> and the coach asks for a name (RaceRoom from the clipboard, Automobilista 2 from the last 3 screenshots). With Assetto Corsa EVO it uses the latest file and its file name, without asking.",
+        "To link a setup to several laps already recorded, select them in the table and press <b>Assign setup (N)</b>."
+      ]
+    },
+    "voice": {
+      "title": "Talking to the coach",
+      "steps": [
+        "The key is assigned in <b>Settings</b>, <b>Voice assistant</b> section: <b>Controller</b> or <b>Keyboard</b>. Assigning one removes the other.",
+        "Press it once, do not hold it: you hear the activation sound and have 5 seconds to speak. Recording stops by itself.",
+        "While the coach is processing or answering, further presses are ignored until the answer ends.",
+        "You can ask free questions (short radio-style answers) or give commands: <code>new session RaceRoom</code>, <code>close session</code>, <code>analyze session</code>, <code>acquire setup</code>. Saying the assistant's name gets a greeting."
+      ]
+    },
+    "analysis": {
+      "title": "Session analysis",
+      "steps": [
+        "After a few laps press <b>Run analysis</b>: it calls the Claude API and produces a summary with suggested actions, which the coach reads aloud.",
+        "For more detail press <b>Show deep-dive analysis</b> in the analysis: it is a second, longer call that adds telemetry, problems and a setup comparison.",
+        "Each analysis is its own version: with <b>Comment</b> you add a note, typed or dictated, and the coach folds it in.",
+        "Setup advice comes one change at a time: apply it, drive a few laps and run the analysis again."
+      ]
+    },
+    "history": {
+      "title": "History, PDF and cleanup",
+      "steps": [
+        "<b>Session list</b> gathers the sessions of all three games, with filters for game, car and track and sorting by date. Click a row to open its detail.",
+        "Inside a session, <b>Export PDF</b> saves the report with summary and deep-dive analysis.",
+        "You can delete single, selected or all sessions: laps, setups and analyses go with them, and it cannot be undone."
+      ]
+    }
+  }
 }

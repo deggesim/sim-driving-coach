@@ -1,4 +1,68 @@
 {
   "title": "Anleitung",
-  "intro": "Alles, was Sie für den Einstieg brauchen: Folgen Sie den Schritten der Reihe nach. Die Anleitung ist auch während einer Sitzung abrufbar."
+  "intro": "Alles, was Sie für den Einstieg brauchen: Folgen Sie den Schritten der Reihe nach. Die Anleitung ist auch während einer Sitzung abrufbar.",
+  "sections": {
+    "prerequisites": {
+      "title": "Bevor Sie anfangen",
+      "steps": [
+        "Öffnen Sie <b>Einstellungen</b>, fügen Sie den Schlüssel bei <b>Anthropic-API-Schlüssel</b> ein und drücken Sie <b>Speichern</b>. Ohne Schlüssel liefert <b>Analyse starten</b> keine Auswertung.",
+        "Für Sprachbefehle und Diktat brauchen Sie außerdem Azure-Schlüssel und -Region (Abschnitt Azure Text-to-Speech). Ohne sie nutzen die Hinweise während der Runde die Systemstimme.",
+        "Weisen Sie im Abschnitt <b>Sprachassistent</b> eine Controller-Taste oder Tastaturtaste zu (Schaltfläche <b>Zuweisen</b>): Damit sprechen Sie mit dem Coach.",
+        "Diese Anleitung bleibt immer abrufbar: Ein Tabwechsel beendet die Sitzung nicht."
+      ]
+    },
+    "session": {
+      "title": "Eine Sitzung starten",
+      "steps": [
+        "Starten Sie den Simulator und fahren Sie auf die Strecke, dann drücken Sie <b>Neue Sitzung</b>, wählen das Spiel (RaceRoom, Assetto Corsa EVO oder Automobilista 2) und bestätigen mit <b>Sitzung öffnen</b>. Das gewählte Spiel muss bereits Daten senden.",
+        "Jede Zieldurchfahrt fügt der Tabelle eine Runde hinzu. Mit <b>Telemetrie anzeigen</b> sehen Sie Bremse, Gas und Geschwindigkeit der Runde; ungültige Runden blenden Sie über den Filter über der Tabelle aus.",
+        "Die Sitzung bleibt offen, bis Sie <b>Sitzung beenden</b> drücken: Die aufgezeichneten Runden bleiben in der Liste.",
+        "Um zu einer beendeten Sitzung zurückzukehren, öffnen Sie <b>Sitzungsliste</b> und nutzen <b>Sitzung wieder öffnen</b>."
+      ]
+    },
+    "driving": {
+      "title": "Mit dem Coach fahren",
+      "steps": [
+        "Während der Runde spricht der Coach nur bei einem Problem: höchstens ein Hinweis pro Zone und Runde, mit mindestens 4 Sekunden Stille dazwischen.",
+        "In den ersten 2 Runden lernt er Ihre Schwellenwerte: Die Technikhinweise werden ab der dritten Runde genauer.",
+        "Sicherheitshinweise (zum Beispiel kritische Bremstemperatur) unterbrechen alles; Auffälligkeiten bei Traktionskontrolle und ABS werden eingereiht; Technik-Tipps kommen nach der Kurve.",
+        "Um alle Sprachausgaben stummzuschalten, nutzen Sie den Schalter in der Titelleiste oder Sprachausgabe in den Einstellungen."
+      ]
+    },
+    "setup": {
+      "title": "Das Setup laden",
+      "steps": [
+        "Öffnen Sie <b>Setups verwalten</b>: Das geladene Setup wird den folgenden Runden zugeordnet, und Sie können bereits geladene Setups für dasselbe Auto und dieselbe Strecke wiederverwenden.",
+        "RaceRoom: Kopieren Sie das Setup im Spiel mit STRG+C und drücken Sie <b>Aus JSON laden</b>. Assetto Corsa EVO: <b>Datei auswählen</b> und die .carsetup-Datei wählen. Automobilista 2: Screenshots des Setup-Bildschirms machen und <b>Screenshots erfassen</b> drücken.",
+        "Per Sprache: Sagen Sie <code>lade Setup</code>, und der Coach fragt nach dem Namen (RaceRoom aus der Zwischenablage, Automobilista 2 aus den letzten 3 Screenshots). Bei Assetto Corsa EVO nimmt er die neueste Datei und ihren Dateinamen, ohne nachzufragen.",
+        "Um ein Setup mehreren bereits aufgezeichneten Runden zuzuordnen, markieren Sie sie in der Tabelle und drücken <b>Setup zuweisen (N)</b>."
+      ]
+    },
+    "voice": {
+      "title": "Mit dem Coach sprechen",
+      "steps": [
+        "Die Taste weisen Sie unter <b>Einstellungen</b>, Abschnitt <b>Sprachassistent</b> zu: <b>Controller</b> oder <b>Tastatur</b>. Das Zuweisen der einen entfernt die andere.",
+        "Drücken Sie sie einmal und halten Sie sie nicht gedrückt: Sie hören den Aktivierungston und haben 5 Sekunden zum Sprechen. Die Aufnahme endet von selbst.",
+        "Solange der Coach verarbeitet oder antwortet, werden weitere Tastendrücke bis zum Ende der Antwort ignoriert.",
+        "Sie können freie Fragen stellen (kurze Antworten im Funkton) oder Befehle geben: <code>neue Sitzung RaceRoom</code>, <code>beende die Sitzung</code>, <code>analysiere die Sitzung</code>, <code>lade Setup</code>. Den Namen des Assistenten zu sagen ergibt eine Begrüßung."
+      ]
+    },
+    "analysis": {
+      "title": "Sitzungsanalyse",
+      "steps": [
+        "Drücken Sie nach einigen Runden <b>Analyse starten</b>: Das ruft die Claude-API auf und liefert eine Zusammenfassung mit empfohlenen Maßnahmen, die der Coach vorliest.",
+        "Für mehr Details drücken Sie in der Analyse <b>Detaillierte Analyse anzeigen</b>: ein zweiter, längerer Aufruf, der Telemetrie, Probleme und einen Setup-Vergleich ergänzt.",
+        "Jede Analyse ist eine eigene Version: Mit <b>Kommentar</b> fügen Sie eine getippte oder diktierte Notiz hinzu, die der Coach einarbeitet.",
+        "Setup-Empfehlungen kommen einzeln: Änderung anwenden, einige Runden fahren und die Analyse erneut starten."
+      ]
+    },
+    "history": {
+      "title": "Verlauf, PDF und Aufräumen",
+      "steps": [
+        "Die <b>Sitzungsliste</b> sammelt die Sitzungen aller drei Spiele, mit Filtern für Spiel, Auto und Strecke und Sortierung nach Datum. Ein Klick auf eine Zeile öffnet die Details.",
+        "In einer Sitzung speichert <b>PDF exportieren</b> den Bericht mit Zusammenfassung und detaillierter Analyse.",
+        "Sie können einzelne, ausgewählte oder alle Sitzungen löschen: Runden, Setups und Analysen werden mitgelöscht, das lässt sich nicht rückgängig machen."
+      ]
+    }
+  }
 }

@@ -1,4 +1,68 @@
 {
   "title": "Guide",
-  "intro": "Tout ce qu'il faut pour démarrer : suivez les étapes dans l'ordre. Le guide reste consultable pendant une session."
+  "intro": "Tout ce qu'il faut pour démarrer : suivez les étapes dans l'ordre. Le guide reste consultable pendant une session.",
+  "sections": {
+    "prerequisites": {
+      "title": "Avant de commencer",
+      "steps": [
+        "Ouvrez <b>Paramètres</b>, collez la clé dans <b>Clé API Anthropic</b> et appuyez sur <b>Enregistrer</b>. Sans clé, <b>Lancer l'analyse</b> ne produit pas le débriefing.",
+        "Pour les commandes vocales et la dictée, il faut aussi la clé et la région Azure (section Azure Text-to-Speech). Sans elles, les alertes en tour utilisent la voix du système.",
+        "Assignez un bouton de la manette ou une touche du clavier dans la section <b>Assistant vocal</b> (bouton <b>Assigner</b>) : il sert à parler au coach.",
+        "Ce guide reste toujours consultable : changer d'onglet ne ferme pas la session."
+      ]
+    },
+    "session": {
+      "title": "Démarrer une session",
+      "steps": [
+        "Lancez le simulateur et entrez en piste, puis appuyez sur <b>Nouvelle session</b>, choisissez le jeu (RaceRoom, Assetto Corsa EVO ou Automobilista 2) et validez avec <b>Ouvrir la session</b>. Le jeu choisi doit déjà envoyer des données.",
+        "Chaque passage sur la ligne ajoute un tour au tableau. <b>Afficher la télémétrie</b> montre freinage, accélérateur et vitesse du tour ; les tours non valides se masquent avec le filtre au-dessus du tableau.",
+        "La session reste ouverte jusqu'à ce que vous appuyiez sur <b>Clôturer la session</b> : les tours enregistrés restent dans la liste.",
+        "Pour revenir à une session close, ouvrez <b>Liste des sessions</b> et utilisez <b>Rouvrir la session</b>."
+      ]
+    },
+    "driving": {
+      "title": "Rouler avec le coach",
+      "steps": [
+        "En piste, le coach ne parle que s'il y a un problème : au plus une alerte par zone et par tour, avec au moins 4 secondes de silence entre deux alertes.",
+        "Pendant les 2 premiers tours, il apprend vos seuils : les alertes de technique deviennent plus précises dès le troisième tour.",
+        "Les alertes de sécurité (par exemple température critique des freins) interrompent tout ; les anomalies du contrôle de traction et de l'ABS sont mises en file ; les conseils de technique arrivent après le virage.",
+        "Pour couper toute la voix, utilisez l'interrupteur de la barre de titre, ou Sortie vocale dans les Paramètres."
+      ]
+    },
+    "setup": {
+      "title": "Charger le setup",
+      "steps": [
+        "Ouvrez <b>Gestion des setups</b> : le setup chargé est lié aux tours suivants, et vous pouvez réutiliser ceux déjà chargés pour la même voiture et le même circuit.",
+        "RaceRoom : copiez le setup dans le jeu avec CTRL+C et appuyez sur <b>Charger depuis un JSON</b>. Assetto Corsa EVO : <b>Sélectionner un fichier</b> et choisissez le fichier .carsetup. Automobilista 2 : faites des captures de l'écran du setup et appuyez sur <b>Capturer des captures</b>.",
+        "À la voix : dites <code>charge le setup</code> et le coach demande le nom (RaceRoom depuis le presse-papiers, Automobilista 2 depuis les 3 dernières captures). Avec Assetto Corsa EVO, il prend le fichier le plus récent et son nom, sans rien demander.",
+        "Pour lier un setup à plusieurs tours déjà enregistrés, sélectionnez-les dans le tableau et appuyez sur <b>Assigner le setup (N)</b>."
+      ]
+    },
+    "voice": {
+      "title": "Parler au coach",
+      "steps": [
+        "La touche s'assigne dans <b>Paramètres</b>, section <b>Assistant vocal</b> : <b>Manette</b> ou <b>Clavier</b>. En assigner une retire l'autre.",
+        "Appuyez une seule fois, sans maintenir : vous entendez le son d'activation et vous avez 5 secondes pour parler. L'enregistrement s'arrête tout seul.",
+        "Tant que le coach traite ou répond, les appuis suivants sont ignorés jusqu'à la fin de la réponse.",
+        "Vous pouvez poser des questions libres (réponses brèves, ton radio) ou donner des ordres : <code>nouvelle session RaceRoom</code>, <code>ferme la session</code>, <code>analyse la session</code>, <code>charge le setup</code>. Dire le nom de l'assistant obtient un salut."
+      ]
+    },
+    "analysis": {
+      "title": "Analyse de la session",
+      "steps": [
+        "Après quelques tours, appuyez sur <b>Lancer l'analyse</b> : elle appelle l'API Claude et produit une synthèse avec des actions suggérées, que le coach lit à voix haute.",
+        "Pour plus de détail, appuyez sur <b>Afficher l'analyse approfondie</b> dans l'analyse : c'est un second appel, plus long, qui ajoute télémétrie, problèmes et comparaison de setups.",
+        "Chaque analyse est une version à part : avec <b>Commentaire</b>, vous ajoutez une note, écrite ou dictée, que le coach intègre.",
+        "Les conseils de setup arrivent un par un : appliquez la modification, faites quelques tours et relancez l'analyse."
+      ]
+    },
+    "history": {
+      "title": "Historique, PDF et nettoyage",
+      "steps": [
+        "La <b>Liste des sessions</b> rassemble les sessions des trois jeux, avec des filtres par jeu, voiture et circuit et un tri par date. Un clic sur une ligne ouvre le détail.",
+        "Dans une session, <b>Exporter en PDF</b> enregistre le rapport avec la synthèse et l'analyse approfondie.",
+        "Vous pouvez supprimer des sessions une à une, sélectionnées ou toutes : tours, setups et analyses partent avec elles, sans retour possible."
+      ]
+    }
+  }
 }
