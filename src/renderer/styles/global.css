@@ -1023,7 +1023,8 @@ body {
   margin: 0;
 }
 /* ── Settings ── */
-.settings-panel {
+.settings-panel,
+.guide-panel {
   overflow-y: auto;
 }
 

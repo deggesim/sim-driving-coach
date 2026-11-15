@@ -6,7 +6,7 @@
       "title": "Avant de commencer",
       "steps": [
         "Ouvrez <b>Paramètres</b>, collez la clé dans <b>Clé API Anthropic</b> et appuyez sur <b>Enregistrer</b>. Sans clé, <b>Lancer l'analyse</b> ne produit pas le débriefing.",
-        "La voix Azure, les commandes vocales et la dictée demandent la clé et la région Azure (section Azure Speech) ; pour la voix Azure, activez aussi État. Sinon, alertes et réponses utilisent la voix du système.",
+        "La voix Azure, les commandes vocales et la dictée demandent la clé et la région Azure (section Azure Speech) ; pour la voix Azure, activez aussi <b>État</b>. Sinon, les réponses du coach et la synthèse utilisent la voix du système.",
         "Assignez un bouton de la manette ou une touche du clavier dans la section <b>Assistant vocal</b> (bouton <b>Assigner</b>) : il sert à parler au coach.",
         "Ce guide reste toujours consultable : changer d'onglet ne ferme pas la session."
       ]
@@ -23,10 +23,10 @@
     "driving": {
       "title": "Rouler avec le coach",
       "steps": [
-        "En piste, le coach ne parle que s'il y a un problème : au plus une alerte par zone et par tour, avec au moins 4 secondes de silence entre deux alertes.",
-        "Pendant les 2 premiers tours, il apprend vos seuils : les alertes de technique deviennent plus précises dès le troisième tour.",
-        "Les alertes de sécurité (par exemple température critique des freins) interrompent tout ; les anomalies du contrôle de traction et de l'ABS sont mises en file ; les conseils de technique arrivent après le virage.",
-        "Pour couper toute la voix, utilisez l'interrupteur de la barre de titre, ou Sortie vocale dans les Paramètres."
+        "Pendant que vous roulez, le coach reste silencieux : il enregistre les tours et la télémétrie et détecte les anomalies (par exemple température critique des freins, contrôle de traction, ABS, freinages tardifs), que l'analyse utilise ensuite.",
+        "Pendant les 2 premiers tours, il apprend votre rythme de référence : ensuite, il reconnaît mieux les écarts.",
+        "Avec la voix Azure activée, quand vous avez assez de tours, le coach annonce que le stint est prêt pour l'analyse : c'est le moment de vous arrêter et d'appuyer sur <b>Lancer l'analyse</b>.",
+        "Pour couper toute la voix, utilisez l'interrupteur de la barre de titre, ou <b>Sortie vocale</b> dans les Paramètres. Voix désactivée, la touche pour parler au coach ne répond pas non plus."
       ]
     },
     "setup": {
@@ -42,7 +42,7 @@
       "title": "Parler au coach",
       "steps": [
         "La touche s'assigne dans <b>Paramètres</b>, section <b>Assistant vocal</b> : <b>Manette</b> ou <b>Clavier</b>. En assigner une retire l'autre.",
-        "Appuyez une seule fois, sans maintenir : vous entendez le son d'activation et vous avez 5 secondes pour parler. L'enregistrement s'arrête tout seul.",
+        "Appuyez une seule fois, sans maintenir : vous entendez le son d'activation et vous avez 5 secondes pour parler. L'enregistrement s'arrête tout seul. Voix désactivée, la touche ne répond pas.",
         "Tant que le coach traite ou répond, les appuis suivants sont ignorés jusqu'à la fin de la réponse.",
         "Vous pouvez poser des questions libres (réponses brèves, ton radio) ou donner des ordres : <code>nouvelle session RaceRoom</code>, <code>ferme la session</code>, <code>analyse la session</code>, <code>charge le setup</code>. Dire le nom de l'assistant obtient un salut."
       ]

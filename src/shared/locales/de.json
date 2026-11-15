@@ -279,7 +279,7 @@
         "westus2": "USA, Westen 2",
         "westus3": "USA, Westen 3"
       },
-      "statusHint": "Ausgeschaltet nutzen Hinweise und Coach-Antworten die Systemstimme; Diktat und Sprachbefehle bleiben aktiv."
+      "statusHint": "Ausgeschaltet nutzen Coach-Antworten und Analyse-Zusammenfassung die Systemstimme, und der Stint-Hinweis wird nicht gesprochen; Diktat und Sprachbefehle bleiben aktiv."
     },
     "assistant": {
       "title": "Sprachassistent",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Sprachausgabe",
-      "hint": "Schaltet alle Sprachausgaben ein oder aus (Warnungen, Debriefing, Coach)."
+      "hint": "Schaltet alle Sprachausgaben ein oder aus: Coach-Antworten, Zusammenfassung der Analyse und Stint-Hinweis. Ausgeschaltet reagiert auch die Taste zum Sprechen nicht."
     },
     "keys": {
       "Delete": "Entf",
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Azure-Stimme (Schlüssel und Region)",
-      "effect": "Ohne sie gibt es keine Sprachbefehle und kein Diktat; Warnungen während der Runde nutzen die Systemstimme."
+      "effect": "Ohne sie gibt es keine Sprachbefehle und kein Diktat; Coach-Antworten nutzen die Systemstimme."
     }
   },
   "voiceOverlay": {

@@ -15,7 +15,7 @@ const GuidePanel = () => {
   const { t } = useTranslation("guide");
 
   return (
-    <Container fluid className="guide-panel p-4">
+    <Container fluid className="guide-panel h-100 p-4">
       <h2 className="fs-5 fw-bold mb-2">{t("title")}</h2>
       <p className="text-secondary mb-4">{t("intro")}</p>
       <Accordion defaultActiveKey={GUIDE_SECTIONS[0]}>

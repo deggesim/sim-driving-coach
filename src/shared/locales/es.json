@@ -279,7 +279,7 @@
         "westus2": "Oeste de EE. UU. 2",
         "westus3": "Oeste de EE. UU. 3"
       },
-      "statusHint": "Apagado, los avisos y las respuestas del coach usan la voz del sistema; el dictado y los comandos de voz siguen activos."
+      "statusHint": "Apagado, las respuestas del coach y el resumen del análisis usan la voz del sistema y el aviso de stint listo no se pronuncia; el dictado y los comandos de voz siguen activos."
     },
     "assistant": {
       "title": "Asistente de voz",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Salida de voz",
-      "hint": "Activa o desactiva toda la salida de voz (alertas, debriefing, coach)."
+      "hint": "Activa o desactiva toda la voz: respuestas del coach, resumen del análisis y aviso de stint listo. Desactivada, la tecla para hablar con el coach tampoco responde."
     },
     "keys": {
       "Delete": "Supr",
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Voz de Azure (clave y región)",
-      "effect": "Sin ella, no hay comandos de voz ni dictado; las alertas en pista usan la voz del sistema."
+      "effect": "Sin ella, no hay comandos de voz ni dictado; las respuestas del coach usan la voz del sistema."
     }
   },
   "voiceOverlay": {

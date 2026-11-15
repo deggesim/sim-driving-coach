@@ -6,7 +6,7 @@
       "title": "Antes de empezar",
       "steps": [
         "Abre <b>Ajustes</b>, pega la clave en <b>Clave de API de Anthropic</b> y pulsa <b>Guardar</b>. Sin clave, <b>Ejecutar análisis</b> no genera el debriefing.",
-        "La voz de Azure, los comandos de voz y el dictado necesitan clave y región de Azure (sección Azure Speech); para la voz de Azure activa además Estado. Si no, los avisos y respuestas usan la voz del sistema.",
+        "La voz de Azure, los comandos de voz y el dictado necesitan clave y región de Azure (sección Azure Speech); para la voz de Azure activa además <b>Estado</b>. Si no, las respuestas del coach y el resumen usan la voz del sistema.",
         "Asigna un botón del mando o una tecla del teclado en la sección <b>Asistente de voz</b> (botón <b>Asignar</b>): sirve para hablar con el coach.",
         "Esta guía siempre está disponible: cambiar de pestaña no cierra la sesión."
       ]
@@ -23,10 +23,10 @@
     "driving": {
       "title": "Conducir con el coach",
       "steps": [
-        "En pista el coach solo habla cuando hay un problema: como máximo un aviso por zona y vuelta, con al menos 4 segundos de silencio entre avisos.",
-        "En las 2 primeras vueltas aprende tus umbrales: los avisos de técnica se vuelven más precisos desde la tercera vuelta.",
-        "Los avisos de seguridad (por ejemplo, temperatura crítica de los frenos) lo interrumpen todo; las anomalías del control de tracción y del ABS se ponen en cola; los consejos de técnica llegan tras la curva.",
-        "Para silenciar toda la voz usa el interruptor de la barra de título, o Salida de voz en Ajustes."
+        "Mientras conduces el coach no habla: registra vueltas y telemetría y detecta anomalías (por ejemplo, temperatura crítica de los frenos, control de tracción, ABS, frenadas tardías), que el análisis usa después.",
+        "En las 2 primeras vueltas aprende tu ritmo de referencia: a partir de ahí reconoce mejor las desviaciones.",
+        "Con la voz de Azure activada, cuando llevas suficientes vueltas el coach dice que el stint está listo para analizar: es el momento de parar y pulsar <b>Ejecutar análisis</b>.",
+        "Para silenciar toda la voz usa el interruptor de la barra de título, o <b>Salida de voz</b> en Ajustes. Con la voz desactivada, la tecla para hablar con el coach tampoco responde."
       ]
     },
     "setup": {
@@ -42,7 +42,7 @@
       "title": "Hablar con el coach",
       "steps": [
         "La tecla se asigna en <b>Ajustes</b>, sección <b>Asistente de voz</b>: <b>Mando</b> o <b>Teclado</b>. Asignar una quita la otra.",
-        "Púlsala una sola vez, sin mantenerla: oyes el sonido de activación y tienes 5 segundos para hablar. La grabación se detiene sola.",
+        "Púlsala una sola vez, sin mantenerla: oyes el sonido de activación y tienes 5 segundos para hablar. La grabación se detiene sola. Con la voz desactivada la tecla no responde.",
         "Mientras el coach procesa o responde, las pulsaciones siguientes se ignoran hasta que termine la respuesta.",
         "Puedes hacer preguntas libres (respuestas breves, tono de radio) o dar órdenes: <code>nueva sesión Automobilista 2</code>, <code>cierra la sesión</code>, <code>analiza la sesión</code>, <code>carga setup</code>. Decir el nombre del asistente obtiene un saludo."
       ]

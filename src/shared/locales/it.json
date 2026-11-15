@@ -279,7 +279,7 @@
         "westus2": "Stati Uniti occidentali 2",
         "westus3": "Stati Uniti occidentali 3"
       },
-      "statusHint": "Da spento, avvisi e risposte del coach usano la voce del sistema; dettatura e comandi a voce restano attivi."
+      "statusHint": "Da spento, le risposte del coach e la sintesi dell'analisi usano la voce del sistema e il segnale di stint pronto non viene pronunciato; dettatura e comandi a voce restano attivi."
     },
     "assistant": {
       "title": "Assistente Vocale",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Output vocale",
-      "hint": "Attiva/disattiva tutti gli output vocali (alert, debriefing, coach)."
+      "hint": "Attiva/disattiva tutte le voci: risposte del coach, sintesi dell'analisi e segnale di stint pronto. Disattivata, anche il tasto per parlare non risponde."
     },
     "keys": {
       "Delete": "Canc",
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Voce Azure (chiave e regione)",
-      "effect": "Senza, niente comandi a voce né dettatura; gli avvisi in giro usano la voce del sistema."
+      "effect": "Senza, niente comandi a voce né dettatura; le risposte del coach usano la voce del sistema."
     }
   },
   "voiceOverlay": {

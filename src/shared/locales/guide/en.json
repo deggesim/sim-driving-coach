@@ -6,7 +6,7 @@
       "title": "Before you start",
       "steps": [
         "Open <b>Settings</b>, paste your key into <b>Anthropic API key</b> and press <b>Save</b>. Without a key, <b>Run analysis</b> cannot produce the debrief.",
-        "Azure voice, voice commands and dictation need an Azure key and region (Azure Speech section); for the Azure voice also switch Status on. Otherwise alerts and answers use the system voice.",
+        "Azure voice, voice commands and dictation need an Azure key and region (Azure Speech section); for the Azure voice also switch <b>Status</b> on. Otherwise coach answers and the summary use the system voice.",
         "Assign a controller button or a keyboard key in the <b>Voice assistant</b> section (button <b>Assign</b>): you use it to talk to the coach.",
         "This guide is always available: switching tab does not close your session."
       ]
@@ -23,10 +23,10 @@
     "driving": {
       "title": "Driving with the coach",
       "steps": [
-        "On track the coach only speaks when something is wrong: at most one alert per zone per lap, with at least 4 seconds of silence between alerts.",
-        "It learns your thresholds over the first 2 laps: technique alerts get more precise from the third lap.",
-        "Safety alerts (for example critical brake temperature) interrupt everything; traction control and ABS anomalies are queued; technique tips come after the corner.",
-        "To silence all voice use the toggle in the title bar, or Voice output in Settings."
+        "While you drive the coach stays quiet: it records laps and telemetry and detects anomalies (for example critical brake temperature, traction control, ABS, late braking), which the analysis then uses.",
+        "It learns your reference pace over the first 2 laps: after that it recognises deviations better.",
+        "With the Azure voice on, once you have enough laps the coach says the stint is ready for analysis: that is the time to stop and press <b>Run analysis</b>.",
+        "To silence all voice use the toggle in the title bar, or <b>Voice output</b> in Settings. With voice off, the key to talk to the coach does not respond either."
       ]
     },
     "setup": {
@@ -42,7 +42,7 @@
       "title": "Talking to the coach",
       "steps": [
         "The key is assigned in <b>Settings</b>, <b>Voice assistant</b> section: <b>Controller</b> or <b>Keyboard</b>. Assigning one removes the other.",
-        "Press it once, do not hold it: you hear the activation sound and have 5 seconds to speak. Recording stops by itself.",
+        "Press it once, do not hold it: you hear the activation sound and have 5 seconds to speak. Recording stops by itself. With voice off the key does not respond.",
         "While the coach is processing or answering, further presses are ignored until the answer ends.",
         "You can ask free questions (short radio-style answers) or give commands: <code>new session RaceRoom</code>, <code>close session</code>, <code>analyze session</code>, <code>acquire setup</code>. Saying the assistant's name gets a greeting."
       ]

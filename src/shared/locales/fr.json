@@ -279,7 +279,7 @@
         "westus2": "USA Ouest 2",
         "westus3": "USA Ouest 3"
       },
-      "statusHint": "Désactivé, les alertes et les réponses du coach utilisent la voix du système ; la dictée et les commandes vocales restent actives."
+      "statusHint": "Désactivé, les réponses du coach et la synthèse de l'analyse utilisent la voix du système et le signal de stint prêt n'est pas prononcé ; la dictée et les commandes vocales restent actives."
     },
     "assistant": {
       "title": "Assistant vocal",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Sortie vocale",
-      "hint": "Active ou désactive toutes les sorties vocales (alertes, débriefing, coach)."
+      "hint": "Active ou désactive toute la voix : réponses du coach, synthèse de l'analyse et signal de stint prêt. Désactivée, la touche pour parler au coach ne répond pas non plus."
     },
     "keys": {
       "Delete": "Suppr",
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Voix Azure (clé et région)",
-      "effect": "Sans elle, pas de commandes vocales ni de dictée ; les alertes en piste utilisent la voix du système."
+      "effect": "Sans elle, pas de commandes vocales ni de dictée ; les réponses du coach utilisent la voix du système."
     }
   },
   "voiceOverlay": {

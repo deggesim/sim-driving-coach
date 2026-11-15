@@ -279,7 +279,7 @@
         "westus2": "West US 2",
         "westus3": "West US 3"
       },
-      "statusHint": "When off, alerts and coach answers use the system voice; dictation and voice commands stay active."
+      "statusHint": "When off, coach answers and the analysis summary use the system voice and the stint-ready cue is not spoken; dictation and voice commands stay active."
     },
     "assistant": {
       "title": "Voice assistant",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Voice output",
-      "hint": "Turns all voice output on or off (alerts, debrief, coach)."
+      "hint": "Turns all voice on or off: coach answers, the analysis summary and the stint-ready cue. When off, the key to talk to the coach does not respond either."
     },
     "keys": {
       "Delete": "Del",
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Azure voice (key and region)",
-      "effect": "Without it, no voice commands or dictation; in-lap alerts use the system voice."
+      "effect": "Without it, no voice commands or dictation; coach answers use the system voice."
     }
   },
   "voiceOverlay": {

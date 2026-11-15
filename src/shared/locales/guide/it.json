@@ -6,7 +6,7 @@
       "title": "Prima di cominciare",
       "steps": [
         "Apri <b>Impostazioni</b>, incolla la chiave in <b>API Key Anthropic</b> e premi <b>Salva</b>. Senza chiave <b>Esegui analisi</b> non produce il debriefing.",
-        "Per la voce Azure, i comandi a voce e la dettatura servono chiave e regione Azure (sezione Azure Speech); per la voce Azure attiva anche l'interruttore Stato. Senza, avvisi e risposte usano la voce del sistema.",
+        "Per la voce Azure, i comandi a voce e la dettatura servono chiave e regione Azure (sezione Azure Speech); per la voce Azure attiva anche l'interruttore <b>Stato</b>. Senza, le risposte del coach e la sintesi usano la voce del sistema.",
         "Assegna un tasto del controller o della tastiera nella sezione <b>Assistente Vocale</b> (pulsante <b>Assegna</b>): serve per parlare con il coach.",
         "Questa guida resta sempre consultabile: cambiare scheda non chiude la sessione."
       ]
@@ -23,10 +23,10 @@
     "driving": {
       "title": "Guidare con il coach",
       "steps": [
-        "Durante il giro il coach parla solo quando c'è un problema: al massimo un avviso per zona e per giro, con almeno 4 secondi di silenzio tra un avviso e l'altro.",
-        "Nei primi 2 giri impara le tue soglie: gli avvisi tecnici diventano più precisi dal terzo giro.",
-        "Gli avvisi di sicurezza (per esempio temperatura critica dei freni) interrompono tutto; le anomalie di controllo di trazione e ABS vengono messe in coda; i consigli di tecnica arrivano dopo la curva.",
-        "Per silenziare tutta la voce usa l'interruttore nella barra del titolo, oppure Output vocale in Impostazioni."
+        "Mentre guidi il coach non ti parla: registra giri e telemetria e rileva le anomalie (per esempio temperatura critica dei freni, controllo di trazione, ABS, frenate tardive), che l'analisi poi usa.",
+        "Nei primi 2 giri impara il tuo ritmo di riferimento: da lì in poi riconosce meglio gli scostamenti.",
+        "Con la voce Azure attiva, quando hai fatto abbastanza giri il coach dice che lo stint è pronto per l'analisi: è il momento di fermarti e premere <b>Esegui analisi</b>.",
+        "Per silenziare tutta la voce usa l'interruttore nella barra del titolo, oppure <b>Output vocale</b> in Impostazioni. Con la voce disattivata anche il tasto per parlare non risponde."
       ]
     },
     "setup": {
@@ -42,7 +42,7 @@
       "title": "Parlare al coach",
       "steps": [
         "Il tasto si assegna in <b>Impostazioni</b>, sezione <b>Assistente Vocale</b>: <b>Controller</b> o <b>Tastiera</b>. Assegnarne uno rimuove l'altro.",
-        "Premilo una volta sola, senza tenerlo premuto: senti il suono di attivazione e hai 5 secondi per parlare. La registrazione si ferma da sola.",
+        "Premilo una volta sola, senza tenerlo premuto: senti il suono di attivazione e hai 5 secondi per parlare. La registrazione si ferma da sola. Con la voce disattivata il tasto non risponde.",
         "Mentre il coach elabora o risponde, i tocchi successivi vengono ignorati fino alla fine della risposta.",
         "Puoi fare domande libere (risposte brevi, tono radio) oppure dare comandi: <code>nuova sessione Assetto Corsa EVO</code>, <code>chiudi sessione</code>, <code>analizza la sessione</code>, <code>acquisisci setup</code>. Dire il nome dell'assistente ottiene un saluto."
       ]
