@@ -10,7 +10,7 @@
     "guide": "Guida",
     "voiceOn": "Voce attiva",
     "voiceOff": "Voce disattiva",
-    "voice": "Voce del coach",
+    "voice": "Voce dell'ingegnere",
     "minimize": "Riduci a icona",
     "maximize": "Ingrandisci",
     "maximizeLabel": "Ingrandisci finestra",
@@ -196,14 +196,14 @@
     "noButton": "Nessun tasto assegnato",
     "anthropic": {
       "title": "API Key Anthropic",
-      "hint": "Necessaria per l'analisi della sessione (a richiesta), i commenti e il coach vocale via API Claude."
+      "hint": "Necessaria per l'analisi della sessione (a richiesta), i commenti e l'ingegnere vocale via API Claude."
     },
     "model": {
       "label": "Modello",
       "error": "Elenco modelli non disponibile: controlla la chiave API e la connessione.",
       "obsolete": "Il modello selezionato (<code>{{model}}</code>) non è più disponibile: selezionane uno aggiornato dall'elenco e salva.",
       "obsoleteTag": "obsoleto",
-      "hint": "Usato per l'analisi sintetica, i commenti e il coach vocale. Premi Salva: le modifiche hanno effetto al prossimo utilizzo."
+      "hint": "Usato per l'analisi sintetica, i commenti e l'ingegnere vocale. Premi Salva: le modifiche hanno effetto al prossimo utilizzo."
     },
     "modelDetail": {
       "label": "Modello analisi approfondita",
@@ -279,17 +279,17 @@
         "westus2": "Stati Uniti occidentali 2",
         "westus3": "Stati Uniti occidentali 3"
       },
-      "statusHint": "Da spento, le risposte del coach e la sintesi dell'analisi usano la voce del sistema e il segnale di stint pronto non viene pronunciato; dettatura e comandi a voce restano attivi."
+      "statusHint": "Da spento, le risposte dell'ingegnere e la sintesi dell'analisi usano la voce del sistema e il segnale di stint pronto non viene pronunciato; dettatura e comandi a voce restano attivi."
     },
     "assistant": {
       "title": "Assistente Vocale",
       "name": "Nome",
-      "nameHint": "Il nome con cui chiami il coach a voce (massimo 16 caratteri): dirlo da solo ottiene un saluto."
+      "nameHint": "Il nome con cui chiami l'ingegnere a voce (massimo 16 caratteri): dirlo da solo ottiene un saluto."
     },
     "controller": {
       "label": "Controller",
       "press": "Premi un tasto sul controller…",
-      "hint": "Premi una volta il tasto configurato per attivare il microfono: hai 5 secondi per fare una domanda al coach, poi la registrazione si ferma da sola. Assegnarlo rimuove il tasto della tastiera. Il tasto 0 corrisponde al tasto A su controller Xbox."
+      "hint": "Premi una volta il tasto configurato per attivare il microfono: hai 5 secondi per fare una domanda all'ingegnere, poi la registrazione si ferma da sola. Assegnarlo rimuove il tasto della tastiera. Il tasto 0 corrisponde al tasto A su controller Xbox."
     },
     "keyboard": {
       "label": "Tastiera",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Output vocale",
-      "hint": "Attiva/disattiva tutte le voci: risposte del coach, sintesi dell'analisi e segnale di stint pronto. Disattivata, anche il tasto per parlare non risponde."
+      "hint": "Attiva/disattiva tutte le voci: risposte dell'ingegnere, sintesi dell'analisi e segnale di stint pronto. Disattivata, anche il tasto per parlare non risponde."
     },
     "keys": {
       "Delete": "Canc",
@@ -337,7 +337,7 @@
   "status": {
     "calibratingOne": "Calibrazione: {{n}} giro rimanente",
     "calibratingMany": "Calibrazione: {{n}} giri rimanenti",
-    "coachActive": "Coach attivo",
+    "coachActive": "Ingegnere attivo",
     "connected": "{{game}} connesso",
     "disconnected": "{{game}} disconnesso",
     "forceReconnect": "Forza riconnessione {{game}}"
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Voce Azure (chiave e regione)",
-      "effect": "Senza, niente comandi a voce né dettatura; le risposte del coach usano la voce del sistema."
+      "effect": "Senza, niente comandi a voce né dettatura; le risposte dell'ingegnere usano la voce del sistema."
     }
   },
   "voiceOverlay": {

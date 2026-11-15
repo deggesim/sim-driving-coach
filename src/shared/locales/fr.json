@@ -10,7 +10,7 @@
     "guide": "Guide",
     "voiceOn": "Voix activée",
     "voiceOff": "Voix désactivée",
-    "voice": "Voix du coach",
+    "voice": "Voix de l'ingénieur",
     "minimize": "Réduire",
     "maximize": "Agrandir",
     "maximizeLabel": "Agrandir la fenêtre",
@@ -196,14 +196,14 @@
     "noButton": "Aucune touche assignée",
     "anthropic": {
       "title": "Clé API Anthropic",
-      "hint": "Nécessaire pour l'analyse de la session (à la demande), les commentaires et le coach vocal via l'API Claude."
+      "hint": "Nécessaire pour l'analyse de la session (à la demande), les commentaires et l'ingénieur vocal via l'API Claude."
     },
     "model": {
       "label": "Modèle",
       "error": "Liste des modèles indisponible : vérifiez la clé API et la connexion.",
       "obsolete": "Le modèle sélectionné (<code>{{model}}</code>) n'est plus disponible : choisissez-en un à jour dans la liste et enregistrez.",
       "obsoleteTag": "obsolète",
-      "hint": "Utilisé pour l'analyse synthétique, les commentaires et le coach vocal. Appuyez sur Enregistrer : les modifications prennent effet à la prochaine utilisation."
+      "hint": "Utilisé pour l'analyse synthétique, les commentaires et l'ingénieur vocal. Appuyez sur Enregistrer : les modifications prennent effet à la prochaine utilisation."
     },
     "modelDetail": {
       "label": "Modèle de l'analyse approfondie",
@@ -279,17 +279,17 @@
         "westus2": "USA Ouest 2",
         "westus3": "USA Ouest 3"
       },
-      "statusHint": "Désactivé, les réponses du coach et la synthèse de l'analyse utilisent la voix du système et le signal de stint prêt n'est pas prononcé ; la dictée et les commandes vocales restent actives."
+      "statusHint": "Désactivé, les réponses de l'ingénieur et la synthèse de l'analyse utilisent la voix du système et le signal de stint prêt n'est pas prononcé ; la dictée et les commandes vocales restent actives."
     },
     "assistant": {
       "title": "Assistant vocal",
       "name": "Nom",
-      "nameHint": "Le nom avec lequel vous appelez le coach à la voix (16 caractères au maximum) : le dire seul obtient un salut."
+      "nameHint": "Le nom avec lequel vous appelez l'ingénieur à la voix (16 caractères au maximum) : le dire seul obtient un salut."
     },
     "controller": {
       "label": "Manette",
       "press": "Appuyez sur un bouton de la manette…",
-      "hint": "Appuyez une fois sur le bouton configuré pour activer le micro : vous avez 5 secondes pour poser une question au coach, puis l'enregistrement s'arrête tout seul. L'assigner retire la touche du clavier. Le bouton 0 correspond au bouton A d'une manette Xbox."
+      "hint": "Appuyez une fois sur le bouton configuré pour activer le micro : vous avez 5 secondes pour poser une question à l'ingénieur, puis l'enregistrement s'arrête tout seul. L'assigner retire la touche du clavier. Le bouton 0 correspond au bouton A d'une manette Xbox."
     },
     "keyboard": {
       "label": "Clavier",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Sortie vocale",
-      "hint": "Active ou désactive toute la voix : réponses du coach, synthèse de l'analyse et signal de stint prêt. Désactivée, la touche pour parler au coach ne répond pas non plus."
+      "hint": "Active ou désactive toute la voix : réponses de l'ingénieur, synthèse de l'analyse et signal de stint prêt. Désactivée, la touche pour parler à l'ingénieur ne répond pas non plus."
     },
     "keys": {
       "Delete": "Suppr",
@@ -337,7 +337,7 @@
   "status": {
     "calibratingOne": "Calibrage : {{n}} tour restant",
     "calibratingMany": "Calibrage : {{n}} tours restants",
-    "coachActive": "Coach actif",
+    "coachActive": "Ingénieur actif",
     "connected": "{{game}} connecté",
     "disconnected": "{{game}} déconnecté",
     "forceReconnect": "Forcer la reconnexion de {{game}}"
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Voix Azure (clé et région)",
-      "effect": "Sans elle, pas de commandes vocales ni de dictée ; les réponses du coach utilisent la voix du système."
+      "effect": "Sans elle, pas de commandes vocales ni de dictée ; les réponses de l'ingénieur utilisent la voix du système."
     }
   },
   "voiceOverlay": {

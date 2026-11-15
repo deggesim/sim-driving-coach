@@ -10,7 +10,7 @@
     "guide": "Guía",
     "voiceOn": "Voz activada",
     "voiceOff": "Voz desactivada",
-    "voice": "Voz del coach",
+    "voice": "Voz del ingeniero",
     "minimize": "Minimizar",
     "maximize": "Maximizar",
     "maximizeLabel": "Maximizar ventana",
@@ -196,14 +196,14 @@
     "noButton": "Ninguna tecla asignada",
     "anthropic": {
       "title": "Clave de API de Anthropic",
-      "hint": "Necesaria para el análisis de la sesión (a petición), los comentarios y el coach de voz a través de la API de Claude."
+      "hint": "Necesaria para el análisis de la sesión (a petición), los comentarios y el ingeniero de voz a través de la API de Claude."
     },
     "model": {
       "label": "Modelo",
       "error": "Lista de modelos no disponible: comprueba la clave de API y la conexión.",
       "obsolete": "El modelo seleccionado (<code>{{model}}</code>) ya no está disponible: elige uno actualizado de la lista y guarda.",
       "obsoleteTag": "obsoleto",
-      "hint": "Se usa para el análisis sintético, los comentarios y el coach de voz. Pulsa Guardar: los cambios surten efecto en el siguiente uso."
+      "hint": "Se usa para el análisis sintético, los comentarios y el ingeniero de voz. Pulsa Guardar: los cambios surten efecto en el siguiente uso."
     },
     "modelDetail": {
       "label": "Modelo del análisis en profundidad",
@@ -279,17 +279,17 @@
         "westus2": "Oeste de EE. UU. 2",
         "westus3": "Oeste de EE. UU. 3"
       },
-      "statusHint": "Apagado, las respuestas del coach y el resumen del análisis usan la voz del sistema y el aviso de stint listo no se pronuncia; el dictado y los comandos de voz siguen activos."
+      "statusHint": "Apagado, las respuestas del ingeniero y el resumen del análisis usan la voz del sistema y el aviso de stint listo no se pronuncia; el dictado y los comandos de voz siguen activos."
     },
     "assistant": {
       "title": "Asistente de voz",
       "name": "Nombre",
-      "nameHint": "El nombre con el que llamas al coach por voz (máximo 16 caracteres): decirlo solo obtiene un saludo."
+      "nameHint": "El nombre con el que llamas al ingeniero por voz (máximo 16 caracteres): decirlo solo obtiene un saludo."
     },
     "controller": {
       "label": "Mando",
       "press": "Pulsa un botón del mando…",
-      "hint": "Pulsa una vez el botón configurado para activar el micrófono: tienes 5 segundos para hacer una pregunta al coach y la grabación se detiene sola. Asignarlo quita la tecla del teclado. El botón 0 corresponde al botón A de un mando de Xbox."
+      "hint": "Pulsa una vez el botón configurado para activar el micrófono: tienes 5 segundos para hacer una pregunta al ingeniero y la grabación se detiene sola. Asignarlo quita la tecla del teclado. El botón 0 corresponde al botón A de un mando de Xbox."
     },
     "keyboard": {
       "label": "Teclado",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Salida de voz",
-      "hint": "Activa o desactiva toda la voz: respuestas del coach, resumen del análisis y aviso de stint listo. Desactivada, la tecla para hablar con el coach tampoco responde."
+      "hint": "Activa o desactiva toda la voz: respuestas del ingeniero, resumen del análisis y aviso de stint listo. Desactivada, la tecla para hablar con el ingeniero tampoco responde."
     },
     "keys": {
       "Delete": "Supr",
@@ -337,7 +337,7 @@
   "status": {
     "calibratingOne": "Calibración: queda {{n}} vuelta",
     "calibratingMany": "Calibración: quedan {{n}} vueltas",
-    "coachActive": "Coach activo",
+    "coachActive": "Ingeniero activo",
     "connected": "{{game}} conectado",
     "disconnected": "{{game}} desconectado",
     "forceReconnect": "Forzar reconexión de {{game}}"
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Voz de Azure (clave y región)",
-      "effect": "Sin ella, no hay comandos de voz ni dictado; las respuestas del coach usan la voz del sistema."
+      "effect": "Sin ella, no hay comandos de voz ni dictado; las respuestas del ingeniero usan la voz del sistema."
     }
   },
   "voiceOverlay": {

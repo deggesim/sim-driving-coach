@@ -6,8 +6,8 @@
       "title": "Antes de empezar",
       "steps": [
         "Abre <b>Ajustes</b>, pega la clave en <b>Clave de API de Anthropic</b> y pulsa <b>Guardar</b>. Sin clave, <b>Ejecutar análisis</b> no genera el debriefing.",
-        "La voz de Azure, los comandos de voz y el dictado necesitan clave y región de Azure (sección Azure Speech); para la voz de Azure activa además <b>Estado</b>. Si no, las respuestas del coach y el resumen usan la voz del sistema.",
-        "Asigna un botón del mando o una tecla del teclado en la sección <b>Asistente de voz</b> (botón <b>Asignar</b>): sirve para hablar con el coach.",
+        "La voz de Azure, los comandos de voz y el dictado necesitan clave y región de Azure (sección Azure Speech); para la voz de Azure activa además <b>Estado</b>. Si no, las respuestas del ingeniero y el resumen usan la voz del sistema.",
+        "Asigna un botón del mando o una tecla del teclado en la sección <b>Asistente de voz</b> (botón <b>Asignar</b>): sirve para hablar con el ingeniero.",
         "Esta guía siempre está disponible: cambiar de pestaña no cierra la sesión."
       ]
     },
@@ -21,12 +21,12 @@
       ]
     },
     "driving": {
-      "title": "Conducir con el coach",
+      "title": "Conducir con el ingeniero",
       "steps": [
-        "Mientras conduces el coach no habla: registra vueltas y telemetría y detecta anomalías (por ejemplo, temperatura crítica de los frenos, control de tracción, ABS, frenadas tardías), que el análisis usa después.",
+        "Mientras conduces el ingeniero no habla: registra vueltas y telemetría y detecta anomalías (por ejemplo, temperatura crítica de los frenos, control de tracción, ABS, frenadas tardías), que el análisis usa después.",
         "En las 2 primeras vueltas aprende tu ritmo de referencia: a partir de ahí reconoce mejor las desviaciones.",
-        "Con la voz de Azure activada, cuando llevas suficientes vueltas el coach dice que el stint está listo para analizar: es el momento de parar y pulsar <b>Ejecutar análisis</b>.",
-        "Para silenciar toda la voz usa el interruptor de la barra de título, o <b>Salida de voz</b> en Ajustes. Con la voz desactivada, la tecla para hablar con el coach tampoco responde."
+        "Con la voz de Azure activada, cuando llevas suficientes vueltas el ingeniero dice que el stint está listo para analizar: es el momento de parar y pulsar <b>Ejecutar análisis</b>.",
+        "Para silenciar toda la voz usa el interruptor de la barra de título, o <b>Salida de voz</b> en Ajustes. Con la voz desactivada, la tecla para hablar con el ingeniero tampoco responde."
       ]
     },
     "setup": {
@@ -34,25 +34,25 @@
       "steps": [
         "Abre <b>Gestión de setups</b>: el setup que cargas se vincula a las vueltas siguientes, y puedes reutilizar los ya cargados para el mismo coche y circuito.",
         "RaceRoom: copia el setup en el juego con CTRL+C y pulsa <b>Cargar desde JSON</b>. Assetto Corsa EVO: <b>Seleccionar archivo</b> y elige el archivo .carsetup. Automobilista 2: haz capturas de la pantalla del setup y pulsa <b>Capturar capturas</b>.",
-        "Por voz: di <code>carga setup</code> y el coach te pide el nombre (RaceRoom desde el portapapeles, Automobilista 2 desde las últimas 3 capturas). Con Assetto Corsa EVO usa el archivo más reciente y su nombre, sin preguntar.",
+        "Por voz: di <code>carga setup</code> y el ingeniero te pide el nombre (RaceRoom desde el portapapeles, Automobilista 2 desde las últimas 3 capturas). Con Assetto Corsa EVO usa el archivo más reciente y su nombre, sin preguntar.",
         "Para vincular un setup a varias vueltas ya registradas, selecciónalas en la tabla y pulsa <b>Asignar setup (N)</b>."
       ]
     },
     "voice": {
-      "title": "Hablar con el coach",
+      "title": "Hablar con el ingeniero",
       "steps": [
         "La tecla se asigna en <b>Ajustes</b>, sección <b>Asistente de voz</b>: <b>Mando</b> o <b>Teclado</b>. Asignar una quita la otra.",
         "Púlsala una sola vez, sin mantenerla: oyes el sonido de activación y tienes 5 segundos para hablar. La grabación se detiene sola. Con la voz desactivada la tecla no responde.",
-        "Mientras el coach procesa o responde, las pulsaciones siguientes se ignoran hasta que termine la respuesta.",
+        "Mientras el ingeniero procesa o responde, las pulsaciones siguientes se ignoran hasta que termine la respuesta.",
         "Puedes hacer preguntas libres (respuestas breves, tono de radio) o dar órdenes: <code>nueva sesión Automobilista 2</code>, <code>cierra la sesión</code>, <code>analiza la sesión</code>, <code>carga setup</code>. Decir el nombre del asistente obtiene un saludo."
       ]
     },
     "analysis": {
       "title": "Análisis de la sesión",
       "steps": [
-        "Tras unas vueltas pulsa <b>Ejecutar análisis</b>: llama a la API de Claude y genera un resumen con las acciones sugeridas, que el coach lee en voz alta.",
+        "Tras unas vueltas pulsa <b>Ejecutar análisis</b>: llama a la API de Claude y genera un resumen con las acciones sugeridas, que el ingeniero lee en voz alta.",
         "Si necesitas más detalle pulsa <b>Mostrar análisis detallado</b> en el análisis: es una segunda llamada, más larga, que añade telemetría, problemas y comparación de setups.",
-        "Cada análisis es una versión propia: con <b>Comentario</b> añades una nota, escrita o dictada, y el coach la integra.",
+        "Cada análisis es una versión propia: con <b>Comentario</b> añades una nota, escrita o dictada, y el ingeniero la integra.",
         "Los consejos de setup llegan de uno en uno: aplica el cambio, da unas vueltas y vuelve a ejecutar el análisis."
       ]
     },

@@ -6,8 +6,8 @@
       "title": "Before you start",
       "steps": [
         "Open <b>Settings</b>, paste your key into <b>Anthropic API key</b> and press <b>Save</b>. Without a key, <b>Run analysis</b> cannot produce the debrief.",
-        "Azure voice, voice commands and dictation need an Azure key and region (Azure Speech section); for the Azure voice also switch <b>Status</b> on. Otherwise coach answers and the summary use the system voice.",
-        "Assign a controller button or a keyboard key in the <b>Voice assistant</b> section (button <b>Assign</b>): you use it to talk to the coach.",
+        "Azure voice, voice commands and dictation need an Azure key and region (Azure Speech section); for the Azure voice also switch <b>Status</b> on. Otherwise engineer answers and the summary use the system voice.",
+        "Assign a controller button or a keyboard key in the <b>Voice assistant</b> section (button <b>Assign</b>): you use it to talk to the engineer.",
         "This guide is always available: switching tab does not close your session."
       ]
     },
@@ -21,12 +21,12 @@
       ]
     },
     "driving": {
-      "title": "Driving with the coach",
+      "title": "Driving with the engineer",
       "steps": [
-        "While you drive the coach stays quiet: it records laps and telemetry and detects anomalies (for example critical brake temperature, traction control, ABS, late braking), which the analysis then uses.",
+        "While you drive the engineer stays quiet: it records laps and telemetry and detects anomalies (for example critical brake temperature, traction control, ABS, late braking), which the analysis then uses.",
         "It learns your reference pace over the first 2 laps: after that it recognises deviations better.",
-        "With the Azure voice on, once you have enough laps the coach says the stint is ready for analysis: that is the time to stop and press <b>Run analysis</b>.",
-        "To silence all voice use the toggle in the title bar, or <b>Voice output</b> in Settings. With voice off, the key to talk to the coach does not respond either."
+        "With the Azure voice on, once you have enough laps the engineer says the stint is ready for analysis: that is the time to stop and press <b>Run analysis</b>.",
+        "To silence all voice use the toggle in the title bar, or <b>Voice output</b> in Settings. With voice off, the key to talk to the engineer does not respond either."
       ]
     },
     "setup": {
@@ -34,25 +34,25 @@
       "steps": [
         "Open <b>Manage setups</b>: the setup you load is linked to the following laps, and you can reuse setups already loaded for the same car and track.",
         "RaceRoom: copy the setup in the game with CTRL+C and press <b>Load from JSON</b>. Assetto Corsa EVO: <b>Select file</b> and pick the .carsetup file. Automobilista 2: take screenshots of the setup screen and press <b>Capture screenshots</b>.",
-        "By voice: say <code>acquire setup</code> and the coach asks for a name (RaceRoom from the clipboard, Automobilista 2 from the last 3 screenshots). With Assetto Corsa EVO it uses the latest file and its file name, without asking.",
+        "By voice: say <code>acquire setup</code> and the engineer asks for a name (RaceRoom from the clipboard, Automobilista 2 from the last 3 screenshots). With Assetto Corsa EVO it uses the latest file and its file name, without asking.",
         "To link a setup to several laps already recorded, select them in the table and press <b>Assign setup (N)</b>."
       ]
     },
     "voice": {
-      "title": "Talking to the coach",
+      "title": "Talking to the engineer",
       "steps": [
         "The key is assigned in <b>Settings</b>, <b>Voice assistant</b> section: <b>Controller</b> or <b>Keyboard</b>. Assigning one removes the other.",
         "Press it once, do not hold it: you hear the activation sound and have 5 seconds to speak. Recording stops by itself. With voice off the key does not respond.",
-        "While the coach is processing or answering, further presses are ignored until the answer ends.",
+        "While the engineer is processing or answering, further presses are ignored until the answer ends.",
         "You can ask free questions (short radio-style answers) or give commands: <code>new session RaceRoom</code>, <code>close session</code>, <code>analyze session</code>, <code>acquire setup</code>. Saying the assistant's name gets a greeting."
       ]
     },
     "analysis": {
       "title": "Session analysis",
       "steps": [
-        "After a few laps press <b>Run analysis</b>: it calls the Claude API and produces a summary with suggested actions, which the coach reads aloud.",
+        "After a few laps press <b>Run analysis</b>: it calls the Claude API and produces a summary with suggested actions, which the engineer reads aloud.",
         "For more detail press <b>Show deep-dive analysis</b> in the analysis: it is a second, longer call that adds telemetry, problems and a setup comparison.",
-        "Each analysis is its own version: with <b>Comment</b> you add a note, typed or dictated, and the coach folds it in.",
+        "Each analysis is its own version: with <b>Comment</b> you add a note, typed or dictated, and the engineer folds it in.",
         "Setup advice comes one change at a time: apply it, drive a few laps and run the analysis again."
       ]
     },

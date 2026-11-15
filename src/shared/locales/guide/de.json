@@ -6,8 +6,8 @@
       "title": "Bevor du anfängst",
       "steps": [
         "Öffne <b>Einstellungen</b>, füge den Schlüssel bei <b>Anthropic-API-Schlüssel</b> ein und drücke <b>Speichern</b>. Ohne Schlüssel liefert <b>Analyse starten</b> keine Auswertung.",
-        "Azure-Stimme, Sprachbefehle und Diktat brauchen Azure-Schlüssel und -Region (Abschnitt Azure Speech); für die Azure-Stimme schaltest du zusätzlich <b>Status</b> ein. Sonst nutzen Coach-Antworten und Zusammenfassung die Systemstimme.",
-        "Weise im Abschnitt <b>Sprachassistent</b> eine Controller-Taste oder Tastaturtaste zu (Schaltfläche <b>Zuweisen</b>): Damit sprichst du mit dem Coach.",
+        "Azure-Stimme, Sprachbefehle und Diktat brauchen Azure-Schlüssel und -Region (Abschnitt Azure Speech); für die Azure-Stimme schaltest du zusätzlich <b>Status</b> ein. Sonst nutzen Renningenieur-Antworten und Zusammenfassung die Systemstimme.",
+        "Weise im Abschnitt <b>Sprachassistent</b> eine Controller-Taste oder Tastaturtaste zu (Schaltfläche <b>Zuweisen</b>): Damit sprichst du mit dem Renningenieur.",
         "Diese Anleitung bleibt immer abrufbar: Ein Tabwechsel beendet die Sitzung nicht."
       ]
     },
@@ -21,11 +21,11 @@
       ]
     },
     "driving": {
-      "title": "Mit dem Coach fahren",
+      "title": "Mit dem Renningenieur fahren",
       "steps": [
-        "Während du fährst, schweigt der Coach: Er zeichnet Runden und Telemetrie auf und erkennt Auffälligkeiten (zum Beispiel kritische Bremstemperatur, Traktionskontrolle, ABS, zu spätes Bremsen), die die Analyse später nutzt.",
+        "Während du fährst, schweigt der Renningenieur: Er zeichnet Runden und Telemetrie auf und erkennt Auffälligkeiten (zum Beispiel kritische Bremstemperatur, Traktionskontrolle, ABS, zu spätes Bremsen), die die Analyse später nutzt.",
         "In den ersten 2 Runden lernt er dein Referenztempo: danach erkennt er Abweichungen besser.",
-        "Ist die Azure-Stimme an, sagt der Coach nach genügend Runden, dass der Stint analysierbar ist: Dann hältst du an und drückst <b>Analyse starten</b>.",
+        "Ist die Azure-Stimme an, sagt der Renningenieur nach genügend Runden, dass der Stint analysierbar ist: Dann hältst du an und drückst <b>Analyse starten</b>.",
         "Um alle Sprachausgaben stummzuschalten, nutze den Schalter in der Titelleiste oder <b>Sprachausgabe</b> in den Einstellungen. Bei ausgeschalteter Stimme reagiert auch die Taste zum Sprechen nicht."
       ]
     },
@@ -34,25 +34,25 @@
       "steps": [
         "Öffne <b>Setups verwalten</b>: Das geladene Setup wird den folgenden Runden zugeordnet, und du kannst bereits geladene Setups für dasselbe Auto und dieselbe Strecke wiederverwenden.",
         "RaceRoom: Kopiere das Setup im Spiel mit STRG+C und drücke <b>Aus JSON laden</b>. Assetto Corsa EVO: <b>Datei auswählen</b> und die .carsetup-Datei wählen. Automobilista 2: Mache Screenshots des Setup-Bildschirms und drücke <b>Screenshots erfassen</b>.",
-        "Per Sprache: Sag <code>lade Setup</code>, und der Coach fragt nach dem Namen (RaceRoom aus der Zwischenablage, Automobilista 2 aus den letzten 3 Screenshots). Bei Assetto Corsa EVO nimmt er die neueste Datei und ihren Dateinamen, ohne nachzufragen.",
+        "Per Sprache: Sag <code>lade Setup</code>, und der Renningenieur fragt nach dem Namen (RaceRoom aus der Zwischenablage, Automobilista 2 aus den letzten 3 Screenshots). Bei Assetto Corsa EVO nimmt er die neueste Datei und ihren Dateinamen, ohne nachzufragen.",
         "Um ein Setup mehreren bereits aufgezeichneten Runden zuzuordnen, markiere sie in der Tabelle und drücke <b>Setup zuweisen (N)</b>."
       ]
     },
     "voice": {
-      "title": "Mit dem Coach sprechen",
+      "title": "Mit dem Renningenieur sprechen",
       "steps": [
         "Die Taste weist du unter <b>Einstellungen</b>, Abschnitt <b>Sprachassistent</b> zu: <b>Controller</b> oder <b>Tastatur</b>. Das Zuweisen der einen entfernt die andere.",
         "Drücke sie einmal und halte sie nicht gedrückt: Du hörst den Aktivierungston und hast 5 Sekunden zum Sprechen. Die Aufnahme endet von selbst. Bei ausgeschalteter Stimme reagiert die Taste nicht.",
-        "Solange der Coach verarbeitet oder antwortet, werden weitere Tastendrücke bis zum Ende der Antwort ignoriert.",
+        "Solange der Renningenieur verarbeitet oder antwortet, werden weitere Tastendrücke bis zum Ende der Antwort ignoriert.",
         "Du kannst freie Fragen stellen (kurze Antworten im Funkton) oder Befehle geben: <code>neue Sitzung RaceRoom</code>, <code>beende die Sitzung</code>, <code>analysiere die Sitzung</code>, <code>lade Setup</code>. Den Namen des Assistenten zu sagen ergibt eine Begrüßung."
       ]
     },
     "analysis": {
       "title": "Sitzungsanalyse",
       "steps": [
-        "Drücke nach einigen Runden <b>Analyse starten</b>: Das ruft die Claude-API auf und liefert eine Zusammenfassung mit empfohlenen Maßnahmen, die der Coach vorliest.",
+        "Drücke nach einigen Runden <b>Analyse starten</b>: Das ruft die Claude-API auf und liefert eine Zusammenfassung mit empfohlenen Maßnahmen, die der Renningenieur vorliest.",
         "Für mehr Details drücke in der Analyse <b>Detaillierte Analyse anzeigen</b>: ein zweiter, längerer Aufruf, der Telemetrie, Probleme und einen Setup-Vergleich ergänzt.",
-        "Jede Analyse ist eine eigene Version: Mit <b>Kommentar</b> fügst du eine getippte oder diktierte Notiz hinzu, die der Coach einarbeitet.",
+        "Jede Analyse ist eine eigene Version: Mit <b>Kommentar</b> fügst du eine getippte oder diktierte Notiz hinzu, die der Renningenieur einarbeitet.",
         "Setup-Empfehlungen kommen einzeln: Wende die Änderung an, fahre einige Runden und starte die Analyse erneut."
       ]
     },

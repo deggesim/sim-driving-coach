@@ -10,7 +10,7 @@
     "guide": "Anleitung",
     "voiceOn": "Stimme an",
     "voiceOff": "Stimme aus",
-    "voice": "Coach-Stimme",
+    "voice": "Renningenieur-Stimme",
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "maximizeLabel": "Fenster maximieren",
@@ -196,14 +196,14 @@
     "noButton": "Keine Taste zugewiesen",
     "anthropic": {
       "title": "Anthropic-API-Schlüssel",
-      "hint": "Erforderlich für die Sitzungsanalyse (auf Anforderung), die Kommentare und den Sprach-Coach über die Claude-API."
+      "hint": "Erforderlich für die Sitzungsanalyse (auf Anforderung), die Kommentare und den Sprach-Renningenieur über die Claude-API."
     },
     "model": {
       "label": "Modell",
       "error": "Modellliste nicht verfügbar: Prüfe den API-Schlüssel und die Verbindung.",
       "obsolete": "Das ausgewählte Modell (<code>{{model}}</code>) ist nicht mehr verfügbar: Wähle ein aktuelles aus der Liste und speichere.",
       "obsoleteTag": "veraltet",
-      "hint": "Verwendet für die Kurzanalyse, die Kommentare und den Sprach-Coach. Drücke Speichern: Änderungen wirken bei der nächsten Verwendung."
+      "hint": "Verwendet für die Kurzanalyse, die Kommentare und den Sprach-Renningenieur. Drücke Speichern: Änderungen wirken bei der nächsten Verwendung."
     },
     "modelDetail": {
       "label": "Modell für die Tiefenanalyse",
@@ -279,17 +279,17 @@
         "westus2": "USA, Westen 2",
         "westus3": "USA, Westen 3"
       },
-      "statusHint": "Ausgeschaltet nutzen Coach-Antworten und Analyse-Zusammenfassung die Systemstimme, und der Stint-Hinweis wird nicht gesprochen; Diktat und Sprachbefehle bleiben aktiv."
+      "statusHint": "Ausgeschaltet nutzen Renningenieur-Antworten und Analyse-Zusammenfassung die Systemstimme, und der Stint-Hinweis wird nicht gesprochen; Diktat und Sprachbefehle bleiben aktiv."
     },
     "assistant": {
       "title": "Sprachassistent",
       "name": "Name",
-      "nameHint": "Der Name, mit dem du den Coach per Sprache rufst (höchstens 16 Zeichen): Ihn allein zu sagen ergibt eine Begrüßung."
+      "nameHint": "Der Name, mit dem du den Renningenieur per Sprache rufst (höchstens 16 Zeichen): Ihn allein zu sagen ergibt eine Begrüßung."
     },
     "controller": {
       "label": "Controller",
       "press": "Drücke eine Taste am Controller…",
-      "hint": "Drücke die konfigurierte Taste einmal, um das Mikrofon zu aktivieren: Du hast 5 Sekunden, dem Coach eine Frage zu stellen, dann endet die Aufnahme von selbst. Das Zuweisen entfernt die Tastaturtaste. Taste 0 entspricht der A-Taste eines Xbox-Controllers."
+      "hint": "Drücke die konfigurierte Taste einmal, um das Mikrofon zu aktivieren: Du hast 5 Sekunden, dem Renningenieur eine Frage zu stellen, dann endet die Aufnahme von selbst. Das Zuweisen entfernt die Tastaturtaste. Taste 0 entspricht der A-Taste eines Xbox-Controllers."
     },
     "keyboard": {
       "label": "Tastatur",
@@ -298,7 +298,7 @@
     },
     "voiceOutput": {
       "label": "Sprachausgabe",
-      "hint": "Schaltet alle Sprachausgaben ein oder aus: Coach-Antworten, Zusammenfassung der Analyse und Stint-Hinweis. Ausgeschaltet reagiert auch die Taste zum Sprechen nicht."
+      "hint": "Schaltet alle Sprachausgaben ein oder aus: Renningenieur-Antworten, Zusammenfassung der Analyse und Stint-Hinweis. Ausgeschaltet reagiert auch die Taste zum Sprechen nicht."
     },
     "keys": {
       "Delete": "Entf",
@@ -337,7 +337,7 @@
   "status": {
     "calibratingOne": "Kalibrierung: noch {{n}} Runde",
     "calibratingMany": "Kalibrierung: noch {{n}} Runden",
-    "coachActive": "Coach aktiv",
+    "coachActive": "Renningenieur aktiv",
     "connected": "{{game}} verbunden",
     "disconnected": "{{game}} getrennt",
     "forceReconnect": "Neuverbindung zu {{game}} erzwingen"
@@ -366,7 +366,7 @@
     },
     "azure": {
       "label": "Azure-Stimme (Schlüssel und Region)",
-      "effect": "Ohne sie gibt es keine Sprachbefehle und kein Diktat; Coach-Antworten nutzen die Systemstimme."
+      "effect": "Ohne sie gibt es keine Sprachbefehle und kein Diktat; Renningenieur-Antworten nutzen die Systemstimme."
     }
   },
   "voiceOverlay": {
