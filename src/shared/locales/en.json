@@ -196,14 +196,14 @@
     "noButton": "No key assigned",
     "anthropic": {
       "title": "Anthropic API key",
-      "hint": "Required for the post-lap debrief and the voice coach via the Claude API."
+      "hint": "Required for the session analysis (on demand), the comments and the voice coach via the Claude API."
     },
     "model": {
       "label": "Model",
       "error": "Model list unavailable: check the API key and the connection.",
       "obsolete": "The selected model (<code>{{model}}</code>) is no longer available: pick an up-to-date one from the list and save.",
       "obsoleteTag": "obsolete",
-      "hint": "Used for the short analysis, comments and the voice coach. Changes take effect on next use."
+      "hint": "Used for the short analysis, comments and the voice coach. Press Save: changes take effect on next use."
     },
     "modelDetail": {
       "label": "Deep-dive model",
@@ -211,7 +211,7 @@
       "hint": "Model used only for the deep-dive analysis (on demand). Empty = same base model."
     },
     "azure": {
-      "title": "Azure Text-to-Speech",
+      "title": "Azure Speech",
       "status": "Status",
       "keyPlaceholder": "Azure Speech key",
       "region": "Region",
@@ -220,7 +220,7 @@
       "voicesError": "Error loading voices",
       "previewError": "Voice preview failed.",
       "voice": "Voice",
-      "hint": "Selecting a voice plays a preview: \"{{intro}}\" Requires an Azure Cognitive Services subscription.",
+      "hint": "After \"Load voices\", pick a voice: a preview plays: \"{{intro}}\" The same key is used for speech synthesis and dictation. Requires an Azure Cognitive Services subscription.",
       "regions": {
         "australiacentral": "Australia Central",
         "australiacentral2": "Australia Central 2",
@@ -278,21 +278,23 @@
         "westus": "West US",
         "westus2": "West US 2",
         "westus3": "West US 3"
-      }
+      },
+      "statusHint": "When off, alerts and coach answers use the system voice; dictation and voice commands stay active."
     },
     "assistant": {
       "title": "Voice assistant",
-      "name": "Name"
+      "name": "Name",
+      "nameHint": "The name you use to call the coach by voice (up to 16 characters): saying it alone gets a greeting."
     },
     "controller": {
       "label": "Controller",
       "press": "Press a button on the controller…",
-      "hint": "Press the configured controller button to activate the microphone and ask the coach questions. Button 0 is the A button on an Xbox controller."
+      "hint": "Press the configured button once to activate the microphone: you have 5 seconds to ask the coach a question, then recording stops by itself. Assigning it removes the keyboard key. Button 0 is the A button on an Xbox controller."
     },
     "keyboard": {
       "label": "Keyboard",
       "press": "Press a key on the keyboard…",
-      "hint": "Keyboard key, alternative to the controller, to activate the microphone. Useful when using the keyboard instead of a gamepad."
+      "hint": "Keyboard key, alternative to the controller: press it once to activate the microphone (5 seconds to speak). Assigning it removes the controller button."
     },
     "voiceOutput": {
       "label": "Voice output",
@@ -324,9 +326,9 @@
       "mockUpdate": "Mock update",
       "simulateUpdate": "Simulate update",
       "simulateUpdateHint": "Opens the new-version prompt and simulates the download, without installing anything",
-      "mockHint": "When on, adds to the history an R3E session (BMW M4 GT3 - Nürburgring), an ACE one (Porsche 718 GT4 - Monza) and an AMS2 one (Formula Ultimate - Interlagos), each with 3 laps and a prefilled analysis. The R3E and ACE sessions also have the deep-dive analysis saved, the AMS2 one does not: it lets you try the \"Show deep-dive analysis\" button. Useful to test the UI without a real session running.",
+      "mockHint": "When on, adds to the history an R3E session (BMW M4 GT3 - Nürburgring), an ACE one (Porsche 718 GT4 - Monza) and an AMS2 one (Formula Ultimate Gen2 - Interlagos), each with 3 laps and a prefilled analysis. The R3E and ACE sessions also have the deep-dive analysis saved, the AMS2 one does not: it lets you try the \"Show deep-dive analysis\" button. Useful to test the UI without a real session running.",
       "telemetryLog": "Telemetry log",
-      "telemetryHint": "Writes all available telemetry (R3E and ACE) to JSONL files, one record per line. Each connection creates a new file: <code>{{pattern}}</code>.",
+      "telemetryHint": "Writes all available telemetry (R3E, ACE and AMS2) to JSONL files, one record per line. Each connection creates a new file: <code>{{pattern}}</code>.",
       "telemetryPattern": "<timestamp>-<game>-<car>-<track>-<layout>.jsonl",
       "telemetryDir": "Directory: <code>{{dir}}</code>"
     },

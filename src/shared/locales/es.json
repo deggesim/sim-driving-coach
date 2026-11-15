@@ -196,14 +196,14 @@
     "noButton": "Ninguna tecla asignada",
     "anthropic": {
       "title": "Clave de API de Anthropic",
-      "hint": "Necesaria para el debriefing posterior a la vuelta y el coach de voz a través de la API de Claude."
+      "hint": "Necesaria para el análisis de la sesión (a petición), los comentarios y el coach de voz a través de la API de Claude."
     },
     "model": {
       "label": "Modelo",
       "error": "Lista de modelos no disponible: comprueba la clave de API y la conexión.",
       "obsolete": "El modelo seleccionado (<code>{{model}}</code>) ya no está disponible: elige uno actualizado de la lista y guarda.",
       "obsoleteTag": "obsoleto",
-      "hint": "Se usa para el análisis sintético, los comentarios y el coach de voz. Los cambios surten efecto en el siguiente uso."
+      "hint": "Se usa para el análisis sintético, los comentarios y el coach de voz. Pulsa Guardar: los cambios surten efecto en el siguiente uso."
     },
     "modelDetail": {
       "label": "Modelo del análisis en profundidad",
@@ -211,7 +211,7 @@
       "hint": "Modelo usado solo para el análisis en profundidad (bajo demanda). Vacío = el mismo modelo base."
     },
     "azure": {
-      "title": "Azure Text-to-Speech",
+      "title": "Azure Speech",
       "status": "Estado",
       "keyPlaceholder": "Clave de Azure Speech",
       "region": "Región",
@@ -220,7 +220,7 @@
       "voicesError": "Error al cargar las voces",
       "previewError": "La vista previa de la voz ha fallado.",
       "voice": "Voz",
-      "hint": "Al seleccionar una voz se reproduce una vista previa: «{{intro}}» Requiere una suscripción a Azure Cognitive Services.",
+      "hint": "Tras «Cargar voces», elige una voz: se reproduce una vista previa: «{{intro}}» La misma clave sirve para la síntesis de voz y el dictado. Requiere una suscripción a Azure Cognitive Services.",
       "regions": {
         "australiacentral": "Centro de Australia",
         "australiacentral2": "Centro de Australia 2",
@@ -278,21 +278,23 @@
         "westus": "Oeste de EE. UU.",
         "westus2": "Oeste de EE. UU. 2",
         "westus3": "Oeste de EE. UU. 3"
-      }
+      },
+      "statusHint": "Apagado, los avisos y las respuestas del coach usan la voz del sistema; el dictado y los comandos de voz siguen activos."
     },
     "assistant": {
       "title": "Asistente de voz",
-      "name": "Nombre"
+      "name": "Nombre",
+      "nameHint": "El nombre con el que llamas al coach por voz (máximo 16 caracteres): decirlo solo obtiene un saludo."
     },
     "controller": {
       "label": "Mando",
       "press": "Pulsa un botón del mando…",
-      "hint": "Pulsa el botón configurado del mando para activar el micrófono y hacer preguntas al coach. El botón 0 corresponde al botón A de un mando de Xbox."
+      "hint": "Pulsa una vez el botón configurado para activar el micrófono: tienes 5 segundos para hacer una pregunta al coach y la grabación se detiene sola. Asignarlo quita la tecla del teclado. El botón 0 corresponde al botón A de un mando de Xbox."
     },
     "keyboard": {
       "label": "Teclado",
       "press": "Pulsa una tecla del teclado…",
-      "hint": "Tecla del teclado, alternativa al mando, para activar el micrófono. Útil cuando se usa el teclado en lugar de un mando."
+      "hint": "Tecla del teclado, alternativa al mando: púlsala una vez para activar el micrófono (5 segundos para hablar). Asignarla quita el botón del mando."
     },
     "voiceOutput": {
       "label": "Salida de voz",
@@ -324,9 +326,9 @@
       "mockUpdate": "Actualización simulada",
       "simulateUpdate": "Simular actualización",
       "simulateUpdateHint": "Abre el aviso de nueva versión y simula la descarga, sin instalar nada",
-      "mockHint": "Cuando está activo, añade al historial una sesión de R3E (BMW M4 GT3 - Nürburgring), una de ACE (Porsche 718 GT4 - Monza) y una de AMS2 (Formula Ultimate - Interlagos), cada una con 3 vueltas y un análisis precargado. Las sesiones de R3E y ACE tienen también el análisis en profundidad guardado, la de AMS2 no: sirve para probar el botón «Mostrar análisis en profundidad». Útil para probar la interfaz sin una sesión real en curso.",
+      "mockHint": "Cuando está activo, añade al historial una sesión de R3E (BMW M4 GT3 - Nürburgring), una de ACE (Porsche 718 GT4 - Monza) y una de AMS2 (Formula Ultimate Gen2 - Interlagos), cada una con 3 vueltas y un análisis precargado. Las sesiones de R3E y ACE tienen también el análisis en profundidad guardado, la de AMS2 no: sirve para probar el botón «Mostrar análisis en profundidad». Útil para probar la interfaz sin una sesión real en curso.",
       "telemetryLog": "Registro de telemetría",
-      "telemetryHint": "Escribe toda la telemetría disponible (R3E y ACE) en archivos JSONL, un registro por línea. Cada conexión crea un archivo nuevo: <code>{{pattern}}</code>.",
+      "telemetryHint": "Escribe toda la telemetría disponible (R3E, ACE y AMS2) en archivos JSONL, un registro por línea. Cada conexión crea un archivo nuevo: <code>{{pattern}}</code>.",
       "telemetryPattern": "<timestamp>-<juego>-<coche>-<circuito>-<layout>.jsonl",
       "telemetryDir": "Directorio: <code>{{dir}}</code>"
     },

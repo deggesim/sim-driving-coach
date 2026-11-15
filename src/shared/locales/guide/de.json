@@ -6,7 +6,7 @@
       "title": "Bevor Sie anfangen",
       "steps": [
         "Öffnen Sie <b>Einstellungen</b>, fügen Sie den Schlüssel bei <b>Anthropic-API-Schlüssel</b> ein und drücken Sie <b>Speichern</b>. Ohne Schlüssel liefert <b>Analyse starten</b> keine Auswertung.",
-        "Für Sprachbefehle und Diktat brauchen Sie außerdem Azure-Schlüssel und -Region (Abschnitt Azure Text-to-Speech). Ohne sie nutzen die Hinweise während der Runde die Systemstimme.",
+        "Azure-Stimme, Sprachbefehle und Diktat brauchen Azure-Schlüssel und -Region (Abschnitt Azure Speech); für die Azure-Stimme zusätzlich Status einschalten. Sonst nutzen Hinweise und Antworten die Systemstimme.",
         "Weisen Sie im Abschnitt <b>Sprachassistent</b> eine Controller-Taste oder Tastaturtaste zu (Schaltfläche <b>Zuweisen</b>): Damit sprechen Sie mit dem Coach.",
         "Diese Anleitung bleibt immer abrufbar: Ein Tabwechsel beendet die Sitzung nicht."
       ]

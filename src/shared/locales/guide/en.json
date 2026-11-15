@@ -6,7 +6,7 @@
       "title": "Before you start",
       "steps": [
         "Open <b>Settings</b>, paste your key into <b>Anthropic API key</b> and press <b>Save</b>. Without a key, <b>Run analysis</b> cannot produce the debrief.",
-        "Voice commands and dictation also need an Azure key and region (Azure Text-to-Speech section). Without them, in-lap alerts use the system voice.",
+        "Azure voice, voice commands and dictation need an Azure key and region (Azure Speech section); for the Azure voice also switch Status on. Otherwise alerts and answers use the system voice.",
         "Assign a controller button or a keyboard key in the <b>Voice assistant</b> section (button <b>Assign</b>): you use it to talk to the coach.",
         "This guide is always available: switching tab does not close your session."
       ]

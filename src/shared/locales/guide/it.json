@@ -6,7 +6,7 @@
       "title": "Prima di cominciare",
       "steps": [
         "Apri <b>Impostazioni</b>, incolla la chiave in <b>API Key Anthropic</b> e premi <b>Salva</b>. Senza chiave <b>Esegui analisi</b> non produce il debriefing.",
-        "Per i comandi a voce e la dettatura servono anche chiave e regione Azure (sezione Azure Text-to-Speech). Senza, gli avvisi in giro usano la voce del sistema.",
+        "Per la voce Azure, i comandi a voce e la dettatura servono chiave e regione Azure (sezione Azure Speech); per la voce Azure attiva anche l'interruttore Stato. Senza, avvisi e risposte usano la voce del sistema.",
         "Assegna un tasto del controller o della tastiera nella sezione <b>Assistente Vocale</b> (pulsante <b>Assegna</b>): serve per parlare con il coach.",
         "Questa guida resta sempre consultabile: cambiare scheda non chiude la sessione."
       ]

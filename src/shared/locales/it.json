@@ -196,14 +196,14 @@
     "noButton": "Nessun tasto assegnato",
     "anthropic": {
       "title": "API Key Anthropic",
-      "hint": "Necessaria per il debriefing post-giro e il coach vocale via Claude API."
+      "hint": "Necessaria per l'analisi della sessione (a richiesta), i commenti e il coach vocale via API Claude."
     },
     "model": {
       "label": "Modello",
       "error": "Elenco modelli non disponibile: controlla la chiave API e la connessione.",
       "obsolete": "Il modello selezionato (<code>{{model}}</code>) non è più disponibile: selezionane uno aggiornato dall'elenco e salva.",
       "obsoleteTag": "obsoleto",
-      "hint": "Usato per l'analisi sintetica, i commenti e il coach vocale. Le modifiche hanno effetto al prossimo utilizzo."
+      "hint": "Usato per l'analisi sintetica, i commenti e il coach vocale. Premi Salva: le modifiche hanno effetto al prossimo utilizzo."
     },
     "modelDetail": {
       "label": "Modello analisi approfondita",
@@ -211,7 +211,7 @@
       "hint": "Modello usato solo per l'analisi approfondita (on-demand). Vuoto = stesso modello base."
     },
     "azure": {
-      "title": "Azure Text-to-Speech",
+      "title": "Azure Speech",
       "status": "Stato",
       "keyPlaceholder": "Chiave Azure Speech",
       "region": "Regione",
@@ -220,7 +220,7 @@
       "voicesError": "Errore nel caricamento voci",
       "previewError": "Anteprima della voce non riuscita.",
       "voice": "Voce",
-      "hint": "Selezionando una voce viene riprodotta un'anteprima: \"{{intro}}\" Richiede una sottoscrizione Azure Cognitive Services.",
+      "hint": "Dopo «Carica voci» scegli una voce: viene riprodotta un'anteprima: \"{{intro}}\" La stessa chiave serve per sintesi vocale e dettatura. Richiede una sottoscrizione Azure Cognitive Services.",
       "regions": {
         "australiacentral": "Australia centrale",
         "australiacentral2": "Australia centrale 2",
@@ -278,21 +278,23 @@
         "westus": "Stati Uniti occidentali",
         "westus2": "Stati Uniti occidentali 2",
         "westus3": "Stati Uniti occidentali 3"
-      }
+      },
+      "statusHint": "Da spento, avvisi e risposte del coach usano la voce del sistema; dettatura e comandi a voce restano attivi."
     },
     "assistant": {
       "title": "Assistente Vocale",
-      "name": "Nome"
+      "name": "Nome",
+      "nameHint": "Il nome con cui chiami il coach a voce (massimo 16 caratteri): dirlo da solo ottiene un saluto."
     },
     "controller": {
       "label": "Controller",
       "press": "Premi un tasto sul controller…",
-      "hint": "Premi il tasto configurato sul controller per attivare il microfono e fare domande al coach. Il tasto 0 corrisponde al tasto A su controller Xbox."
+      "hint": "Premi una volta il tasto configurato per attivare il microfono: hai 5 secondi per fare una domanda al coach, poi la registrazione si ferma da sola. Assegnarlo rimuove il tasto della tastiera. Il tasto 0 corrisponde al tasto A su controller Xbox."
     },
     "keyboard": {
       "label": "Tastiera",
       "press": "Premi un tasto sulla tastiera…",
-      "hint": "Tasto da tastiera alternativo al controller per attivare il microfono. Utile quando si usa la tastiera anziché un gamepad."
+      "hint": "Tasto da tastiera alternativo al controller: premilo una volta per attivare il microfono (5 secondi per parlare). Assegnarlo rimuove il tasto del controller."
     },
     "voiceOutput": {
       "label": "Output vocale",
@@ -324,9 +326,9 @@
       "mockUpdate": "Aggiornamento mock",
       "simulateUpdate": "Simula aggiornamento",
       "simulateUpdateHint": "Apre la notifica di nuova versione e simula il download, senza installare nulla",
-      "mockHint": "Quando attivo, aggiunge nello storico una sessione R3E (BMW M4 GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una AMS2 (Formula Ultimate - Interlagos), ognuna con 3 giri e un'analisi precompilata. Le sessioni R3E e ACE hanno anche l'analisi approfondita salvata, la AMS2 no: serve a provare il pulsante \"Mostra analisi approfondita\". Utile per testare la UI senza una sessione reale in corso.",
+      "mockHint": "Quando attivo, aggiunge nello storico una sessione R3E (BMW M4 GT3 - Nürburgring), una ACE (Porsche 718 GT4 - Monza) e una AMS2 (Formula Ultimate Gen2 - Interlagos), ognuna con 3 giri e un'analisi precompilata. Le sessioni R3E e ACE hanno anche l'analisi approfondita salvata, la AMS2 no: serve a provare il pulsante \"Mostra analisi approfondita\". Utile per testare la UI senza una sessione reale in corso.",
       "telemetryLog": "Log telemetria",
-      "telemetryHint": "Scrive tutta la telemetria disponibile (R3E e ACE) su file JSONL in formato riga-per-riga. Ogni connessione crea un nuovo file: <code>{{pattern}}</code>.",
+      "telemetryHint": "Scrive tutta la telemetria disponibile (R3E, ACE e AMS2) su file JSONL in formato riga-per-riga. Ogni connessione crea un nuovo file: <code>{{pattern}}</code>.",
       "telemetryPattern": "<timestamp>-<gioco>-<auto>-<circuito>-<layout>.jsonl",
       "telemetryDir": "Directory: <code>{{dir}}</code>"
     },

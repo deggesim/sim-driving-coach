@@ -6,7 +6,7 @@
       "title": "Avant de commencer",
       "steps": [
         "Ouvrez <b>Paramètres</b>, collez la clé dans <b>Clé API Anthropic</b> et appuyez sur <b>Enregistrer</b>. Sans clé, <b>Lancer l'analyse</b> ne produit pas le débriefing.",
-        "Pour les commandes vocales et la dictée, il faut aussi la clé et la région Azure (section Azure Text-to-Speech). Sans elles, les alertes en tour utilisent la voix du système.",
+        "La voix Azure, les commandes vocales et la dictée demandent la clé et la région Azure (section Azure Speech) ; pour la voix Azure, activez aussi État. Sinon, alertes et réponses utilisent la voix du système.",
         "Assignez un bouton de la manette ou une touche du clavier dans la section <b>Assistant vocal</b> (bouton <b>Assigner</b>) : il sert à parler au coach.",
         "Ce guide reste toujours consultable : changer d'onglet ne ferme pas la session."
       ]

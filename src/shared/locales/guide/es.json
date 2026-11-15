@@ -6,7 +6,7 @@
       "title": "Antes de empezar",
       "steps": [
         "Abre <b>Ajustes</b>, pega la clave en <b>Clave de API de Anthropic</b> y pulsa <b>Guardar</b>. Sin clave, <b>Ejecutar análisis</b> no genera el debriefing.",
-        "Para los comandos de voz y el dictado también hacen falta la clave y la región de Azure (sección Azure Text-to-Speech). Sin ellas, los avisos en vuelta usan la voz del sistema.",
+        "La voz de Azure, los comandos de voz y el dictado necesitan clave y región de Azure (sección Azure Speech); para la voz de Azure activa además Estado. Si no, los avisos y respuestas usan la voz del sistema.",
         "Asigna un botón del mando o una tecla del teclado en la sección <b>Asistente de voz</b> (botón <b>Asignar</b>): sirve para hablar con el coach.",
         "Esta guía siempre está disponible: cambiar de pestaña no cierra la sesión."
       ]
