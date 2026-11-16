@@ -7,9 +7,10 @@
     "live": "Live-Analyse",
     "sessions": "Sitzungsliste",
     "settings": "Einstellungen",
+    "guide": "Anleitung",
     "voiceOn": "Stimme an",
     "voiceOff": "Stimme aus",
-    "voice": "Coach-Stimme",
+    "voice": "Renningenieur-Stimme",
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "maximizeLabel": "Fenster maximieren",
@@ -195,14 +196,14 @@
     "noButton": "Keine Taste zugewiesen",
     "anthropic": {
       "title": "Anthropic-API-Schlüssel",
-      "hint": "Erforderlich für das Debriefing nach der Runde und den Sprach-Coach über die Claude-API."
+      "hint": "Erforderlich für die Sitzungsanalyse (auf Anforderung), die Kommentare und den Sprach-Renningenieur über die Claude-API."
     },
     "model": {
       "label": "Modell",
       "error": "Modellliste nicht verfügbar: Prüfe den API-Schlüssel und die Verbindung.",
       "obsolete": "Das ausgewählte Modell (<code>{{model}}</code>) ist nicht mehr verfügbar: Wähle ein aktuelles aus der Liste und speichere.",
       "obsoleteTag": "veraltet",
-      "hint": "Verwendet für die Kurzanalyse, die Kommentare und den Sprach-Coach. Änderungen wirken bei der nächsten Verwendung."
+      "hint": "Verwendet für die Kurzanalyse, die Kommentare und den Sprach-Renningenieur. Drücke Speichern: Änderungen wirken bei der nächsten Verwendung."
     },
     "modelDetail": {
       "label": "Modell für die Tiefenanalyse",
@@ -210,7 +211,7 @@
       "hint": "Modell nur für die Tiefenanalyse (auf Abruf). Leer = dasselbe Basismodell."
     },
     "azure": {
-      "title": "Azure Text-to-Speech",
+      "title": "Azure Speech",
       "status": "Status",
       "keyPlaceholder": "Azure-Speech-Schlüssel",
       "region": "Region",
@@ -219,7 +220,7 @@
       "voicesError": "Fehler beim Laden der Stimmen",
       "previewError": "Stimmenvorschau fehlgeschlagen.",
       "voice": "Stimme",
-      "hint": "Beim Auswählen einer Stimme wird eine Vorschau abgespielt: „{{intro}}“ Erfordert ein Azure-Cognitive-Services-Abonnement.",
+      "hint": "Nach „Stimmen laden“ eine Stimme wählen: Es wird eine Vorschau abgespielt: „{{intro}}“ Derselbe Schlüssel dient für Sprachausgabe und Diktat. Erfordert ein Azure-Cognitive-Services-Abonnement.",
       "regions": {
         "australiacentral": "Australien, Mitte",
         "australiacentral2": "Australien, Mitte 2",
@@ -277,25 +278,27 @@
         "westus": "USA, Westen",
         "westus2": "USA, Westen 2",
         "westus3": "USA, Westen 3"
-      }
+      },
+      "statusHint": "Ausgeschaltet nutzen Renningenieur-Antworten und Analyse-Zusammenfassung die Systemstimme, und der Stint-Hinweis wird nicht gesprochen; Diktat und Sprachbefehle bleiben aktiv."
     },
     "assistant": {
       "title": "Sprachassistent",
-      "name": "Name"
+      "name": "Name",
+      "nameHint": "Der Name, mit dem du den Renningenieur per Sprache rufst (höchstens 16 Zeichen): Ihn allein zu sagen ergibt eine Begrüßung."
     },
     "controller": {
       "label": "Controller",
       "press": "Drücke eine Taste am Controller…",
-      "hint": "Drücke die konfigurierte Controller-Taste, um das Mikrofon zu aktivieren und dem Coach Fragen zu stellen. Taste 0 entspricht der A-Taste eines Xbox-Controllers."
+      "hint": "Drücke die konfigurierte Taste einmal, um das Mikrofon zu aktivieren: Du hast 5 Sekunden, dem Renningenieur eine Frage zu stellen, dann endet die Aufnahme von selbst. Das Zuweisen entfernt die Tastaturtaste. Taste 0 entspricht der A-Taste eines Xbox-Controllers."
     },
     "keyboard": {
       "label": "Tastatur",
       "press": "Drücke eine Taste auf der Tastatur…",
-      "hint": "Tastaturtaste als Alternative zum Controller, um das Mikrofon zu aktivieren. Praktisch, wenn du die Tastatur statt eines Gamepads benutzt."
+      "hint": "Tastaturtaste als Alternative zum Controller: Einmal drücken, um das Mikrofon zu aktivieren (5 Sekunden zum Sprechen). Das Zuweisen entfernt die Controller-Taste."
     },
     "voiceOutput": {
       "label": "Sprachausgabe",
-      "hint": "Schaltet alle Sprachausgaben ein oder aus (Warnungen, Debriefing, Coach)."
+      "hint": "Schaltet alle Sprachausgaben ein oder aus: Renningenieur-Antworten, Zusammenfassung der Analyse und Stint-Hinweis. Ausgeschaltet reagiert auch die Taste zum Sprechen nicht."
     },
     "keys": {
       "Delete": "Entf",
@@ -323,9 +326,9 @@
       "mockUpdate": "Mock-Update",
       "simulateUpdate": "Update simulieren",
       "simulateUpdateHint": "Öffnet den Hinweis auf eine neue Version und simuliert den Download, ohne etwas zu installieren",
-      "mockHint": "Wenn aktiv, werden dem Verlauf eine R3E-Sitzung (BMW M4 GT3 - Nürburgring), eine ACE-Sitzung (Porsche 718 GT4 - Monza) und eine AMS2-Sitzung (Formula Ultimate - Interlagos) hinzugefügt, jeweils mit 3 Runden und einer vorbefüllten Analyse. Die R3E- und ACE-Sitzungen haben auch die Tiefenanalyse gespeichert, die AMS2-Sitzung nicht: So lässt sich die Schaltfläche „Tiefenanalyse anzeigen“ ausprobieren. Nützlich, um die Oberfläche ohne laufende echte Sitzung zu testen.",
+      "mockHint": "Wenn aktiv, werden dem Verlauf eine R3E-Sitzung (BMW M4 GT3 - Nürburgring), eine ACE-Sitzung (Porsche 718 GT4 - Monza) und eine AMS2-Sitzung (Formula Ultimate Gen2 - Interlagos) hinzugefügt, jeweils mit 3 Runden und einer vorbefüllten Analyse. Die R3E- und ACE-Sitzungen haben auch die Tiefenanalyse gespeichert, die AMS2-Sitzung nicht: So lässt sich die Schaltfläche „Tiefenanalyse anzeigen“ ausprobieren. Nützlich, um die Oberfläche ohne laufende echte Sitzung zu testen.",
       "telemetryLog": "Telemetrie-Log",
-      "telemetryHint": "Schreibt die gesamte verfügbare Telemetrie (R3E und ACE) in JSONL-Dateien, ein Datensatz pro Zeile. Jede Verbindung erzeugt eine neue Datei: <code>{{pattern}}</code>.",
+      "telemetryHint": "Schreibt die gesamte verfügbare Telemetrie (R3E, ACE und AMS2) in JSONL-Dateien, ein Datensatz pro Zeile. Jede Verbindung erzeugt eine neue Datei: <code>{{pattern}}</code>.",
       "telemetryPattern": "<timestamp>-<spiel>-<auto>-<strecke>-<layout>.jsonl",
       "telemetryDir": "Verzeichnis: <code>{{dir}}</code>"
     },
@@ -334,7 +337,7 @@
   "status": {
     "calibratingOne": "Kalibrierung: noch {{n}} Runde",
     "calibratingMany": "Kalibrierung: noch {{n}} Runden",
-    "coachActive": "Coach aktiv",
+    "coachActive": "Renningenieur aktiv",
     "connected": "{{game}} verbunden",
     "disconnected": "{{game}} getrennt",
     "forceReconnect": "Neuverbindung zu {{game}} erzwingen"
@@ -363,7 +366,7 @@
     },
     "azure": {
       "label": "Azure-Stimme (Schlüssel und Region)",
-      "effect": "Ohne sie gibt es keine Sprachbefehle und kein Diktat; Warnungen während der Runde nutzen die Systemstimme."
+      "effect": "Ohne sie gibt es keine Sprachbefehle und kein Diktat; Renningenieur-Antworten nutzen die Systemstimme."
     }
   },
   "voiceOverlay": {

@@ -1,0 +1,79 @@
+{
+  "title": "Anleitung",
+  "intro": "Alles, was du für den Einstieg brauchst: Folge den Schritten der Reihe nach. Die Anleitung ist auch während einer Sitzung abrufbar.",
+  "sections": {
+    "prerequisites": {
+      "title": "Bevor du anfängst",
+      "steps": [
+        "Öffne <b>Einstellungen</b>, füge den Schlüssel bei <b>Anthropic-API-Schlüssel</b> ein und drücke <b>Speichern</b>. Ohne Schlüssel liefert <b>Analyse starten</b> keine Auswertung.",
+        "Azure-Stimme, Sprachbefehle und Diktat brauchen Azure-Schlüssel und -Region (Abschnitt Azure Speech); für die Azure-Stimme schaltest du zusätzlich <b>Status</b> ein. Sonst nutzen Renningenieur-Antworten und Zusammenfassung die Systemstimme.",
+        "Weise im Abschnitt <b>Sprachassistent</b> eine Controller-Taste oder Tastaturtaste zu (Schaltfläche <b>Zuweisen</b>): Damit sprichst du mit dem Renningenieur.",
+        "Diese Anleitung bleibt immer abrufbar: Ein Tabwechsel beendet die Sitzung nicht."
+      ]
+    },
+    "accounts": {
+      "title": "Anthropic- und Azure-Konto anlegen",
+      "steps": [
+        "<b>Anthropic</b> (Analyse und Antworten des Renningenieurs): Lege ein Konto auf <anthropic>platform.claude.com</anthropic> an. Das ist die Entwicklerkonsole, getrennt von einem eventuellen Abo für den Claude-Chat.",
+        "Öffne in der Konsole den Abrechnungsbereich und lade Guthaben im Voraus auf: Du zahlst nach Verbrauch, ein kleiner Betrag reicht für den Anfang.",
+        "Öffne die Seite <b>API-Schlüssel</b> (<i>API keys</i>, <keys>platform.claude.com/settings/keys</keys>), klicke auf <b>Schlüssel erstellen</b> (<i>Create key</i>), benenne den Schlüssel und wähle ein Ablaufdatum. Kopiere ihn sofort: Er beginnt mit <code>sk-ant-</code> und die Konsole zeigt ihn nur einmal vollständig an. Füge ihn in den <b>Einstellungen</b> bei <b>Anthropic-API-Schlüssel</b> ein und drücke <b>Speichern</b>.",
+        "<b>Azure</b> (Stimme, Sprachbefehle und Diktat): Registriere dich auf <azure>azure.microsoft.com</azure>. Für die Registrierung ist eine Kreditkarte nötig, laut Microsoft wird aber nichts abgebucht, bis du einer kostenpflichtigen Ressource ausdrücklich zustimmst.",
+        "Erstelle im <portal>Azure-Portal</portal> eine <b>Foundry</b>-Ressource (sie enthält Azure Speech): Wähle Abonnement, Ressourcengruppe, eine Region in deiner Nähe und einen Namen und klicke dann auf <b>Überprüfen + erstellen</b>. Kosten und kostenloses Kontingent stehen in der Azure-Preisliste.",
+        "Öffne die Ressource und gehe zu <b>Ressourcenverwaltung</b> › <b>Schlüssel und Endpunkt</b>: Kopiere einen der beiden Schlüssel. Füge ihn in den <b>Einstellungen</b>, Abschnitt <b>Azure Speech</b>, bei <b>Azure-Speech-Schlüssel</b> ein, wähle dieselbe <b>Region</b> wie die Ressource und drücke <b>Stimmen laden</b>: Wenn die Liste lädt, stimmen Schlüssel und Region. Das Portal zeigt die Menüs in der Browsersprache: Die Namen oben sind die deutschen."
+      ]
+    },
+    "session": {
+      "title": "Eine Sitzung starten",
+      "steps": [
+        "Starte den Simulator und fahre auf die Strecke, dann drücke <b>Neue Sitzung</b>, wähle das Spiel (RaceRoom, Assetto Corsa EVO oder Automobilista 2) und bestätige mit <b>Sitzung öffnen</b>. Das gewählte Spiel muss bereits Daten senden.",
+        "Jede Zieldurchfahrt fügt der Tabelle eine Runde hinzu. Mit <b>Telemetrie anzeigen</b> siehst du Bremse, Gas und Geschwindigkeit der Runde; ungültige Runden blendest du über den Filter über der Tabelle aus.",
+        "Die Sitzung bleibt offen, bis du <b>Sitzung beenden</b> drückst: Die aufgezeichneten Runden bleiben in der Liste.",
+        "Um zu einer beendeten Sitzung zurückzukehren, öffne <b>Sitzungsliste</b> und nutze <b>Sitzung wieder öffnen</b>."
+      ]
+    },
+    "driving": {
+      "title": "Mit dem Renningenieur fahren",
+      "steps": [
+        "Während du fährst, schweigt der Renningenieur: Er zeichnet Runden und Telemetrie auf und erkennt Auffälligkeiten (zum Beispiel kritische Bremstemperatur, Traktionskontrolle, ABS, zu spätes Bremsen), die die Analyse später nutzt.",
+        "In den ersten 2 Runden lernt er dein Referenztempo: danach erkennt er Abweichungen besser.",
+        "Ist die Azure-Stimme an, sagt der Renningenieur nach genügend Runden, dass der Stint analysierbar ist: Dann hältst du an und drückst <b>Analyse starten</b>.",
+        "Um alle Sprachausgaben stummzuschalten, nutze den Schalter in der Titelleiste oder <b>Sprachausgabe</b> in den Einstellungen. Bei ausgeschalteter Stimme reagiert auch die Taste zum Sprechen nicht."
+      ]
+    },
+    "setup": {
+      "title": "Das Setup laden",
+      "steps": [
+        "Öffne <b>Setups verwalten</b>: Das geladene Setup wird den folgenden Runden zugeordnet, und du kannst bereits geladene Setups für dasselbe Auto und dieselbe Strecke wiederverwenden.",
+        "RaceRoom: Kopiere das Setup im Spiel mit STRG+C und drücke <b>Aus JSON laden</b>. Assetto Corsa EVO: <b>Datei auswählen</b> und die .carsetup-Datei wählen. Automobilista 2: Mache Screenshots des Setup-Bildschirms und drücke <b>Screenshots erfassen</b>.",
+        "Per Sprache: Sag <code>lade Setup</code>, und der Renningenieur fragt nach dem Namen (RaceRoom aus der Zwischenablage, Automobilista 2 aus den letzten 3 Screenshots). Bei Assetto Corsa EVO nimmt er die neueste Datei und ihren Dateinamen, ohne nachzufragen.",
+        "Um ein Setup mehreren bereits aufgezeichneten Runden zuzuordnen, markiere sie in der Tabelle und drücke <b>Setup zuweisen (N)</b>."
+      ]
+    },
+    "voice": {
+      "title": "Mit dem Renningenieur sprechen",
+      "steps": [
+        "Die Taste weist du unter <b>Einstellungen</b>, Abschnitt <b>Sprachassistent</b> zu: <b>Controller</b> oder <b>Tastatur</b>. Das Zuweisen der einen entfernt die andere.",
+        "Drücke sie einmal und halte sie nicht gedrückt: Du hörst den Aktivierungston und hast 5 Sekunden zum Sprechen. Die Aufnahme endet von selbst. Bei ausgeschalteter Stimme reagiert die Taste nicht.",
+        "Solange der Renningenieur verarbeitet oder antwortet, werden weitere Tastendrücke bis zum Ende der Antwort ignoriert.",
+        "Du kannst freie Fragen stellen (kurze Antworten im Funkton) oder Befehle geben: <code>neue Sitzung RaceRoom</code>, <code>beende die Sitzung</code>, <code>analysiere die Sitzung</code>, <code>lade Setup</code>. Den Namen des Assistenten zu sagen ergibt eine Begrüßung."
+      ]
+    },
+    "analysis": {
+      "title": "Sitzungsanalyse",
+      "steps": [
+        "Drücke nach einigen Runden <b>Analyse starten</b>: Das ruft die Claude-API auf und liefert eine Zusammenfassung mit empfohlenen Maßnahmen, die der Renningenieur vorliest.",
+        "Für mehr Details drücke in der Analyse <b>Detaillierte Analyse anzeigen</b>: ein zweiter, längerer Aufruf, der Telemetrie, Probleme und einen Setup-Vergleich ergänzt.",
+        "Jede Analyse ist eine eigene Version: Mit <b>Kommentar</b> fügst du eine getippte oder diktierte Notiz hinzu, die der Renningenieur einarbeitet.",
+        "Setup-Empfehlungen kommen einzeln: Wende die Änderung an, fahre einige Runden und starte die Analyse erneut."
+      ]
+    },
+    "history": {
+      "title": "Verlauf, PDF und Aufräumen",
+      "steps": [
+        "Die <b>Sitzungsliste</b> sammelt die Sitzungen aller drei Spiele, mit Filtern für Spiel, Auto und Strecke und Sortierung nach Datum. Ein Klick auf eine Zeile öffnet die Details.",
+        "In einer Sitzung speichert <b>PDF exportieren</b> den Bericht mit Zusammenfassung und detaillierter Analyse.",
+        "Du kannst einzelne, ausgewählte oder alle Sitzungen löschen: Runden, Setups und Analysen werden mitgelöscht, das lässt sich nicht rückgängig machen."
+      ]
+    }
+  }
+}

@@ -13,16 +13,22 @@ const flatten = (o: object, prefix = ""): Record<string, string> =>
 const vars = (s: string) =>
   [...s.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]).sort();
 
-const ref = flatten(RESOURCES.it.translation);
-for (const lang of ["de", "en", "es", "fr"] as const) {
-  const cur = flatten(RESOURCES[lang].translation);
-  const missing = Object.keys(ref).filter((k) => !(k in cur));
-  const extra = Object.keys(cur).filter((k) => !(k in ref));
-  assert.deepEqual(
-    { missing, extra },
-    { missing: [], extra: [] },
-    `${lang} keys`,
-  );
-  for (const k of Object.keys(ref))
-    assert.deepEqual(vars(cur[k]), vars(ref[k]), `${lang}.${k} variables`);
+for (const ns of ["translation", "guide"] as const) {
+  const ref = flatten(RESOURCES.it[ns]);
+  for (const lang of ["de", "en", "es", "fr"] as const) {
+    const cur = flatten(RESOURCES[lang][ns]);
+    const missing = Object.keys(ref).filter((k) => !(k in cur));
+    const extra = Object.keys(cur).filter((k) => !(k in ref));
+    assert.deepEqual(
+      { missing, extra },
+      { missing: [], extra: [] },
+      `${lang}.${ns} keys`,
+    );
+    for (const k of Object.keys(ref))
+      assert.deepEqual(
+        vars(cur[k]),
+        vars(ref[k]),
+        `${lang}.${ns}.${k} variables`,
+      );
+  }
 }

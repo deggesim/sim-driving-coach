@@ -6,6 +6,7 @@
 
 import { Suspense, use, useEffect, useState } from "react";
 import { Spinner, Toast, ToastContainer } from "react-bootstrap";
+import GuidePanel from "./components/GuidePanel";
 import RealtimeAnalysis from "./components/RealtimeAnalysis";
 import SessionHistory from "./components/SessionHistory";
 import SettingsPanel from "./components/SettingsPanel";
@@ -21,7 +22,7 @@ import { subscribeSessionIPC, useSessionStore } from "./store/sessionStore";
 import { useSettingsStore } from "./store/settingsStore";
 import { settingsLoaderPromise } from "./loaders/settingsLoader";
 
-type Tab = "current-session" | "session-list" | "settings";
+type Tab = "current-session" | "session-list" | "settings" | "guide";
 
 const App = () => {
   // Bootstrap IPC subscriptions (writes to ipcStore)
@@ -144,6 +145,7 @@ const App = () => {
           />
         )}
         {tab === "settings" && <SettingsPanel />}
+        {tab === "guide" && <GuidePanel />}
       </div>
 
       {/* Status bar */}

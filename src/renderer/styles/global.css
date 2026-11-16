@@ -1023,8 +1023,13 @@ body {
   margin: 0;
 }
 /* ── Settings ── */
-.settings-panel {
+.settings-panel,
+.guide-panel {
   overflow-y: auto;
+}
+
+.guide-panel a {
+  color: var(--accent2);
 }
 
 /* Bootstrap Form.Text override — default #6c757d is too dark on dark bg */

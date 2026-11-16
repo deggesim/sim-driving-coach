@@ -1,0 +1,79 @@
+{
+  "title": "Guide",
+  "intro": "Tout ce qu'il faut pour démarrer : suivez les étapes dans l'ordre. Le guide reste consultable pendant une session.",
+  "sections": {
+    "prerequisites": {
+      "title": "Avant de commencer",
+      "steps": [
+        "Ouvrez <b>Paramètres</b>, collez la clé dans <b>Clé API Anthropic</b> et appuyez sur <b>Enregistrer</b>. Sans clé, <b>Lancer l'analyse</b> ne produit pas le débriefing.",
+        "La voix Azure, les commandes vocales et la dictée demandent la clé et la région Azure (section Azure Speech) ; pour la voix Azure, activez aussi <b>État</b>. Sinon, les réponses de l'ingénieur et la synthèse utilisent la voix du système.",
+        "Assignez un bouton de la manette ou une touche du clavier dans la section <b>Assistant vocal</b> (bouton <b>Assigner</b>) : il sert à parler à l'ingénieur.",
+        "Ce guide reste toujours consultable : changer d'onglet ne ferme pas la session."
+      ]
+    },
+    "accounts": {
+      "title": "Créer les comptes Anthropic et Azure",
+      "steps": [
+        "<b>Anthropic</b> (analyse et réponses de l'ingénieur) : créez un compte sur <anthropic>platform.claude.com</anthropic>. C'est la console développeur, distincte d'un éventuel abonnement au chat Claude.",
+        "Dans la console, ouvrez la section de facturation et ajoutez un crédit prépayé : on paie à l'usage, une petite somme suffit donc pour commencer.",
+        "Ouvrez la page <b>Clés API</b> (<i>API keys</i>, <keys>platform.claude.com/settings/keys</keys>), cliquez sur <b>Créer une clé</b> (<i>Create key</i>), nommez la clé et choisissez une expiration. Copiez-la tout de suite : elle commence par <code>sk-ant-</code> et la console ne l'affiche en entier qu'une seule fois. Dans <b>Paramètres</b>, collez-la dans <b>Clé API Anthropic</b> et appuyez sur <b>Enregistrer</b>.",
+        "<b>Azure</b> (voix, commandes vocales et dictée) : inscrivez-vous sur <azure>azure.microsoft.com</azure>. L'inscription demande une carte bancaire, mais selon Microsoft rien n'est débité tant que vous ne consentez pas explicitement à une ressource payante.",
+        "Dans le <portal>portail Azure</portal>, créez une ressource <b>Foundry</b> (elle inclut Azure Speech) : choisissez l'abonnement, le groupe de ressources, une région proche et un nom, puis appuyez sur <b>Vérifier + créer</b>. Les coûts et le quota gratuit figurent dans la grille tarifaire Azure.",
+        "Ouvrez la ressource et allez dans <b>Gestion des ressources</b> › <b>Clés et point de terminaison</b> : copiez l'une des deux clés. Dans <b>Paramètres</b>, section <b>Azure Speech</b>, collez-la dans <b>Clé Azure Speech</b>, choisissez la même <b>Région</b> que la ressource et appuyez sur <b>Charger les voix</b> : si la liste se charge, la clé et la région sont bonnes. Le portail affiche ses menus dans la langue du navigateur : les noms ci-dessus sont les noms français."
+      ]
+    },
+    "session": {
+      "title": "Démarrer une session",
+      "steps": [
+        "Lancez le simulateur et entrez en piste, puis appuyez sur <b>Nouvelle session</b>, choisissez le jeu (RaceRoom, Assetto Corsa EVO ou Automobilista 2) et validez avec <b>Ouvrir la session</b>. Le jeu choisi doit déjà envoyer des données.",
+        "Chaque passage sur la ligne ajoute un tour au tableau. <b>Afficher la télémétrie</b> montre freinage, accélérateur et vitesse du tour ; les tours non valides se masquent avec le filtre au-dessus du tableau.",
+        "La session reste ouverte jusqu'à ce que vous appuyiez sur <b>Clôturer la session</b> : les tours enregistrés restent dans la liste.",
+        "Pour revenir à une session close, ouvrez <b>Liste des sessions</b> et utilisez <b>Rouvrir la session</b>."
+      ]
+    },
+    "driving": {
+      "title": "Rouler avec l'ingénieur",
+      "steps": [
+        "Pendant que vous roulez, l'ingénieur reste silencieux : il enregistre les tours et la télémétrie et détecte les anomalies (par exemple température critique des freins, contrôle de traction, ABS, freinages tardifs), que l'analyse utilise ensuite.",
+        "Pendant les 2 premiers tours, il apprend votre rythme de référence : ensuite, il reconnaît mieux les écarts.",
+        "Avec la voix Azure activée, quand vous avez assez de tours, l'ingénieur annonce que le stint est prêt pour l'analyse : c'est le moment de vous arrêter et d'appuyer sur <b>Lancer l'analyse</b>.",
+        "Pour couper toute la voix, utilisez l'interrupteur de la barre de titre, ou <b>Sortie vocale</b> dans les Paramètres. Voix désactivée, la touche pour parler à l'ingénieur ne répond pas non plus."
+      ]
+    },
+    "setup": {
+      "title": "Charger le setup",
+      "steps": [
+        "Ouvrez <b>Gestion des setups</b> : le setup chargé est lié aux tours suivants, et vous pouvez réutiliser ceux déjà chargés pour la même voiture et le même circuit.",
+        "RaceRoom : copiez le setup dans le jeu avec CTRL+C et appuyez sur <b>Charger depuis un JSON</b>. Assetto Corsa EVO : <b>Sélectionner un fichier</b> et choisissez le fichier .carsetup. Automobilista 2 : faites des captures de l'écran du setup et appuyez sur <b>Capturer des captures</b>.",
+        "À la voix : dites <code>charge le setup</code> et l'ingénieur demande le nom (RaceRoom depuis le presse-papiers, Automobilista 2 depuis les 3 dernières captures). Avec Assetto Corsa EVO, il prend le fichier le plus récent et son nom, sans rien demander.",
+        "Pour lier un setup à plusieurs tours déjà enregistrés, sélectionnez-les dans le tableau et appuyez sur <b>Assigner le setup (N)</b>."
+      ]
+    },
+    "voice": {
+      "title": "Parler à l'ingénieur",
+      "steps": [
+        "La touche s'assigne dans <b>Paramètres</b>, section <b>Assistant vocal</b> : <b>Manette</b> ou <b>Clavier</b>. En assigner une retire l'autre.",
+        "Appuyez une seule fois, sans maintenir : vous entendez le son d'activation et vous avez 5 secondes pour parler. L'enregistrement s'arrête tout seul. Voix désactivée, la touche ne répond pas.",
+        "Tant que l'ingénieur traite ou répond, les appuis suivants sont ignorés jusqu'à la fin de la réponse.",
+        "Vous pouvez poser des questions libres (réponses brèves, ton radio) ou donner des ordres : <code>nouvelle session RaceRoom</code>, <code>ferme la session</code>, <code>analyse la session</code>, <code>charge le setup</code>. Dire le nom de l'assistant obtient un salut."
+      ]
+    },
+    "analysis": {
+      "title": "Analyse de la session",
+      "steps": [
+        "Après quelques tours, appuyez sur <b>Lancer l'analyse</b> : elle appelle l'API Claude et produit une synthèse avec des actions suggérées, que l'ingénieur lit à voix haute.",
+        "Pour plus de détail, appuyez sur <b>Afficher l'analyse approfondie</b> dans l'analyse : c'est un second appel, plus long, qui ajoute télémétrie, problèmes et comparaison de setups.",
+        "Chaque analyse est une version à part : avec <b>Commentaire</b>, vous ajoutez une note, écrite ou dictée, que l'ingénieur intègre.",
+        "Les conseils de setup arrivent un par un : appliquez la modification, faites quelques tours et relancez l'analyse."
+      ]
+    },
+    "history": {
+      "title": "Historique, PDF et nettoyage",
+      "steps": [
+        "La <b>Liste des sessions</b> rassemble les sessions des trois jeux, avec des filtres par jeu, voiture et circuit et un tri par date. Un clic sur une ligne ouvre le détail.",
+        "Dans une session, <b>Exporter en PDF</b> enregistre le rapport avec la synthèse et l'analyse approfondie.",
+        "Vous pouvez supprimer des sessions une à une, sélectionnées ou toutes : tours, setups et analyses partent avec elles, sans retour possible."
+      ]
+    }
+  }
+}

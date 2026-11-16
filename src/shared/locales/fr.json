@@ -7,9 +7,10 @@
     "live": "Analyse en direct",
     "sessions": "Liste des sessions",
     "settings": "Paramètres",
+    "guide": "Guide",
     "voiceOn": "Voix activée",
     "voiceOff": "Voix désactivée",
-    "voice": "Voix du coach",
+    "voice": "Voix de l'ingénieur",
     "minimize": "Réduire",
     "maximize": "Agrandir",
     "maximizeLabel": "Agrandir la fenêtre",
@@ -195,14 +196,14 @@
     "noButton": "Aucune touche assignée",
     "anthropic": {
       "title": "Clé API Anthropic",
-      "hint": "Nécessaire pour le débriefing après le tour et le coach vocal via l'API Claude."
+      "hint": "Nécessaire pour l'analyse de la session (à la demande), les commentaires et l'ingénieur vocal via l'API Claude."
     },
     "model": {
       "label": "Modèle",
       "error": "Liste des modèles indisponible : vérifiez la clé API et la connexion.",
       "obsolete": "Le modèle sélectionné (<code>{{model}}</code>) n'est plus disponible : choisissez-en un à jour dans la liste et enregistrez.",
       "obsoleteTag": "obsolète",
-      "hint": "Utilisé pour l'analyse synthétique, les commentaires et le coach vocal. Les modifications prennent effet à la prochaine utilisation."
+      "hint": "Utilisé pour l'analyse synthétique, les commentaires et l'ingénieur vocal. Appuyez sur Enregistrer : les modifications prennent effet à la prochaine utilisation."
     },
     "modelDetail": {
       "label": "Modèle de l'analyse approfondie",
@@ -210,7 +211,7 @@
       "hint": "Modèle utilisé uniquement pour l'analyse approfondie (à la demande). Vide = même modèle de base."
     },
     "azure": {
-      "title": "Azure Text-to-Speech",
+      "title": "Azure Speech",
       "status": "État",
       "keyPlaceholder": "Clé Azure Speech",
       "region": "Région",
@@ -219,7 +220,7 @@
       "voicesError": "Erreur de chargement des voix",
       "previewError": "L'aperçu de la voix a échoué.",
       "voice": "Voix",
-      "hint": "La sélection d'une voix lance un aperçu : « {{intro}} » Nécessite un abonnement Azure Cognitive Services.",
+      "hint": "Après « Charger les voix », choisissez une voix : un aperçu est lancé : « {{intro}} » La même clé sert à la synthèse vocale et à la dictée. Nécessite un abonnement Azure Cognitive Services.",
       "regions": {
         "australiacentral": "Australie Centre",
         "australiacentral2": "Australie Centre 2",
@@ -277,25 +278,27 @@
         "westus": "USA Ouest",
         "westus2": "USA Ouest 2",
         "westus3": "USA Ouest 3"
-      }
+      },
+      "statusHint": "Désactivé, les réponses de l'ingénieur et la synthèse de l'analyse utilisent la voix du système et le signal de stint prêt n'est pas prononcé ; la dictée et les commandes vocales restent actives."
     },
     "assistant": {
       "title": "Assistant vocal",
-      "name": "Nom"
+      "name": "Nom",
+      "nameHint": "Le nom avec lequel vous appelez l'ingénieur à la voix (16 caractères au maximum) : le dire seul obtient un salut."
     },
     "controller": {
       "label": "Manette",
       "press": "Appuyez sur un bouton de la manette…",
-      "hint": "Appuyez sur le bouton configuré de la manette pour activer le micro et poser des questions au coach. Le bouton 0 correspond au bouton A d'une manette Xbox."
+      "hint": "Appuyez une fois sur le bouton configuré pour activer le micro : vous avez 5 secondes pour poser une question à l'ingénieur, puis l'enregistrement s'arrête tout seul. L'assigner retire la touche du clavier. Le bouton 0 correspond au bouton A d'une manette Xbox."
     },
     "keyboard": {
       "label": "Clavier",
       "press": "Appuyez sur une touche du clavier…",
-      "hint": "Touche du clavier, alternative à la manette, pour activer le micro. Utile quand on joue au clavier plutôt qu'à la manette."
+      "hint": "Touche du clavier, alternative à la manette : appuyez une fois pour activer le micro (5 secondes pour parler). L'assigner retire le bouton de la manette."
     },
     "voiceOutput": {
       "label": "Sortie vocale",
-      "hint": "Active ou désactive toutes les sorties vocales (alertes, débriefing, coach)."
+      "hint": "Active ou désactive toute la voix : réponses de l'ingénieur, synthèse de l'analyse et signal de stint prêt. Désactivée, la touche pour parler à l'ingénieur ne répond pas non plus."
     },
     "keys": {
       "Delete": "Suppr",
@@ -323,9 +326,9 @@
       "mockUpdate": "Mise à jour fictive",
       "simulateUpdate": "Simuler la mise à jour",
       "simulateUpdateHint": "Ouvre la notification de nouvelle version et simule le téléchargement, sans rien installer",
-      "mockHint": "Lorsqu'il est actif, ajoute à l'historique une session R3E (BMW M4 GT3 - Nürburgring), une ACE (Porsche 718 GT4 - Monza) et une AMS2 (Formula Ultimate - Interlagos), chacune avec 3 tours et une analyse préremplie. Les sessions R3E et ACE ont aussi l'analyse approfondie enregistrée, pas l'AMS2 : cela permet d'essayer le bouton « Afficher l'analyse approfondie ». Utile pour tester l'interface sans session réelle en cours.",
+      "mockHint": "Lorsqu'il est actif, ajoute à l'historique une session R3E (BMW M4 GT3 - Nürburgring), une ACE (Porsche 718 GT4 - Monza) et une AMS2 (Formula Ultimate Gen2 - Interlagos), chacune avec 3 tours et une analyse préremplie. Les sessions R3E et ACE ont aussi l'analyse approfondie enregistrée, pas l'AMS2 : cela permet d'essayer le bouton « Afficher l'analyse approfondie ». Utile pour tester l'interface sans session réelle en cours.",
       "telemetryLog": "Journal de télémétrie",
-      "telemetryHint": "Écrit toute la télémétrie disponible (R3E et ACE) dans des fichiers JSONL, un enregistrement par ligne. Chaque connexion crée un nouveau fichier : <code>{{pattern}}</code>.",
+      "telemetryHint": "Écrit toute la télémétrie disponible (R3E, ACE et AMS2) dans des fichiers JSONL, un enregistrement par ligne. Chaque connexion crée un nouveau fichier : <code>{{pattern}}</code>.",
       "telemetryPattern": "<timestamp>-<jeu>-<voiture>-<circuit>-<layout>.jsonl",
       "telemetryDir": "Répertoire : <code>{{dir}}</code>"
     },
@@ -334,7 +337,7 @@
   "status": {
     "calibratingOne": "Calibrage : {{n}} tour restant",
     "calibratingMany": "Calibrage : {{n}} tours restants",
-    "coachActive": "Coach actif",
+    "coachActive": "Ingénieur actif",
     "connected": "{{game}} connecté",
     "disconnected": "{{game}} déconnecté",
     "forceReconnect": "Forcer la reconnexion de {{game}}"
@@ -363,7 +366,7 @@
     },
     "azure": {
       "label": "Voix Azure (clé et région)",
-      "effect": "Sans elle, pas de commandes vocales ni de dictée ; les alertes en piste utilisent la voix du système."
+      "effect": "Sans elle, pas de commandes vocales ni de dictée ; les réponses de l'ingénieur utilisent la voix du système."
     }
   },
   "voiceOverlay": {

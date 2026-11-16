@@ -634,6 +634,11 @@ const SettingsPanel = () => {
                 />
               </Col>
             </Form.Group>
+            <Row className="mb-3">
+              <Col sm={{ span: 9, offset: 3 }}>
+                <Form.Text>{t("settings.azure.statusHint")}</Form.Text>
+              </Col>
+            </Row>
 
             <Form.Group as={Row} className="mb-2" controlId="azure-key">
               <Form.Label column sm={3}>
@@ -649,9 +654,13 @@ const SettingsPanel = () => {
               </Col>
               <Col sm={2}>
                 <Button variant="primary" onClick={handleSaveAzureKey}>
-                  {settingSaved === "azureKey"
-                    ? `✓ ${t("settings.savedF")}`
-                    : t("settings.save")}
+                  {settingSaved === "azureKey" ? (
+                    <>
+                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedF")}
+                    </>
+                  ) : (
+                    t("settings.save")
+                  )}
                 </Button>
               </Col>
             </Form.Group>
@@ -776,6 +785,11 @@ const SettingsPanel = () => {
                 </Button>
               </Col>
             </Form.Group>
+            <Row className="mb-3">
+              <Col sm={{ span: 9, offset: 3 }}>
+                <Form.Text>{t("settings.assistant.nameHint")}</Form.Text>
+              </Col>
+            </Row>
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>
@@ -1068,9 +1082,9 @@ const SettingsPanel = () => {
               {
                 car: frame.carName,
                 track: frame.trackName,
-                speed: frame.carSpeed?.toFixed(1) ?? "0" + " km/h",
+                speed: `${(frame.carSpeed ?? 0).toFixed(1)} km/h`,
                 gear: frame.gear,
-                dist: frame.lapDistance?.toFixed(0) ?? "0" + "m",
+                dist: `${(frame.lapDistance ?? 0).toFixed(0)} m`,
                 thr: (frame.throttle * 100).toFixed(0) + "%",
                 brk: (frame.brake * 100).toFixed(0) + "%",
               },

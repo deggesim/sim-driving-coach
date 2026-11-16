@@ -1,0 +1,79 @@
+{
+  "title": "Guía",
+  "intro": "Todo lo necesario para empezar: sigue los pasos en orden. La guía sigue disponible también durante una sesión.",
+  "sections": {
+    "prerequisites": {
+      "title": "Antes de empezar",
+      "steps": [
+        "Abre <b>Ajustes</b>, pega la clave en <b>Clave de API de Anthropic</b> y pulsa <b>Guardar</b>. Sin clave, <b>Ejecutar análisis</b> no genera el debriefing.",
+        "La voz de Azure, los comandos de voz y el dictado necesitan clave y región de Azure (sección Azure Speech); para la voz de Azure activa además <b>Estado</b>. Si no, las respuestas del ingeniero y el resumen usan la voz del sistema.",
+        "Asigna un botón del mando o una tecla del teclado en la sección <b>Asistente de voz</b> (botón <b>Asignar</b>): sirve para hablar con el ingeniero.",
+        "Esta guía siempre está disponible: cambiar de pestaña no cierra la sesión."
+      ]
+    },
+    "accounts": {
+      "title": "Crear las cuentas de Anthropic y Azure",
+      "steps": [
+        "<b>Anthropic</b> (análisis y respuestas del ingeniero): crea una cuenta en <anthropic>platform.claude.com</anthropic>. Es la consola para desarrolladores, separada de cualquier suscripción al chat de Claude.",
+        "En la consola abre la sección de facturación y añade crédito prepago: se paga por uso, así que basta una pequeña cantidad para empezar.",
+        "Abre la página <b>Claves de API</b> (<i>API keys</i>, <keys>platform.claude.com/settings/keys</keys>), haz clic en <b>Crear clave</b> (<i>Create key</i>), asigna un nombre a la clave y elige una expiración. Cópiala enseguida: empieza por <code>sk-ant-</code> y la consola la muestra completa solo una vez. En <b>Ajustes</b> pégala en <b>Clave de API de Anthropic</b> y pulsa <b>Guardar</b>.",
+        "<b>Azure</b> (voz, comandos de voz y dictado): regístrate en <azure>azure.microsoft.com</azure>. Para registrarte hace falta una tarjeta de crédito, pero según Microsoft no se cobra nada hasta que das tu consentimiento explícito a un recurso de pago.",
+        "En el <portal>portal de Azure</portal> crea un recurso <b>Foundry</b> (incluye Azure Speech): elige suscripción, grupo de recursos, una región cercana y un nombre, y pulsa <b>Revisar y crear</b>. Los costes y la cuota gratuita están en la lista de precios de Azure.",
+        "Abre el recurso y ve a <b>Administración de recursos</b> › <b>Claves y punto de conexión</b>: copia una de las dos claves. En <b>Ajustes</b>, sección <b>Azure Speech</b>, pégala en <b>Clave de Azure Speech</b>, elige la misma <b>Región</b> que el recurso y pulsa <b>Cargar voces</b>: si la lista se carga, la clave y la región son correctas. El portal muestra los menús en el idioma del navegador: los nombres de arriba son los españoles."
+      ]
+    },
+    "session": {
+      "title": "Iniciar una sesión",
+      "steps": [
+        "Arranca el simulador y sal a pista, luego pulsa <b>Nueva sesión</b>, elige el juego (RaceRoom, Assetto Corsa EVO o Automobilista 2) y confirma con <b>Abrir sesión</b>. El juego elegido ya debe estar enviando datos.",
+        "Cada paso por meta añade una vuelta a la tabla. <b>Mostrar telemetría</b> muestra freno, acelerador y velocidad de la vuelta; las vueltas no válidas se ocultan con el filtro sobre la tabla.",
+        "La sesión sigue abierta hasta que pulses <b>Cerrar sesión</b>: las vueltas registradas quedan en la lista.",
+        "Para volver a una sesión cerrada abre <b>Lista de sesiones</b> y usa <b>Reabrir sesión</b>."
+      ]
+    },
+    "driving": {
+      "title": "Conducir con el ingeniero",
+      "steps": [
+        "Mientras conduces el ingeniero no habla: registra vueltas y telemetría y detecta anomalías (por ejemplo, temperatura crítica de los frenos, control de tracción, ABS, frenadas tardías), que el análisis usa después.",
+        "En las 2 primeras vueltas aprende tu ritmo de referencia: a partir de ahí reconoce mejor las desviaciones.",
+        "Con la voz de Azure activada, cuando llevas suficientes vueltas el ingeniero dice que el stint está listo para analizar: es el momento de parar y pulsar <b>Ejecutar análisis</b>.",
+        "Para silenciar toda la voz usa el interruptor de la barra de título, o <b>Salida de voz</b> en Ajustes. Con la voz desactivada, la tecla para hablar con el ingeniero tampoco responde."
+      ]
+    },
+    "setup": {
+      "title": "Cargar el setup",
+      "steps": [
+        "Abre <b>Gestión de setups</b>: el setup que cargas se vincula a las vueltas siguientes, y puedes reutilizar los ya cargados para el mismo coche y circuito.",
+        "RaceRoom: copia el setup en el juego con CTRL+C y pulsa <b>Cargar desde JSON</b>. Assetto Corsa EVO: <b>Seleccionar archivo</b> y elige el archivo .carsetup. Automobilista 2: haz capturas de la pantalla del setup y pulsa <b>Capturar capturas</b>.",
+        "Por voz: di <code>carga setup</code> y el ingeniero te pide el nombre (RaceRoom desde el portapapeles, Automobilista 2 desde las últimas 3 capturas). Con Assetto Corsa EVO usa el archivo más reciente y su nombre, sin preguntar.",
+        "Para vincular un setup a varias vueltas ya registradas, selecciónalas en la tabla y pulsa <b>Asignar setup (N)</b>."
+      ]
+    },
+    "voice": {
+      "title": "Hablar con el ingeniero",
+      "steps": [
+        "La tecla se asigna en <b>Ajustes</b>, sección <b>Asistente de voz</b>: <b>Mando</b> o <b>Teclado</b>. Asignar una quita la otra.",
+        "Púlsala una sola vez, sin mantenerla: oyes el sonido de activación y tienes 5 segundos para hablar. La grabación se detiene sola. Con la voz desactivada la tecla no responde.",
+        "Mientras el ingeniero procesa o responde, las pulsaciones siguientes se ignoran hasta que termine la respuesta.",
+        "Puedes hacer preguntas libres (respuestas breves, tono de radio) o dar órdenes: <code>nueva sesión Automobilista 2</code>, <code>cierra la sesión</code>, <code>analiza la sesión</code>, <code>carga setup</code>. Decir el nombre del asistente obtiene un saludo."
+      ]
+    },
+    "analysis": {
+      "title": "Análisis de la sesión",
+      "steps": [
+        "Tras unas vueltas pulsa <b>Ejecutar análisis</b>: llama a la API de Claude y genera un resumen con las acciones sugeridas, que el ingeniero lee en voz alta.",
+        "Si necesitas más detalle pulsa <b>Mostrar análisis detallado</b> en el análisis: es una segunda llamada, más larga, que añade telemetría, problemas y comparación de setups.",
+        "Cada análisis es una versión propia: con <b>Comentario</b> añades una nota, escrita o dictada, y el ingeniero la integra.",
+        "Los consejos de setup llegan de uno en uno: aplica el cambio, da unas vueltas y vuelve a ejecutar el análisis."
+      ]
+    },
+    "history": {
+      "title": "Historial, PDF y limpieza",
+      "steps": [
+        "La <b>Lista de sesiones</b> reúne las sesiones de los tres juegos, con filtros por juego, coche y circuito y orden por fecha. Un clic en una fila abre el detalle.",
+        "Dentro de una sesión, <b>Exportar PDF</b> guarda el informe con el resumen y el análisis detallado.",
+        "Puedes eliminar sesiones sueltas, seleccionadas o todas: también se borran vueltas, setups y análisis, y no se puede deshacer."
+      ]
+    }
+  }
+}

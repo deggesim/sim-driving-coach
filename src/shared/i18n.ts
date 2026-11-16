@@ -1,9 +1,14 @@
 import i18next, { type i18n } from "i18next";
 import de from "./locales/de.json" with { type: "json" };
+import deGuide from "./locales/guide/de.json" with { type: "json" };
 import en from "./locales/en.json" with { type: "json" };
+import enGuide from "./locales/guide/en.json" with { type: "json" };
 import es from "./locales/es.json" with { type: "json" };
+import esGuide from "./locales/guide/es.json" with { type: "json" };
 import fr from "./locales/fr.json" with { type: "json" };
+import frGuide from "./locales/guide/fr.json" with { type: "json" };
 import it from "./locales/it.json" with { type: "json" };
+import itGuide from "./locales/guide/it.json" with { type: "json" };
 
 export type Language = "de" | "en" | "es" | "fr" | "it";
 
@@ -31,11 +36,11 @@ export const resolveSystemLanguage = (preferred: readonly string[]): Language =>
   preferred.map((p) => p.slice(0, 2).toLowerCase()).find(isLanguage) ?? "en";
 
 export const RESOURCES = {
-  de: { translation: de },
-  en: { translation: en },
-  es: { translation: es },
-  fr: { translation: fr },
-  it: { translation: it },
+  de: { translation: de, guide: deGuide },
+  en: { translation: en, guide: enGuide },
+  es: { translation: es, guide: esGuide },
+  fr: { translation: fr, guide: frGuide },
+  it: { translation: it, guide: itGuide },
 };
 
 export const createI18n = (lang: Language): i18n => {

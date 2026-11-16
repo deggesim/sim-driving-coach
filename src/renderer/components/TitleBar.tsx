@@ -17,7 +17,7 @@ import { LanguageMenu } from "./LanguageMenu";
 import { useSettingsStore } from "../store/settingsStore";
 import iconUrl from "/icon.png";
 
-type Tab = "current-session" | "session-list" | "settings";
+type Tab = "current-session" | "session-list" | "settings" | "guide";
 
 interface TitleBarProps {
   tab: Tab;
@@ -56,6 +56,14 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           onClick={() => onTabChange("settings")}
         >
           {t("titleBar.settings")}
+        </Button>
+        <Button
+          variant="link"
+          className={`tab-btn ${tab === "guide" ? "active" : ""}`}
+          aria-current={tab === "guide" ? "page" : undefined}
+          onClick={() => onTabChange("guide")}
+        >
+          {t("titleBar.guide")}
         </Button>
       </div>
       <div className="title-bar-tts">
