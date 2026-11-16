@@ -1,3 +1,10 @@
+# [2.4.0](https://github.com/deggesim/sim-driving-coach/compare/v2.3.0...v2.4.0) (2026-11-16)
+
+
+### Features
+
+* guida utente multilingua e didascalie impostazioni corrette ([#29](https://github.com/deggesim/sim-driving-coach/issues/29)) ([b543b23](https://github.com/deggesim/sim-driving-coach/commit/b543b237cd69d990c5042d494350a4a4e9fa4aa3))
+
 # [2.3.0](https://github.com/deggesim/sim-driving-coach/compare/v2.2.0...v2.3.0) (2026-11-14)
 
 
