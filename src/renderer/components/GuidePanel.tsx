@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 
 const GUIDE_SECTIONS = [
   "prerequisites",
+  "accounts",
   "session",
   "driving",
   "setup",
