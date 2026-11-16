@@ -45,8 +45,8 @@ const GuidePanel = () => {
               </Accordion.Header>
               <Accordion.Body>
                 <ol className="mb-0">
-                  {(Array.isArray(steps) ? steps : []).map((_, n) => (
-                    <li key={`${id}-${n}`} className="mb-2">
+                  {(Array.isArray(steps) ? steps : []).map((step, n) => (
+                    <li key={String(step)} className="mb-2">
                       <Trans
                         t={t}
                         i18nKey={`sections.${id}.steps.${n}`}

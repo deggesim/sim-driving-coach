@@ -20,6 +20,7 @@ import { useSettingsStore } from "../store/settingsStore";
 import type { AzureVoice, AnthropicModelInfo } from "../../shared/types";
 import { assistantIntro } from "../../shared/format";
 import { resolveVoice, voiceConfigKey } from "../../shared/azure-voice";
+import type { Language } from "../../shared/i18n";
 
 // Azure region codes; display names are in the locale files (settings.azure.regions).
 const AZURE_REGIONS = [
@@ -203,8 +204,12 @@ const SettingsPanel = () => {
   // Voice of the active language; the list below is filtered to that language too.
   const azureVoiceName = resolveVoice(language, azureVoiceNames[language]);
 
-  const [azureVoices, setAzureVoices] = useState<AzureVoice[]>([]);
-  useEffect(() => setAzureVoices([]), [language]); // list was for the old language
+  // The list is tied to the language it was loaded for: a stale one reads as empty.
+  const [loadedVoices, setLoadedVoices] = useState<{
+    lang: Language;
+    list: AzureVoice[];
+  }>({ lang: language, list: [] });
+  const azureVoices = loadedVoices.lang === language ? loadedVoices.list : [];
   const [voicesLoading, setVoicesLoading] = useState(false);
   const [voicesError, setVoicesError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -354,7 +359,7 @@ const SettingsPanel = () => {
       )
         return;
       const voices = await window.electronAPI.ttsGetVoices();
-      setAzureVoices(voices);
+      setLoadedVoices({ lang: language, list: voices });
       if (
         voices.length > 0 &&
         !voices.some((v) => v.ShortName === azureVoiceName)
