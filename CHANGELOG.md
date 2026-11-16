@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/deggesim/sim-driving-coach/compare/v2.4.0...v2.4.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* warning ESLint e aggiornamento runner e action-gh-release ([#30](https://github.com/deggesim/sim-driving-coach/issues/30)) ([fa51c5a](https://github.com/deggesim/sim-driving-coach/commit/fa51c5a15117f4c92cff270815dff9e3ff27221e)), closes [action-#release](https://github.com/action-/issues/release) [action-#release](https://github.com/action-/issues/release)
+
 # [2.4.0](https://github.com/deggesim/sim-driving-coach/compare/v2.3.0...v2.4.0) (2026-11-16)
 
 
