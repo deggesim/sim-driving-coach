@@ -14,12 +14,12 @@
     "accounts": {
       "title": "Creating the Anthropic and Azure accounts",
       "steps": [
-        "<b>Anthropic</b> (analysis and engineer answers): create an account at <code>platform.claude.com</code>. It is the developer console, separate from any Claude chat subscription.",
-        "In the console open the billing section (<b>Billing</b>) and add prepaid credit: you pay by usage, so a small amount is enough to start.",
-        "Open <b>API keys</b>, create a key and copy it right away (it is not shown in full again). In <b>Settings</b> paste it into <b>Anthropic API key</b> and press <b>Save</b>.",
-        "<b>Azure</b> (voice, voice commands and dictation): sign up at <code>azure.microsoft.com</code>. Signing up needs a credit card, but according to Microsoft nothing is charged until you explicitly consent to a paid resource.",
-        "In the Azure portal create a <b>Speech</b> resource (Azure AI Speech, formerly Cognitive Services Speech): pick a region close to you and, if offered, the free tier, which includes a monthly quota of speech synthesis and recognition (current limits are in the Azure price list).",
-        "In the resource open <b>Keys and Endpoint</b> and copy one of the two keys. In <b>Settings</b>, <b>Azure Speech</b> section, paste it into <b>Azure Speech key</b>, pick the same <b>Region</b> as the resource and press <b>Load voices</b>: if the list loads, key and region are correct."
+        "<b>Anthropic</b> (analysis and engineer answers): create an account at <anthropic>platform.claude.com</anthropic>. It is the developer console, separate from any Claude chat subscription.",
+        "In the console open the billing section and add prepaid credit: you pay by usage, so a small amount is enough to start.",
+        "Open the <b>API keys</b> page (<keys>platform.claude.com/settings/keys</keys>), click <b>Create key</b>, name the key and pick an expiration. Copy it right away: it starts with <code>sk-ant-</code> and the console shows it in full only once. In <b>Settings</b> paste it into <b>Anthropic API key</b> and press <b>Save</b>.",
+        "<b>Azure</b> (voice, voice commands and dictation): sign up at <azure>azure.microsoft.com</azure>. Signing up needs a credit card, but according to Microsoft nothing is charged until you explicitly consent to a paid resource.",
+        "In the <portal>Azure portal</portal> create a <b>Foundry</b> resource (it includes Azure Speech): pick the subscription, resource group, a region close to you and a name, then press <b>Review + create</b>. Costs and the free quota are in the Azure price list.",
+        "Open the resource and go to <b>Resource Management</b> › <b>Keys and Endpoint</b>: copy one of the two keys. In <b>Settings</b>, <b>Azure Speech</b> section, paste it into <b>Azure Speech key</b>, pick the same <b>Region</b> as the resource and press <b>Load voices</b>: if the list loads, key and region are correct. The portal shows its menus in the browser language: the names above are the English ones."
       ]
     },
     "session": {

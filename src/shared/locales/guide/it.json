@@ -14,12 +14,12 @@
     "accounts": {
       "title": "Creare gli account Anthropic e Azure",
       "steps": [
-        "<b>Anthropic</b> (analisi e risposte dell'ingegnere): crea un account su <code>platform.claude.com</code>. È la console per sviluppatori, separata da un eventuale abbonamento alla chat di Claude.",
-        "Nella console apri la sezione di fatturazione (<b>Billing</b>) e aggiungi un credito prepagato: si paga a consumo, quindi basta una piccola somma per cominciare.",
-        "Apri <b>API keys</b>, crea una chiave e copiala subito (non verrà più mostrata per intero). In <b>Impostazioni</b> incollala in <b>API Key Anthropic</b> e premi <b>Salva</b>.",
-        "<b>Azure</b> (voce, comandi a voce e dettatura): registrati su <code>azure.microsoft.com</code>. Per registrarti serve una carta di credito, ma secondo Microsoft non viene addebitato nulla finché non dai il consenso esplicito a una risorsa a pagamento.",
-        "Nel portale Azure crea una risorsa <b>Speech</b> (Azure AI Speech, un tempo Cognitive Services Speech): scegli una regione vicina a te e, se disponibile, il livello gratuito, che include una quota mensile di sintesi e riconoscimento vocale (limiti aggiornati nel listino Azure).",
-        "Nella risorsa apri <b>Keys and Endpoint</b> e copia una delle due chiavi. In <b>Impostazioni</b>, sezione <b>Azure Speech</b>, incollala in <b>Chiave Azure Speech</b>, scegli la stessa <b>Regione</b> della risorsa e premi <b>Carica voci</b>: se l'elenco si carica, chiave e regione sono giuste."
+        "<b>Anthropic</b> (analisi e risposte dell'ingegnere): crea un account su <anthropic>platform.claude.com</anthropic>. È la console per sviluppatori, separata da un eventuale abbonamento alla chat di Claude.",
+        "Nella console apri la sezione di fatturazione e aggiungi un credito prepagato: si paga a consumo, quindi basta una piccola somma per cominciare.",
+        "Apri la pagina <b>Chiavi API</b> (<i>API keys</i>, <keys>platform.claude.com/settings/keys</keys>), fai clic su <b>Crea chiave</b> (<i>Create key</i>), dai un nome alla chiave e scegli una scadenza. Copiala subito: inizia con <code>sk-ant-</code> e la console la mostra per intero una sola volta. In <b>Impostazioni</b> incollala in <b>API Key Anthropic</b> e premi <b>Salva</b>.",
+        "<b>Azure</b> (voce, comandi a voce e dettatura): registrati su <azure>azure.microsoft.com</azure>. Per registrarti serve una carta di credito, ma secondo Microsoft non viene addebitato nulla finché non dai il consenso esplicito a una risorsa a pagamento.",
+        "Nel <portal>portale Azure</portal> crea una risorsa <b>Foundry</b> (include Azure Speech): scegli abbonamento, gruppo di risorse, una regione vicina a te e un nome, poi premi <b>Rivedi e crea</b>. Costi e quota gratuita sono nel listino Azure.",
+        "Apri la risorsa e vai su <b>Gestione risorse</b> › <b>Chiavi e endpoint</b>: copia una delle due chiavi. In <b>Impostazioni</b>, sezione <b>Azure Speech</b>, incollala in <b>Chiave Azure Speech</b>, scegli la stessa <b>Regione</b> della risorsa e premi <b>Carica voci</b>: se l'elenco si carica, chiave e regione sono giuste. Il portale mostra i menu nella lingua del browser: i nomi qui sopra sono quelli italiani."
       ]
     },
     "session": {

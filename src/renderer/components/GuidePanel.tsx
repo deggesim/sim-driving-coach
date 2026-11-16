@@ -12,6 +12,21 @@ const GUIDE_SECTIONS = [
   "history",
 ] as const;
 
+// target="_blank" is redirected to the system browser by main's window-open handler.
+const link = (href: string) => (
+  <a href={href} target="_blank" rel="noreferrer" />
+);
+
+const GUIDE_COMPONENTS = {
+  b: <b />,
+  code: <code />,
+  i: <i />,
+  keys: link("https://platform.claude.com/settings/keys"),
+  anthropic: link("https://platform.claude.com"),
+  azure: link("https://azure.microsoft.com"),
+  portal: link("https://portal.azure.com"),
+};
+
 const GuidePanel = () => {
   const { t } = useTranslation("guide");
 
@@ -35,7 +50,7 @@ const GuidePanel = () => {
                       <Trans
                         t={t}
                         i18nKey={`sections.${id}.steps.${n}`}
-                        components={{ b: <b />, code: <code /> }}
+                        components={GUIDE_COMPONENTS}
                       />
                     </li>
                   ))}

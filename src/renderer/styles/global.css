@@ -1028,6 +1028,10 @@ body {
   overflow-y: auto;
 }
 
+.guide-panel a {
+  color: var(--accent2);
+}
+
 /* Bootstrap Form.Text override — default #6c757d is too dark on dark bg */
 .form-text {
   color: var(--text-dim) !important;
