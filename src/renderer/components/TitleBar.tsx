@@ -3,20 +3,20 @@
  * Used in Electron frameless mode for drag area and window management.
  */
 
-import { Button } from "react-bootstrap";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faArrowsLeftRight,
+  faExpand,
   faMicrophone,
   faMicrophoneSlash,
-  faArrowsLeftRight,
   faMinus,
-  faExpand,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { LanguageMenu } from "./LanguageMenu";
 import { useLayoutStore } from "../store/layoutStore";
 import { useSettingsStore } from "../store/settingsStore";
+import { LanguageMenu } from "./LanguageMenu";
 import iconUrl from "/icon.png";
 
 type Tab = "current-session" | "session-list" | "settings" | "guide";
