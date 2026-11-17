@@ -340,6 +340,8 @@
     "calibratingOne": "Calibrage : {{n}} tour restant",
     "calibratingMany": "Calibrage : {{n}} tours restants",
     "coachActive": "Ingénieur actif",
+    "update": "Mettre à jour",
+    "updateTitle": "Version {{version}} disponible",
     "connected": "{{game}} connecté",
     "disconnected": "{{game}} déconnecté",
     "forceReconnect": "Forcer la reconnexion de {{game}}"

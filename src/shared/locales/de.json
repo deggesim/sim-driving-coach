@@ -340,6 +340,8 @@
     "calibratingOne": "Kalibrierung: noch {{n}} Runde",
     "calibratingMany": "Kalibrierung: noch {{n}} Runden",
     "coachActive": "Renningenieur aktiv",
+    "update": "Aktualisieren",
+    "updateTitle": "Version {{version}} verfügbar",
     "connected": "{{game}} verbunden",
     "disconnected": "{{game}} getrennt",
     "forceReconnect": "Neuverbindung zu {{game}} erzwingen"

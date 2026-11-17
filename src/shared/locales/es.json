@@ -340,6 +340,8 @@
     "calibratingOne": "Calibración: queda {{n}} vuelta",
     "calibratingMany": "Calibración: quedan {{n}} vueltas",
     "coachActive": "Ingeniero activo",
+    "update": "Actualizar",
+    "updateTitle": "Versión {{version}} disponible",
     "connected": "{{game}} conectado",
     "disconnected": "{{game}} desconectado",
     "forceReconnect": "Forzar reconexión de {{game}}"

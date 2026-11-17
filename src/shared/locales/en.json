@@ -340,6 +340,8 @@
     "calibratingOne": "Calibration: {{n}} lap remaining",
     "calibratingMany": "Calibration: {{n}} laps remaining",
     "coachActive": "Engineer active",
+    "update": "Update",
+    "updateTitle": "Version {{version}} available",
     "connected": "{{game}} connected",
     "disconnected": "{{game}} disconnected",
     "forceReconnect": "Force reconnect {{game}}"

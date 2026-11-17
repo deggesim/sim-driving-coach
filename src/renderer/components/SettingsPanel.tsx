@@ -991,49 +991,53 @@ const SettingsPanel = () => {
               </Col>
             </Row>
 
-            <Form.Group as={Row} className="mb-2">
-              <Form.Label column sm={3}>
-                {t("settings.dev.mockSessions")}
-              </Form.Label>
-              <Col sm={9} className="d-flex align-items-center gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setMockHistoryMode(!mockHistoryMode)}
-                >
-                  {mockHistoryMode
-                    ? t("settings.dev.mockOn")
-                    : t("settings.dev.mockOff")}
-                </Button>
-                <span className="text-secondary" style={{ fontSize: 12 }}>
-                  {mockHistoryMode
-                    ? t("settings.dev.mockOnHint")
-                    : t("settings.dev.mockOffHint")}
-                </span>
-              </Col>
-            </Form.Group>
-            <Form.Group as={Row} className="mb-3">
-              <Form.Label column sm={3}>
-                {t("settings.dev.mockUpdate")}
-              </Form.Label>
-              <Col sm={9} className="d-flex align-items-center gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    window.dispatchEvent(new Event(UPDATE_MOCK_EVENT))
-                  }
-                >
-                  {t("settings.dev.simulateUpdate")}
-                </Button>
-                <span className="text-secondary" style={{ fontSize: 12 }}>
-                  {t("settings.dev.simulateUpdateHint")}
-                </span>
-              </Col>
-            </Form.Group>
-            <Row className="mb-3">
-              <Col sm={{ span: 9, offset: 3 }}>
-                <Form.Text>{t("settings.dev.mockHint")}</Form.Text>
-              </Col>
-            </Row>
+            {import.meta.env.DEV && (
+              <>
+                <Form.Group as={Row} className="mb-2">
+                  <Form.Label column sm={3}>
+                    {t("settings.dev.mockSessions")}
+                  </Form.Label>
+                  <Col sm={9} className="d-flex align-items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setMockHistoryMode(!mockHistoryMode)}
+                    >
+                      {mockHistoryMode
+                        ? t("settings.dev.mockOn")
+                        : t("settings.dev.mockOff")}
+                    </Button>
+                    <span className="text-secondary" style={{ fontSize: 12 }}>
+                      {mockHistoryMode
+                        ? t("settings.dev.mockOnHint")
+                        : t("settings.dev.mockOffHint")}
+                    </span>
+                  </Col>
+                </Form.Group>
+                <Form.Group as={Row} className="mb-3">
+                  <Form.Label column sm={3}>
+                    {t("settings.dev.mockUpdate")}
+                  </Form.Label>
+                  <Col sm={9} className="d-flex align-items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        window.dispatchEvent(new Event(UPDATE_MOCK_EVENT))
+                      }
+                    >
+                      {t("settings.dev.simulateUpdate")}
+                    </Button>
+                    <span className="text-secondary" style={{ fontSize: 12 }}>
+                      {t("settings.dev.simulateUpdateHint")}
+                    </span>
+                  </Col>
+                </Form.Group>
+                <Row className="mb-3">
+                  <Col sm={{ span: 9, offset: 3 }}>
+                    <Form.Text>{t("settings.dev.mockHint")}</Form.Text>
+                  </Col>
+                </Row>
+              </>
+            )}
 
             <Form.Group as={Row} className="mb-2">
               <Form.Label column sm={3}>

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Modal, ProgressBar } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import type { UpdateProgress } from "../../shared/types";
+import { useUpdateStore } from "../store/updateStore";
 
-type Phase = "idle" | "ask" | "downloading";
+type Phase = "idle" | "downloading";
 
 // Dispatched by the Settings test button to rehearse the flow without a release.
 export const UPDATE_MOCK_EVENT = "update:mock";
@@ -14,17 +15,13 @@ const MOCK_TOTAL = 80 * 1048576;
 export const UpdateModals = () => {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>("idle");
-  const [version, setVersion] = useState("");
+  const { version, asking, offer, dismiss: closeAsk, clear } = useUpdateStore();
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mockRef = useRef(false);
 
   useEffect(() => {
     const api = window.electronAPI;
-    const offer = (v: string) => {
-      setVersion(v);
-      setPhase("ask");
-    };
     // The check may have resolved before this component mounted.
     void api.updatePending().then((v) => v && offer(v));
     const onMock = () => {
@@ -44,17 +41,20 @@ export const UpdateModals = () => {
       window.removeEventListener(UPDATE_MOCK_EVENT, onMock);
       offs.forEach((off) => off());
     };
-  }, []);
+  }, [offer]);
 
   const dismiss = () => {
+    // A rehearsed update is not real: drop it so the status-bar button goes too.
+    if (mockRef.current) clear();
     mockRef.current = false;
-    setPhase("idle");
+    closeAsk();
     setError(null);
   };
 
   const download = () => {
     setProgress(null);
     setError(null);
+    closeAsk();
     setPhase("downloading");
     if (mockRef.current) {
       mockRef.current = false;
@@ -69,7 +69,10 @@ export const UpdateModals = () => {
         });
         if (pct === 100) {
           clearInterval(timer);
-          setTimeout(() => setPhase("idle"), 400);
+          setTimeout(() => {
+            setPhase("idle");
+            clear();
+          }, 400);
         }
       }, 120);
       return;
@@ -82,7 +85,7 @@ export const UpdateModals = () => {
 
   return (
     <>
-      <Modal show={phase === "ask" || !!error} onHide={dismiss} centered>
+      <Modal show={asking || !!error} onHide={dismiss} centered>
         <Modal.Header closeButton>
           <Modal.Title>
             {error ? t("update.failedTitle") : t("update.newTitle")}
