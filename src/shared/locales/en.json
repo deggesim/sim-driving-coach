@@ -11,6 +11,8 @@
     "voiceOn": "Voice on",
     "voiceOff": "Voice off",
     "voice": "Engineer voice",
+    "layoutColumns": "Side-by-side panels",
+    "layoutRows": "Stacked panels",
     "minimize": "Minimize",
     "maximize": "Maximize",
     "maximizeLabel": "Maximize window",
@@ -484,6 +486,7 @@
     "analyzing": "Analysis in progress…",
     "pdfSaved": "PDF saved: {{path}}",
     "analyses": "Analysis",
+    "resize": "Resize panels",
     "noAnalysesLive": "No analysis yet. «{{action}}» calls the Claude API and generates the debriefing summary; at least one recorded lap is needed.",
     "noAnalysesHistorical": "No analysis yet. «{{action}}» calls the Claude API and generates the debriefing summary.",
     "confirmAnalyze": "Start the session analysis? It calls the Claude API and generates a new debriefing."

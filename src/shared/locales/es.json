@@ -11,6 +11,8 @@
     "voiceOn": "Voz activada",
     "voiceOff": "Voz desactivada",
     "voice": "Voz del ingeniero",
+    "layoutColumns": "Paneles en columnas",
+    "layoutRows": "Paneles apilados",
     "minimize": "Minimizar",
     "maximize": "Maximizar",
     "maximizeLabel": "Maximizar ventana",
@@ -484,6 +486,7 @@
     "analyzing": "Análisis en curso…",
     "pdfSaved": "PDF guardado: {{path}}",
     "analyses": "Análisis",
+    "resize": "Redimensionar los paneles",
     "noAnalysesLive": "Ningún análisis. «{{action}}» llama a la API de Claude y genera la síntesis del debriefing; hace falta al menos una vuelta registrada.",
     "noAnalysesHistorical": "Ningún análisis. «{{action}}» llama a la API de Claude y genera la síntesis del debriefing.",
     "confirmAnalyze": "¿Iniciar el análisis de la sesión? Llama a la API de Claude y genera un nuevo debriefing."

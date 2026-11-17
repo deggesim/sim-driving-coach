@@ -11,6 +11,8 @@
     "voiceOn": "Voce attiva",
     "voiceOff": "Voce disattiva",
     "voice": "Voce dell'ingegnere",
+    "layoutColumns": "Pannelli affiancati",
+    "layoutRows": "Pannelli sovrapposti",
     "minimize": "Riduci a icona",
     "maximize": "Ingrandisci",
     "maximizeLabel": "Ingrandisci finestra",
@@ -484,6 +486,7 @@
     "analyzing": "Analisi in corso…",
     "pdfSaved": "PDF salvato: {{path}}",
     "analyses": "Analisi",
+    "resize": "Ridimensiona i pannelli",
     "noAnalysesLive": "Nessuna analisi. «{{action}}» chiama l'API Claude e genera la sintesi del debriefing; serve almeno un giro registrato.",
     "noAnalysesHistorical": "Nessuna analisi. «{{action}}» chiama l'API Claude e genera la sintesi del debriefing.",
     "confirmAnalyze": "Vuoi avviare l'analisi della sessione? Chiama l'API Claude e genera un nuovo debriefing."

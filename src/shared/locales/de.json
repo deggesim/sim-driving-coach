@@ -11,6 +11,8 @@
     "voiceOn": "Stimme an",
     "voiceOff": "Stimme aus",
     "voice": "Renningenieur-Stimme",
+    "layoutColumns": "Panels nebeneinander",
+    "layoutRows": "Panels übereinander",
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "maximizeLabel": "Fenster maximieren",
@@ -484,6 +486,7 @@
     "analyzing": "Analyse läuft…",
     "pdfSaved": "PDF gespeichert: {{path}}",
     "analyses": "Analyse",
+    "resize": "Panels in der Größe ändern",
     "noAnalysesLive": "Noch keine Analyse. «{{action}}» ruft die Claude-API auf und erzeugt die Zusammenfassung des Debriefings; mindestens eine aufgezeichnete Runde ist nötig.",
     "noAnalysesHistorical": "Noch keine Analyse. «{{action}}» ruft die Claude-API auf und erzeugt die Zusammenfassung des Debriefings.",
     "confirmAnalyze": "Analyse der Sitzung starten? Sie ruft die Claude-API auf und erzeugt ein neues Debriefing."

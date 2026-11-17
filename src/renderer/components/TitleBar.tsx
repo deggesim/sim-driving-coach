@@ -8,12 +8,14 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faMicrophone,
   faMicrophoneSlash,
+  faArrowsLeftRight,
   faMinus,
   faExpand,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { useTranslation } from "react-i18next";
 import { LanguageMenu } from "./LanguageMenu";
+import { useLayoutStore } from "../store/layoutStore";
 import { useSettingsStore } from "../store/settingsStore";
 import iconUrl from "/icon.png";
 
@@ -28,6 +30,8 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
   const { t } = useTranslation();
   const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
   const setTtsEnabled = useSettingsStore((s) => s.setTtsEnabled);
+  const layout = useLayoutStore((s) => s.layout);
+  const setLayout = useLayoutStore((s) => s.setLayout);
   return (
     <div className="title-bar text-nowrap">
       <img src={iconUrl} className="title-bar-icon" alt="" />
@@ -67,6 +71,30 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         </Button>
       </div>
       <div className="title-bar-tts">
+        {(["columns", "rows"] as const).map((l) => (
+          <Button
+            key={l}
+            variant="link"
+            className={`tts-toggle ${layout === l ? "on" : "off"}`}
+            onClick={() => setLayout(l)}
+            title={t(
+              l === "columns"
+                ? "titleBar.layoutColumns"
+                : "titleBar.layoutRows",
+            )}
+            aria-label={t(
+              l === "columns"
+                ? "titleBar.layoutColumns"
+                : "titleBar.layoutRows",
+            )}
+            aria-pressed={layout === l}
+          >
+            <FontAwesomeIcon
+              icon={faArrowsLeftRight}
+              rotation={l === "rows" ? 90 : undefined}
+            />
+          </Button>
+        ))}
         <Button
           variant="link"
           className={`tts-toggle ${ttsEnabled ? "on" : "off"}`}

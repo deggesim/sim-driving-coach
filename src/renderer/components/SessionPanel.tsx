@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button, Modal, Toast, ToastContainer } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import type { GameSource, SessionStartResult } from "../../shared/types";
@@ -6,6 +6,7 @@ import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
 import { rendererI18n } from "../i18n";
 import { useIPCStore } from "../store/ipcStore";
+import { useLayoutStore } from "../store/layoutStore";
 import { useSessionStore } from "../store/sessionStore";
 import AceSetupPicker from "./AceSetupPicker";
 import { Ams2SetupPicker } from "./Ams2SetupPicker";
@@ -34,6 +35,26 @@ const SessionPanel = ({
   onOpenSettings,
 }: Props) => {
   const { t } = useTranslation();
+  const layout = useLayoutStore((s) => s.layout);
+  const split = useLayoutStore((s) => s.split);
+  const setSplit = useLayoutStore((s) => s.setSplit);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const columns = layout === "columns";
+  const dragSplit = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const r = splitRef.current!.getBoundingClientRect();
+    setSplit(
+      columns ? (e.clientX - r.left) / r.width : (e.clientY - r.top) / r.height,
+    );
+  };
+  const keySplit = (e: React.KeyboardEvent) => {
+    const dir = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[
+      e.key
+    ];
+    if (dir === undefined) return;
+    e.preventDefault();
+    setSplit(split + dir * 0.05);
+  };
   const status = useIPCStore((s) => s.status);
   const session = useSessionStore((s) => s.session);
   const analyses = useSessionStore((s) => s.analyses);
@@ -191,10 +212,14 @@ const SessionPanel = ({
       )}
 
       <div
-        className="flex-grow-1 overflow-hidden p-3 d-flex flex-column"
+        ref={splitRef}
+        className={`flex-grow-1 overflow-hidden p-3 d-flex ${columns ? "flex-row" : "flex-column"}`}
         style={{ minHeight: 0 }}
       >
-        <div className="flex-shrink-0">
+        <div
+          className="session-half d-flex flex-column"
+          style={{ flexGrow: split }}
+        >
           <LapsTable
             // Remount on session change so selection, page and filter reset:
             // lap ids are per-game, so a new session can reuse the same ids.
@@ -206,7 +231,24 @@ const SessionPanel = ({
           />
         </div>
 
-        <div className="flex-grow-1 d-flex flex-column overflow-hidden mt-3 session-analyses-section">
+        <div
+          className={`split-handle ${columns ? "split-handle-col" : "split-handle-row"}`}
+          role="separator"
+          tabIndex={0}
+          aria-orientation={columns ? "vertical" : "horizontal"}
+          aria-label={t("panel.resize")}
+          aria-valuenow={Math.round(split * 100)}
+          aria-valuemin={20}
+          aria-valuemax={80}
+          onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+          onPointerMove={dragSplit}
+          onKeyDown={keySplit}
+        />
+
+        <div
+          className="session-half d-flex flex-column overflow-hidden"
+          style={{ flexGrow: 1 - split }}
+        >
           <h6 className="text-uppercase flex-shrink-0">
             {t("panel.analyses")}
           </h6>
