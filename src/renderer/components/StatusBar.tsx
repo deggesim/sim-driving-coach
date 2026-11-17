@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { Badge, Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import type { GameSource, GameStatus } from "../../shared/types";
+import { useUpdateStore } from "../store/updateStore";
 
 type StatusBarProps = {
   status: GameStatus;
@@ -17,6 +18,8 @@ type StatusBarProps = {
 
 const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
   const { t } = useTranslation();
+  const updateVersion = useUpdateStore((s) => s.version);
+  const askUpdate = useUpdateStore((s) => s.ask);
   const calibrationText: ReactNode = status.calibrating ? (
     t(
       status.lapsToCalibration === 1
@@ -100,6 +103,22 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
       {/* Calibration / Active */}
       <div className="status-calibration">
         {status.connected ? calibrationText : "—"}
+      </div>
+
+      {/* Version + update (right-aligned) */}
+      <div className="ms-auto d-flex align-items-center gap-2">
+        {updateVersion && (
+          <Button
+            variant="primary"
+            size="sm"
+            className="status-update-btn"
+            title={t("status.updateTitle", { version: updateVersion })}
+            onClick={askUpdate}
+          >
+            {t("status.update")}
+          </Button>
+        )}
+        <span>v{__APP_VERSION__}</span>
       </div>
     </div>
   );

@@ -1265,10 +1265,6 @@ body {
 .recharts-cartesian-axis-tick-value {
   font-variant-numeric: tabular-nums;
 }
-.laps-page-count {
-  font-size: 12px;
-  white-space: nowrap;
-}
 .laps-select-cell {
   width: 34px;
   text-align: center;
@@ -1345,8 +1341,42 @@ body {
 }
 
 /* ── Session Analyses section ── */
-.session-analyses-section {
+.session-half {
+  flex: 1 1 0;
   min-height: 0;
+  min-width: 0;
+}
+.split-handle {
+  flex: 0 0 12px;
+  position: relative;
+  touch-action: none;
+}
+.split-handle::after {
+  content: "";
+  position: absolute;
+  background: var(--border);
+  border-radius: 2px;
+}
+.split-handle:hover::after,
+.split-handle:focus-visible::after {
+  background: var(--accent);
+}
+.split-handle-col {
+  cursor: col-resize;
+}
+.split-handle-col::after {
+  inset: 0 5px;
+}
+.split-handle-row {
+  cursor: row-resize;
+}
+.split-handle-row::after {
+  inset: 5px 0;
+}
+.laps-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 /* ── Scrollbar styling ── */

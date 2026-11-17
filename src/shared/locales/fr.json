@@ -11,6 +11,8 @@
     "voiceOn": "Voix activée",
     "voiceOff": "Voix désactivée",
     "voice": "Voix de l'ingénieur",
+    "layoutColumns": "Panneaux côte à côte",
+    "layoutRows": "Panneaux empilés",
     "minimize": "Réduire",
     "maximize": "Agrandir",
     "maximizeLabel": "Agrandir la fenêtre",
@@ -338,6 +340,8 @@
     "calibratingOne": "Calibrage : {{n}} tour restant",
     "calibratingMany": "Calibrage : {{n}} tours restants",
     "coachActive": "Ingénieur actif",
+    "update": "Mettre à jour",
+    "updateTitle": "Version {{version}} disponible",
     "connected": "{{game}} connecté",
     "disconnected": "{{game}} déconnecté",
     "forceReconnect": "Forcer la reconnexion de {{game}}"
@@ -484,6 +488,7 @@
     "analyzing": "Analyse en cours…",
     "pdfSaved": "PDF enregistré : {{path}}",
     "analyses": "Analyse",
+    "resize": "Redimensionner les panneaux",
     "noAnalysesLive": "Aucune analyse. « {{action}} » appelle l'API Claude et génère la synthèse du débriefing ; il faut au moins un tour enregistré.",
     "noAnalysesHistorical": "Aucune analyse. « {{action}} » appelle l'API Claude et génère la synthèse du débriefing.",
     "confirmAnalyze": "Lancer l'analyse de la session ? Elle appelle l'API Claude et génère un nouveau débriefing."

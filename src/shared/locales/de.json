@@ -11,6 +11,8 @@
     "voiceOn": "Stimme an",
     "voiceOff": "Stimme aus",
     "voice": "Renningenieur-Stimme",
+    "layoutColumns": "Panels nebeneinander",
+    "layoutRows": "Panels übereinander",
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "maximizeLabel": "Fenster maximieren",
@@ -338,6 +340,8 @@
     "calibratingOne": "Kalibrierung: noch {{n}} Runde",
     "calibratingMany": "Kalibrierung: noch {{n}} Runden",
     "coachActive": "Renningenieur aktiv",
+    "update": "Aktualisieren",
+    "updateTitle": "Version {{version}} verfügbar",
     "connected": "{{game}} verbunden",
     "disconnected": "{{game}} getrennt",
     "forceReconnect": "Neuverbindung zu {{game}} erzwingen"
@@ -484,6 +488,7 @@
     "analyzing": "Analyse läuft…",
     "pdfSaved": "PDF gespeichert: {{path}}",
     "analyses": "Analyse",
+    "resize": "Panels in der Größe ändern",
     "noAnalysesLive": "Noch keine Analyse. «{{action}}» ruft die Claude-API auf und erzeugt die Zusammenfassung des Debriefings; mindestens eine aufgezeichnete Runde ist nötig.",
     "noAnalysesHistorical": "Noch keine Analyse. «{{action}}» ruft die Claude-API auf und erzeugt die Zusammenfassung des Debriefings.",
     "confirmAnalyze": "Analyse der Sitzung starten? Sie ruft die Claude-API auf und erzeugt ein neues Debriefing."
