@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/deggesim/sim-driving-coach/compare/v2.4.1...v2.5.0) (2026-11-17)
+
+
+### Features
+
+* layout configurabile del dettaglio analisi, versione e aggiornamento nella barra di stato ([#31](https://github.com/deggesim/sim-driving-coach/issues/31)) ([9aa40e1](https://github.com/deggesim/sim-driving-coach/commit/9aa40e1aea3da9cb87f584de93f7c5e0c22f4b5d))
+
 ## [2.4.1](https://github.com/deggesim/sim-driving-coach/compare/v2.4.0...v2.4.1) (2026-11-16)
 
 
