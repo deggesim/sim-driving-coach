@@ -142,7 +142,7 @@ attore che cambia il setup attivo, quindi può tenerne traccia da sé.
 ### 3.3 Visualizzazione
 
 In `AnalysisHeader`, dopo il conteggio giri/best lap, compare
-`· setup: <nome>` quando `activeSetupId` è valorizzato e risolvibile in `setups`.
+`- setup: <nome>` quando `activeSetupId` è valorizzato e risolvibile in `setups`.
 Solo in modalità live con sessione attiva.
 
 ## Fuori scope

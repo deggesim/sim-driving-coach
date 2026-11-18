@@ -1,6 +1,6 @@
 # Sequenza setup dalla telemetria (metodo Frezza) — design
 
-Data: 2026-10-20 · Stato: approvato · Assorbe la diagnosi pressioni gomme (passo 4).
+Data: 2026-10-20 - Stato: approvato - Assorbe la diagnosi pressioni gomme (passo 4).
 
 Fonte principale: la guida PDF di Riccardo Frezza "GUIDA FINITA COMPLETA (ASCIUTTO)" (135 slide, AMS2, concetti validi per tutti e tre i sim), conservata fuori dal repo in `D:\Progetti\riferimenti-sim-driving-coach\` e da non versionare. Le soglie numeriche marcate **(utente)** vengono dall'esperienza in pista dell'utente; quelle marcate **(scelta)** sono decisioni di design da tarare su sessioni vere.
 
@@ -65,12 +65,12 @@ Due regole, secondo se l'auto ha l'ABS attivo nei giri giudicati (ABS considerat
   - c'è sottosterzo in inserimento (definizione sotto) **(scelta)**.
 - Direzione: bilanciamento verso il posteriore.
 
-**Sottosterzo/sovrasterzo per fase (metrica condivisa con il passo 6)** **(scelta)**: per ogni frame con `|str| > 0,05` si calcola la curvatura ottenuta per unità di sterzo, `k = |gLat| / (v² · |str|)` (v in m/s). Il `v²` serve: senza, a velocità d'ingresso più alte il rapporto `gLat/str` crescerebbe solo per la velocità. Per ogni curva si confronta la media di `k` in tre fasi:
+**Sottosterzo/sovrasterzo per fase (metrica condivisa con il passo 6)** **(scelta)**: per ogni frame con `|str| > 0,05` si calcola la curvatura ottenuta per unità di sterzo, `k = |gLat| / (v² * |str|)` (v in m/s). Il `v²` serve: senza, a velocità d'ingresso più alte il rapporto `gLat/str` crescerebbe solo per la velocità. Per ogni curva si confronta la media di `k` in tre fasi:
 - inserimento: `brk > 0,05`;
 - centro curva: `brk ≤ 0,05` e `thr ≤ 0,20`;
 - uscita: `thr > 0,50`.
 
-Inserimento più basso del centro curva di oltre il **15 %** = curva sottosterzante in ingresso; più alto di oltre il 15 % = sovrasterzante in ingresso. Stessa cosa per l'uscita. *(2026-10-27, verifica live a Monza: il sovrasterzo in inserimento e in uscita non usa più il rapporto dei `k`, che cresce anche su un'auto neutra perché `gLat` segue lo sterzo con il ritardo dell'imbardata (uscita ×1,1-3,6 senza scivolata avvertita). È sovrasterzo una fase con controsterzo, segno di `str·gLat` opposto a quello prevalente nella curva, in più del 15 % dei suoi frame: lo stesso criterio del centro curva. Il sottosterzo in inserimento resta sul rapporto dei `k`.)* Il passo considera il sintomo presente se lo mostra la maggioranza delle curve con dati in tutte e due le fasi **(scelta)**. Confrontare dentro la stessa curva evita un riferimento per auto.
+Inserimento più basso del centro curva di oltre il **15 %** = curva sottosterzante in ingresso; più alto di oltre il 15 % = sovrasterzante in ingresso. Stessa cosa per l'uscita. *(2026-10-27, verifica live a Monza: il sovrasterzo in inserimento e in uscita non usa più il rapporto dei `k`, che cresce anche su un'auto neutra perché `gLat` segue lo sterzo con il ritardo dell'imbardata (uscita ×1,1-3,6 senza scivolata avvertita). È sovrasterzo una fase con controsterzo, segno di `str * gLat` opposto a quello prevalente nella curva, in più del 15 % dei suoi frame: lo stesso criterio del centro curva. Il sottosterzo in inserimento resta sul rapporto dei `k`.)* Il passo considera il sintomo presente se lo mostra la maggioranza delle curve con dati in tutte e due le fasi **(scelta)**. Confrontare dentro la stessa curva evita un riferimento per auto.
 
 **Cos'è una curva qui** **(scelta)**: le zone da 50 m spezzano le fasi e `corner_names` (sulle piste sconosciute) copre solo le frenate. `LapRecorder` delimita quindi da solo le curve: tratti contigui di frame con `|str| > 0,05`, uniti se separati da meno di 0,3 s, scartati se durano meno di 1 s. Per ogni curva calcola le medie di `k` per fase, la classifica (ingresso sotto/sovra/neutro, uscita sovra/neutro, fasi mancanti) e somma i risultati come contatori sulla zona in cui la curva comincia. `session-stats` si limita a sommare i contatori.
 
@@ -147,7 +147,7 @@ Canali semantici in `CompactFrame`, quartetti `[FL, FR, RL, RR]` in °C: `tti` (
 `mTyreRPS` (float[4]) è in **rad/s** nonostante il nome (thread Reiza, plugin SimHub `CalcLngWheelSlip`). Offset da camminare in `SharedMemory.h` v14, con selfcheck dell'aritmetica.
 
 - Raggio per ruota stimato nel reader, rifatto a ogni sessione, senza file: nei frame con v > 50 km/h, `brk = 0`, `thr < 0,05`, `|gLat|` e `|str|` vicini a zero, `r = v / |ω|`; si usa la mediana dei campioni (soglie dal plugin SimHub).
-- `sr = (r·|ω| − v) / v`, con la convenzione dell'app (negativo = bloccaggio). Sotto ~1 m/s, `sr` = 0.
+- `sr = (r * |ω| − v) / v`, con la convenzione dell'app (negativo = bloccaggio). Sotto ~1 m/s, `sr` = 0.
 - Finché il raggio non è stimato, `sr` è **assente**, non zero.
 - Limite noto (`ponytail:` nel codice): il freno motore in rilascio fa scivolare le ruote motrici di circa l'1 %, quindi il raggio posteriore risulta leggermente sottostimato. È trascurabile rispetto alle soglie del 5-15 %.
 - Conferma sul sim con la riga `[AMS2] canali`: in rettilineo a velocità costante lo slip deve stare vicino a 0.

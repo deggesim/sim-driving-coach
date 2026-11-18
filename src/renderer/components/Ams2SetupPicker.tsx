@@ -149,7 +149,7 @@ export const Ams2SetupPicker = ({
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {t("ams2Picker.title")}
-          <span className="picker-subtitle"> · {expectedCar}</span>
+          <span className="picker-subtitle"> - {expectedCar}</span>
         </Modal.Title>
         <Button
           variant="link"

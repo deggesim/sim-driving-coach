@@ -127,7 +127,7 @@ Calibrazione (l'algoritmo che la firma non determina):
 ```ts
 // Multiplier turning raw `sv` into m/s, positive = compression; null = unusable.
 const svScale = (frames: CompactFrame[]): number | null => {
-  // 1) k = Σ v·d / Σ d² over consecutive frames carrying sus and sv,
+  // 1) k = Σ v * d / Σ d² over consecutive frames carrying sus and sv,
   //    0 < Δt ≤ SV_MAX_DT_MS, every wheel; d = Δsus / Δt (m/s), v = mean sv of the pair.
   //    Fewer than SV_MIN_PAIRS pairs with d ≠ 0 → null.
   // 2) |k| in SV_K_MS → unit 1; in SV_K_MMS → 0.001; else null. velSign = sign(k).

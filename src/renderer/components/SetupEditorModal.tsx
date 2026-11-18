@@ -82,7 +82,7 @@ export const SetupEditorModal = ({
           {editing ? t("setupDetail.edit") : t("setupDetail.duplicate")}
           <span className="picker-subtitle">
             {" "}
-            · {base.name ?? base.carFound}
+            - {base.name ?? base.carFound}
           </span>
         </Modal.Title>
         <Button

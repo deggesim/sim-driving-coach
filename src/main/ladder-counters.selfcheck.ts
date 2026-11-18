@@ -216,7 +216,7 @@ assert.ok(Math.abs(slowSteady.kSlowSum! - expectedK) < 1e-6);
 assert.equal(slowSteady.cornersFast, 0);
 assert.equal(slowSteady.kFastSum, 0);
 
-// Countersteer: 20 % of the mid frames with str·gLat opposite to the majority.
+// Countersteer: 20 % of the mid frames with str * gLat opposite to the majority.
 const counter = run(100, { spd: 90, str: 0.2, gLat: 1.0 });
 for (let i = 0; i < 20; i++) counter[i * 5].gLat = -1.0;
 const slowCounter = zone0(counter);

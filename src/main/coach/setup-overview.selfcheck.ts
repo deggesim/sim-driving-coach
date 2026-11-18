@@ -147,7 +147,7 @@ assert.equal(old.current, null);
 assert.equal(old.afterLadder, false);
 assert.equal(
   area(old, 2).reason,
-  "ride height not available · springs not verified",
+  "ride height not available - springs not verified",
 );
 assert.ok(!area(old, 6).reason.includes("see ride heights and rake"));
 assert.equal(area(old, 8).reason, "no slow or fast corner measured");

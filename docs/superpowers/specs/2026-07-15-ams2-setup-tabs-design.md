@@ -1,4 +1,4 @@
-# AMS2 setup — vista a 3 tab (Tyres/Brakes/Chassis · Suspension · Drivetrain)
+# AMS2 setup — vista a 3 tab (Tyres/Brakes/Chassis - Suspension - Drivetrain)
 
 **Data:** 2026-07-15
 **Stato:** approvato (design) — pronto per la pianificazione

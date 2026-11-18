@@ -675,9 +675,9 @@ export const buildStatsBlock = (stats: SessionStats): string => {
     `## Dati Calcolati (autorevoli — cita questi numeri, NON ricalcolare)`,
   );
   lines.push(
-    `- Giri: ${stats.lapCount} (analizzabili: ${stats.analyzableLapCount}) · Trend: ${stats.trend}` +
+    `- Giri: ${stats.lapCount} (analizzabili: ${stats.analyzableLapCount}) - Trend: ${stats.trend}` +
       (stats.bestLap != null
-        ? ` · Miglior giro: ${formatLapTime(stats.bestLap)}`
+        ? ` - Miglior giro: ${formatLapTime(stats.bestLap)}`
         : ""),
   );
   lines.push(`- Setup caricati: ${stats.setupCount}`);

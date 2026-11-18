@@ -139,7 +139,7 @@ assert.equal(slowSteady.cornersSlow, 1);
 assert.equal(slowSteady.cornersSlowUnder, 0);
 assert.equal(slowSteady.cornersSlowOver, 0);
 assert.ok(Math.abs(slowSteady.kSlowSum! - expectedK) < 1e-6);
-// Countersteer: 20 % of the mid frames with str·gLat of opposite sign to the corner's majority.
+// Countersteer: 20 % of the mid frames with str * gLat of opposite sign to the corner's majority.
 assert.equal(slowCounter.cornersSlowOver, 1);
 // Push: for 400 ms |str| rises 30 % while |gLat| stays within 1 %.
 assert.equal(slowPush.cornersSlowUnder, 1);
@@ -162,7 +162,7 @@ Expected: FAIL in `ladder-counters.selfcheck`.
 
 - Aggiungere le nuove chiavi a `CORNER_KEYS` (inizializzazione a 0 come oggi) e a `LadderCounters`.
 - Classe di velocità = media di `spd` dei frame della fase centrale (quelli già usati per `mid`).
-- Sovrasterzo, indipendente dalle convenzioni di segno dei giochi: il segno di maggioranza di `str·gLat` sui frame della fase centrale definisce il verso "normale"; quota di frame con segno opposto > `MID_OVER_SHARE` → `cornersSlowOver`.
+- Sovrasterzo, indipendente dalle convenzioni di segno dei giochi: il segno di maggioranza di `str * gLat` sui frame della fase centrale definisce il verso "normale"; quota di frame con segno opposto > `MID_OVER_SHARE` → `cornersSlowOver`.
 - Sottosterzo: esiste una finestra di frame centrali consecutivi lunga ≥ `MID_UNDER_MS` in cui `|str|` finale ≥ `|str|` iniziale × (1 + `MID_UNDER_STEER_GAIN`) e `max|gLat| − min|gLat|` ≤ `MID_UNDER_GLAT_FLAT` × `max|gLat|` → `cornersSlowUnder`.
 - `k` della curva = il `mid` già calcolato.
 
@@ -349,7 +349,7 @@ assert.deepEqual(weightDistribution("ams2", [], null), { known: false, reason: "
 
 - [ ] **Step 3: Implementazione**
 
-Sommare i `loadFit` di tutte le zone; per asse, regressione lineare `y = a + b·x`: `b = (n·Σxy − Σx·Σy) / (n·Σxx − Σx²)`, `a = (Σy − b·Σx) / n`. Denominatore ≤ `1e-9 × n·Σxx` → "campioni tutti alla stessa velocità". `frontPct = aF / (aF + aR) × 100`; `aeroFrontPct = bF / (bF + bR) × 100` se `bF + bR > 0`, altrimenti `null`; `fuelL = fuelSum / fuelN` o `null`. AMS2 non misura mai: solo tabella.
+Sommare i `loadFit` di tutte le zone; per asse, regressione lineare `y = a + b * x`: `b = (n * Σxy − Σx * Σy) / (n * Σxx − Σx²)`, `a = (Σy − b * Σx) / n`. Denominatore ≤ `1e-9 × n * Σxx` → "campioni tutti alla stessa velocità". `frontPct = aF / (aF + aR) × 100`; `aeroFrontPct = bF / (bF + bR) × 100` se `bF + bR > 0`, altrimenti `null`; `fuelL = fuelSum / fuelN` o `null`. AMS2 non misura mai: solo tabella.
 
 - [ ] **Step 4: Verifica** — `npm run selfcheck`, PASS.
 
@@ -468,9 +468,9 @@ Regole per area (spec, sezioni 1-8; testo delle direzioni in italiano):
 
 - `asse` = quello con più eventi (`front`/`rear`), parità → anteriore.
 - Ogni `reason` comincia con il dato che lo sostiene, altezze in mm (es. `altezza minima ant 18 mm, post 22 mm, nessun tocco del fondo → abbassare…`, `2 tocchi del fondo che scompongono l'auto in 5 giri, asse anteriore → avvicinare…`).
-- Rimandi (un sintomo, un'area): quando il sintomo del proprietario c'è, l'area che lo cita aggiunge `· vedi area N (${label})` al suo `reason`, senza cambiare stato. Mappa: sottosterzo in inserimento 2 → 6; fondo frenata/altro 3 → 2; fondo rettilineo 4 → 3, 2, 8; oscillazioni 5 → 1; centro curva lente 6 → 7; bilanciamento con la velocità 8 → 6.
-- Molle `na` → le aree 2-5 aggiungono `· molle non verificate`.
-- `tyreLine`: dalla media di `avgTyreTempC` (altrimenti `avgTyreTempCenterC`) sulle zone: `ant−post ${signed} °C, sx−dx ${signed} °C`; se l'area 6 è `fix` per sottosterzo e anteriori più calde di ≥ `TYRE_CONFIRM_C` (o sovrasterzo e posteriori più calde), il `reason` dell'area 6 aggiunge `· conferma: ${asse} più calde di X °C`. `null` in Leaderboard o senza temperature.
+- Rimandi (un sintomo, un'area): quando il sintomo del proprietario c'è, l'area che lo cita aggiunge `- vedi area N (${label})` al suo `reason`, senza cambiare stato. Mappa: sottosterzo in inserimento 2 → 6; fondo frenata/altro 3 → 2; fondo rettilineo 4 → 3, 2, 8; oscillazioni 5 → 1; centro curva lente 6 → 7; bilanciamento con la velocità 8 → 6.
+- Molle `na` → le aree 2-5 aggiungono `- molle non verificate`.
+- `tyreLine`: dalla media di `avgTyreTempC` (altrimenti `avgTyreTempCenterC`) sulle zone: `ant−post ${signed} °C, sx−dx ${signed} °C`; se l'area 6 è `fix` per sottosterzo e anteriori più calde di ≥ `TYRE_CONFIRM_C` (o sovrasterzo e posteriori più calde), il `reason` dell'area 6 aggiunge `- conferma: ${asse} più calde di X °C`. `null` in Leaderboard o senza temperature.
 
 - [ ] **Step 1: Test che falliscono**
 

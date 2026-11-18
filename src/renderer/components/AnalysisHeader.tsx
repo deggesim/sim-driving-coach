@@ -98,7 +98,7 @@ const AnalysisHeader = ({
             <>
               <span className="deb-car fw-bold">{currentCar}</span>
               <span className="text-muted" aria-hidden="true">
-                ·
+                -
               </span>
               <span className="text-muted">
                 {currentTrack} {session.layout_name ?? session.layout}

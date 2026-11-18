@@ -1,6 +1,6 @@
 # Quadro assetto: le guide Frezza fuori dalla sequenza — design
 
-Data: 2026-10-26 · Stato: approvato · Estende `2026-10-20-scaletta-setup-design.md` (la "sequenza setup", sei passi).
+Data: 2026-10-26 - Stato: approvato - Estende `2026-10-20-scaletta-setup-design.md` (la "sequenza setup", sei passi).
 
 Fonti:
 

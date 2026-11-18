@@ -1565,7 +1565,7 @@ export const Ams2SetupPicker = ({
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           Seleziona screenshot setup
-          <span className="picker-subtitle"> · {expectedCar}</span>
+          <span className="picker-subtitle"> - {expectedCar}</span>
         </Modal.Title>
         <Button variant="link" className="picker-close" onClick={handleClose}>
           <FontAwesomeIcon icon={faXmark} />

@@ -61,7 +61,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {t("r3ePicker.title")}
-          <span className="picker-subtitle"> · {expectedCar}</span>
+          <span className="picker-subtitle"> - {expectedCar}</span>
         </Modal.Title>
         <Button
           variant="link"

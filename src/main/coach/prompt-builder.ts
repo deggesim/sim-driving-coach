@@ -363,9 +363,9 @@ export const buildStatsBlock = (
     `## Computed Data (authoritative — cite these numbers, do NOT recompute)`,
   );
   lines.push(
-    `- Laps: ${stats.lapCount} (analysable: ${stats.analyzableLapCount}) · Trend: ${stats.trend}` +
+    `- Laps: ${stats.lapCount} (analysable: ${stats.analyzableLapCount}) - Trend: ${stats.trend}` +
       (stats.bestLap != null
-        ? ` · Best lap: ${formatLapTime(stats.bestLap)}`
+        ? ` - Best lap: ${formatLapTime(stats.bestLap)}`
         : ""),
   );
   lines.push(`- Loaded setups: ${stats.setupCount}`);
