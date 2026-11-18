@@ -123,25 +123,24 @@ All subsections are mandatory except the setup comparison one, omittable ONLY if
 const SYNTHESIS_BODY = `You are an expert race engineer. Produce a SHORT SYNTHESIS of the driver's session, with the technical tone of an engineer, always with numeric data.
 The exact numbers (lap times, ∆, convergence, alert counts, durations) are in the "## Computed Data" block: CITE those numbers, do NOT recompute them. Durations in ms must be converted to seconds. The impact in seconds/lap is YOUR judgement derived from the data.
 
-Output EXACTLY: one root "##" section (the summary-analysis heading given in the Output language block) with one "###" subsection (the suggested-actions heading given there) followed by a voice block, and NOTHING else (no in-depth analysis, no long tables).
+Answer with a JSON object (its shape is enforced by the API) and NOTHING else (no in-depth analysis, no long tables). The application adds the section headings: write none.
 
-Summary section
-One condensed paragraph: diagnosis of the session with the key data (most critical problem with numbers, lap trend). It already is the synthesis — no "Synthesis" label.
+"summary"
+One condensed paragraph, plain text: diagnosis of the session with the key data (most critical problem with numbers, lap trend). It already is the synthesis — no "Synthesis" label.
 
-Suggested-actions subsection
-The actions to improve the next laps (setup or driving style), MAX 3, one or two lines each:
-1. **Setup — Parameter: A → B** — short rationale; expected effect ~X.XX s/lap.
-2. **Driving — @XXXm CornerName** — concrete action (e.g. brake 10m earlier); expected effect ~X.XX s/lap.
+"actions"
+The actions to improve the next laps (setup or driving style), MAX 3, one or two lines each. Every action has "kind" ("setup" or "driving"), "adjustment" and "text"; "text" is the whole action line, markdown allowed, for example:
+**Setup — Parameter: A → B** — short rationale; expected effect ~X.XX s/lap.
+**Driving — @XXXm CornerName** — concrete action (e.g. brake 10m earlier); expected effect ~X.XX s/lap.
+A driving action has "adjustment" "none". A setup action has the adjustment it acts on, one of the values the schema allows; "complete laps" for the request to complete more laps.
 
 Setup actions: follow the "Base setup" of the Computed Data. Propose AT MOST ONE setup action, ONLY on the row marked "do now", in the indicated direction and citing its datum. Choose the parameter from the loaded setup (e.g. ramps or geared LSD bias, depending on what it exposes). B = current cold value in the setup ± the minimum step (one click; for pressures 0.05 bar on AMS2, 0.7 PSI on ACE, 5 kPa on R3E). For pressures apply the change to the wheels indicated in their row, each in the indicated direction. Without a loaded setup give only the direction, without "A → B". If the loaded setup does not have the lever of the row marked "do now", say so and use the next row to fix. Name in one line the adjustments that are not assessable and were skipped, with the reason. If the "Base setup" asks to complete laps and has no row marked "do now", the setup action is "complete N more laps with this setup". If no row of the "Base setup" is marked "do now", the only setup action is the row marked "do now" of the "Chassis setup", in its direction and citing its datum: if the row gives the value (springs), B is that value; otherwise B = current value ± the minimum step; if the row gives several directions, use the first; for the anti-roll bars propose the front bar. With no row marked "do now", or without a "Base setup" row, no setup action. Driving actions stay free.
 ${CAPITALS}
 ${JARGON_RULE}
 ${CHANNELS}
 
-After the two sections ALWAYS add this block (it will be read aloud by the TTS):
-<sintesi-vocale>
-Maximum 3 sentences, WITHOUT markdown (no asterisks, no lists, no headings). Mention the most critical problem with a numeric datum and the main action.
-</sintesi-vocale>
+"voice"
+ALWAYS present (it will be read aloud by the TTS): maximum 3 sentences, WITHOUT markdown (no asterisks, no lists, no headings). Mention the most critical problem with a numeric datum and the main action.
 
 Rules: corner names ONLY from the "## Authorised Corner Names" whitelist (otherwise "@XXXm"); units always explicit ("XXXm" for distances, "X seconds"/"X s" for times). ${BRAKE_BIAS}`;
 
@@ -759,14 +758,14 @@ export const buildSessionPrompt = (input: SessionPromptInput): string => {
   );
 };
 
-/** Level 1 (always): short summary + the "suggested actions" subsection + <sintesi-vocale>. */
+/** Level 1 (always): short summary + suggested actions + voice text, as the JSON of synthesis-output.ts. */
 export const buildSynthesisPrompt = (input: SessionPromptInput): string => {
   const context = buildSessionContext(input);
   return (
     context +
     "\n" +
-    `Produce ONLY the summary section with the "suggested actions" subsection, ` +
-    `followed by the <sintesi-vocale> block. No tables, no in-depth analysis. ` +
+    `Produce ONLY the summary, the suggested actions and the voice text, ` +
+    `as the JSON object the system prompt specifies. No tables, no in-depth analysis. ` +
     `Cite the numbers from the "## Computed Data" block.`
   );
 };

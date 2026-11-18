@@ -159,10 +159,8 @@ const l1 = buildSynthesisPrompt({
   currentSynthesis: "SINTESI-CORRENTE del livello 1.",
 });
 assert.ok(!l1.includes("SINTESI-CORRENTE"));
-assert.ok(
-  l1.includes("<sintesi-vocale>"),
-  "Level 1 still asks for the TTS block",
-);
+assert.ok(l1.includes("the voice text"), "Level 1 still asks for the TTS text");
+assert.ok(SYNTHESIS_SYSTEM_PROMPT.includes('"voice"'), "voice field");
 
 // The comment engine sees both levels: a driver pushing back on a setup proposal
 // is pushing back on something that exists only in the deep-dive.
@@ -217,9 +215,9 @@ for (const { code } of LANGUAGES) {
   const h = headingsOf(code);
   const syn = synthesisSystemPrompt(code);
   const det = sessionSystemPrompt(code);
-  assert.deepEqual(roots(syn), [h.synthesis], `${code} synthesis roots`);
-  assert.ok(syn.includes(`### ${h.actions}`), `${code} actions`);
-  assert.ok(syn.includes(`## ${h.synthesis}\n### ${h.actions}`), code);
+  // Level 1 is JSON: renderSynthesis adds the headings, the prompt names none.
+  assert.deepEqual(roots(syn), [], `${code} synthesis roots`);
+  assert.ok(!syn.includes(`### ${h.actions}`), `${code} actions`);
   assert.deepEqual(
     roots(det),
     ["REQUIRED FORMAT", "General Rules", h.detail],
@@ -237,7 +235,10 @@ for (const { code } of LANGUAGES) {
   for (const kind of ["synthesis", "detail", "comment", "voice"] as const)
     assert.ok(outputLanguageBlock(code, kind).includes(t.glossary), code);
 }
-assert.ok(l1.includes(`the "suggested actions" subsection`), "L1 closing");
+assert.ok(
+  l1.includes("the suggested actions and the voice text"),
+  "L1 closing",
+);
 
 // Extended channels reach the prompt. All of these are computed by lap-recorder
 // and used to be dropped here, which left the braking channels as the only data
