@@ -442,6 +442,14 @@ body {
   padding: 10px 12px;
   margin-top: 12px;
 }
+/* Estimated API cost, shown next to a heading or a comment label. */
+.analysis-cost {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-dim);
+}
 .analysis-comment-label {
   font-size: 11px;
   text-transform: uppercase;

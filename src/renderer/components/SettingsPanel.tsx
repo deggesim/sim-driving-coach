@@ -193,6 +193,8 @@ const SettingsPanel = () => {
     setTelemetryLogEnabled,
     aceSetupsPath,
     setAceSetupsPath,
+    showCost,
+    setShowCost,
     settingSaved,
     showSaved,
   } = useSettingsStore();
@@ -615,6 +617,26 @@ const SettingsPanel = () => {
             <Row>
               <Col sm={{ span: 9, offset: 3 }}>
                 <Form.Text>{t("settings.modelDetail.hint")}</Form.Text>
+              </Col>
+            </Row>
+
+            <Form.Group as={Row} className="mb-2">
+              <Form.Label column sm={3}>
+                {t("settings.cost.label")}
+              </Form.Label>
+              <Col sm={9} className="d-flex align-items-center">
+                <Form.Check
+                  type="switch"
+                  id="show-cost-toggle"
+                  label={showCost ? t("settings.on") : t("settings.off")}
+                  checked={showCost}
+                  onChange={() => setShowCost(!showCost)}
+                />
+              </Col>
+            </Form.Group>
+            <Row>
+              <Col sm={{ span: 9, offset: 3 }}>
+                <Form.Text>{t("settings.cost.hint")}</Form.Text>
               </Col>
             </Row>
           </div>

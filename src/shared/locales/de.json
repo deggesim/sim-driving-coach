@@ -13,6 +13,7 @@
     "voice": "Renningenieur-Stimme",
     "layoutColumns": "Panels nebeneinander",
     "layoutRows": "Panels übereinander",
+    "cost": "Geschätzte Kosten der Analysen ein- oder ausblenden",
     "minimize": "Minimieren",
     "maximize": "Maximieren",
     "maximizeLabel": "Fenster maximieren",
@@ -199,6 +200,10 @@
     "anthropic": {
       "title": "Anthropic-API-Schlüssel",
       "hint": "Erforderlich für die Sitzungsanalyse (auf Anforderung), die Kommentare und den Sprach-Renningenieur über die Claude-API."
+    },
+    "cost": {
+      "label": "Analysekosten",
+      "hint": "Zeigt die geschätzten Kosten jedes Aufrufs in Dollar neben den Analyse-Überschriften und den Kommentaren."
     },
     "model": {
       "label": "Modell",
@@ -503,6 +508,7 @@
     "blockedMock": "Im Mock-Modus nicht verfügbar: Diese Analyse existiert nicht in der Datenbank.",
     "blockedWorking": "Warten, bis die laufende Analyse abgeschlossen ist.",
     "comment": "Kommentar",
+    "cost": "Geschätzte Kosten des Aufrufs",
     "workingTitle": "Analyse #{{version}} (läuft…)",
     "processing": "Verarbeitung läuft…"
   },

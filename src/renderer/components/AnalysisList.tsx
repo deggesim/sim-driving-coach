@@ -18,6 +18,7 @@ import {
 } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { localeOf } from "../../shared/i18n";
+import { formatCost } from "../../shared/pricing";
 import { useSessionStore } from "../store/sessionStore";
 import { useSettingsStore } from "../store/settingsStore";
 import AnalysisCommentControls from "./AnalysisCommentControls";
@@ -108,8 +109,16 @@ type Props = {
   startClosed?: boolean;
 };
 
-const renderMd = (md: string): string =>
-  marked.parse(md, { async: false }) as string;
+const costLabel = (show: boolean, usd?: number | null): string | null =>
+  show && usd != null ? formatCost(usd) : null;
+
+// The cost goes inside the heading the text already opens with (first <h2>).
+const renderMd = (md: string, cost?: string | null): string => {
+  const html = marked.parse(md, { async: false }) as string;
+  return cost
+    ? html.replace("</h2>", ` <span class="analysis-cost">${cost}</span></h2>`)
+    : html;
+};
 
 const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
   const { t } = useTranslation();
@@ -117,9 +126,15 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
   const deleteAnalysis = useSessionStore((s) => s.deleteAnalysis);
   const expandAnalysis = useSessionStore((s) => s.expandAnalysis);
 
+  const showCost = useSettingsStore((s) => s.showCost);
+
   const renderedAnalyses = useMemo(
-    () => analyses.map((a) => ({ id: a.id, html: renderMd(a.synthesis) })),
-    [analyses],
+    () =>
+      analyses.map((a) => ({
+        id: a.id,
+        html: renderMd(a.synthesis, costLabel(showCost, a.cost_l1)),
+      })),
+    [analyses, showCost],
   );
   const renderedById = useMemo(
     () => new Map(renderedAnalyses.map((r) => [r.id, r.html])),
@@ -130,9 +145,12 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
       new Map(
         analyses
           .filter((a) => a.detail)
-          .map((a) => [a.id, renderMd(a.detail!)]),
+          .map((a) => [
+            a.id,
+            renderMd(a.detail!, costLabel(showCost, a.cost_l2)),
+          ]),
       ),
-    [analyses],
+    [analyses, showCost],
   );
 
   // Both levels signal work on the same (sessionId, version) key, but they mean
@@ -287,6 +305,14 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
                     <div key={c.created_at} className="analysis-comment">
                       <div className="analysis-comment-label">
                         {t("analysisList.comment")}
+                        {costLabel(showCost, c.cost) && (
+                          <span
+                            className="analysis-cost ms-2"
+                            title={t("analysisList.cost")}
+                          >
+                            {costLabel(showCost, c.cost)}
+                          </span>
+                        )}
                       </div>
                       <div className="analysis-comment-text">{c.comment}</div>
                       <div

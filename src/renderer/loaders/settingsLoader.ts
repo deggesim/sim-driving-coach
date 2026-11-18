@@ -36,6 +36,7 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     telemetryLogEnabled,
     keyboardVoiceKey,
     aceSetupsPath,
+    showCost,
     ...voices
   ] = await Promise.all([
     configGet("language"),
@@ -50,6 +51,7 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     configGet("telemetryLogEnabled"),
     configGet("keyboardVoiceKey"),
     configGet("aceSetupsPath"),
+    configGet("showCost"),
     ...LANGUAGES.map((l) => configGet(voiceConfigKey(l.code))),
   ]);
 
@@ -69,5 +71,6 @@ export const settingsLoaderPromise: Promise<void> = (async () => {
     telemetryLogEnabled,
     keyboardVoiceKey,
     aceSetupsPath,
+    showCost,
   });
 })();

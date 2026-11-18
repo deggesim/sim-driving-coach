@@ -22,6 +22,7 @@ type SettingsStore = {
   anthropicModel: string;
   anthropicModelDetail: string; // Level-2 override; "" = use anthropicModel
   keyboardVoiceKey: string | null;
+  showCost: boolean; // show the estimated USD cost next to each analysis
 
   // TTS
   ttsEnabled: boolean;
@@ -52,6 +53,7 @@ type SettingsStore = {
   setAnthropicModel: (v: string) => void;
   setAnthropicModelDetail: (v: string) => void;
   setKeyboardVoiceKey: (v: string | null) => void;
+  setShowCost: (v: boolean) => void;
   setTtsEnabled: (v: boolean) => void;
   setAzureTtsEnabled: (v: boolean) => void;
   setAzureSpeechKey: (v: string) => void;
@@ -82,6 +84,7 @@ type SettingsStore = {
     telemetryLogEnabled: string | null;
     keyboardVoiceKey: string | null;
     aceSetupsPath: string | null;
+    showCost: string | null;
   }) => void;
 };
 
@@ -93,6 +96,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   anthropicModel: "claude-haiku-4-5-20251001",
   anthropicModelDetail: "",
   keyboardVoiceKey: null,
+  showCost: true,
   ttsEnabled: true,
   azureTtsEnabled: false,
   azureSpeechKey: "",
@@ -117,6 +121,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   setAnthropicModelDetail: (anthropicModelDetail) =>
     set({ anthropicModelDetail }),
   setKeyboardVoiceKey: (keyboardVoiceKey) => set({ keyboardVoiceKey }),
+  setShowCost: (showCost) => {
+    set({ showCost });
+    void window.electronAPI.configSet("showCost", String(showCost));
+  },
   setTtsEnabled: (ttsEnabled) => set({ ttsEnabled }),
   setAzureTtsEnabled: (azureTtsEnabled) => set({ azureTtsEnabled }),
   setAzureSpeechKey: (azureSpeechKey) => set({ azureSpeechKey }),
@@ -161,6 +169,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         ? { telemetryLogEnabled: values.telemetryLogEnabled === "true" }
         : {}),
       keyboardVoiceKey: values.keyboardVoiceKey ?? null,
+      ...(values.showCost ? { showCost: values.showCost === "true" } : {}),
       ...(values.aceSetupsPath ? { aceSetupsPath: values.aceSetupsPath } : {}),
       settingsLoaded: true,
     });

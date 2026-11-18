@@ -13,6 +13,7 @@
     "voice": "Voce dell'ingegnere",
     "layoutColumns": "Pannelli affiancati",
     "layoutRows": "Pannelli sovrapposti",
+    "cost": "Mostra o nascondi il costo stimato delle analisi",
     "minimize": "Riduci a icona",
     "maximize": "Ingrandisci",
     "maximizeLabel": "Ingrandisci finestra",
@@ -199,6 +200,10 @@
     "anthropic": {
       "title": "API Key Anthropic",
       "hint": "Necessaria per l'analisi della sessione (a richiesta), i commenti e l'ingegnere vocale via API Claude."
+    },
+    "cost": {
+      "label": "Costo analisi",
+      "hint": "Mostra in dollari il costo stimato di ogni chiamata, accanto ai titoli delle analisi e ai commenti."
     },
     "model": {
       "label": "Modello",
@@ -503,6 +508,7 @@
     "blockedMock": "Non disponibile in mock mode: questa analisi non esiste nel database.",
     "blockedWorking": "Attendi il completamento dell'analisi in corso.",
     "comment": "Commento",
+    "cost": "Costo stimato della chiamata",
     "workingTitle": "Analisi #{{version}} (in corso…)",
     "processing": "Elaborazione in corso…"
   },

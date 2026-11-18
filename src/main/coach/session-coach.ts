@@ -23,6 +23,7 @@ import {
   tyreTempsFixed,
 } from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
+import type { PriceBook } from "./price-book.js";
 import { getLanguage, tm } from "../i18n-main.js";
 import {
   allowedSetupAdjustments,
@@ -83,6 +84,7 @@ export const buildAnthropicErrorMessage = (err: unknown): string => {
 
 type SessionCoachOptions = {
   db: Database.Database;
+  prices: PriceBook;
   apiKey?: string;
   model?: string;
   // Fired once when a level starts working. Neither level streams: the renderer
@@ -338,6 +340,7 @@ export const createSessionCoachEngine = (
       const allowed = allowedSetupAdjustments(stats);
       let synthesis: string;
       let summary: string;
+      let cost: number | null;
       try {
         // Two short sections plus the voice text: 2k tokens covered Haiku's
         // typical output comfortably, but Sonnet tends to write longer prose for
@@ -354,6 +357,11 @@ export const createSessionCoachEngine = (
             format: { type: "json_schema", schema: synthesisSchema(allowed) },
           },
         });
+        cost = options.prices.cost(
+          model,
+          msg.usage.input_tokens,
+          msg.usage.output_tokens,
+        );
         const parsed = parseSynthesis(
           msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
           allowed,
@@ -398,10 +406,10 @@ export const createSessionCoachEngine = (
 
       const result = db
         .prepare(
-          `INSERT INTO ${analysesTable} (session_id, version, synthesis, summary, created_at)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO ${analysesTable} (session_id, version, synthesis, summary, created_at, cost_l1)
+           VALUES (?, ?, ?, ?, ?, ?)`,
         )
-        .run(sessionId, nextVersion, synthesis, summary, createdAt);
+        .run(sessionId, nextVersion, synthesis, summary, createdAt, cost);
 
       const analysis: SessionAnalysisRow = {
         id: Number(result.lastInsertRowid),
@@ -412,6 +420,8 @@ export const createSessionCoachEngine = (
         summary,
         created_at: createdAt,
         comments: [],
+        cost_l1: cost,
+        cost_l2: null,
       };
 
       options.onDone?.({ sessionId, analysis });
@@ -440,6 +450,8 @@ export const createSessionCoachEngine = (
             detail: string | null;
             created_at: string;
             comments_json: string | null;
+            cost_l1: number | null;
+            cost_l2: number | null;
           }
         | undefined;
       if (!row) return null;
@@ -485,6 +497,7 @@ export const createSessionCoachEngine = (
       options.onStart?.({ sessionId, version: row.version });
 
       let fullText: string;
+      let costL2: number | null;
       try {
         // Non-streaming like Level 1, despite the 32000-token cap: progressive
         // markdown re-parsing cost more than it showed.
@@ -525,6 +538,7 @@ export const createSessionCoachEngine = (
         // growing. Cache counters dropped with the breakpoint: nothing writes a
         // cache on this path, so they would print 0 forever.
         const u = finalMsg.usage;
+        costL2 = options.prices.cost(useModel, u.input_tokens, u.output_tokens);
         console.log(
           `[SessionCoach] L2 usage model=${useModel} ` +
             `in=${u.input_tokens} out=${u.output_tokens}`,
@@ -543,10 +557,9 @@ export const createSessionCoachEngine = (
         return null;
       }
 
-      db.prepare(`UPDATE ${analysesTable} SET detail = ? WHERE id = ?`).run(
-        fullText,
-        analysisId,
-      );
+      db.prepare(
+        `UPDATE ${analysesTable} SET detail = ?, cost_l2 = ? WHERE id = ?`,
+      ).run(fullText, costL2, analysisId);
 
       const analysis: SessionAnalysisRow = {
         id: row.id,
@@ -557,6 +570,8 @@ export const createSessionCoachEngine = (
         summary: row.summary,
         created_at: row.created_at,
         comments: parseAnalysisComments(row.comments_json),
+        cost_l1: row.cost_l1,
+        cost_l2: costL2,
       };
 
       options.onDone?.({ sessionId, analysis });
@@ -577,6 +592,8 @@ export const createSessionCoachEngine = (
             detail: string | null;
             created_at: string;
             comments_json: string | null;
+            cost_l1: number | null;
+            cost_l2: number | null;
           }
         | undefined;
       if (!row) return null;
@@ -614,6 +631,7 @@ export const createSessionCoachEngine = (
       });
 
       let responseText: string;
+      let commentCost: number | null;
       try {
         const msg = await client.messages.create({
           model,
@@ -621,6 +639,11 @@ export const createSessionCoachEngine = (
           system: commentSystemPrompt(getLanguage()),
           messages: [{ role: "user", content: prompt }],
         });
+        commentCost = options.prices.cost(
+          model,
+          msg.usage.input_tokens,
+          msg.usage.output_tokens,
+        );
         responseText = decodeAlertCodes(
           tm,
           msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
@@ -637,6 +660,7 @@ export const createSessionCoachEngine = (
         comment,
         response: responseText,
         created_at: new Date().toISOString(),
+        cost: commentCost,
       };
       const comments = [...priorComments, newComment];
 
@@ -653,6 +677,8 @@ export const createSessionCoachEngine = (
         summary: row.summary,
         created_at: row.created_at,
         comments,
+        cost_l1: row.cost_l1,
+        cost_l2: row.cost_l2,
       };
     },
   };

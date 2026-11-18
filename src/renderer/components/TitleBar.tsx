@@ -21,6 +21,8 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
   const { t } = useTranslation();
   const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
   const setTtsEnabled = useSettingsStore((s) => s.setTtsEnabled);
+  const showCost = useSettingsStore((s) => s.showCost);
+  const setShowCost = useSettingsStore((s) => s.setShowCost);
   const layout = useLayoutStore((s) => s.layout);
   const setLayout = useLayoutStore((s) => s.setLayout);
   return (
@@ -86,6 +88,16 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
             />
           </Button>
         ))}
+        <Button
+          variant="link"
+          className={`tts-toggle ${showCost ? "on" : "off"}`}
+          onClick={() => setShowCost(!showCost)}
+          title={t("titleBar.cost")}
+          aria-label={t("titleBar.cost")}
+          aria-pressed={showCost}
+        >
+          <i className="bi bi-currency-dollar" aria-hidden />
+        </Button>
         <Button
           variant="link"
           className={`tts-toggle ${ttsEnabled ? "on" : "off"}`}

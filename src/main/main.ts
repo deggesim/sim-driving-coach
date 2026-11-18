@@ -59,6 +59,7 @@ import {
   createAlertDispatcher,
   createRuleEngine,
 } from "./coach/rule-engine.js";
+import { createPriceBook } from "./coach/price-book.js";
 import { createSessionCoachEngine } from "./coach/session-coach.js";
 import { buildTrackMap } from "./coach/track-map-builder.js";
 import {
@@ -549,8 +550,12 @@ const setupPipeline = (): void => {
   // makes TTSManager announce the same summary too, a few ms apart: echo.
   let voiceAnalyzing = false;
 
+  const prices = createPriceBook();
+  void prices.load();
+
   const sessionCoach = createSessionCoachEngine({
     db,
+    prices,
     apiKey: getAnthropicApiKey(),
     model: getAnthropicModel(),
     onStart: (data) => pushToRenderer("session:analysisStart", data),
@@ -635,8 +640,12 @@ const setupPipeline = (): void => {
       detail: string | null;
       created_at: string;
       comments_json: string | null;
+      cost_l1: number | null;
+      cost_l2: number | null;
     }>;
     const analyses: SessionAnalysisRow[] = analysesRaw.map((r) => ({
+      cost_l1: r.cost_l1,
+      cost_l2: r.cost_l2,
       id: r.id,
       session_id: r.session_id,
       version: r.version,
