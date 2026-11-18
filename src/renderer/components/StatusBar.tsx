@@ -3,8 +3,6 @@
  * Shows: connection badge, car/track, calibration state, last alert (fade 5s).
  */
 
-import { faMicrophone } from "@fortawesome/free-solid-svg-icons/faMicrophone";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { ReactNode } from "react";
 import { Badge, Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
@@ -29,7 +27,7 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
     )
   ) : (
     <>
-      <FontAwesomeIcon icon={faMicrophone} /> {t("status.coachActive")}
+      <i className="bi bi-mic-fill" aria-hidden /> {t("status.coachActive")}
     </>
   );
 

@@ -8,8 +8,6 @@
  *   speaking  → streaming answer text
  */
 
-import { faMicrophone } from "@fortawesome/free-solid-svg-icons/faMicrophone";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Card, Spinner } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { stripMarkdown } from "../../shared/format";
@@ -46,7 +44,7 @@ const VoiceCoachOverlay = ({
           {state === "listening" && (
             <>
               <div className="voice-mic-pulse fs-1">
-                <FontAwesomeIcon icon={faMicrophone} />
+                <i className="bi bi-mic-fill" aria-hidden />
               </div>
               <p className="mb-0 text-secondary">
                 {t("voiceOverlay.listening")}

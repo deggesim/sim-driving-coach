@@ -1147,6 +1147,15 @@ body {
 }
 
 /* ── Voice coach overlay ── */
+.icon-spin {
+  display: inline-block;
+  animation: icon-spin 1s linear infinite;
+}
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @keyframes mic-pulse {
   0%,
   100% {
@@ -1213,6 +1222,7 @@ body {
   background: var(--bg3);
 }
 .laps-chevron {
+  display: inline-block; /* transform needs a non-inline box */
   transition: transform 0.25s ease;
   font-size: 12px;
 }
@@ -1404,6 +1414,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .voice-mic-pulse,
+  .icon-spin,
   .voice-cursor {
     animation: none;
   }

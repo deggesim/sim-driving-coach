@@ -5,14 +5,6 @@
  * Row click → shows SessionDetail inline (back button returns to list).
  */
 
-import {
-  faArrowDownWideShort,
-  faArrowUpWideShort,
-  faFlask,
-  faRobot,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Container, Form, Modal } from "react-bootstrap";
 import { Trans, useTranslation } from "react-i18next";
@@ -317,8 +309,9 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
           onClick={() => setSort((s) => (s === "desc" ? "asc" : "desc"))}
           title={sort === "desc" ? t("history.sortDesc") : t("history.sortAsc")}
         >
-          <FontAwesomeIcon
-            icon={sort === "desc" ? faArrowDownWideShort : faArrowUpWideShort}
+          <i
+            className={`bi bi-${sort === "desc" ? "sort-down" : "sort-up"}`}
+            aria-hidden
           />
           {t("common.date")}
         </Button>
@@ -334,7 +327,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
               })
             }
           >
-            <FontAwesomeIcon icon={faTrash} className="me-1" />
+            <i className="bi bi-trash me-1" aria-hidden />
             {selected.length > 0
               ? t("history.deleteSelected", { n: selected.length })
               : t("history.deleteAll")}
@@ -396,7 +389,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                         className="ms-1"
                         style={{ fontSize: 12 }}
                       >
-                        <FontAwesomeIcon icon={faFlask} className="me-1" />
+                        <i className="bi bi-flask me-1" aria-hidden />
                         mock
                       </Badge>
                     )}
@@ -433,7 +426,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                   <td>
                     {s.analysis_count != null && s.analysis_count > 0 && (
                       <Badge bg="secondary" style={{ fontSize: 12 }}>
-                        <FontAwesomeIcon icon={faRobot} className="me-1" />
+                        <i className="bi bi-robot me-1" aria-hidden />
                         {s.analysis_count}
                       </Badge>
                     )}
@@ -452,7 +445,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                         }
                         aria-label={t("history.deleteSession")}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <i className="bi bi-trash" aria-hidden />
                       </Button>
                     )}
                   </td>

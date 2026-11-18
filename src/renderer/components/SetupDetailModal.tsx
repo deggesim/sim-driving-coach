@@ -1,7 +1,5 @@
 import { Button, Modal } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faCopy, faPen } from "@fortawesome/free-solid-svg-icons";
 import type { GameSource, SessionSetupRow } from "../../shared/types";
 import AceSetupTabs from "./AceSetupTabs";
 import Ams2SetupTabs from "./Ams2SetupTabs";
@@ -80,19 +78,19 @@ export const SetupDetailModal = ({
         <Modal.Footer>
           {onEdit && (
             <Button size="sm" variant="secondary" onClick={onEdit}>
-              <FontAwesomeIcon icon={faPen} className="me-1" />
+              <i className="bi bi-pencil me-1" aria-hidden />
               {t("setupDetail.edit")}
             </Button>
           )}
           {onDuplicate && (
             <Button size="sm" variant="secondary" onClick={onDuplicate}>
-              <FontAwesomeIcon icon={faCopy} className="me-1" />
+              <i className="bi bi-copy me-1" aria-hidden />
               {t("setupDetail.duplicate")}
             </Button>
           )}
           {onUse && (
             <Button size="sm" variant="primary" onClick={onUse}>
-              <FontAwesomeIcon icon={faCheck} className="me-1" />
+              <i className="bi bi-check-lg me-1" aria-hidden />
               {t("setupDetail.use")}
             </Button>
           )}

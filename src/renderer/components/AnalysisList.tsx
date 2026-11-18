@@ -1,5 +1,3 @@
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { marked } from "marked";
 import {
   startTransition,
@@ -60,7 +58,7 @@ const AnalysisAccordionHeader = ({
         aria-label={t("analysisList.delete")}
         onClick={onDelete}
       >
-        <FontAwesomeIcon icon={faTrash} aria-hidden />
+        <i className="bi bi-trash" aria-hidden />
       </Button>
       <button
         type="button"

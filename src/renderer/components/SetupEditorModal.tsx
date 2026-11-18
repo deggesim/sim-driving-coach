@@ -8,8 +8,6 @@
  * setup_id sulle lap già collegate).
  */
 
-import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
@@ -94,7 +92,7 @@ export const SetupEditorModal = ({
           aria-label={t("setupCommon.close")}
           onClick={onClose}
         >
-          <FontAwesomeIcon icon={faXmark} aria-hidden />
+          <i className="bi bi-x-lg" aria-hidden />
         </Button>
       </Modal.Header>
 
@@ -158,7 +156,7 @@ export const SetupEditorModal = ({
           disabled={!name.trim() || duplicate}
           onClick={handleConfirm}
         >
-          <FontAwesomeIcon icon={faCheck} className="me-1" />
+          <i className="bi bi-check-lg me-1" aria-hidden />
           {editing ? t("setupEditor.saveChanges") : t("setupCommon.save")}
         </Button>
       </Modal.Footer>

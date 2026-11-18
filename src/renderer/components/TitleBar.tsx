@@ -3,15 +3,6 @@
  * Used in Electron frameless mode for drag area and window management.
  */
 
-import {
-  faArrowsLeftRight,
-  faExpand,
-  faMicrophone,
-  faMicrophoneSlash,
-  faMinus,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { useLayoutStore } from "../store/layoutStore";
@@ -89,9 +80,9 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
             )}
             aria-pressed={layout === l}
           >
-            <FontAwesomeIcon
-              icon={faArrowsLeftRight}
-              rotation={l === "rows" ? 90 : undefined}
+            <i
+              className={`bi bi-${l === "rows" ? "arrow-down-up" : "arrow-left-right"}`}
+              aria-hidden
             />
           </Button>
         ))}
@@ -104,9 +95,9 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
           aria-pressed={ttsEnabled}
         >
           {ttsEnabled ? (
-            <FontAwesomeIcon icon={faMicrophone} />
+            <i className="bi bi-mic-fill" aria-hidden />
           ) : (
-            <FontAwesomeIcon icon={faMicrophoneSlash} />
+            <i className="bi bi-mic-mute-fill" aria-hidden />
           )}
         </Button>
       </div>
@@ -118,7 +109,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         title={t("titleBar.minimize")}
         aria-label={t("titleBar.minimize")}
       >
-        <FontAwesomeIcon icon={faMinus} />
+        <i className="bi bi-dash-lg" aria-hidden />
       </Button>
       <Button
         variant="link"
@@ -127,7 +118,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         title={t("titleBar.maximize")}
         aria-label={t("titleBar.maximizeLabel")}
       >
-        <FontAwesomeIcon icon={faExpand} />
+        <i className="bi bi-fullscreen" aria-hidden />
       </Button>
       <Button
         variant="link"
@@ -136,7 +127,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
         title={t("titleBar.close")}
         aria-label={t("titleBar.closeLabel")}
       >
-        <FontAwesomeIcon icon={faXmark} />
+        <i className="bi bi-x-lg" aria-hidden />
       </Button>
     </div>
   );

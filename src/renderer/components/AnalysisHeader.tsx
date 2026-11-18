@@ -1,16 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge, Button, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faPlay,
-  faStop,
-  faGear,
-  faChartLine,
-  faFilePdf,
-  faArrowLeft,
-  faRotateRight,
-} from "@fortawesome/free-solid-svg-icons";
 import { formatLapTime } from "../../shared/format";
 import { useIPCStore } from "../store/ipcStore";
 import { useSessionStore } from "../store/sessionStore";
@@ -130,7 +120,7 @@ const AnalysisHeader = ({
         <div className="deb-actions">
           {showStart && (
             <Button size="sm" variant="primary" onClick={onStart}>
-              <FontAwesomeIcon icon={faPlay} className="me-1" />{" "}
+              <i className="bi bi-play-fill me-1" aria-hidden />{" "}
               {t("header.newSession")}
             </Button>
           )}
@@ -142,7 +132,7 @@ const AnalysisHeader = ({
             title={t("header.analyzeHint")}
             aria-describedby="analyze-hint"
           >
-            <FontAwesomeIcon icon={faChartLine} className="me-1" />{" "}
+            <i className="bi bi-graph-up me-1" aria-hidden />{" "}
             {t("header.analyze")}
           </Button>
           <span id="analyze-hint" className="visually-hidden">
@@ -151,7 +141,7 @@ const AnalysisHeader = ({
           <div className="deb-actions-secondary">
             {session && (isLive ? sessionActive : true) && (
               <Button size="sm" variant="secondary" onClick={onOpenPicker}>
-                <FontAwesomeIcon icon={faGear} className="me-1" />{" "}
+                <i className="bi bi-gear me-1" aria-hidden />{" "}
                 {t("header.manageSetup")}
                 {setups.length > 0 && ` (${setups.length})`}
               </Button>
@@ -162,18 +152,18 @@ const AnalysisHeader = ({
               onClick={onExportPdf}
               disabled={!session || analyses.length === 0}
             >
-              <FontAwesomeIcon icon={faFilePdf} className="me-1" />{" "}
+              <i className="bi bi-filetype-pdf me-1" aria-hidden />{" "}
               {t("header.exportPdf")}
             </Button>
             {!isLive && session && !sessionActive && onReopen && (
               <Button size="sm" variant="secondary" onClick={onReopen}>
-                <FontAwesomeIcon icon={faRotateRight} className="me-1" />
+                <i className="bi bi-arrow-clockwise me-1" aria-hidden />
                 {t("header.reopen")}
               </Button>
             )}
             {!isLive && onBack && (
               <Button size="sm" variant="secondary" onClick={onBack}>
-                <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
+                <i className="bi bi-arrow-left me-1" aria-hidden />
                 {t("header.back")}
               </Button>
             )}
@@ -185,7 +175,7 @@ const AnalysisHeader = ({
                 title={t("header.endTitle")}
                 aria-label={t("header.endAria")}
               >
-                <FontAwesomeIcon icon={faStop} className="me-1" />{" "}
+                <i className="bi bi-stop-fill me-1" aria-hidden />{" "}
                 {t("header.endSession")}
               </Button>
             )}

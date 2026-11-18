@@ -1,13 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useTranslation } from "react-i18next";
-import {
-  faCamera,
-  faCheck,
-  faFileCode,
-  faTrash,
-} from "@fortawesome/free-solid-svg-icons";
 import type {
   GameSource,
   SessionSetupRow,
@@ -63,10 +56,10 @@ const displayName = (row: SessionSetupRow): string =>
 const isSameName = (a: string, b: string): boolean =>
   a.trim().toLowerCase() === b.trim().toLowerCase();
 
-const ACQUIRE_ICON: Record<GameSource, typeof faFileCode> = {
-  r3e: faFileCode,
-  ace: faFileCode,
-  ams2: faCamera,
+const ACQUIRE_ICON: Record<GameSource, string> = {
+  r3e: "file-earmark-code",
+  ace: "file-earmark-code",
+  ams2: "camera",
 };
 
 type DeleteState =
@@ -341,9 +334,9 @@ const SetupSelectionModal = ({
                                 className="ms-2"
                                 style={{ fontSize: 11 }}
                               >
-                                <FontAwesomeIcon
-                                  icon={faCheck}
-                                  className="me-1"
+                                <i
+                                  className="bi bi-check-lg me-1"
+                                  aria-hidden
                                 />
                                 {t("setupSelect.verified")}
                               </Badge>
@@ -406,7 +399,7 @@ const SetupSelectionModal = ({
                                   });
                                 }}
                               >
-                                <FontAwesomeIcon icon={faTrash} />
+                                <i className="bi bi-trash" aria-hidden />
                               </Button>
                             )}
                           </td>
@@ -452,7 +445,7 @@ const SetupSelectionModal = ({
             onClick={onJsonPicker}
             className="w-100"
           >
-            <FontAwesomeIcon icon={ACQUIRE_ICON[game]} className="me-2" />
+            <i className={`bi bi-${ACQUIRE_ICON[game]} me-2`} aria-hidden />
             {t(`setupSelect.acquire.${game}`)}
           </Button>
         </Modal.Body>
@@ -569,7 +562,7 @@ const SetupSelectionModal = ({
                 onClose();
               }}
             >
-              <FontAwesomeIcon icon={faCheck} className="me-1" />
+              <i className="bi bi-check-lg me-1" aria-hidden />
               {t("setupSelect.import")}
             </Button>
           </Modal.Footer>

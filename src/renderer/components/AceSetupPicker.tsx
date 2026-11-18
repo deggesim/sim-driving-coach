@@ -9,13 +9,6 @@
  * expectedCar/expectedTrack supplied by the caller (lap row or live session).
  */
 
-import {
-  faCheck,
-  faGear,
-  faTriangleExclamation,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState } from "react";
 import {
   Badge,
@@ -227,7 +220,7 @@ const AceSetupPicker = ({
     >
       <Modal.Header closeButton>
         <Modal.Title>
-          <FontAwesomeIcon icon={faGear} className="me-2" />
+          <i className="bi bi-gear me-2" aria-hidden />
           {t("acePicker.title")}
         </Modal.Title>
       </Modal.Header>
@@ -235,7 +228,7 @@ const AceSetupPicker = ({
       <Modal.Body>
         {error && (
           <div className="text-danger mb-3" role="alert">
-            <FontAwesomeIcon icon={faXmark} className="me-1" />
+            <i className="bi bi-x-lg me-1" aria-hidden />
             {error.raw ?? t(`acePicker.error.${error.key}`)}
           </div>
         )}
@@ -294,7 +287,7 @@ const AceSetupPicker = ({
                 className="d-flex align-items-center gap-1"
                 style={{ fontSize: 12 }}
               >
-                <FontAwesomeIcon icon={faTriangleExclamation} />
+                <i className="bi bi-exclamation-triangle-fill" aria-hidden />
                 {t("acePicker.mismatch")}
               </Badge>
             ) : selectedCar && selectedTrack ? (
@@ -303,7 +296,7 @@ const AceSetupPicker = ({
                 className="d-flex align-items-center gap-1"
                 style={{ fontSize: 12 }}
               >
-                <FontAwesomeIcon icon={faCheck} />
+                <i className="bi bi-check-lg" aria-hidden />
                 {t("acePicker.match")}
               </Badge>
             ) : null}
@@ -357,7 +350,7 @@ const AceSetupPicker = ({
 
       <Modal.Footer>
         <Button variant="secondary" onClick={handleClose} disabled={decoding}>
-          <FontAwesomeIcon icon={faXmark} className="me-1" />
+          <i className="bi bi-x-lg me-1" aria-hidden />
           {t("common.cancel")}
         </Button>
         <Button
@@ -368,7 +361,7 @@ const AceSetupPicker = ({
           {decoding ? (
             <Spinner size="sm" className="me-1" />
           ) : (
-            <FontAwesomeIcon icon={faCheck} className="me-1" />
+            <i className="bi bi-check-lg me-1" aria-hidden />
           )}
           {t("acePicker.load")}
         </Button>

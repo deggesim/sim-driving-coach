@@ -10,10 +10,8 @@ import {
   Badge,
   Alert,
 } from "react-bootstrap";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { TFunction } from "i18next";
 import { Trans, useTranslation } from "react-i18next";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useConfig } from "../hooks/useIPC";
 import { useIPCStore } from "../store/ipcStore";
 import { useSettingsStore } from "../store/settingsStore";
@@ -516,7 +514,8 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveApiKey}>
                   {settingSaved === "apiKey" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedF")}
+                      <i className="bi bi-check-lg" aria-hidden />{" "}
+                      {t("settings.savedF")}
                     </>
                   ) : (
                     t("settings.save")
@@ -564,7 +563,8 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveModel}>
                   {settingSaved === "model" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
+                      <i className="bi bi-check-lg" aria-hidden />{" "}
+                      {t("settings.savedM")}
                     </>
                   ) : (
                     t("settings.save")
@@ -603,7 +603,8 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveModelDetail}>
                   {settingSaved === "modelDetail" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
+                      <i className="bi bi-check-lg" aria-hidden />{" "}
+                      {t("settings.savedM")}
                     </>
                   ) : (
                     t("settings.save")
@@ -661,7 +662,8 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveAzureKey}>
                   {settingSaved === "azureKey" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedF")}
+                      <i className="bi bi-check-lg" aria-hidden />{" "}
+                      {t("settings.savedF")}
                     </>
                   ) : (
                     t("settings.save")
@@ -782,7 +784,8 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveAssistant}>
                   {settingSaved === "assistant" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
+                      <i className="bi bi-check-lg" aria-hidden />{" "}
+                      {t("settings.savedM")}
                     </>
                   ) : (
                     t("settings.save")
@@ -848,7 +851,7 @@ const SettingsPanel = () => {
                     )}
                     {settingSaved === "gamepadButton" && (
                       <span className="text-success">
-                        <FontAwesomeIcon icon={faCheck} />{" "}
+                        <i className="bi bi-check-lg" aria-hidden />{" "}
                         {t("settings.savedM")}
                       </span>
                     )}
@@ -914,7 +917,7 @@ const SettingsPanel = () => {
                     )}
                     {settingSaved === "keyboardKey" && (
                       <span className="text-success">
-                        <FontAwesomeIcon icon={faCheck} />{" "}
+                        <i className="bi bi-check-lg" aria-hidden />{" "}
                         {t("settings.savedM")}
                       </span>
                     )}
@@ -972,7 +975,8 @@ const SettingsPanel = () => {
                 <Button variant="primary" onClick={handleSaveAceSetupsPath}>
                   {settingSaved === "aceSetupsPath" ? (
                     <>
-                      <FontAwesomeIcon icon={faCheck} /> {t("settings.savedM")}
+                      <i className="bi bi-check-lg" aria-hidden />{" "}
+                      {t("settings.savedM")}
                     </>
                   ) : (
                     t("settings.save")

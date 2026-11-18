@@ -1,5 +1,3 @@
-import { faComment, faMicrophone } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useRef, useState } from "react";
 import { Button, Form, Modal, Spinner } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
@@ -125,7 +123,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
         {busy ? (
           <Spinner size="sm" />
         ) : (
-          <FontAwesomeIcon icon={faComment} aria-hidden />
+          <i className="bi bi-chat-left-text" aria-hidden />
         )}
       </Button>
       <Button
@@ -148,7 +146,7 @@ const AnalysisCommentControls = ({ analysisId }: Props) => {
           else startRecording();
         }}
       >
-        <FontAwesomeIcon icon={faMicrophone} aria-hidden />
+        <i className="bi bi-mic-fill" aria-hidden />
       </Button>
 
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>

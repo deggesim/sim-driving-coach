@@ -1,14 +1,3 @@
-import {
-  faCheck,
-  faChevronRight,
-  faEye,
-  faEyeSlash,
-  faGear,
-  faPen,
-  faTrash,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Fragment, useState } from "react";
 import { Badge, Button, Form, Modal, Table } from "react-bootstrap";
 import { Trans, useTranslation } from "react-i18next";
@@ -149,15 +138,15 @@ const LapsTable = ({
               }}
               size="sm"
             >
-              <FontAwesomeIcon icon={faGear} className="me-1" />
+              <i className="bi bi-gear me-1" aria-hidden />
               {t("laps.assignSetup", { n: selectedIds.length })}
             </Button>
           )}
           {laps.length > 0 && (
             <Button variant="secondary" onClick={toggleHideInvalid} size="sm">
-              <FontAwesomeIcon
-                icon={hideInvalid ? faEye : faEyeSlash}
-                className="me-1"
+              <i
+                className={`bi bi-${hideInvalid ? "eye" : "eye-slash"} me-1`}
+                aria-hidden
               />
               {hideInvalid ? t("laps.showInvalid") : t("laps.hideInvalid")}
             </Button>
@@ -260,9 +249,9 @@ const LapsTable = ({
                     </td>
                     <td className={iconCellClass}>
                       {clickable && (
-                        <FontAwesomeIcon
-                          icon={faChevronRight}
-                          className={`laps-chevron${expanded ? " open" : ""}`}
+                        <i
+                          className={`bi bi-chevron-right laps-chevron${expanded ? " open" : ""}`}
+                          aria-hidden
                         />
                       )}
                     </td>
@@ -289,15 +278,12 @@ const LapsTable = ({
                     </td>
                     <td>
                       {l.valid ? (
-                        <FontAwesomeIcon
-                          icon={faCheck}
-                          className="text-success"
+                        <i
+                          className="bi bi-check-lg text-success"
+                          aria-hidden
                         />
                       ) : (
-                        <FontAwesomeIcon
-                          icon={faXmark}
-                          className="text-danger"
-                        />
+                        <i className="bi bi-x-lg text-danger" aria-hidden />
                       )}
                       <span className="visually-hidden">
                         {l.valid ? t("laps.validLap") : t("laps.invalidLap")}
@@ -335,9 +321,9 @@ const LapsTable = ({
                             onPickSetup?.(l);
                           }}
                         >
-                          <FontAwesomeIcon
-                            icon={faPen}
-                            className="laps-pen-icon"
+                          <i
+                            className="bi bi-pencil laps-pen-icon"
+                            aria-hidden
                           />
                         </Button>
                       )}
@@ -361,7 +347,7 @@ const LapsTable = ({
                         })}
                         onClick={(e) => handleDeleteClick(e, l.id)}
                       >
-                        <FontAwesomeIcon icon={faTrash} />
+                        <i className="bi bi-trash" aria-hidden />
                       </Button>
                     </td>
                   </tr>

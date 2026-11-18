@@ -53,10 +53,8 @@ for (let i = 0; i < lines.length; i++) {
   if (isRenderer && /process\.env\./.test(stripped))
     violations.push(`L${n}: 'process.env' — use 'import.meta.env'`);
 
-  // Both quote styles: the original only matched single quotes, so in a repo
-  // formatted with double quotes this rule could never fire.
-  if (/import \* as .+from ['"]@fortawesome/.test(stripped))
-    violations.push(`L${n}: FontAwesome wildcard import — import icons individually`);
+  if (/@fortawesome\//.test(stripped))
+    violations.push(`L${n}: Font Awesome import — the project uses Bootstrap Icons`);
 }
 
 if (violations.length > 0) {
