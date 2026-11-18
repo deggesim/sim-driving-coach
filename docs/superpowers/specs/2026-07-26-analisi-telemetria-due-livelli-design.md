@@ -123,7 +123,7 @@ type SessionStats = {
 ```
 
 Formule verificabili: delta/gap = aritmetica diretta; `criticalCorners` =
-aggregazione per `zone` su tutti i giri + sort desc; durate = frame×16ms.
+aggregazione per `zone` su tutti i giri + sort desc; durate = frame * 16ms.
 `trend` = media ultimo terzo vs primo terzo dei tempi.
 <!-- ponytail: trend euristico su 3 fasce; regressione lineare se serve finezza -->
 **Non** calcolato: impatto stimato (resta giudizio del modello).

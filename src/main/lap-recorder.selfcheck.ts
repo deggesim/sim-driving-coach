@@ -117,7 +117,7 @@ assert.equal(hard[1].absHardBrakeFrames, 0);
 assert.equal(hard[0].lockFramesFront, undefined, "no sr, no lock counter");
 
 // Durations follow the timestamps (~31ms on Windows), a gap > 100ms counts 16ms,
-// and zones saved before the *Ms fields fall back to frames × 16.
+// and zones saved before the *Ms fields fall back to frames * 16.
 const timed = aggregateZones(
   [
     frame(10, { abs: 1, tc: 1, thr: 0.5, ts: 0 }),

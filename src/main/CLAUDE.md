@@ -39,7 +39,7 @@ missing channel never reaches a prompt as a zero.
 | --- | --- | --- | --- |
 | `rpm` | `EngineRps` (rad/s → RPM) | `rpms` | `mRpm` |
 | `gLat` / `gLon` (g) | `Player_LocalGforce_X` / `_Z` (already g) | `accG[0]` / `accG[2]` | `mLocalAcceleration[0]` / `[2]` ÷ 9.80665 |
-| `tp` (PSI, stored) | `TirePressure` kPa × 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` × 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
+| `tp` (PSI, stored) | `TirePressure` kPa * 0.145038; the whole quartet is dropped when any wheel reads -1 (= N/A) | `wheelsPressure` | `mAirPressure` * 0.145038 (despite `SharedMemory.h` documenting it as PSI, the raw value is kPa — confirmed by comparing a session's first-lap reading against the setup's cold bar pressure) |
 | `sr` | derived: `(-TireSpeed - CarSpeed) / CarSpeed` (TireSpeed is negative rolling forward, verified live), zeroed below 5 m/s | `slipRatio` | — derived from `mTyreRPS` (rad/s) with a tyre radius estimated in pure rolling (median of v/|w| redone on every reader start: driven wheels — from the AMS2 table's driveline, all four when AWD/unknown — on 10 samples off throttle, undriven wheels on 30 at steady speed under any throttle, |gLat| and |gLon| < 0.1; off-throttle straights give only 6-10 samples per lap at Monza); absent until estimated |
 | `sus` (m) | `Player_SuspensionDeflection` | `suspensionTravel` | `mSuspensionTravel` |
 | `rh` (m) | `Player_RideHeight` double[4], metres (checked live 2026-10-27: 40-78 mm); a quartet with any value < 0 is dropped | `rideHeight[2]` @268, **per axle**, mapped to `[F, F, R, R]` (a touch must count once per axle, not twice) | `mRideHeight` @20636 in cm, ÷ 100. Verified live 2026-10-31 (BMW M4 GT4, Monza: 83-93 mm medians, falling to 64-67 mm at the front under braking) |
@@ -60,7 +60,7 @@ channel is untouched.
 Older AMS2 recordings used offsets 256 bytes too early for surface temperatures
 and ride height; those channels are unreliable in saved laps and require new laps.
 
-`rh` and `wl` were checked live on R3E and ACE (2026-10-27), AMS2's `rh` on 2026-10-31; `fuel` was not: the `channel-log` line prints `alt=…mm carico=…N`, which should read tens of mm falling under braking and at speed, and four wheel loads summing to about mass × 9.81 at low speed. An `rh` whose lap median (axle means) is outside 5–300 mm — all zeros included — counts as absent (wrong offset or unit), never as a zero ride height.
+`rh` and `wl` were checked live on R3E and ACE (2026-10-27), AMS2's `rh` on 2026-10-31; `fuel` was not: the `channel-log` line prints `alt=…mm carico=…N`, which should read tens of mm falling under braking and at speed, and four wheel loads summing to about mass * 9.81 at low speed. An `rh` whose lap median (axle means) is outside 5–300 mm — all zeros included — counts as absent (wrong offset or unit), never as a zero ride height.
 
 Two traps worth remembering: AMS2's `mSuspensionTravel` (7340) and `mAirPressure`
 (7372) are declared **after** `mSequenceNumber` (7320) in `SharedMemory.h`, so

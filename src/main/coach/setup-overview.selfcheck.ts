@@ -157,7 +157,7 @@ assert.equal(
   "no temperatures",
 );
 
-// Springs: 43.8 / 56.2, springs 225 all round → fix, target round(225 × 56.2 / 43.8) = 289.
+// Springs: 43.8 / 56.2, springs 225 all round → fix, target round(225 * 56.2 / 43.8) = 289.
 const springs = computeSetupOverview({
   ...base,
   weight: w438,

@@ -65,7 +65,7 @@ e su un frame senza `sv` la stringa contiene `vsosp=assente`.
 - `types.ts`: `sv?: number[]; // suspension velocity [FL, FR, RL, RR], raw game units and sign (R3E, AMS2); calibrated per lap in chassis-counters`.
 - `ams2-struct.ts`: `suspensionVelocity: 7356, // float[4] mSuspensionVelocity, between mSuspensionTravel and mAirPressure; unit not verified live`.
 - R3E: `readDoubleArray(buf, "Player_SuspensionVelocity", 4)` in `FrameExt.sv`; AMS2: `readFloatArray(buf, OFF.suspensionVelocity, 4)` → `sv: [...suspVelocity]`. Nessuna conversione: la calibrazione è nel Task 2.
-- `formatChannels`: dopo `sosp=…mm` aggiungere ` vsosp=${quartet(f.sv, 1000, 0)}mm/s` (mostra il grezzo ×1000: in m/s si leggono decine/centinaia, in mm/s decine di migliaia — è il controllo dal vivo).
+- `formatChannels`: dopo `sosp=…mm` aggiungere ` vsosp=${quartet(f.sv, 1000, 0)}mm/s` (mostra il grezzo * 1000: in m/s si leggono decine/centinaia, in mm/s decine di migliaia — è il controllo dal vivo).
 - `CLAUDE.md` (src/main): riga `sv` nella tabella (R3E `Player_SuspensionVelocity` double[4]; ACE —; AMS2 `mSuspensionVelocity` @7356, **non verificato**), nota che segno e unità si calibrano per giro in `chassis-counters.ts`.
 
 - [ ] **Step 4:** `npm run selfcheck` → PASS; `npm run typecheck` → 0 errori.
@@ -106,7 +106,7 @@ assert.ok(Math.abs(h.lowRebF / (h.lowRebF + h.lowBumpF) - 0.6) < 0.05);
 assert.deepEqual(zone0(scaleSv(damped, 1000)).damperHist, h);
 // both sus and sv negated (compression negative): same counts
 assert.deepEqual(zone0(negate(damped)).damperHist, h);
-// sv unrelated to sus (constant, or ×50): no family
+// sv unrelated to sus (constant, or * 50): no family
 assert.equal(zone0(withSv(damped, () => [0.2, 0.2, 0.2, 0.2])).damperHist, undefined);
 assert.equal(zone0(scaleSv(damped, 50)).damperHist, undefined);
 // no hard braking: no family
@@ -133,10 +133,10 @@ const svScale = (frames: CompactFrame[]): number | null => {
   // 2) |k| in SV_K_MS → unit 1; in SV_K_MMS → 0.001; else null. velSign = sign(k).
   // 3) compression sign of sus: mean front sus on frames with brk > HARD_BRAKE
   //    minus mean front sus over all frames; no hard-brake frame or 0 → null.
-  // return unit × velSign × compSign
+  // return unit * velSign * compSign
 };
 ```
-Conteggio: chiamato una volta in `chassisCounters` sui frame del giro (non sui `pitFrames`); per ogni frame con `sv` e `spd ≥ DAMPER_MIN_KMH`, per ogni ruota `u = scale × sv[w]`; `u === 0` scartato; lento se `|u| < DAMPER_KNEE_MPS`; bump se `u > 0`; asse F per `w < 2`. Famiglia creata con `??=` a zeri solo sulle zone che ricevono un campione.
+Conteggio: chiamato una volta in `chassisCounters` sui frame del giro (non sui `pitFrames`); per ogni frame con `sv` e `spd ≥ DAMPER_MIN_KMH`, per ogni ruota `u = scale * sv[w]`; `u === 0` scartato; lento se `|u| < DAMPER_KNEE_MPS`; bump se `u > 0`; asse F per `w < 2`. Famiglia creata con `??=` a zeri solo sulle zone che ricevono un campione.
 
 `CLAUDE.md`: nella voce `chassis-counters.ts` aggiungere la famiglia `damperHist` e la calibrazione; lasciare la frase sul contatore di oscillazioni rimosso.
 
@@ -211,5 +211,5 @@ Commento del blocco: sostituire "shown, never judged" con il criterio (istogramm
 
 ## Verifica dal vivo (dopo il merge, a carico dell'utente)
 
-- R3E e AMS2: riga `[R3E]/[AMS2] canali` con `vsosp` in decine/centinaia (m/s ×1000). Su AMS2 un valore tutto a zero o in migliaia indica offset/unità da rivedere (la calibrazione lo scarterebbe comunque).
+- R3E e AMS2: riga `[R3E]/[AMS2] canali` con `vsosp` in decine/centinaia (m/s * 1000). Su AMS2 un valore tutto a zero o in migliaia indica offset/unità da rivedere (la calibrazione lo scarterebbe comunque).
 - R3E Monza: setup di partenza, poi +3 click di slow rebound sulle quattro ruote: la quota di rebound lento deve salire. Se non si sposta, il criterio va tolto come le oscillazioni (spec §5).

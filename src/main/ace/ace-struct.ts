@@ -339,7 +339,7 @@ export const GFX = {
   carIds: 3940, // uint64[60][2] - UID↔index map for car_coordinates (added 2026-04-01, unused)
 } as const;
 
-// SMEvoTyreState (256 B, Pack=4) fields we read; its base is GFX 220 + n×256 for
+// SMEvoTyreState (256 B, Pack=4) fields we read; its base is GFX 220 + n * 256 for
 // FL,FR,RL,RR. Field order from the spec: slip f, lock bool (+3 pad), pressure,
 // tyre_temperature_c, brake_temperature_c, brake_pressure, then left/center/right.
 // Verified live (Lotus Exige, 0.9.1): +8 pressure and +12 carcass match PHY.wheelsPressure /

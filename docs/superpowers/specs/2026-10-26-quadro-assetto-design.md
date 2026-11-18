@@ -67,7 +67,7 @@ Le aree `non valutabile` si scavalcano dichiarandole, come i passi della sequenz
 
 **Proposte su più aree** **(utente: "quadro completo", proposte ordinate)**: il Livello 2 dà una proposta per ogni area `da correggere`, numerate nell'ordine del quadro, con l'avvertenza che vanno applicate **una alla volta, in quell'ordine**, e che dopo ogni modifica le aree successive vanno riverificate con un nuovo stint. Il Livello 1 ne propone solo una, l'area corrente.
 
-**Valori proposti** **(scelta)**: l'unico valore calcolato in TS è la molla dell'asse pesante (molla attuale dell'asse leggero × rapporto dei pesi, arrotondata all'intero nell'unità del setup). Per le altre aree TS dà direzione e ruote/asse; il valore è "attuale ± un passo minimo", che il modello legge dal setup, come fa già la sequenza. `SetupParam` non conserva minimo e passo del setup, quindi la variante di Frezza "asse leggero al minimo" non si propone.
+**Valori proposti** **(scelta)**: l'unico valore calcolato in TS è la molla dell'asse pesante (molla attuale dell'asse leggero * rapporto dei pesi, arrotondata all'intero nell'unità del setup). Per le altre aree TS dà direzione e ruote/asse; il valore è "attuale ± un passo minimo", che il modello legge dal setup, come fa già la sequenza. `SetupParam` non conserva minimo e passo del setup, quindi la variante di Frezza "asse leggero al minimo" non si propone.
 
 **Una sola area proprietaria per sintomo** **(scelta)**: il proprietario di un sintomo è fisso e non dipende da cosa contiene il setup. Quando la leva del proprietario potrebbe mancare sull'auto, la sua direzione porta il ripiego della guida in forma condizionale, es. "avvicinare il bumpstop dell'asse anteriore; se l'auto non ha bumpstop regolabili, alzare le quattro altezze di 2 mm". Le altre aree della tabella citano il sintomo come "vedi area X", senza proposta.
 
@@ -86,10 +86,10 @@ Le aree `non valutabile` si scavalcano dichiarandole, come i passi della sequenz
 
 ### 1. Molle
 
-Guida "La registrazione delle molle": molle isofrequenziali, rigidezza in proporzione al peso sull'asse. L'asse più leggero al minimo; l'altro = leggero × (peso pesante / peso leggero). Esempio 992 GT3 R: 781,2 / 608,8 = 1,28 → 225 × 1,28 = 288 N/mm.
+Guida "La registrazione delle molle": molle isofrequenziali, rigidezza in proporzione al peso sull'asse. L'asse più leggero al minimo; l'altro = leggero * (peso pesante / peso leggero). Esempio 992 GT3 R: 781,2 / 608,8 = 1,28 → 225 * 1,28 = 288 N/mm.
 
 - Dati: distribuzione dei pesi (vedi "Distribuzione dei pesi"); molle delle quattro ruote dal setup.
-- `da correggere` se il rapporto attuale `molla asse pesante / molla asse leggero` differisce dal rapporto dei pesi di oltre **3 % (scelta)**. Proposta: asse pesante = molla attuale dell'asse leggero × rapporto dei pesi, calcolata in TS e arrotondata all'intero.
+- `da correggere` se il rapporto attuale `molla asse pesante / molla asse leggero` differisce dal rapporto dei pesi di oltre **3 % (scelta)**. Proposta: asse pesante = molla attuale dell'asse leggero * rapporto dei pesi, calcolata in TS e arrotondata all'intero.
 - Sinistra e destra dello stesso asse diverse: mostrate, mai `da correggere` (2026-10-28). È una scelta legittima sui tracciati a prevalenza di curve nello stesso verso e per il bilanciamento dei pesi sulle ruote; il rapporto usa la media dell'asse.
 - `non valutabile`: distribuzione dei pesi sconosciuta; molle assenti dal setup; nessun setup caricato.
 
@@ -240,7 +240,7 @@ Dopo le righe della sequenza, una riga "Quadro assetto" e una riga per area, nel
 
 - Selfcheck: estrattore del setup sui tre giochi (con fixture JSON R3E, etichette ACE, nomi canonici AMS2); ogni area (`ok`, `da correggere`, `non valutabile`); regola "un sintomo, un'area"; regressione della distribuzione dei pesi su dati sintetici con aerodinamica nota; associazione dei nomi auto AMS2.
 - Ammortizzatori, dal vivo (2026-10-29 e 2026-10-30): l'istogramma della velocità non si sposta con +3 click di slow rebound e distingue solo il minimo della scala, quindi è stato tolto come le oscillazioni (§5).
-- Dal vivo, per ogni gioco: la riga `channel-log` mostra altezza da terra, velocità sospensioni e carico ruota plausibili (altezza: decine di mm che scendono in frenata e ad alta velocità; carico: somma ≈ peso × 9,81 a bassa velocità); la distribuzione misurata di un'auto R3E o ACE confrontata con il dato pubblicato; il nome di almeno tre auto AMS2 trovato nella tabella.
+- Dal vivo, per ogni gioco: la riga `channel-log` mostra altezza da terra, velocità sospensioni e carico ruota plausibili (altezza: decine di mm che scendono in frenata e ad alta velocità; carico: somma ≈ peso * 9,81 a bassa velocità); la distribuzione misurata di un'auto R3E o ACE confrontata con il dato pubblicato; il nome di almeno tre auto AMS2 trovato nella tabella.
 - Gate del repo: `npm run typecheck && npm run lint && npm run format:check && npm run selfcheck && npm run fallow:check`.
 
 ## Scelte del piano e decisioni d'implementazione (2026-10-27)

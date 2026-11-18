@@ -463,7 +463,7 @@ export const createSessionCoachEngine = (
         // markdown re-parsing cost more than it showed.
         // withOptions({ timeout }) is REQUIRED here, not a precaution: a
         // non-streaming create() without a client-level timeout makes the SDK
-        // derive one from max_tokens ((60min × max_tokens) / 128000 = 15min here)
+        // derive one from max_tokens ((60min * max_tokens) / 128000 = 15min here)
         // and throw "Streaming is required for operations that may take longer
         // than 10 minutes" before any HTTP call, for any max_tokens > 21333.
         // An explicit timeout on the client suppresses the guard; a per-request

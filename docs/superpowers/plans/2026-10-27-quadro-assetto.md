@@ -163,7 +163,7 @@ Expected: FAIL in `ladder-counters.selfcheck`.
 - Aggiungere le nuove chiavi a `CORNER_KEYS` (inizializzazione a 0 come oggi) e a `LadderCounters`.
 - Classe di velocità = media di `spd` dei frame della fase centrale (quelli già usati per `mid`).
 - Sovrasterzo, indipendente dalle convenzioni di segno dei giochi: il segno di maggioranza di `str * gLat` sui frame della fase centrale definisce il verso "normale"; quota di frame con segno opposto > `MID_OVER_SHARE` → `cornersSlowOver`.
-- Sottosterzo: esiste una finestra di frame centrali consecutivi lunga ≥ `MID_UNDER_MS` in cui `|str|` finale ≥ `|str|` iniziale × (1 + `MID_UNDER_STEER_GAIN`) e `max|gLat| − min|gLat|` ≤ `MID_UNDER_GLAT_FLAT` × `max|gLat|` → `cornersSlowUnder`.
+- Sottosterzo: esiste una finestra di frame centrali consecutivi lunga ≥ `MID_UNDER_MS` in cui `|str|` finale ≥ `|str|` iniziale * (1 + `MID_UNDER_STEER_GAIN`) e `max|gLat| − min|gLat|` ≤ `MID_UNDER_GLAT_FLAT` * `max|gLat|` → `cornersSlowUnder`.
 - `k` della curva = il `mid` già calcolato.
 
 - [ ] **Step 4: Verifica**
@@ -240,11 +240,11 @@ Expected: FAIL (modulo inesistente).
 
 - [ ] **Step 3: Implementazione**
 
-- Assi da `rh`: anteriore = `min(rh[0], rh[1])`, posteriore = `min(rh[2], rh[3])`. Un evento per asse: ≥ `BOTTOM_MIN_FRAMES` frame consecutivi sotto `BOTTOM_M`; fase dal primo frame (rettilineo veloce: `spd > FAST_STRAIGHT_SHARE × max spd del giro` e `|gLat| < STRAIGHT_GLAT` e `brk ≤ HARD_BRAKE`; frenata: `brk > HARD_BRAKE`; altro: il resto); `upset` solo per frenata/altro: entro `UPSET_WINDOW_MS` cambio di segno di `str` e `max gLat − min gLat > UPSET_GLAT`. L'evento va nella zona del primo frame.
+- Assi da `rh`: anteriore = `min(rh[0], rh[1])`, posteriore = `min(rh[2], rh[3])`. Un evento per asse: ≥ `BOTTOM_MIN_FRAMES` frame consecutivi sotto `BOTTOM_M`; fase dal primo frame (rettilineo veloce: `spd > FAST_STRAIGHT_SHARE * max spd del giro` e `|gLat| < STRAIGHT_GLAT` e `brk ≤ HARD_BRAKE`; frenata: `brk > HARD_BRAKE`; altro: il resto); `upset` solo per frenata/altro: entro `UPSET_WINDOW_MS` cambio di segno di `str` e `max gLat − min gLat > UPSET_GLAT`. L'evento va nella zona del primo frame.
 - `rideHeight`: `minF/minR` per zona; somme "rettilineo veloce" con la stessa definizione; somme "centro curva" con `|str| > 0.05`, `brk ≤ 0.05`, `thr ≤ 0.2`.
 - `loadFit`: frame con `|gLat| < LOAD_GLAT`, `|gLon| < LOAD_GLON`, `|str| < LOAD_STEER`, `spd ≥ LOAD_MIN_KMH`, `wl` tutto > 0; `x = (spd/3.6)²`, `y` = somma dei due carichi dell'asse; `fuel` sommato solo se presente.
-- `suspOsc`: velocità per ruota `Δsus/Δt` tra frame consecutivi; picco = `|v| > SV_PEAK` e massimo locale; nella finestra successiva di `OSC_WINDOW_MS` contare i cambi di segno con `|v| > OSC_REL × picco`; ≥ `OSC_HALF_CYCLES` → `oscillating`. La ricerca del picco successivo riparte dopo la finestra.
-- `straightSteer`: frame con `spd > STEER_STRAIGHT_KMH` e `|gLat| < STEER_STRAIGHT_GLAT`; `metres += spd/3.6 × Δt`; inversione = cambio di verso di `str` con ampiezza dall'ultimo estremo > `STEER_REVERSAL`.
+- `suspOsc`: velocità per ruota `Δsus/Δt` tra frame consecutivi; picco = `|v| > SV_PEAK` e massimo locale; nella finestra successiva di `OSC_WINDOW_MS` contare i cambi di segno con `|v| > OSC_REL * picco`; ≥ `OSC_HALF_CYCLES` → `oscillating`. La ricerca del picco successivo riparte dopo la finestra.
+- `straightSteer`: frame con `spd > STEER_STRAIGHT_KMH` e `|gLat| < STEER_STRAIGHT_GLAT`; `metres += spd/3.6 * Δt`; inversione = cambio di verso di `str` con ampiezza dall'ultimo estremo > `STEER_REVERSAL`.
 - `aggregateZones`: `...chassis.get(z)` accanto a `...counters.get(z)`, stessa forma.
 
 - [ ] **Step 4: Verifica**
@@ -349,7 +349,7 @@ assert.deepEqual(weightDistribution("ams2", [], null), { known: false, reason: "
 
 - [ ] **Step 3: Implementazione**
 
-Sommare i `loadFit` di tutte le zone; per asse, regressione lineare `y = a + b * x`: `b = (n * Σxy − Σx * Σy) / (n * Σxx − Σx²)`, `a = (Σy − b * Σx) / n`. Denominatore ≤ `1e-9 × n * Σxx` → "campioni tutti alla stessa velocità". `frontPct = aF / (aF + aR) × 100`; `aeroFrontPct = bF / (bF + bR) × 100` se `bF + bR > 0`, altrimenti `null`; `fuelL = fuelSum / fuelN` o `null`. AMS2 non misura mai: solo tabella.
+Sommare i `loadFit` di tutte le zone; per asse, regressione lineare `y = a + b * x`: `b = (n * Σxy − Σx * Σy) / (n * Σxx − Σx²)`, `a = (Σy − b * Σx) / n`. Denominatore ≤ `1e-9 * n * Σxx` → "campioni tutti alla stessa velocità". `frontPct = aF / (aF + aR) * 100`; `aeroFrontPct = bF / (bF + bR) * 100` se `bF + bR > 0`, altrimenti `null`; `fuelL = fuelSum / fuelN` o `null`. AMS2 non misura mai: solo tabella.
 
 - [ ] **Step 4: Verifica** — `npm run selfcheck`, PASS.
 
@@ -457,7 +457,7 @@ Regole per area (spec, sezioni 1-8; testo delle direzioni in italiano):
 
 | n | `fix` quando | direzione nel `reason` | `na` quando |
 |---|---|---|---|
-| 1 molle | `|rapporto molle pesante/leggero ÷ rapporto pesi − 1| > SPRING_RATIO_TOL`, oppure sinistra ≠ destra su un asse | `molle ${asse pesante} ${round(media leggero × rapporto pesi)} ${unit}` / `uguagliare sinistra e destra` | pesi sconosciuti (motivo di `WeightDistribution`), `levers.springs` assente ("parametro non presente nel setup caricato"), nessun setup |
+| 1 molle | `|rapporto molle pesante/leggero ÷ rapporto pesi − 1| > SPRING_RATIO_TOL`, oppure sinistra ≠ destra su un asse | `molle ${asse pesante} ${round(media leggero * rapporto pesi)} ${unit}` / `uguagliare sinistra e destra` | pesi sconosciuti (motivo di `WeightDistribution`), `levers.springs` assente ("parametro non presente nel setup caricato"), nessun setup |
 | 2 altezze e rake | nessun evento fondo e `min(minF, minR) > RH_HIGH_M` → "abbassare di un click, stessi mm sui due assi"; oppure `cornersEntryUnder > cornersEntry/2` → "più rake (posteriore più alto o anteriore più basso)" | come a sinistra | senza `rideHeight` e senza curve |
 | 3 bumpstop | `upset / judgedLaps > BUMP_UPSET_PER_LAP` | `avvicinare il bumpstop ${asse}; se l'auto non ha bumpstop regolabili, o sono già al massimo, alzare le quattro altezze di 2 mm` | senza `bottoming` |
 | 4 terze molle | `bottoming.straight > 0` → `irrigidire la terza molla ${asse}; se non basta, +1 mm alle altezze mantenendo il rake; se l'auto non ha terze molle, avvicinare i bumpstop ${asse}`; oppure media rettilineo − media centro curva > `THIRD_HIGH_M` → "ammorbidire le terze molle" | come a sinistra | senza `rideHeight` |
@@ -639,7 +639,7 @@ In `setup-ladder.selfcheck.ts`: `stintReadyMessage(ladderComplete, overviewWithC
 
 - [ ] **Step 2: Verifica dal vivo (con l'utente, un gioco alla volta)** — `$env:SDC_CHANNEL_LOG=1; npm run dev`, sessione nel gioco, leggere le righe `[R3E]`/`[ACE]`/`[AMS2] canali`:
   - `alt=` decine di mm, che scendono in frenata e ad alta velocità; mai `zeri` (offset sbagliato) né valori in centinaia (unità sbagliata: R3E `Player_RideHeight` è atteso in metri, AMS2 `mRideHeight` in cm);
-  - `carico=` (R3E, ACE): somma delle quattro ruote ≈ massa × 9,81 a bassa velocità;
+  - `carico=` (R3E, ACE): somma delle quattro ruote ≈ massa * 9,81 a bassa velocità;
   - distribuzione dei pesi misurata di un'auto R3E o ACE confrontata con il dato pubblicato;
   - AMS2: il nome auto di almeno tre sessioni trovato da `findAms2Car` (nessuna riga `[AMS2] auto non trovata`); se i nomi non coincidono, aggiungere la normalizzazione necessaria in `ams2-car-lookup.ts` con un caso di test per ciascuna variante;
   - R3E: incollare un JSON di setup vero e verificare che `extractSetupLevers` trovi molle e ammortizzatori; correggere le etichette in `setup-levers.ts` e il test di Task 6 se diverse.
