@@ -87,7 +87,7 @@ PDF, voice coach, grafici telemetria e track map.
     `tcActive` **approssimato** (bit `CAR_TCS` + euristica su throttle/slip —
     AMS2 non espone un flag "TC taglia ora"; documentare con commento
     `ponytail:` e la via di upgrade), `brakeTemp*` da `mBrakeTempCelsius[4]`.
-  - Speed `mSpeed` è m/s → ×3.6 per km/h nel `CompactFrame`.
+  - Speed `mSpeed` è m/s → * 3.6 per km/h nel `CompactFrame`.
 
 ### 3. Wiring — `src/main/main.ts`
 

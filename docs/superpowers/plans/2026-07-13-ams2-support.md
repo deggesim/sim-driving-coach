@@ -1565,7 +1565,7 @@ export const Ams2SetupPicker = ({
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           Seleziona screenshot setup
-          <span className="picker-subtitle"> · {expectedCar}</span>
+          <span className="picker-subtitle"> - {expectedCar}</span>
         </Modal.Title>
         <Button variant="link" className="picker-close" onClick={handleClose}>
           <FontAwesomeIcon icon={faXmark} />
@@ -2022,7 +2022,7 @@ git commit -m "docs(ams2): document AMS2 support in CLAUDE.md"
 
 **Spec coverage** (spec §Architettura 1-5 + Flusso + Verifica):
 - §1 Tipo cardine + schema DB → Task 1 (GameSource, tabelle `*_ams2`, migration, fix 5 ternari + `t()`). ✓ Include il "bug latente" della spec §1.
-- §2 Reader `ams2-struct.ts` + `ams2-reader.ts` → Task 2 + Task 3 (offset reali da header, seq-number read, mock, eventi, lapComplete via `mLapsCompleted`, speed ×3.6, `tcActive` euristica documentata, `absActive` da `mAntiLockActive`, brakeTemps da `mBrakeTempCelsius`). ✓
+- §2 Reader `ams2-struct.ts` + `ams2-reader.ts` → Task 2 + Task 3 (offset reali da header, seq-number read, mock, eventi, lapComplete via `mLapsCompleted`, speed * 3.6, `tcActive` euristica documentata, `absActive` da `mAntiLockActive`, brakeTemps da `mBrakeTempCelsius`). ✓
 - §3 Wiring main → Task 4 (3° reader, handler, `resolveNames` identità, `readerReset` esteso, priorità). ✓
 - §4 Setup screenshot → Task 5 (IPC `setup:listScreenshots`/`setup:decodeSetup`, appid 1066890, steamid auto, `session_setups_ams2`, `claude-sonnet-5`) + Task 6 (`Ams2SetupPicker`) + Task 7 (branch picker). ✓
 - §5 Renderer → Task 7 (SessionHistory, StatusBar, mockData). **Deviazione documentata**: nessun selettore `activeGame` in SettingsPanel (connection-driven, confermato dall'utente) — spec §5 e CLAUDE.md corretti in Task 8.

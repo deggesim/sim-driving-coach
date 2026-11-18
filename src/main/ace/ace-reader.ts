@@ -120,7 +120,7 @@ export const createAceReader = (options: AceReaderOptions = {}): AceReader => {
   let telemetryLogPath: string | null = null;
   let telemetryLogStream: fs.WriteStream | null = null;
   let telemetryPollCounter = 0;
-  const TELEMETRY_LOG_INTERVAL = 16; // write every ~250ms (16 polls × 16ms)
+  const TELEMETRY_LOG_INTERVAL = 16; // write every ~250ms (16 polls * 16ms)
   let prevTcActive = -1;
   let prevAbsActive = -1;
 

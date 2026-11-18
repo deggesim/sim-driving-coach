@@ -3,14 +3,6 @@
  * Shows thumbnails, multi-select, then Claude Vision decode. Warns on already-used shots.
  */
 
-import {
-  faArrowLeft,
-  faCheck,
-  faCircleNotch,
-  faExclamationTriangle,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { Trans, useTranslation } from "react-i18next";
@@ -157,7 +149,7 @@ export const Ams2SetupPicker = ({
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {t("ams2Picker.title")}
-          <span className="picker-subtitle"> · {expectedCar}</span>
+          <span className="picker-subtitle"> - {expectedCar}</span>
         </Modal.Title>
         <Button
           variant="link"
@@ -166,7 +158,7 @@ export const Ams2SetupPicker = ({
           aria-label={t("setupCommon.close")}
           onClick={handleClose}
         >
-          <FontAwesomeIcon icon={faXmark} aria-hidden />
+          <i className="bi bi-x-lg" aria-hidden />
         </Button>
       </Modal.Header>
 
@@ -239,14 +231,14 @@ export const Ams2SetupPicker = ({
                     />
                     {selected.has(s.name) && (
                       <div className="picker-check">
-                        <FontAwesomeIcon icon={faCheck} />
+                        <i className="bi bi-check-lg" aria-hidden />
                       </div>
                     )}
                     {s.alreadyUsed && (
                       <div className="picker-used-badge">
-                        <FontAwesomeIcon
-                          icon={faExclamationTriangle}
-                          className="me-1"
+                        <i
+                          className="bi bi-exclamation-triangle-fill me-1"
+                          aria-hidden
                         />
                         {t("ams2Picker.alreadyScanned")}
                       </div>
@@ -264,7 +256,7 @@ export const Ams2SetupPicker = ({
         {phase === "confirm-duplicates" && (
           <div className="picker-confirm">
             <div className="picker-confirm-icon">
-              <FontAwesomeIcon icon={faExclamationTriangle} />
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden />
             </div>
             <h6 className="picker-confirm-title">{t("ams2Picker.dupTitle")}</h6>
             <p className="picker-confirm-text">
@@ -299,7 +291,7 @@ export const Ams2SetupPicker = ({
 
         {phase === "decoding" && (
           <div className="picker-loading">
-            <FontAwesomeIcon icon={faCircleNotch} spin />
+            <i className="bi bi-arrow-clockwise icon-spin" aria-hidden />
             <span>{t("ams2Picker.decoding")}</span>
           </div>
         )}
@@ -309,7 +301,7 @@ export const Ams2SetupPicker = ({
             <div className="picker-car-check mb-3">
               {decodedSetup.carVerified ? (
                 <Badge bg="success">
-                  <FontAwesomeIcon icon={faCheck} className="me-1" />
+                  <i className="bi bi-check-lg me-1" aria-hidden />
                   {t("ams2Picker.carOk", { car: decodedSetup.carFound })}
                 </Badge>
               ) : (
@@ -380,7 +372,7 @@ export const Ams2SetupPicker = ({
               size="sm"
               onClick={() => setPhase("pick")}
             >
-              <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
+              <i className="bi bi-arrow-left me-1" aria-hidden />
               {t("ams2Picker.back")}
             </Button>
             <Button
@@ -403,7 +395,7 @@ export const Ams2SetupPicker = ({
                 setSetupName("");
               }}
             >
-              <FontAwesomeIcon icon={faArrowLeft} className="me-1" />
+              <i className="bi bi-arrow-left me-1" aria-hidden />
               {t("ams2Picker.reselect")}
             </Button>
             <Button
@@ -412,7 +404,7 @@ export const Ams2SetupPicker = ({
               disabled={!setupName.trim()}
               onClick={handleConfirm}
             >
-              <FontAwesomeIcon icon={faCheck} className="me-1" />
+              <i className="bi bi-check-lg me-1" aria-hidden />
               {t("setupCommon.save")}
             </Button>
           </>

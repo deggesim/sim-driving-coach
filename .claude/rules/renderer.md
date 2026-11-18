@@ -15,12 +15,7 @@ other files under `.claude/rules/`; architecture-wide decisions in the root `CLA
 - **State management**: Zustand. Use `create()` from `zustand` for all global state. Prefer slices for large stores. No Redux, no Context API for app state.
 - **HTTP**: Axios for all REST service calls. Define typed request/response shapes. Create a shared axios instance (base URL, interceptors) rather than calling `axios.get/post` directly in components.
 - **Build tool**: electron-vite. Keep `electron.vite.config.ts` minimal. Use `import.meta.env` for environment variables — never `process.env` in frontend code.
-- **Icons**: Prefer [Font Awesome Free](https://fontawesome.com/icons) icons via `@fortawesome/react-fontawesome`. Import icons individually — never import the full bundle. Always destructure the specific icon from its package:
-  ```tsx
-  import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-  import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
-  ```
-  Do not do `import * as icons from '@fortawesome/free-solid-svg-icons'` or import a collection object.
+- **Icons**: [Bootstrap Icons](https://icons.getbootstrap.com/) via the `bootstrap-icons` font (CSS imported once in `main.tsx`). Use `<i className="bi bi-check-lg" aria-hidden />`, with spacing/state classes appended (`me-1`, `icon-spin` for a rotating icon). Do not reintroduce Font Awesome.
 
 ## UI Theme
 

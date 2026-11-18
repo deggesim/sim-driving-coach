@@ -4,6 +4,7 @@ import { I18nextProvider } from "react-i18next";
 import { rendererI18n } from "./i18n";
 import App from "./App";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.min.css";
 import "./styles/global.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

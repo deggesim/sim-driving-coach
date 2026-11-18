@@ -112,7 +112,7 @@ const STRUCT_FIELDS: StructField[] = [
   { name: "Player_Unused1", type: "double" },
   { name: "Player_Unused2", type: "double" },
   { name: "Player_Unused3", type: "double" },
-  // PlayerData total: 2×int + 1+11×3+9+4×4+3+4+3 doubles = 560 bytes
+  // PlayerData total: 2 * int + 1 + 11 * 3 + 9 + 4 * 4 + 3 + 4 + 3 doubles = 560 bytes
 
   // ── Event And Session ─────────────────────────────────────────────────────
   { name: "TrackName", type: "byte", count: 64 },

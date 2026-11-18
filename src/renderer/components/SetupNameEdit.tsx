@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faPen, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 type Props = {
   name: string;
@@ -33,7 +31,7 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
             setDraft(name);
           }}
         >
-          <FontAwesomeIcon icon={faPen} />
+          <i className="bi bi-pencil" aria-hidden />
         </Button>
       </span>
     );
@@ -73,7 +71,7 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
         aria-label={t("setupName.saveAria")}
         onClick={save}
       >
-        <FontAwesomeIcon icon={faCheck} />
+        <i className="bi bi-check-lg" aria-hidden />
       </Button>
       <Button
         size="sm"
@@ -82,7 +80,7 @@ export const SetupNameEdit = ({ name, takenNames, onRename }: Props) => {
         aria-label={t("setupName.cancelAria")}
         onClick={() => setDraft(null)}
       >
-        <FontAwesomeIcon icon={faXmark} />
+        <i className="bi bi-x-lg" aria-hidden />
       </Button>
     </span>
   );

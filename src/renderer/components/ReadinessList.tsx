@@ -31,7 +31,7 @@ export const ReadinessList = ({ onOpenSettings }: Props) => {
         {missing.map((m) => (
           <li key={m.label} className="readiness-item">
             <span>
-              <strong>{m.label}</strong> · {m.effect}
+              <strong>{m.label}</strong> - {m.effect}
             </span>
             <Button size="sm" variant="secondary" onClick={onOpenSettings}>
               {t("readiness.set")}

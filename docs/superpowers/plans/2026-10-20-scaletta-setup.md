@@ -146,7 +146,7 @@ Comportamento di `slip`:
   - `|gLat| < 0.05`.
 - Per ogni ruota si accumulano i primi **100** campioni di questo tipo di `speedMps / |ω|`, poi il raggio si congela alla loro mediana (`// ponytail: radius frozen after 100 samples, rolling median if tyre wear/pressure drift matters`).
 - Finché il raggio non è congelato, `slip` restituisce `undefined`.
-- Dopo: `speedMps < 1` → `[0,0,0,0]`; altrimenti `(r·|ω| − v) / v` per ruota.
+- Dopo: `speedMps < 1` → `[0,0,0,0]`; altrimenti `(r * |ω| − v) / v` per ruota.
 - `// ponytail:` sul bias di circa l'1% delle motrici in rilascio (spec).
 
 - [x] **Step 1: scrivi i test che falliscono**
@@ -228,10 +228,10 @@ Run: il gate completo. Expected: exit 0, con `ams2-slip self-check OK` e `ams2-s
 
 Algoritmo delle curve (spec, passo 2), non determinato dalla firma:
 - Una curva è una sequenza contigua di frame con `|str| > 0.05`. Due sequenze separate da meno di **300 ms** si uniscono. Le curve che durano meno di **1000 ms** si scartano.
-- Per ogni frame di curva con `v = spd/3.6 > 10`: `k = |gLat| / (v² · |str|)`.
+- Per ogni frame di curva con `v = spd/3.6 > 10`: `k = |gLat| / (v² * |str|)`.
 - Fasi: entrata `brk > 0.05`; centro `brk <= 0.05 && thr <= 0.20`; uscita `thr > 0.50`. Una fase vale con almeno **3** frame, `kPhase` è la sua media.
-- `cornersEntry` +1 se entrata e centro valgono. Poi `kEntry < 0.85·kMid` → `cornersEntryUnder` +1; `kEntry > 1.15·kMid` → `cornersEntryOver` +1.
-- Lo stesso per l'uscita: `cornersExit` +1 se uscita e centro valgono, `kExit > 1.15·kMid` → `cornersExitOver` +1.
+- `cornersEntry` +1 se entrata e centro valgono. Poi `kEntry < 0.85 * kMid` → `cornersEntryUnder` +1; `kEntry > 1.15 * kMid` → `cornersEntryOver` +1.
+- Lo stesso per l'uscita: `cornersExit` +1 se uscita e centro valgono, `kExit > 1.15 * kMid` → `cornersExitOver` +1.
 
 - [x] **Step 1: scrivi i test che falliscono**
 

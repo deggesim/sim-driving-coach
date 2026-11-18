@@ -147,7 +147,7 @@ assert.equal(old.current, null);
 assert.equal(old.afterLadder, false);
 assert.equal(
   area(old, 2).reason,
-  "ride height not available · springs not verified",
+  "ride height not available - springs not verified",
 );
 assert.ok(!area(old, 6).reason.includes("see ride heights and rake"));
 assert.equal(area(old, 8).reason, "no slow or fast corner measured");
@@ -157,7 +157,7 @@ assert.equal(
   "no temperatures",
 );
 
-// Springs: 43.8 / 56.2, springs 225 all round → fix, target round(225 × 56.2 / 43.8) = 289.
+// Springs: 43.8 / 56.2, springs 225 all round → fix, target round(225 * 56.2 / 43.8) = 289.
 const springs = computeSetupOverview({
   ...base,
   weight: w438,

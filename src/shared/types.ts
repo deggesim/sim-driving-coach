@@ -144,8 +144,8 @@ export type ZoneData = {
   overlapFrames: number;
   tcActivations: number; // number of TC engagement events (rising edges)
   absActivations: number; // number of ABS engagement events (rising edges)
-  tcActiveFrames?: number; // total frames TC was cutting (old laps: duration = frames × 16ms)
-  absActiveFrames?: number; // total frames ABS was active (old laps: duration = frames × 16ms)
+  tcActiveFrames?: number; // total frames TC was cutting (old laps: duration = frames * 16ms)
+  absActiveFrames?: number; // total frames ABS was active (old laps: duration = frames * 16ms)
   // Durations from the frame timestamps (the poll runs at ~31ms on Windows, not 16)
   tcActiveMs?: number;
   absActiveMs?: number;

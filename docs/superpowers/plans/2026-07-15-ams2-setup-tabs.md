@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Display AMS2 setups in three tabs (Tyres/Brakes/Chassis · Suspension · Drivetrain) with fixed sections, mirroring the in-game setup screens.
+**Goal:** Display AMS2 setups in three tabs (Tyres/Brakes/Chassis - Suspension - Drivetrain) with fixed sections, mirroring the in-game setup screens.
 
 **Architecture:** Constrain the Claude Vision decode to a fixed `category` vocabulary; extract the shared 4-corner-grid primitives from `AceSetupTabs` into `SetupTabsCommon.tsx`; add a React-free `ams2-setup-sections.ts` mapping module (unit-tested) + a new `Ams2SetupTabs.tsx` that renders tabs/sections; wire it into `SetupDetailModal` and the `Ams2SetupPicker` verify phase. Unmapped categories fall into an "Altro" section.
 

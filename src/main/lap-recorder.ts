@@ -85,7 +85,7 @@ const frameDurations = (frames: CompactFrame[]): Map<CompactFrame, number> =>
     }),
   );
 
-/** Zone duration in ms; zones recorded before the *Ms fields fall back to frames × 16. */
+/** Zone duration in ms; zones recorded before the *Ms fields fall back to frames * 16. */
 export const zoneDurationMs = (
   z: ZoneData,
   kind: "tc" | "abs" | "overlap",

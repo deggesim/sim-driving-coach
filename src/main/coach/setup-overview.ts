@@ -476,7 +476,7 @@ export const computeSetupOverview = (input: {
         ? `confirmed: rear hotter by ${(-frontMinusRear).toFixed(1)} °C`
         : null,
     ].filter((x) => x != null);
-    return { ...a, reason: [a.reason, ...notes].join(" · ") };
+    return { ...a, reason: [a.reason, ...notes].join(" - ") };
   });
 
   const afterLadder = ladder.current != null;

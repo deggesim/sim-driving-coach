@@ -209,7 +209,7 @@ Nel JSX, subito dopo lo `<span className="text-muted">` con `{laps.length} giri`
 ```tsx
           {activeSetupName && (
             <>
-              <span className="text-muted">·</span>
+              <span className="text-muted">-</span>
               <span className="text-muted">
                 setup <span className="deb-setup">{activeSetupName}</span>
               </span>
@@ -244,7 +244,7 @@ Atteso: entrambi puliti, exit 0. Se `typecheck` segnala `activeSetupId` mancante
 npm run dev
 ```
 
-Con un sim in esecuzione: apri una sessione, carica un setup, verifica che nell'header compaia `· setup <nome>`. Apri "Gestione setup", riusa un setup diverso dallo storico: il nome nell'header deve cambiare. Apri una sessione storica dalla lista: il setup **non** deve comparire.
+Con un sim in esecuzione: apri una sessione, carica un setup, verifica che nell'header compaia `- setup <nome>`. Apri "Gestione setup", riusa un setup diverso dallo storico: il nome nell'header deve cambiare. Apri una sessione storica dalla lista: il setup **non** deve comparire.
 
 - [ ] **Step 9: Commit** *(chiedere conferma prima di eseguirlo)*
 
@@ -454,7 +454,7 @@ export const SetupEditorModal = ({ base, onClose, onConfirm }: Props) => {
           Crea setup da esistente
           <span className="picker-subtitle">
             {" "}
-            · {base.name ?? base.carFound}
+            - {base.name ?? base.carFound}
           </span>
         </Modal.Title>
         <Button variant="link" className="picker-close" onClick={onClose}>
@@ -684,7 +684,7 @@ Atteso: exit 0. Errore probabile: `onDuplicateSetup` mancante su uno dei due `Se
 npm run dev
 ```
 
-Su AMS2: "Gestione setup" → clic su un setup dello storico → "Crea setup da esistente" → l'editor mostra tutti i parametri raggruppati per categoria. Il pulsante "Salva setup" è disabilitato finché il nome è vuoto. Modifica due valori, dai un nome, salva: il nuovo setup compare nel contatore dell'header ("Gestione setup (N)"), nell'header appare `· setup <nuovo nome>`, e riaprendo la gestione setup il nuovo setup è nello storico con i valori modificati. Ripetere su R3E e ACE.
+Su AMS2: "Gestione setup" → clic su un setup dello storico → "Crea setup da esistente" → l'editor mostra tutti i parametri raggruppati per categoria. Il pulsante "Salva setup" è disabilitato finché il nome è vuoto. Modifica due valori, dai un nome, salva: il nuovo setup compare nel contatore dell'header ("Gestione setup (N)"), nell'header appare `- setup <nuovo nome>`, e riaprendo la gestione setup il nuovo setup è nello storico con i valori modificati. Ripetere su R3E e ACE.
 
 - [ ] **Step 10: Commit** *(chiedere conferma prima di eseguirlo)*
 

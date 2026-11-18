@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Button, Form, Modal } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { SetupData, SetupParam } from "../../shared/types";
 import { parseR3eSetupJson } from "../../shared/r3e-setup-parse";
 import R3eSetupTabs from "./R3eSetupTabs";
@@ -63,7 +61,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {t("r3ePicker.title")}
-          <span className="picker-subtitle"> · {expectedCar}</span>
+          <span className="picker-subtitle"> - {expectedCar}</span>
         </Modal.Title>
         <Button
           variant="link"
@@ -72,7 +70,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
           aria-label={t("setupCommon.close")}
           onClick={handleClose}
         >
-          <FontAwesomeIcon icon={faXmark} aria-hidden />
+          <i className="bi bi-x-lg" aria-hidden />
         </Button>
       </Modal.Header>
 
@@ -166,7 +164,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
               disabled={!setupName.trim()}
               onClick={handleConfirm}
             >
-              <FontAwesomeIcon icon={faCheck} className="me-1" />
+              <i className="bi bi-check-lg me-1" aria-hidden />
               {t("setupCommon.save")}
             </Button>
           </>
