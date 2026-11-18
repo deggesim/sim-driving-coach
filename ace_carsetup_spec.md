@@ -202,7 +202,7 @@ Common tags in this file:
 | `f1.f4.f1` / `f1.f4.f2`    | TC/ABS ratio mapping        | Internal ratio, not the click value; click→ratio is car-specific                        |
 | `f6.f1` sub-block          | 16 bytes, unknown structure | Possibly compound aero data or suspension geometry reference                            |
 | `f3.f2` / `f3.f4`          | Always 1000.0               | Possibly ARB range limits                                                               |
-| `f2.f4` (fast damping)     | 10000                       | Unit unclear; may be N*s/m                                                              |
+| `f2.f4` (fast damping)     | 10000                       | Unit unclear; may be Ns/m                                                               |
 | `f2.f5`                    | 0.08                        | Unknown                                                                                 |
 | `f4.f6`                    | ±0.0002~0.0004              | Likely computed by sim                                                                  |
 
