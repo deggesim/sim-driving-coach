@@ -116,7 +116,7 @@ const costLabel = (show: boolean, usd?: number | null): string | null =>
 const renderMd = (md: string, cost?: string | null): string => {
   const html = marked.parse(md, { async: false }) as string;
   return cost
-    ? html.replace("</h2>", ` <span class="analysis-cost">${cost}</span></h2>`)
+    ? html.replace("</h2>", ` <span class="analysis-cost ms-2">${cost}</span></h2>`)
     : html;
 };
 
