@@ -26,10 +26,8 @@ const tOf = (lang: Language) => {
 
 // Headings per kind, with their markdown level (## root, ### subsection).
 const HEADINGS = {
-  synthesis: [
-    ["##", "synthesis"],
-    ["###", "actions"],
-  ],
+  // Level 1 is JSON: its headings are added by renderSynthesis, not the model.
+  synthesis: [],
   detail: [
     ["##", "detail"],
     ["###", "telemetry"],
@@ -61,7 +59,7 @@ export const outputLanguageBlock = (
     "# Output language",
     `Write the whole answer in ${ENGLISH_NAME[lang]} (${native}), whatever the language of the data below.`,
   ];
-  if (kind === "synthesis" || kind === "detail") {
+  if (kind === "detail") {
     lines.push(
       'Use exactly these headings, in this order and at these levels (omit the optional ones only as the rules above allow), and no other "##" heading:',
       ...HEADINGS[kind].map(

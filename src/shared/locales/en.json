@@ -67,7 +67,7 @@
       "invalidKey": "Anthropic API: invalid key. Check it in the settings.",
       "rateLimit": "Anthropic API: rate limit exceeded. Try again in a few moments.",
       "quota": "Anthropic API: insufficient credit or quota exhausted. Check your balance at console.anthropic.com.",
-      "synthesisTruncated": "Synthesis truncated: token limit reached. The partial text was saved; run the analysis again.",
+      "synthesisTruncated": "Synthesis truncated or invalid: token limit reached. Nothing was saved; run the analysis again.",
       "detailTruncated": "In-depth analysis truncated: token limit reached. The partial text was saved; try again."
     }
   },

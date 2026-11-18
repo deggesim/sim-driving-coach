@@ -24,7 +24,12 @@ import {
 } from "./setup-ladder.js";
 import { decodeAlertCodes } from "../../shared/alert-types.js";
 import { getLanguage, tm } from "../i18n-main.js";
-import { extractVoiceSummary, stripVoiceTag } from "./voice-summary.js";
+import {
+  allowedSetupAdjustments,
+  parseSynthesis,
+  renderSynthesis,
+  synthesisSchema,
+} from "./synthesis-output.js";
 import {
   parseAnalysisComments,
   parseSetupRow,
@@ -328,9 +333,13 @@ export const createSessionCoachEngine = (
       // the finished text arrives in one go via onDone.
       options.onStart?.({ sessionId, version: nextVersion });
 
-      let fullText: string;
+      // Level 1 is a JSON object (synthesis-output.ts): the setup action is
+      // checked against the ladder/overview and the headings come from the locale.
+      const allowed = allowedSetupAdjustments(stats);
+      let synthesis: string;
+      let summary: string;
       try {
-        // Two short sections plus the voice block: 2k tokens covered Haiku's
+        // Two short sections plus the voice text: 2k tokens covered Haiku's
         // typical output comfortably, but Sonnet tends to write longer prose for
         // the same instructions and occasionally hit that cap mid-sentence.
         // max_tokens is just a ceiling (billed by tokens actually generated),
@@ -341,20 +350,40 @@ export const createSessionCoachEngine = (
           max_tokens: 4000,
           system: synthesisSystemPrompt(getLanguage()),
           messages: [{ role: "user", content: prompt }],
+          output_config: {
+            format: { type: "json_schema", schema: synthesisSchema(allowed) },
+          },
         });
-        // Decoded here, before stripVoiceTag/extractVoiceSummary: the codes must
-        // not reach the saved text nor the summary the TTS reads.
-        fullText = decodeAlertCodes(
-          tm,
+        const parsed = parseSynthesis(
           msg.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
+          allowed,
         );
-
-        // Surface truncation instead of silently saving a partial analysis.
-        // A truncated Level 1 can also lose the <sintesi-vocale> block, which
-        // would leave the post-analysis TTS silent with no visible cause.
-        if (msg.stop_reason === "max_tokens") {
+        // A cut or refused answer is not valid JSON: nothing partial to save.
+        if (!parsed) {
           options.onError?.(tm("coach.error.synthesisTruncated"));
+          options.onDone?.({ sessionId, analysis: null });
+          return null;
         }
+        if (parsed.dropped.length > 0)
+          console.warn(
+            `[SessionCoach] L1 setup actions dropped: ${parsed.dropped.join(", ")}`,
+          );
+        // Decoded field by field: the codes must reach neither the saved text
+        // nor the summary the TTS reads.
+        const dec = (text: string) => decodeAlertCodes(tm, text);
+        const { out } = parsed;
+        synthesis = renderSynthesis(
+          {
+            ...out,
+            summary: dec(out.summary),
+            actions: out.actions.map((a) => ({ ...a, text: dec(a.text) })),
+          },
+          {
+            synthesis: tm("analysis.heading.synthesis"),
+            actions: tm("analysis.heading.actions"),
+          },
+        );
+        summary = dec(out.voice);
       } catch (err) {
         console.error("[SessionCoach] Claude API error:", err);
         if (isCreditOrQuotaError(err)) {
@@ -365,8 +394,6 @@ export const createSessionCoachEngine = (
         return null;
       }
 
-      const synthesis = stripVoiceTag(fullText);
-      const summary = extractVoiceSummary(fullText);
       const createdAt = new Date().toISOString();
 
       const result = db

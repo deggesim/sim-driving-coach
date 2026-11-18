@@ -67,7 +67,7 @@
       "invalidKey": "API Anthropic: chiave non valida. Verifica nelle impostazioni.",
       "rateLimit": "API Anthropic: limite di frequenza superato. Riprova tra qualche istante.",
       "quota": "API Anthropic: credito insufficiente o quota esaurita. Controlla il saldo su console.anthropic.com.",
-      "synthesisTruncated": "Sintesi troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riesegui l'analisi.",
+      "synthesisTruncated": "Sintesi troncata o non valida: limite di token raggiunto. Nulla è stato salvato; riesegui l'analisi.",
       "detailTruncated": "Analisi approfondita troncata: raggiunto il limite di token. Il testo parziale è stato salvato; riprova."
     }
   },

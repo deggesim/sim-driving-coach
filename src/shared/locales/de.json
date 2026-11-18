@@ -67,7 +67,7 @@
       "invalidKey": "Anthropic-API: ungültiger Schlüssel. Prüfe ihn in den Einstellungen.",
       "rateLimit": "Anthropic-API: Anfragelimit überschritten. Versuche es in einigen Augenblicken erneut.",
       "quota": "Anthropic-API: Guthaben unzureichend oder Kontingent erschöpft. Prüfe dein Guthaben auf console.anthropic.com.",
-      "synthesisTruncated": "Kurzanalyse abgeschnitten: Token-Limit erreicht. Der Teiltext wurde gespeichert; starte die Analyse erneut.",
+      "synthesisTruncated": "Kurzanalyse abgeschnitten oder ungültig: Token-Limit erreicht. Es wurde nichts gespeichert; starte die Analyse erneut.",
       "detailTruncated": "Detailanalyse abgeschnitten: Token-Limit erreicht. Der Teiltext wurde gespeichert; versuche es erneut."
     }
   },
