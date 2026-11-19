@@ -1064,7 +1064,7 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  height: 30px;
+  height: 35px;
   padding: 0 14px;
   background: var(--bg2);
   border-top: 1px solid var(--border);
@@ -1113,6 +1113,15 @@ body {
 }
 .status-calibration {
   color: var(--text-dim);
+}
+/* Square icon button: 4px of air above and below in the 35px bar */
+.status-update-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
 }
 /* ── Voice coach overlay ── */
 .icon-spin {

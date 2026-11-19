@@ -109,10 +109,12 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
           <Button
             variant="primary"
             size="sm"
+            className="status-update-btn"
             title={t("status.updateTitle", { version: updateVersion })}
+            aria-label={t("status.update")}
             onClick={askUpdate}
           >
-            {t("status.update")}
+            <i className="bi bi-arrow-up-circle" aria-hidden />
           </Button>
         )}
         <span>v{__APP_VERSION__}</span>
