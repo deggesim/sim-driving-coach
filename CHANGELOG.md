@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/deggesim/sim-driving-coach/compare/v2.6.0...v2.7.0) (2026-11-19)
+
+
+### Features
+
+* **coach:** costo stimato delle analisi accanto a titoli e commenti ([#34](https://github.com/deggesim/sim-driving-coach/issues/34)) ([4c3c00a](https://github.com/deggesim/sim-driving-coach/commit/4c3c00af5ee822fc6d895c3f7a5f7f93e7cc6c75))
+
 # [2.6.0](https://github.com/deggesim/sim-driving-coach/compare/v2.5.1...v2.6.0) (2026-11-18)
 
 
