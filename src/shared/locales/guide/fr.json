@@ -64,7 +64,8 @@
         "Après quelques tours, appuyez sur <b>Lancer l'analyse</b> : elle appelle l'API Claude et produit une synthèse avec des actions suggérées, que l'ingénieur lit à voix haute.",
         "Pour plus de détail, appuyez sur <b>Afficher l'analyse approfondie</b> dans l'analyse : c'est un second appel, plus long, qui ajoute télémétrie, problèmes et comparaison de setups.",
         "Chaque analyse est une version à part : avec <b>Commentaire</b>, vous ajoutez une note, écrite ou dictée, que l'ingénieur intègre.",
-        "Les conseils de setup arrivent un par un : appliquez la modification, faites quelques tours et relancez l'analyse."
+        "Les conseils de setup arrivent un par un : appliquez la modification, faites quelques tours et relancez l'analyse.",
+        "À côté de <b>Analyse synthétique</b>, de <b>Analyse approfondie</b> et de chaque <b>Commentaire</b> s'affiche le coût estimé en dollars de l'appel à Claude. Pour l'afficher ou le masquer, appuie sur <b>$</b> dans la barre de titre, ou utilise <b>Paramètres</b>, section <b>Clé API Anthropic</b>."
       ]
     },
     "history": {

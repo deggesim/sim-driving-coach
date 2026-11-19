@@ -64,7 +64,8 @@
         "After a few laps press <b>Run analysis</b>: it calls the Claude API and produces a summary with suggested actions, which the engineer reads aloud.",
         "For more detail press <b>Show deep-dive analysis</b> in the analysis: it is a second, longer call that adds telemetry, problems and a setup comparison.",
         "Each analysis is its own version: with <b>Comment</b> you add a note, typed or dictated, and the engineer folds it in.",
-        "Setup advice comes one change at a time: apply it, drive a few laps and run the analysis again."
+        "Setup advice comes one change at a time: apply it, drive a few laps and run the analysis again.",
+        "Next to <b>Summary analysis</b>, <b>In-depth analysis</b> and each <b>Comment</b> the estimated cost in dollars of the Claude call is shown. To show or hide it press <b>$</b> in the title bar, or use <b>Settings</b>, <b>Anthropic API key</b> section."
       ]
     },
     "history": {

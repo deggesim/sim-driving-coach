@@ -64,7 +64,8 @@
         "Drücke nach einigen Runden <b>Analyse starten</b>: Das ruft die Claude-API auf und liefert eine Zusammenfassung mit empfohlenen Maßnahmen, die der Renningenieur vorliest.",
         "Für mehr Details drücke in der Analyse <b>Detaillierte Analyse anzeigen</b>: ein zweiter, längerer Aufruf, der Telemetrie, Probleme und einen Setup-Vergleich ergänzt.",
         "Jede Analyse ist eine eigene Version: Mit <b>Kommentar</b> fügst du eine getippte oder diktierte Notiz hinzu, die der Renningenieur einarbeitet.",
-        "Setup-Empfehlungen kommen einzeln: Wende die Änderung an, fahre einige Runden und starte die Analyse erneut."
+        "Setup-Empfehlungen kommen einzeln: Wende die Änderung an, fahre einige Runden und starte die Analyse erneut.",
+        "Neben <b>Kurzanalyse</b>, <b>Detailanalyse</b> und jedem <b>Kommentar</b> stehen die geschätzten Kosten des Claude-Aufrufs in Dollar. Zum Ein- oder Ausblenden drücke <b>$</b> in der Titelleiste oder nutze <b>Einstellungen</b>, Abschnitt <b>Anthropic-API-Schlüssel</b>."
       ]
     },
     "history": {

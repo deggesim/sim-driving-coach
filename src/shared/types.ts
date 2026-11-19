@@ -341,6 +341,8 @@ export type AnalysisComment = {
   comment: string;
   response: string;
   created_at: string;
+  /** Estimated USD cost of the call; absent for rows saved before this field. */
+  cost?: number | null;
 };
 
 export type SessionAnalysisRow = {
@@ -352,6 +354,9 @@ export type SessionAnalysisRow = {
   summary: string | null; // ex section5_summary — estratto TTS
   created_at: string;
   comments: AnalysisComment[];
+  /** Estimated USD cost of the Level-1 / Level-2 call (null: unknown model). */
+  cost_l1?: number | null;
+  cost_l2?: number | null;
 };
 
 export type SessionDetail = {

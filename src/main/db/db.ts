@@ -293,6 +293,10 @@ const migrateSchema = (db: Database.Database): void => {
     `ALTER TABLE session_analyses_ams2 RENAME COLUMN template_v3 TO synthesis`,
     `ALTER TABLE session_analyses_ams2 RENAME COLUMN section5_summary TO summary`,
     `ALTER TABLE session_analyses_ams2 ADD COLUMN detail TEXT`,
+    ...["r3e", "ace", "ams2"].flatMap((g) => [
+      `ALTER TABLE session_analyses_${g} ADD COLUMN cost_l1 REAL`,
+      `ALTER TABLE session_analyses_${g} ADD COLUMN cost_l2 REAL`,
+    ]),
   ];
   for (const sql of migrations) {
     try {

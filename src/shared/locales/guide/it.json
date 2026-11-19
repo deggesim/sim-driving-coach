@@ -64,7 +64,8 @@
         "Dopo qualche giro premi <b>Esegui analisi</b>: chiama l'API Claude e produce una sintesi con le azioni suggerite, che l'ingegnere legge ad alta voce.",
         "Se serve più dettaglio premi <b>Mostra analisi approfondita</b> nell'analisi: è una seconda chiamata, più lunga, che aggiunge telemetria, problemi e confronto tra setup.",
         "Ogni analisi è una versione a sé: con <b>Commento</b> aggiungi una nota, scritta o dettata, e l'ingegnere la integra.",
-        "I consigli sul setup arrivano uno alla volta: applica la modifica, guida qualche giro e rilancia l'analisi."
+        "I consigli sul setup arrivano uno alla volta: applica la modifica, guida qualche giro e rilancia l'analisi.",
+        "Accanto a <b>Analisi sintetica</b>, a <b>Analisi approfondita</b> e a ogni <b>Commento</b> compare il costo stimato in dollari della chiamata a Claude. Per mostrarlo o nasconderlo premi <b>$</b> nella barra del titolo, oppure usa <b>Impostazioni</b>, sezione <b>API Key Anthropic</b>."
       ]
     },
     "history": {

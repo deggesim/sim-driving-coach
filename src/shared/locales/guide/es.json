@@ -64,7 +64,8 @@
         "Tras unas vueltas pulsa <b>Ejecutar análisis</b>: llama a la API de Claude y genera un resumen con las acciones sugeridas, que el ingeniero lee en voz alta.",
         "Si necesitas más detalle pulsa <b>Mostrar análisis detallado</b> en el análisis: es una segunda llamada, más larga, que añade telemetría, problemas y comparación de setups.",
         "Cada análisis es una versión propia: con <b>Comentario</b> añades una nota, escrita o dictada, y el ingeniero la integra.",
-        "Los consejos de setup llegan de uno en uno: aplica el cambio, da unas vueltas y vuelve a ejecutar el análisis."
+        "Los consejos de setup llegan de uno en uno: aplica el cambio, da unas vueltas y vuelve a ejecutar el análisis.",
+        "Junto a <b>Análisis resumido</b>, <b>Análisis detallado</b> y cada <b>Comentario</b> aparece el coste estimado en dólares de la llamada a Claude. Para mostrarlo u ocultarlo pulsa <b>$</b> en la barra de título, o usa <b>Ajustes</b>, sección <b>Clave de API de Anthropic</b>."
       ]
     },
     "history": {

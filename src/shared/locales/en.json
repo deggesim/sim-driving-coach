@@ -13,6 +13,7 @@
     "voice": "Engineer voice",
     "layoutColumns": "Side-by-side panels",
     "layoutRows": "Stacked panels",
+    "cost": "Show or hide the estimated cost of the analyses",
     "minimize": "Minimize",
     "maximize": "Maximize",
     "maximizeLabel": "Maximize window",
@@ -199,6 +200,10 @@
     "anthropic": {
       "title": "Anthropic API key",
       "hint": "Required for the session analysis (on demand), the comments and the voice engineer via the Claude API."
+    },
+    "cost": {
+      "label": "Analysis cost",
+      "hint": "Shows the estimated cost of each call in dollars, next to the analysis headings and the comments."
     },
     "model": {
       "label": "Model",
@@ -503,6 +508,7 @@
     "blockedMock": "Not available in mock mode: this analysis does not exist in the database.",
     "blockedWorking": "Wait for the running analysis to finish.",
     "comment": "Comment",
+    "cost": "Estimated cost of the call",
     "workingTitle": "Analysis #{{version}} (in progress…)",
     "processing": "Processing…"
   },

@@ -13,6 +13,7 @@
     "voice": "Voz del ingeniero",
     "layoutColumns": "Paneles en columnas",
     "layoutRows": "Paneles apilados",
+    "cost": "Mostrar u ocultar el coste estimado de los análisis",
     "minimize": "Minimizar",
     "maximize": "Maximizar",
     "maximizeLabel": "Maximizar ventana",
@@ -199,6 +200,10 @@
     "anthropic": {
       "title": "Clave de API de Anthropic",
       "hint": "Necesaria para el análisis de la sesión (a petición), los comentarios y el ingeniero de voz a través de la API de Claude."
+    },
+    "cost": {
+      "label": "Coste del análisis",
+      "hint": "Muestra en dólares el coste estimado de cada llamada, junto a los títulos de los análisis y a los comentarios."
     },
     "model": {
       "label": "Modelo",
@@ -503,6 +508,7 @@
     "blockedMock": "No disponible en modo mock: este análisis no existe en la base de datos.",
     "blockedWorking": "Espera a que termine el análisis en curso.",
     "comment": "Comentario",
+    "cost": "Coste estimado de la llamada",
     "workingTitle": "Análisis #{{version}} (en curso…)",
     "processing": "Procesando…"
   },
