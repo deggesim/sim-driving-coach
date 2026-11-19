@@ -140,12 +140,7 @@ export const Ams2SetupPicker = ({
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      size="xl"
-      className="screenshot-picker-modal"
-    >
+    <Modal show={show} onHide={handleClose} size="xl">
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {t("ams2Picker.title")}
@@ -298,7 +293,7 @@ export const Ams2SetupPicker = ({
 
         {phase === "verify" && decodedSetup && (
           <div className="picker-verify">
-            <div className="picker-car-check mb-3">
+            <div className="mb-3">
               {decodedSetup.carVerified ? (
                 <Badge bg="success">
                   <i className="bi bi-check-lg me-1" aria-hidden />

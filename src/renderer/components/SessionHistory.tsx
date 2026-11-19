@@ -431,15 +431,11 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
                       </Badge>
                     )}
                   </td>
-                  <td
-                    className="sh-actions"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                  <td onClick={(e) => e.stopPropagation()}>
                     {s.id >= 0 && (
                       <Button
                         variant="link"
                         size="sm"
-                        className="sh-del-btn"
                         onClick={() =>
                           setDeleteTarget({ type: "single", session: s })
                         }
@@ -456,7 +452,7 @@ const SessionHistory = ({ onSwitchToLive, startInDetail = false }: Props) => {
         )}
         <div className="sh-pagination d-flex align-items-center gap-2 px-3 py-2">
           <span
-            className="sh-page-count text-secondary"
+            className="text-secondary"
             style={{ fontSize: 12, whiteSpace: "nowrap" }}
           >
             {filtered.length === 0

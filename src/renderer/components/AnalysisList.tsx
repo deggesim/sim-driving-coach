@@ -303,7 +303,7 @@ const AnalysisList = ({ workingVersion, startClosed = false }: Props) => {
                 />
               )}
               {a.comments.length > 0 && (
-                <div className="analysis-comments">
+                <div>
                   {a.comments.map((c) => (
                     <div key={c.created_at} className="analysis-comment">
                       <div className="analysis-comment-label">

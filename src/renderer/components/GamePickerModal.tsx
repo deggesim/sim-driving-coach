@@ -40,7 +40,7 @@ export const GamePickerModal = ({ show, onCancel, onConfirm }: Props) => {
             id={`game-picker-${game}`}
             checked={selected === game}
             onChange={() => setSelected(game)}
-            className="game-picker-option mb-2"
+            className="mb-2"
             label={
               <span className="d-inline-flex align-items-center gap-2">
                 <GameBadge game={game} />

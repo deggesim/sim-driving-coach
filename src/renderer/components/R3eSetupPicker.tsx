@@ -52,12 +52,7 @@ const R3eSetupPicker = ({ show, expectedCar, onClose, onConfirm }: Props) => {
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      size="xl"
-      className="screenshot-picker-modal"
-    >
+    <Modal show={show} onHide={handleClose} size="xl">
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {t("r3ePicker.title")}
