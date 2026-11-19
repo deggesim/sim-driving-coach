@@ -82,10 +82,7 @@ const TitleBar = ({ tab, onTabChange }: TitleBarProps) => {
             )}
             aria-pressed={layout === l}
           >
-            <i
-              className={`bi bi-${l === "rows" ? "hr" : "vr"}`}
-              aria-hidden
-            />
+            <i className={`bi bi-${l === "rows" ? "hr" : "vr"}`} aria-hidden />
           </Button>
         ))}
         <Button
