@@ -1,3 +1,5 @@
+## [2.7.1](https://github.com/deggesim/sim-driving-coach/compare/v2.7.0...v2.7.1) (2026-11-20)
+
 # [2.7.0](https://github.com/deggesim/sim-driving-coach/compare/v2.6.0...v2.7.0) (2026-11-19)
 
 
