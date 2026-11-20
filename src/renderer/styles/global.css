@@ -11,6 +11,7 @@
   --bg: #0f0f0f;
   --bg2: #1a1a1a;
   --bg3: #242424;
+  --bg-input: #1f1f1f;
   --border: #2e2e2e;
   --text: #e8e8e8;
   --text-dim: #8c8c8c;
@@ -618,7 +619,7 @@ body {
   flex-shrink: 0;
 }
 .sh-filter-select {
-  background-color: var(--bg3) !important;
+  background-color: var(--bg-input) !important;
   border-color: var(--border) !important;
   color: var(--text) !important;
   font-size: 14px !important;
@@ -626,11 +627,11 @@ body {
 .sh-filter-select:focus {
   border-color: var(--accent) !important;
   box-shadow: none !important;
-  background-color: var(--bg3) !important;
+  background-color: var(--bg-input) !important;
   color: var(--text) !important;
 }
 .sh-filter-select option {
-  background: var(--bg3);
+  background: var(--bg-input);
   color: var(--text);
 }
 
@@ -769,7 +770,6 @@ body {
 }
 .setup-editor-row .form-control,
 .setup-editor-name .form-control {
-  background: var(--bg2);
   color: var(--text);
   border-color: var(--border);
 }
@@ -796,11 +796,27 @@ body {
   filter: invert(1) grayscale(1);
 }
 
-/* ── Setup Import Modal (rinomina obbligatoria da altro circuito) ── */
-.setup-import-modal .form-control {
-  background: var(--bg2);
+/* ── Text inputs / textareas / selects: dark, but distinct from the app --bg ── */
+.form-control,
+.form-select {
+  background-color: var(--bg-input);
   color: var(--text);
   border-color: var(--border);
+}
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg-input);
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: none;
+}
+.form-control::placeholder {
+  color: var(--text-dim);
+}
+.form-control:disabled,
+.form-control[readonly] {
+  background-color: var(--bg3);
+  color: var(--text-dim);
 }
 
 /* ── ACE Setup Picker Modal ── */
@@ -819,12 +835,12 @@ body {
   color: var(--bg);
 }
 .ace-setup-picker-modal .form-select {
-  background-color: var(--bg3) !important;
+  background-color: var(--bg-input) !important;
   border-color: var(--border) !important;
   color: var(--text) !important;
 }
 .ace-setup-picker-modal .form-select option {
-  background: var(--bg3);
+  background: var(--bg-input);
   color: var(--text);
 }
 
