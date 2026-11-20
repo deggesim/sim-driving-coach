@@ -6,6 +6,7 @@ colors:
   info: "#1a8ae8"
   surface-base: "#0f0f0f"
   surface-raised: "#1a1a1a"
+  surface-input: "#1f1f1f"
   surface-inset: "#242424"
   hairline: "#2e2e2e"
   text: "#e8e8e8"
@@ -212,7 +213,10 @@ Controlli sobri e utilitari: Bootstrap ridipinto, senza decorazioni.
 
 ### Inputs / Fields
 
-- Sfondo #1a1a1a, testo #e8e8e8, bordo #2e2e2e. Nelle modali l'intestazione e il piè di pagina sono #242424 con bordo #2e2e2e, e il pulsante di chiusura è invertito per lo sfondo scuro.
+- **Style:** caselle di testo, textarea e select hanno sfondo #1f1f1f (mai il fondo dell'app #0f0f0f né il bianco di Bootstrap), testo #e8e8e8, bordo 1px #2e2e2e. Valgono per tutta l'app grazie alla regola globale su `.form-control` e `.form-select`: nessun input richiede un override per modale.
+- **Focus:** bordo arancio (#e8451a), senza ombra né alone.
+- **Placeholder / Disabled:** placeholder grigio sbiadito (#8c8c8c); disabilitato o sola lettura su #242424 con testo grigio sbiadito (#8c8c8c).
+- **Modali:** dove il contenuto è #1a1a1a, il campo si stacca solo per il bordo. L'intestazione e il piè di pagina sono #242424 con bordo #2e2e2e, e il pulsante di chiusura è invertito per lo sfondo scuro.
 
 ### Navigation
 
@@ -233,6 +237,7 @@ Controlli sobri e utilitari: Bootstrap ridipinto, senza decorazioni.
 - **Do** usare le variabili `--bg`, `--bg2`, `--bg3`, `--border`, `--text`, `--text-dim`, `--accent` per ogni colore di interfaccia.
 - **Do** aggiungere l'override scuro in `global.css` per ogni componente Bootstrap nuovo (modale, accordion, card).
 - **Do** distinguere i livelli con un grigio più chiaro e un bordo da 1px.
+- **Do** dare a ogni casella di testo, textarea e select lo sfondo `--bg-input` (#1f1f1f, tra `--bg2` e `--bg3`), mai `--bg` né il bianco di Bootstrap, con la regola globale su `.form-control` e `.form-select`.
 - **Do** riservare l'arancio a ciò che è attivo, ai titoli di sezione dell'analisi e al punto di attenzione.
 - **Do** mostrare sempre il dato numerico accanto alla sua etichetta, con testo da ingegnere.
 
