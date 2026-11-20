@@ -76,7 +76,7 @@ export const SetupEditorModal = ({
   };
 
   return (
-    <Modal show onHide={onClose} size="xl" className="screenshot-picker-modal">
+    <Modal show onHide={onClose} size="xl">
       <Modal.Header className="picker-header">
         <Modal.Title className="picker-title">
           {editing ? t("setupDetail.edit") : t("setupDetail.duplicate")}

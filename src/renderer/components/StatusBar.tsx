@@ -84,7 +84,7 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
 
       {/* Car / Track */}
       {status.car && (
-        <div className="status-session">
+        <div>
           <span className="status-car">{status.car}</span>
           {status.track && (
             <>
@@ -111,9 +111,10 @@ const StatusBar = ({ status, onResetReader }: StatusBarProps) => {
             size="sm"
             className="status-update-btn"
             title={t("status.updateTitle", { version: updateVersion })}
+            aria-label={t("status.update")}
             onClick={askUpdate}
           >
-            {t("status.update")}
+            <i className="bi bi-arrow-up-circle" aria-hidden />
           </Button>
         )}
         <span>v{__APP_VERSION__}</span>
