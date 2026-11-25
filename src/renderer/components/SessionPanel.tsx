@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Button, Modal } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import type { GameSource, SessionStartResult } from "../../shared/types";
-import { useFlash } from "../hooks/useFlash";
 import { useSetupPicker } from "../hooks/useSetupPicker";
 import { rendererI18n } from "../i18n";
 import { useIPCStore } from "../store/ipcStore";
@@ -12,7 +11,6 @@ import AceSetupPicker from "./AceSetupPicker";
 import { Ams2SetupPicker } from "./Ams2SetupPicker";
 import AnalysisHeader from "./AnalysisHeader";
 import AnalysisList from "./AnalysisList";
-import { AppToast } from "./AppToast";
 import { GamePickerModal } from "./GamePickerModal";
 import LapsTable from "./LapsTable";
 import { ReadinessList } from "./ReadinessList";
@@ -60,7 +58,7 @@ const SessionPanel = ({
   const session = useSessionStore((s) => s.session);
   const analyses = useSessionStore((s) => s.analyses);
   const working = useSessionStore((s) => s.working);
-  const { flash, setFlash, showFlash } = useFlash();
+  const showFlash = useIPCStore((s) => s.setToast);
   const {
     showPicker,
     setShowPicker,
@@ -115,11 +113,8 @@ const SessionPanel = ({
     setShowGamePicker(false);
     const res = await window.electronAPI.sessionStart(game);
     announceOutcome(res);
-    if (!res.ok) {
-      showFlash("danger", res.reason);
-    } else {
-      showFlash("success", t("panel.opened"));
-    }
+    // Success toast comes from the session:started push (also fires for voice).
+    if (!res.ok) showFlash("danger", res.reason);
   };
 
   const handleEnd = async (): Promise<void> => {
@@ -185,12 +180,6 @@ const SessionPanel = ({
         onOpenPicker={() => setShowSetupSelection(true)}
         onBack={!isLive ? onBack : undefined}
         onReopen={!isLive && !sessionActive ? handleReopen : undefined}
-      />
-
-      <AppToast
-        variant={flash?.variant}
-        text={flash?.text}
-        onClose={() => setFlash(null)}
       />
 
       {isLive && !session && onOpenSettings && (

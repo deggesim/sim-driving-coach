@@ -4,7 +4,6 @@ type AppToastProps = {
   variant?: string;
   text?: string | null;
   onClose: () => void;
-  zIndex?: number;
 };
 
 const ICONS: Record<string, string> = {
@@ -19,12 +18,11 @@ export const AppToast = ({
   variant = "info",
   text,
   onClose,
-  zIndex = 1050,
 }: AppToastProps) => (
   <ToastContainer
     position="top-center"
     className="p-3"
-    style={{ position: "fixed", zIndex }}
+    style={{ position: "fixed", zIndex: 1100 }}
   >
     <Toast
       show={!!text}

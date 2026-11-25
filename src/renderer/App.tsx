@@ -60,8 +60,9 @@ const App = () => {
     setOpenClosed(false);
     setTab(next);
   };
-  // Shared by main-process errors and renderer failures (`setAppError`).
-  const appError = useIPCStore((s) => s.appError);
+  // One toast slot: main-process errors and renderer failures (`setAppError`) plus `setToast` messages.
+  const toast = useIPCStore((s) => s.toast);
+  const clearToast = useIPCStore((s) => s.clearToast);
   const setAppError = useIPCStore((s) => s.setAppError);
 
   useEffect(() => {
@@ -101,12 +102,12 @@ const App = () => {
       {/* Title bar (frameless Electron drag area) */}
       <TitleBar tab={tab} onTabChange={changeTab} />
 
-      {/* Global error toast - main-process errors (Azure TTS/Claude quota) and renderer failures; above modals (z-index 1055) */}
+      {/* Global toast; above modals (z-index 1055) */}
       <AppToast
-        variant="danger"
-        text={appError}
-        onClose={() => setAppError(null)}
-        zIndex={1100}
+        key={toast?.id}
+        variant={toast?.variant}
+        text={toast?.text}
+        onClose={clearToast}
       />
 
       {/* Main content */}

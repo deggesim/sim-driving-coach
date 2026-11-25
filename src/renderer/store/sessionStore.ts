@@ -170,6 +170,12 @@ export const useSessionStore = create<State>((set, get) => ({
       game: s.session.game,
     });
     set({ analyses: s.analyses.filter((a) => a.id !== id) });
+    useIPCStore.getState().setToast(
+      "info",
+      rendererI18n.t("session.analysisDeleted", {
+        version: s.analyses.find((a) => a.id === id)?.version ?? id,
+      }),
+    );
   },
 
   commentAnalysis: async (id, comment) => {
@@ -283,6 +289,12 @@ export const useSessionStore = create<State>((set, get) => ({
   _applySetupLoaded: ({ sessionId, setup, activate }) => {
     const s = get();
     if (!s.session || s.session.id !== sessionId) return;
+    useIPCStore
+      .getState()
+      .setToast(
+        "success",
+        rendererI18n.t("setupPicker.loaded", { name: setup.setup.name }),
+      );
     set({
       setups: [...s.setups, setup],
       activeSetupId: activate === false ? s.activeSetupId : setup.id,
@@ -324,6 +336,12 @@ export const useSessionStore = create<State>((set, get) => ({
     // If same session is being reopened, preserve existing laps/setups/analyses.
     // For a truly new session (different ID), reset everything.
     const isSameSession = current.session?.id === session.id;
+    useIPCStore
+      .getState()
+      .setToast(
+        "success",
+        rendererI18n.t(isSameSession ? "panel.reopened" : "panel.opened"),
+      );
     set({
       mode: "live",
       session,
@@ -337,6 +355,7 @@ export const useSessionStore = create<State>((set, get) => ({
   },
 
   _applySessionClosed: ({ id }) => {
+    useIPCStore.getState().setToast("info", rendererI18n.t("panel.closed"));
     const s = get();
     if (!s.session || s.session.id !== id) return;
     set({

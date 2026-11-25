@@ -391,6 +391,7 @@
     "assigned": "Setup {{laps}} zugewiesen."
   },
   "session": {
+    "analysisDeleted": "Analyse #{{version}} gelöscht.",
     "commentError": "Fehler beim Einarbeiten des Kommentars.",
     "expandError": "Fehler bei der Vertiefung."
   },
@@ -488,6 +489,8 @@
   },
   "panel": {
     "opened": "Sitzung geöffnet.",
+    "reopened": "Sitzung wieder geöffnet.",
+    "closed": "Sitzung geschlossen.",
     "reopenError": "Fehler beim Wiedereröffnen",
     "analyzeError": "Fehler bei der Analyse",
     "analyzing": "Analyse läuft…",
