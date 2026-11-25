@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Button, Modal, Toast, ToastContainer } from "react-bootstrap";
+import { Button, Modal } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import type { GameSource, SessionStartResult } from "../../shared/types";
 import { useFlash } from "../hooks/useFlash";
@@ -12,6 +12,7 @@ import AceSetupPicker from "./AceSetupPicker";
 import { Ams2SetupPicker } from "./Ams2SetupPicker";
 import AnalysisHeader from "./AnalysisHeader";
 import AnalysisList from "./AnalysisList";
+import { AppToast } from "./AppToast";
 import { GamePickerModal } from "./GamePickerModal";
 import LapsTable from "./LapsTable";
 import { ReadinessList } from "./ReadinessList";
@@ -186,26 +187,11 @@ const SessionPanel = ({
         onReopen={!isLive && !sessionActive ? handleReopen : undefined}
       />
 
-      <ToastContainer
-        position="top-end"
-        className="p-3"
-        style={{ position: "fixed", zIndex: 1050 }}
-      >
-        <Toast
-          show={!!flash}
-          onClose={() => setFlash(null)}
-          bg={flash?.variant}
-        >
-          <Toast.Header
-            closeButton
-            closeVariant="white"
-            className="text-white bg-transparent border-0"
-          >
-            <strong className="me-auto">Sim Coach</strong>
-          </Toast.Header>
-          <Toast.Body className="text-white pt-0">{flash?.text}</Toast.Body>
-        </Toast>
-      </ToastContainer>
+      <AppToast
+        variant={flash?.variant}
+        text={flash?.text}
+        onClose={() => setFlash(null)}
+      />
 
       {isLive && !session && onOpenSettings && (
         <ReadinessList onOpenSettings={onOpenSettings} />
