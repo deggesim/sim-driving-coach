@@ -391,6 +391,7 @@
     "assigned": "Setup attribué à {{laps}}."
   },
   "session": {
+    "analysisDeleted": "Analyse #{{version}} supprimée.",
     "commentError": "Erreur lors de l'intégration du commentaire.",
     "expandError": "Erreur lors de l'approfondissement."
   },
@@ -488,6 +489,8 @@
   },
   "panel": {
     "opened": "Session ouverte.",
+    "reopened": "Session rouverte.",
+    "closed": "Session fermée.",
     "reopenError": "Erreur lors de la réouverture",
     "analyzeError": "Erreur pendant l'analyse",
     "analyzing": "Analyse en cours…",

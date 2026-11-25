@@ -5,7 +5,8 @@
  */
 
 import { Suspense, use, useEffect, useState } from "react";
-import { Spinner, Toast, ToastContainer } from "react-bootstrap";
+import { Spinner } from "react-bootstrap";
+import { AppToast } from "./components/AppToast";
 import GuidePanel from "./components/GuidePanel";
 import RealtimeAnalysis from "./components/RealtimeAnalysis";
 import SessionHistory from "./components/SessionHistory";
@@ -59,8 +60,9 @@ const App = () => {
     setOpenClosed(false);
     setTab(next);
   };
-  // Shared by main-process errors and renderer failures (`setAppError`).
-  const appError = useIPCStore((s) => s.appError);
+  // One toast slot: main-process errors and renderer failures (`setAppError`) plus `setToast` messages.
+  const toast = useIPCStore((s) => s.toast);
+  const clearToast = useIPCStore((s) => s.clearToast);
   const setAppError = useIPCStore((s) => s.setAppError);
 
   useEffect(() => {
@@ -100,23 +102,13 @@ const App = () => {
       {/* Title bar (frameless Electron drag area) */}
       <TitleBar tab={tab} onTabChange={changeTab} />
 
-      {/* Global error toast - main-process errors (Azure TTS/Claude quota) and renderer failures; above modals (z-index 1055) */}
-      <ToastContainer
-        position="top-end"
-        className="p-3"
-        style={{ position: "fixed", zIndex: 1100 }}
-      >
-        <Toast show={!!appError} onClose={() => setAppError(null)} bg="danger">
-          <Toast.Header
-            closeButton
-            closeVariant="white"
-            className="text-white bg-transparent border-0"
-          >
-            <strong className="me-auto">Sim Coach</strong>
-          </Toast.Header>
-          <Toast.Body className="text-white pt-0">{appError}</Toast.Body>
-        </Toast>
-      </ToastContainer>
+      {/* Global toast; above modals (z-index 1055) */}
+      <AppToast
+        key={toast?.id}
+        variant={toast?.variant}
+        text={toast?.text}
+        onClose={clearToast}
+      />
 
       {/* Main content */}
       <div className="main-content">

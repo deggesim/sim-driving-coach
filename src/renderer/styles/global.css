@@ -1454,3 +1454,21 @@ body {
   border-radius: 2px;
   box-shadow: 0 0 0 1px var(--border);
 }
+
+/* ── Toast: dark card, two-colour border (green = success, orange = the rest) ── */
+.app-toast {
+  --bs-toast-bg: var(--bg3);
+  --bs-toast-color: var(--text);
+  --toast-color: var(--accent);
+  min-width: 320px;
+  border: 2px solid var(--toast-color);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 50%);
+}
+
+.app-toast--success {
+  --toast-color: var(--green);
+}
+
+.app-toast__icon {
+  color: var(--toast-color);
+}
