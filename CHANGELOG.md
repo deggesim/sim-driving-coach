@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/deggesim/sim-driving-coach/compare/v2.7.2...v2.8.0) (2026-11-25)
+
+
+### Features
+
+* **renderer:** toast condiviso con bordo verde/arancio e nuovi toast di sessione ([#38](https://github.com/deggesim/sim-driving-coach/issues/38)) ([5352b86](https://github.com/deggesim/sim-driving-coach/commit/5352b863bd7bf2158d692a03f0cbb2f2a15f33e7))
+
 ## [2.7.2](https://github.com/deggesim/sim-driving-coach/compare/v2.7.1...v2.7.2) (2026-11-20)
 
 ## [2.7.1](https://github.com/deggesim/sim-driving-coach/compare/v2.7.0...v2.7.1) (2026-11-20)
